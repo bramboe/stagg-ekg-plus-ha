@@ -4,6 +4,14 @@ DOMAIN = "fellow_stagg"
 SERVICE_UUID = "B4DF5A1C-3F6B-F4BF-EA4A-82030490-1A02"
 CHAR_UUID = "B4DF5A1C-3F6B-F4BF-EA4A-820350FF1A02"
 
-# The magic init sequence (in hex) used to authenticate with the kettle:
-# ef dd 0b 30 31 32 33 34 35 36 37 38 39 30 31 32 33 34 9a 6d
-INIT_SEQUENCE = bytes.fromhex("efdd0b3031323334353637383930313233349a6d")
+# The authentication sequences (in hex) used to communicate with the EKG-2d-25-b0 kettle
+AUTH_SEQUENCES = {
+    "proto_ver": bytes.fromhex("455350"),
+    "prov_session": bytes.fromhex("10015A25A20122A0A204A1C799EB1238CB23A45930C781AD2B12A8A343DCA08CA89EDF9032E03471F2D"),
+    "prov_scan": [
+        bytes.fromhex("F1CE12082DC8"),
+        bytes.fromhex("24C1F300"),
+        bytes.fromhex("97C13A480E67"),
+        bytes.fromhex("5C894ABA1CEC1D91")
+    ]
+}
