@@ -2,7 +2,7 @@ DOMAIN = "fellow_stagg"
 
 # BLE UUIDs for the Fellow Stagg kettle’s “Serial Port Service”
 SERVICE_UUID = "B4DF5A1C-3F6B-F4BF-EA4A-82030490-1A02"
-CHAR_UUID = "B4DF5A1C-3F6B-F4BF-EA4A-820353FF1A02"
+CHAR_UUID = "B4DF5A1C-3F6B-F4BF-EA4A-820354FF1A02"
 
 # The magic init sequence for the EKG-2d-25-b0 kettle:
 # First write "ESP" to proto-ver characteristic (handle 0x0015)
