@@ -19,7 +19,7 @@ from .kettle_ble import KettleBLEClient
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.WATER_HEATER]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.WATER_HEATER]
 POLLING_INTERVAL = timedelta(seconds=5)  # Poll every 5 seconds (minimum allowed)
 
 # Temperature ranges for the kettle
@@ -133,19 +133,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
   
   _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
   return True
-
-  # In the async_setup_entry function:
-  await hass.config_entries.async_forward_entry_setups(
-      entry, ["sensor", "binary_sensor", "switch", "number", "water_heater"]
-  )
-
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-  """Unload a config entry."""
-  _LOGGER.debug("Unloading Fellow Stagg integration for entry: %s", entry.entry_id)
-  if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-    hass.data[DOMAIN].pop(entry.entry_id)
-  return unload_ok
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
