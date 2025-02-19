@@ -5,5 +5,5 @@ SERVICE_UUID = "B4DF5A1C-3F6B-F4BF-EA4A-82030490-1A02"
 CHAR_UUID = "B4DF5A1C-3F6B-F4BF-EA4A-820350FF1A02"
 
 # The magic init sequence (in hex) used to authenticate with the kettle:
-# 45 53 50 10 01 5a 25 a2 01 22 0a 20 a4 1c 79 9e b1 23 8c b2
-INIT_SEQUENCE = bytes.fromhex("45535010015a25a20122a0a204a1c799eb1238cb2")
+# f1 ce 12 08 2d c8 24 c1 f3 00 97 c1 3a 48 0e 67 5c 89 4a ba
+INIT_SEQUENCE = bytes.fromhex("f1ce12082dc824c1f30097c13a480e675c894aba")
