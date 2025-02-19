@@ -128,8 +128,7 @@ class KettleBLEClient:
         100: 0xC880,  # Boiling point (100°C / 212°F)
         90:  0xB480,  # 90°
         82:  0xA480,  # 82°
-        73.5:0x9380,  # 73.5°
-        # Add more mappings as needed
+        73.5: 0x9380,  # 73.5°
     }
 
     # Find the closest mapped temperature
