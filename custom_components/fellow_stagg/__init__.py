@@ -28,22 +28,6 @@ MAX_TEMP_F = 212
 MIN_TEMP_C = 40
 MAX_TEMP_C = 100
 
-# Add to your coordinator class
-class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
-    # Existing code...
-    
-    async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from the kettle."""
-        try:
-            data = await self.kettle.async_poll(self.ble_device)
-            # If we got data, connection was successful
-            self.last_update_success = bool(data)
-            return data
-        except Exception as err:
-            # Update failed, mark connection as failed
-            self.last_update_success = False
-            raise UpdateFailed(f"Error communicating with kettle: {err}") from err
-
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
   """Class to manage fetching Fellow Stagg data."""
 
@@ -58,6 +42,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
     self.kettle = KettleBLEClient(address)
     self.ble_device = None
     self._address = address
+    self.last_update_success = False  # Initialize connection status
 
     self.device_info = DeviceInfo(
       identifiers={(DOMAIN, address)},
@@ -88,6 +73,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
     self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
     if not self.ble_device:
       _LOGGER.debug("No connectable device found")
+      self.last_update_success = False
       return None
         
     try:
@@ -98,6 +84,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
         self._address,
         data,
       )
+      
+      # Mark update as successful if we got data
+      self.last_update_success = bool(data)
       
       # Log any changes in data compared to previous state
       if self.data is not None:
@@ -116,6 +105,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
         self._address,
         str(e),
       )
+      self.last_update_success = False
       return None
 
 
