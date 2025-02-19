@@ -28,6 +28,21 @@ MAX_TEMP_F = 212
 MIN_TEMP_C = 40
 MAX_TEMP_C = 100
 
+# Add to your coordinator class
+class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
+    # Existing code...
+    
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Fetch data from the kettle."""
+        try:
+            data = await self.kettle.async_poll(self.ble_device)
+            # If we got data, connection was successful
+            self.last_update_success = bool(data)
+            return data
+        except Exception as err:
+            # Update failed, mark connection as failed
+            self.last_update_success = False
+            raise UpdateFailed(f"Error communicating with kettle: {err}") from err
 
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
   """Class to manage fetching Fellow Stagg data."""
