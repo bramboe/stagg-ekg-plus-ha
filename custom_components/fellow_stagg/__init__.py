@@ -4,8 +4,6 @@ import logging
 from datetime import timedelta
 from typing import Any, Optional, Dict
 
-from bleak import BleakScanner  # Import directly from bleak
-
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
 )
@@ -83,22 +81,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug(f"Starting Bluetooth device discovery for {self._address}")
 
         try:
-            # Strategy 1: Direct BleakScanner discovery
-            _LOGGER.debug("Using BleakScanner for device discovery")
-            devices = await BleakScanner.discover()
-            matching_devices = [
-                dev for dev in devices
-                if dev.address.lower() == self._address.lower()
-            ]
-
-            if matching_devices:
-                _LOGGER.debug(f"Found device via BleakScanner: {matching_devices[0]}")
-                return matching_devices[0]
-        except Exception as e:
-            _LOGGER.error(f"BleakScanner discovery failed: {e}")
-
-        try:
-            # Strategy 2: Direct address lookup
+            # Strategy 1: Direct address lookup
             device = async_ble_device_from_address(self.hass, self._address, True)
             if device:
                 _LOGGER.debug(f"Found device via direct address lookup: {device}")
