@@ -40,9 +40,10 @@ class FellowStaggPowerSwitch(SwitchEntity):
     _LOGGER.debug("Initialized power switch for %s", coordinator._address)
 
   @property
-  def is_on(self) -> bool | None:
+  def is_on(self) -> bool:
     """Return true if the switch is on."""
-    value = self.coordinator.data.get("power")
+    # Safely get power state with a default of False
+    value = (self.coordinator.data or {}).get("power", False)
     _LOGGER.debug("Power switch state read as: %s", value)
     return value
 
@@ -64,4 +65,4 @@ class FellowStaggPowerSwitch(SwitchEntity):
     # Give the kettle a moment to update its internal state
     await asyncio.sleep(0.5)
     _LOGGER.debug("Requesting refresh after power change")
-    await self.coordinator.async_request_refresh() 
+    await self.coordinator.async_request_refresh()
