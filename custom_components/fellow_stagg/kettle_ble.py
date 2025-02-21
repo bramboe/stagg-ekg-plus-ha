@@ -7,7 +7,6 @@ from .const import SERVICE_UUID, CHAR_UUID, INIT_SEQUENCE
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class KettleBLEClient:
     """BLE client for the Fellow Stagg EKG+ kettle."""
 
@@ -19,104 +18,69 @@ class KettleBLEClient:
         self._max_retries = 3
         self._retry_delay = 2  # seconds between retries
 
-    async def _find_device(self):
-        """Attempt to find the BLE device using Bleak's scanner."""
-        _LOGGER.debug(f"Scanning for Fellow Stagg kettle with address {self.address}")
+    async def _safe_connect(self, client: BleakClient):
+        """Ensure safe connection with error handling."""
         try:
-            # Scan for the specific device
-            devices = await BleakScanner.discover(
-                timeout=10.0,
-                return_adv=False
-            )
+            await client.connect(timeout=10.0)
 
-            # Filter devices by address
-            matching_devices = [
-                device for device in devices
-                if device.address.lower() == self.address.lower()
-            ]
+            # Verify services and characteristics
+            services = await client.get_services()
+            target_service = services.get_service(self.service_uuid)
 
-            if matching_devices:
-                _LOGGER.debug(f"Found device: {matching_devices[0]}")
-                return matching_devices[0]
+            if not target_service:
+                _LOGGER.error(f"Service {self.service_uuid} not found")
+                return None
 
-            _LOGGER.warning(f"No device found with address {self.address}")
-            return None
+            target_char = target_service.get_characteristic(self.char_uuid)
+            if not target_char:
+                _LOGGER.error(f"Characteristic {self.char_uuid} not found")
+                return None
 
+            return client
         except Exception as e:
-            _LOGGER.error(f"Error during device discovery: {e}")
+            _LOGGER.error(f"Connection error: {e}")
             return None
 
     async def _ensure_connected(self, ble_device=None):
-        """Robust connection with multiple retry mechanisms."""
+        """Robust connection with multiple strategies."""
         for attempt in range(self._max_retries):
             try:
-                # If no device is provided, attempt to find it
+                # If no device provided, create client directly from address
                 if ble_device is None:
-                    ble_device = await self._find_device()
-                    if not ble_device:
-                        raise BleakError("Cannot find BLE device")
-
-                # If already connected, return
-                if self._client and self._client.is_connected:
-                    return self._client
+                    client = BleakClient(self.address)
+                else:
+                    client = BleakClient(ble_device)
 
                 # Attempt connection
-                _LOGGER.debug(f"Connecting to {self.address} (Attempt {attempt + 1})")
-                self._client = BleakClient(ble_device, timeout=10.0)
-                await self._client.connect()
+                _LOGGER.debug(f"Connection attempt {attempt + 1}")
+                connected_client = await self._safe_connect(client)
 
-                # Authenticate after connection
-                await self._authenticate()
+                if connected_client:
+                    # Authenticate after connection
+                    try:
+                        _LOGGER.debug("Starting authentication")
+                        await connected_client.write_gatt_char(self.char_uuid, INIT_SEQUENCE)
+                        _LOGGER.debug("Authentication successful")
+                    except Exception as auth_err:
+                        _LOGGER.error(f"Authentication failed: {auth_err}")
+                        await connected_client.disconnect()
+                        continue
 
-                return self._client
+                    return connected_client
 
             except Exception as e:
-                _LOGGER.error(f"Connection attempt {attempt + 1} failed: {e}")
-
-                # Disconnect if partial connection occurred
-                if self._client:
-                    try:
-                        await self._client.disconnect()
-                    except:
-                        pass
-                    self._client = None
-
-                # Wait before retrying
-                if attempt < self._max_retries - 1:
-                    await asyncio.sleep(self._retry_delay)
+                _LOGGER.error(f"Connection attempt failed: {e}")
+                await asyncio.sleep(self._retry_delay)
 
         _LOGGER.error(f"Failed to connect to {self.address} after {self._max_retries} attempts")
         return None
 
-    async def _authenticate(self):
-        """Robust authentication process."""
-        try:
-            _LOGGER.debug("Starting authentication by writing init sequence")
-            await self._client.write_gatt_char(self.char_uuid, INIT_SEQUENCE)
-            _LOGGER.debug("Init sequence written successfully")
-        except Exception as e:
-            _LOGGER.error(f"Authentication failed: {e}")
-            raise
-
-    def _create_command(self, command_type: int, value: int) -> bytes:
-        """Basic command structure."""
-        return bytes([
-            0xef, 0xdd,  # Magic
-            0x0a,        # Command flag
-            0x00,        # Sequence (simplified to 0)
-            command_type,
-            value,
-            value,      # Simple checksum
-            command_type
-        ])
-
     async def async_poll(self, ble_device=None):
         """Connect to the kettle, send init command, and return parsed state."""
         try:
-            # Ensure connection
             client = await self._ensure_connected(ble_device)
             if not client:
-                _LOGGER.error("Failed to establish BLE connection")
+                _LOGGER.error("No client connection established")
                 return {}
 
             # Collect notifications
@@ -130,7 +94,7 @@ class KettleBLEClient:
                 await asyncio.sleep(2.0)
                 await client.stop_notify(self.char_uuid)
             except Exception as err:
-                _LOGGER.error(f"Error during notifications: {err}")
+                _LOGGER.error(f"Notification error: {err}")
                 return {}
 
             # Parse and return state
@@ -138,11 +102,16 @@ class KettleBLEClient:
             return state
 
         except Exception as err:
-            _LOGGER.error(f"Error polling kettle: {err}")
+            _LOGGER.error(f"Polling error: {err}")
             return {}
         finally:
             # Always attempt to disconnect
-            await self.disconnect()
+            if self._client and self._client.is_connected:
+                try:
+                    await self._client.disconnect()
+                except:
+                    pass
+                self._client = None
 
     async def async_set_power(self, ble_device, power_on: bool):
         """Turn the kettle on or off with robust connection handling."""
@@ -154,14 +123,15 @@ class KettleBLEClient:
             command = self._create_command(0, 1 if power_on else 0)
             await client.write_gatt_char(self.char_uuid, command)
         except Exception as err:
-            _LOGGER.error(f"Error setting power state: {err}")
+            _LOGGER.error(f"Power control error: {err}")
             raise
         finally:
-            await self.disconnect()
+            if client and client.is_connected:
+                await client.disconnect()
 
     async def async_set_temperature(self, ble_device, temp: int, fahrenheit: bool = True):
         """Set target temperature with robust connection handling."""
-        # Temperature conversion logic remains the same as before
+        # Temperature conversion logic
         if fahrenheit:
             if temp > 212:
                 temp = 212
@@ -184,24 +154,14 @@ class KettleBLEClient:
             command = self._create_command(1, temp_value)
             await client.write_gatt_char(self.char_uuid, command)
         except Exception as err:
-            _LOGGER.error(f"Error setting temperature: {err}")
+            _LOGGER.error(f"Temperature setting error: {err}")
             raise
         finally:
-            await self.disconnect()
-
-    async def disconnect(self):
-        """Safely disconnect from the kettle."""
-        if self._client and self._client.is_connected:
-            try:
-                await self._client.disconnect()
-            except Exception as e:
-                _LOGGER.warning(f"Error during disconnection: {e}")
-            finally:
-                self._client = None
+            if client and client.is_connected:
+                await client.disconnect()
 
     def parse_notifications(self, notifications):
         """Parse BLE notification payloads into kettle state."""
-        # Parsing logic remains the same as previous implementation
         state = {}
         i = 0
         while i < len(notifications) - 1:  # Process pairs of notifications
@@ -247,8 +207,22 @@ class KettleBLEClient:
 
             i += 2  # Move to next pair of notifications
 
-        # Ensure some default values if not populated
+        # Ensure default values
         state.setdefault("power", False)
         state.setdefault("units", "C")
+        state.setdefault("current_temp", None)
+        state.setdefault("target_temp", None)
 
         return state
+
+    def _create_command(self, command_type: int, value: int) -> bytes:
+        """Basic command structure."""
+        return bytes([
+            0xef, 0xdd,  # Magic
+            0x0a,        # Command flag
+            0x00,        # Sequence (simplified to 0)
+            command_type,
+            value,
+            value,      # Simple checksum
+            command_type
+        ])
