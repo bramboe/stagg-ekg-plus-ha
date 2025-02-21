@@ -29,27 +29,27 @@ MIN_TEMP_C = 40
 MAX_TEMP_C = 100
 
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
-  """Class to manage fetching Fellow Stagg data."""
+    """Class to manage fetching Fellow Stagg data."""
 
-  def __init__(self, hass: HomeAssistant, address: str) -> None:
-    """Initialize the coordinator."""
-    super().__init__(
-      hass,
-      _LOGGER,
-      name=f"Fellow Stagg {address}",
-      update_interval=POLLING_INTERVAL,
-    )
-    self.kettle = KettleBLEClient(address)
-    self.ble_device = None
-    self._address = address
-    self.last_update_success = False  # Initialize connection status
+    def __init__(self, hass: HomeAssistant, address: str) -> None:
+        """Initialize the coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=f"Fellow Stagg {address}",
+            update_interval=POLLING_INTERVAL,
+        )
+        self.kettle = KettleBLEClient(address)
+        self.ble_device = None
+        self._address = address
+        self.last_update_success = False  # Initialize connection status
 
-    self.device_info = DeviceInfo(
-      identifiers={(DOMAIN, address)},
-      name=f"Fellow Stagg EKG+ {address}",
-      manufacturer="Fellow",
-      model="Stagg EKG+",
-    )
+        self.device_info = DeviceInfo(
+            identifiers={(DOMAIN, address)},
+            name=f"Fellow Stagg EKG Pro {address}",
+            manufacturer="Fellow",
+            model="Stagg EKG Pro",
+        )
 
   @property
   def temperature_unit(self) -> str:
