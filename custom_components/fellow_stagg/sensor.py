@@ -128,11 +128,11 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
         self._attr_unique_id = f"{coordinator._address}_{description.key}"
         self._attr_device_info = coordinator.device_info
 
-                    # Safely get units, defaulting to Fahrenheit
-            is_fahrenheit = (self.coordinator.data or {}).get("units", "F") == "F"
-            self._attr_native_unit_of_measurement = (
-                UnitOfTemperature.FAHRENHEIT if is_fahrenheit else UnitOfTemperature.CELSIUS
-            )
+        # Safely get units, defaulting to Fahrenheit
+        is_fahrenheit = (self.coordinator.data or {}).get("units", "F") == "F"
+        self._attr_native_unit_of_measurement = (
+            UnitOfTemperature.FAHRENHEIT if is_fahrenheit else UnitOfTemperature.CELSIUS
+        )
 
     @property
     def native_value(self) -> str | None:
