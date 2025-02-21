@@ -3,10 +3,12 @@
   "name": "Fellow Stagg EKG PRO",
   "codeowners": ["@bramboe"],
   "config_flow": true,
-  "dependencies": ["bluetooth_adapters", "bluetooth"],
-  "documentation": "https://github.com/levi/stagg-ekg-plus",
+  "dependencies": ["bluetooth"],
+  "documentation": "https://github.com/yourusername/fellow_stagg",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/levi/stagg-ekg-plus/issues",
-  "requirements": ["bleak"],
+  "requirements": [
+    "bleak>=0.21.1",
+    "bleak-retry-connector>=3.3.0"
+  ],
   "version": "0.3.0"
 }
