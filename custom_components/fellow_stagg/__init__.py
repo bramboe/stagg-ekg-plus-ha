@@ -7,8 +7,9 @@ from typing import Any, Optional, Dict
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
     async_register_scanner,
-    BleakScanner,
 )
+from bleak import BleakScanner  # Import BleakScanner directly from bleak
+from bleak.exc import BleakError  # Already imported correctly
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
