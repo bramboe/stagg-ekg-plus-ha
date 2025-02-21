@@ -110,8 +110,8 @@ class KettleBLEClient:
             raise
 
     async def async_set_temperature(self, ble_device, temp: int, fahrenheit: bool = True):
-        """Set target temperature using the discovered BLE encoding."""
-        # Temperature validation from existing setTemp method
+        """Set target temperature."""
+        # Temperature validation from C++ setTemp method
         if fahrenheit:
             if temp > 212:
                 temp = 212
@@ -122,42 +122,12 @@ class KettleBLEClient:
                 temp = 100
             if temp < 40:
                 temp = 40
-    
-        # Temperature encoding mapping (discovered from BLE logs)
-        temp_mapping = {
-            100: 0xC880,  # Boiling point (100°C / 212°F)
-            90:  0xB480,  # 90°
-            82:  0xA480,  # 82°
-            73.5: 0x9380,  # 73.5°
-        }
-    
-        # Find the closest mapped temperature
-        closest_temp = min(temp_mapping.keys(), key=lambda x: abs(x - temp))
-        hex_value = temp_mapping[closest_temp]
-    
+
         try:
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
-    
-            # Create a command similar to the existing setTemp method
             command = self._create_command(1, temp)  # Type 1 = temperature command
-            
-            # Additional BLE notification for the Fellow Stagg custom protocol
-            custom_command = bytes([
-                0xF7, 0x17,  # Consistent header
-                0x00, 0x00,  # Padding
-                (hex_value >> 8) & 0xFF,  # High byte of hex value
-                hex_value & 0xFF,         # Low byte of hex value
-                0xC0, 0x80,  # Consistent trailer
-                0x00, 0x00,
-                0x02, 0x01,  # Consistent metadata
-                0x0F, 0x00
-            ])
-    
-            # Write both commands
             await self._client.write_gatt_char(self.char_uuid, command)
-            await self._client.write_gatt_char(self.char_uuid, custom_command)
-    
         except Exception as err:
             _LOGGER.error("Error setting temperature: %s", err)
             if self._client and self._client.is_connected:
