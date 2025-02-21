@@ -46,25 +46,25 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
-            name=f"Fellow Stagg EKG Pro {address}",
+            name=f"Fellow Stagg EKG+ {address}",
             manufacturer="Fellow",
-            model="Stagg EKG Pro",
+            model="Stagg EKG+",
         )
 
-  @property
-  def temperature_unit(self) -> str:
-    """Get the current temperature unit."""
-    return UnitOfTemperature.FAHRENHEIT if self.data and self.data.get("units") == "F" else UnitOfTemperature.CELSIUS
+    @property
+    def temperature_unit(self) -> str:
+        """Get the current temperature unit."""
+        return UnitOfTemperature.FAHRENHEIT if self.data and self.data.get("units") == "F" else UnitOfTemperature.CELSIUS
 
-  @property
-  def min_temp(self) -> float:
-    """Get the minimum temperature based on current units."""
-    return MIN_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MIN_TEMP_C
+    @property
+    def min_temp(self) -> float:
+        """Get the minimum temperature based on current units."""
+        return MIN_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MIN_TEMP_C
 
-  @property
-  def max_temp(self) -> float:
-    """Get the maximum temperature based on current units."""
-    return MAX_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MAX_TEMP_C
+    @property
+    def max_temp(self) -> float:
+        """Get the maximum temperature based on current units."""
+        return MAX_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MAX_TEMP_C
 
   async def _async_update_data(self) -> dict[str, Any] | None:
     """Fetch data from the kettle."""
