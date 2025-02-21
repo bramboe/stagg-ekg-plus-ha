@@ -6,13 +6,11 @@ from typing import Any, Optional, Dict
 
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
-    async_register_scanner,
+    async_get_bluetooth,
 )
-from bleak import BleakScanner  # Import BleakScanner directly from bleak
-from bleak.exc import BleakError  # Already imported correctly
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
@@ -80,32 +78,30 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
         )
 
     async def _async_find_bluetooth_device(self):
-        """Find Bluetooth device using multiple strategies."""
+        """Find Bluetooth device using multiple strategies with Bluetooth proxy."""
         _LOGGER.debug(f"Starting Bluetooth device discovery for {self._address}")
 
         try:
-            # Strategy 1: Direct address lookup
+            # Strategy 1: Direct address lookup via Bluetooth manager
+            bluetooth_manager = async_get_bluetooth(self.hass)
+            _LOGGER.debug("Attempting to find device via Bluetooth manager")
+
+            # Find devices known to the Bluetooth manager
+            devices = await bluetooth_manager.async_get_device_info_by_address(self._address)
+            if devices:
+                _LOGGER.debug(f"Found device via Bluetooth manager: {devices}")
+                return devices[0]
+        except Exception as e:
+            _LOGGER.debug(f"Bluetooth manager device lookup failed: {e}")
+
+        try:
+            # Strategy 2: Direct address lookup
             device = async_ble_device_from_address(self.hass, self._address, True)
             if device:
                 _LOGGER.debug(f"Found device via direct address lookup: {device}")
                 return device
         except Exception as e:
             _LOGGER.debug(f"Direct address lookup failed: {e}")
-
-        try:
-            # Strategy 2: Bleak scanner
-            _LOGGER.debug("Using Bleak scanner for device discovery")
-            devices = await BleakScanner.discover()
-            matching_devices = [
-                dev for dev in devices
-                if dev.address.lower() == self._address.lower()
-            ]
-
-            if matching_devices:
-                _LOGGER.debug(f"Found device via Bleak scanner: {matching_devices[0]}")
-                return matching_devices[0]
-        except Exception as e:
-            _LOGGER.error(f"Bleak scanner discovery failed: {e}")
 
         _LOGGER.warning(f"Could not find Bluetooth device {self._address}")
         return None
