@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
+    async_get_bluetooth,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
@@ -13,9 +14,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
-    UpdateFailed,
 )
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.event import async_track_point_in_utc_time
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .kettle_ble import KettleBLEClient
@@ -41,6 +43,9 @@ MAX_TEMP_F = 212
 MIN_TEMP_C = 40
 MAX_TEMP_C = 100
 
+# Maximum time to wait for Bluetooth device discovery
+BLUETOOTH_DISCOVERY_TIMEOUT = 30
+
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching Fellow Stagg data."""
 
@@ -63,8 +68,41 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
             name=f"Fellow Stagg EKG+ {address}",
             manufacturer="Fellow",
             model="Stagg EKG+",
-            configuration_url=f"bluetooth://{address}",
         )
+
+    async def _find_bluetooth_device(self):
+        """Advanced method to find Bluetooth device with multiple strategies."""
+        _LOGGER.debug(f"Starting Bluetooth device discovery for {self._address}")
+
+        # Strategy 1: Use Home Assistant's Bluetooth manager
+        bluetooth_manager = async_get_bluetooth(self.hass)
+        _LOGGER.debug("Bluetooth manager retrieved")
+
+        # Strategy 2: Direct address lookup
+        try:
+            device = async_ble_device_from_address(self.hass, self._address, True)
+            if device:
+                _LOGGER.debug(f"Found device directly via address: {device}")
+                return device
+        except Exception as e:
+            _LOGGER.error(f"Direct address lookup failed: {e}")
+
+        # Strategy 3: Scan for devices
+        try:
+            devices = await bluetooth_manager.async_discovered_devices()
+            matching_devices = [
+                dev for dev in devices
+                if dev.address.lower() == self._address.lower()
+            ]
+
+            if matching_devices:
+                _LOGGER.debug(f"Found device via scan: {matching_devices[0]}")
+                return matching_devices[0]
+        except Exception as e:
+            _LOGGER.error(f"Device scan failed: {e}")
+
+        _LOGGER.warning(f"Could not find Bluetooth device {self._address}")
+        return None
 
     @property
     def temperature_unit(self) -> str:
@@ -90,10 +128,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
 
         try:
-            # Attempt to get the BLE device
-            self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
+            # Attempt to find the BLE device
+            self.ble_device = await self._find_bluetooth_device()
             if not self.ble_device:
-                _LOGGER.error("No connectable BLE device found for address %s", self._address)
+                _LOGGER.error("No Bluetooth device found for address %s", self._address)
                 self.last_update_success = False
                 return None
 
@@ -130,17 +168,6 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
                 exc_info=True
             )
             self.last_update_success = False
-
-            # Attempt to disconnect and reset connection
-            try:
-                await self.kettle.disconnect()
-            except Exception as disconnect_error:
-                _LOGGER.error(
-                    "Error during kettle disconnection for %s: %s",
-                    self._address,
-                    str(disconnect_error)
-                )
-
             return None
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
@@ -171,9 +198,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Perform initial data refresh
         try:
             await coordinator.async_config_entry_first_refresh()
-        except ConfigEntryNotReady:
-            _LOGGER.error("Failed to initialize kettle connection for %s", address)
-            return False
+        except Exception as e:
+            _LOGGER.error(f"Failed to initialize kettle connection: {e}")
+            # Allow setup to continue even if initial refresh fails
+            pass
 
         # Store coordinator in hass data
         hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
