@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from bleak import BleakClient, BleakScanner
-from bleak.exc import BleakError
+from bleak.exc import BleakError  # Import BleakError from bleak
 
 from .const import SERVICE_UUID, CHAR_UUID, INIT_SEQUENCE
 
