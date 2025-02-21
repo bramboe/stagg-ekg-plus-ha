@@ -7,6 +7,7 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
+    SensorStateClass,
 )
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
@@ -60,12 +61,15 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
             key="power",
             name="Power",
             icon="mdi:power",
+            device_class=SensorDeviceClass.ENUM,
+            options=["Off", "On"],
         ),
         FellowStaggSensorEntityDescription(
             key="current_temp",
             name="Current Temperature",
             icon="mdi:thermometer",
             device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfTemperature.FAHRENHEIT,
         ),
         FellowStaggSensorEntityDescription(
@@ -73,22 +77,28 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
             name="Target Temperature",
             icon="mdi:thermometer",
             device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfTemperature.FAHRENHEIT,
         ),
         FellowStaggSensorEntityDescription(
             key="hold",
             name="Hold Mode",
             icon="mdi:timer",
+            device_class=SensorDeviceClass.ENUM,
+            options=["Normal", "Hold"],
         ),
         FellowStaggSensorEntityDescription(
             key="lifted",
             name="Kettle Position",
             icon="mdi:cup",
+            device_class=SensorDeviceClass.ENUM,
+            options=["On Base", "Lifted"],
         ),
         FellowStaggSensorEntityDescription(
             key="countdown",
             name="Countdown",
             icon="mdi:timer",
+            device_class=SensorDeviceClass.DURATION,
         ),
     ]
 
@@ -128,11 +138,12 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
         self._attr_unique_id = f"{coordinator._address}_{description.key}"
         self._attr_device_info = coordinator.device_info
 
-        # Safely get units, defaulting to Fahrenheit
-        is_fahrenheit = (self.coordinator.data or {}).get("units", "F") == "F"
-        self._attr_native_unit_of_measurement = (
-            UnitOfTemperature.FAHRENHEIT if is_fahrenheit else UnitOfTemperature.CELSIUS
-        )
+        # Safely get units, defaulting to Fahrenheit for temperature sensors
+        if description.device_class in [SensorDeviceClass.TEMPERATURE]:
+            is_fahrenheit = (self.coordinator.data or {}).get("units", "F") == "F"
+            self._attr_native_unit_of_measurement = (
+                UnitOfTemperature.FAHRENHEIT if is_fahrenheit else UnitOfTemperature.CELSIUS
+            )
 
     @property
     def native_value(self) -> str | None:
