@@ -6,16 +6,21 @@ from typing import Any, Optional, Dict
 
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
+<<<<<<< HEAD
+=======
+    BleakError,
+>>>>>>> parent of b1a177f (Update __init__.py)
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
+    UpdateFailed,
 )
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN, SERVICE_UUID
+from .const import DOMAIN
 from .kettle_ble import KettleBLEClient
 
 # Configure logging
@@ -76,23 +81,82 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
             model="Stagg EKG+",
         )
 
+<<<<<<< HEAD
     async def _async_find_bluetooth_device(self):
         """Robust Bluetooth device discovery method."""
         _LOGGER.debug(f"Starting Bluetooth device discovery for {self._address}")
+=======
+    async def _async_update_data(self) -> Dict[str, Any]:
+        """Fetch data from the kettle with comprehensive error handling."""
+        _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
+>>>>>>> parent of b1a177f (Update __init__.py)
 
         try:
-            # Strategy 1: Direct address lookup
-            device = async_ble_device_from_address(self.hass, self._address, True)
-            if device:
-                _LOGGER.debug(f"Found device via direct address lookup: {device}")
-                return device
+            # Attempt to get the BLE device
+            self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
+            if not self.ble_device:
+                _LOGGER.error("No connectable BLE device found for address %s", self._address)
+                self.last_update_success = False
+                return self.data  # Return default data
+
+            # Attempt to poll kettle data
+            _LOGGER.debug("Attempting to poll kettle data...")
+            poll_data = await self.kettle.async_poll(self.ble_device)
+
+            # Merge default data with polled data
+            updated_data = {**DEFAULT_DATA, **poll_data}
+
+            # Log changes if any
+            changes = {
+                k: (self.data.get(k), updated_data[k])
+                for k in updated_data
+                if self.data.get(k) != updated_data[k]
+            }
+            if changes:
+                _LOGGER.debug("Data changes detected: %s", changes)
+
+            # Update connection status
+            self.last_update_success = bool(poll_data)
+
+            return updated_data
+
         except Exception as e:
+<<<<<<< HEAD
             _LOGGER.debug(f"Direct address lookup failed: {e}")
 
         _LOGGER.warning(f"Could not find Bluetooth device {self._address}")
         return None
 
     # ... rest of the existing code remains the same ...
+=======
+            _LOGGER.error(
+                "Error polling Fellow Stagg kettle %s: %s",
+                self._address,
+                str(e),
+                exc_info=True
+            )
+            self.last_update_success = False
+            return self.data  # Return default data
+
+    @property
+    def temperature_unit(self) -> str:
+        """Get the current temperature unit."""
+        return (
+            UnitOfTemperature.FAHRENHEIT
+            if self.data.get("units") == "F"
+            else UnitOfTemperature.CELSIUS
+        )
+
+    @property
+    def min_temp(self) -> float:
+        """Get the minimum temperature based on current units."""
+        return MIN_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MIN_TEMP_C
+
+    @property
+    def max_temp(self) -> float:
+        """Get the maximum temperature based on current units."""
+        return MAX_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MAX_TEMP_C
+>>>>>>> parent of b1a177f (Update __init__.py)
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Fellow Stagg integration."""
@@ -110,7 +174,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("No Bluetooth address provided in config entry")
             return False
 
-        _LOGGER.info(f"Setting up Fellow Stagg device: {address}")
+        _LOGGER.info("Setting up Fellow Stagg device: %s", address)
 
         # Create data update coordinator
         coordinator = FellowStaggDataUpdateCoordinator(hass, address)
@@ -128,12 +192,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Set up platforms
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-        _LOGGER.info(f"Successfully set up Fellow Stagg device: {address}")
+        _LOGGER.info("Successfully set up Fellow Stagg device: %s", address)
         return True
 
     except Exception as e:
         _LOGGER.error(
-            f"Unexpected error during Fellow Stagg integration setup: {e}",
+            "Unexpected error during Fellow Stagg integration setup: %s",
+            str(e),
             exc_info=True
         )
         return False
@@ -152,7 +217,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return unload_ok
     except Exception as e:
         _LOGGER.error(
-            f"Error during Fellow Stagg integration unload: {e}",
+            "Error during Fellow Stagg integration unload: %s",
+            str(e),
             exc_info=True
         )
         return False
