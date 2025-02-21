@@ -42,7 +42,6 @@ class KettleBLEClient:
             command_type
         ])
 
-
     async def async_poll(self, ble_device):
         """Connect to the kettle, send init command, and return parsed state."""
         try:
@@ -84,12 +83,7 @@ class KettleBLEClient:
             raise
 
     async def async_set_temperature(self, ble_device, temp: int, fahrenheit: bool = True):
-        """Set target temperature.
-
-        Args:
-            temp: Temperature value (in Fahrenheit or Celsius)
-            fahrenheit: True if temp is in Fahrenheit, False if Celsius
-        """
+        """Set target temperature."""
         # Convert Fahrenheit to Celsius if needed
         if fahrenheit:
             if temp > 212:
@@ -127,23 +121,7 @@ class KettleBLEClient:
         self._client = None
 
     def parse_notifications(self, notifications):
-        """Parse BLE notification payloads into kettle state.
-
-        Expected frame format comes in two notifications:
-          First notification:
-            - Bytes 0-1: Magic (0xef, 0xdd)
-            - Byte 2: Message type
-          Second notification:
-            - Payload data
-
-        Reverse engineered types:
-          - Type 0: Power (1 = on, 0 = off)
-          - Type 1: Hold (1 = hold, 0 = normal)
-          - Type 2: Target temperature (byte 0: temp, byte 1: unit, 1 = F, else C)
-          - Type 3: Current temperature (byte 0: temp, byte 1: unit, 1 = F, else C)
-          - Type 4: Countdown
-          - Type 8: Kettle position (0 = lifted, 1 = on base)
-        """
+        """Parse BLE notification payloads into kettle state."""
         state = {}
         i = 0
         while i < len(notifications) - 1:  # Process pairs of notifications
