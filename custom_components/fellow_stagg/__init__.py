@@ -6,7 +6,7 @@ from typing import Any, Optional, Dict
 
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
-    async_get_bluetooth,
+    BleakScanner,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
@@ -78,21 +78,23 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
         )
 
     async def _async_find_bluetooth_device(self):
-        """Find Bluetooth device using multiple strategies with Bluetooth proxy."""
+        """Robust Bluetooth device discovery method."""
         _LOGGER.debug(f"Starting Bluetooth device discovery for {self._address}")
 
         try:
-            # Strategy 1: Direct address lookup via Bluetooth manager
-            bluetooth_manager = async_get_bluetooth(self.hass)
-            _LOGGER.debug("Attempting to find device via Bluetooth manager")
+            # Strategy 1: Direct BleakScanner discovery
+            _LOGGER.debug("Using BleakScanner for device discovery")
+            devices = await BleakScanner.discover()
+            matching_devices = [
+                dev for dev in devices
+                if dev.address.lower() == self._address.lower()
+            ]
 
-            # Find devices known to the Bluetooth manager
-            devices = await bluetooth_manager.async_get_device_info_by_address(self._address)
-            if devices:
-                _LOGGER.debug(f"Found device via Bluetooth manager: {devices}")
-                return devices[0]
+            if matching_devices:
+                _LOGGER.debug(f"Found device via BleakScanner: {matching_devices[0]}")
+                return matching_devices[0]
         except Exception as e:
-            _LOGGER.debug(f"Bluetooth manager device lookup failed: {e}")
+            _LOGGER.error(f"BleakScanner discovery failed: {e}")
 
         try:
             # Strategy 2: Direct address lookup
