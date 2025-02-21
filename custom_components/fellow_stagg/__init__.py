@@ -119,32 +119,32 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
             return None
 
 
-async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
-    """Set up the Fellow Stagg integration."""
-    return True
+        async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
+            """Set up the Fellow Stagg integration."""
+            return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Fellow Stagg integration from a config entry."""
-    address = entry.unique_id
-    if address is None:
-        _LOGGER.error("No unique ID provided in config entry")
-        return False
+        async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+            """Set up Fellow Stagg integration from a config entry."""
+            address = entry.unique_id
+            if address is None:
+                _LOGGER.error("No unique ID provided in config entry")
+                return False
 
-    _LOGGER.debug("Setting up Fellow Stagg integration for device: %s", address)
-    coordinator = FellowStaggDataUpdateCoordinator(hass, address)
+            _LOGGER.debug("Setting up Fellow Stagg integration for device: %s", address)
+            coordinator = FellowStaggDataUpdateCoordinator(hass, address)
 
-    # Do first update
-    await coordinator.async_config_entry_first_refresh()
+            # Do first update
+            await coordinator.async_config_entry_first_refresh()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+            hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+            await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
-    return True
+            _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
+            return True
 
 
-async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
-    """Migrate old entry."""
-    return True
+        async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+            """Migrate old entry."""
+            return True
