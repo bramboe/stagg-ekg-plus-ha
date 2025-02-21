@@ -1,7 +1,10 @@
+"""Bluetooth Low Energy client for Fellow Stagg EKG+ kettle."""
 import asyncio
 import logging
-from bleak import BleakClient, BleakScanner
-from bleak.exc import BleakError  # Import BleakError from bleak
+from typing import Optional, Dict, Any
+
+from bleak import BleakClient
+from bleak.exc import BleakError
 
 from .const import SERVICE_UUID, CHAR_UUID, INIT_SEQUENCE
 
@@ -11,29 +14,28 @@ class KettleBLEClient:
     """BLE client for the Fellow Stagg EKG+ kettle."""
 
     def __init__(self, address: str):
+        """Initialize the BLE client."""
         self.address = address
-        self.service_uuid = SERVICE_UUID
-        self.char_uuid = CHAR_UUID
         self._client = None
         self._max_retries = 3
         self._retry_delay = 2  # seconds between retries
 
-    async def _safe_connect(self, client: BleakClient):
+    async def _safe_connect(self, client: BleakClient) -> Optional[BleakClient]:
         """Ensure safe connection with error handling."""
         try:
             await client.connect(timeout=10.0)
 
             # Verify services and characteristics
             services = await client.get_services()
-            target_service = services.get_service(self.service_uuid)
+            target_service = services.get_service(SERVICE_UUID)
 
             if not target_service:
-                _LOGGER.error(f"Service {self.service_uuid} not found")
+                _LOGGER.error(f"Service {SERVICE_UUID} not found")
                 return None
 
-            target_char = target_service.get_characteristic(self.char_uuid)
+            target_char = target_service.get_characteristic(CHAR_UUID)
             if not target_char:
-                _LOGGER.error(f"Characteristic {self.char_uuid} not found")
+                _LOGGER.error(f"Characteristic {CHAR_UUID} not found")
                 return None
 
             return client
@@ -41,130 +43,97 @@ class KettleBLEClient:
             _LOGGER.error(f"Connection error: {e}")
             return None
 
-    async def _ensure_connected(self, ble_device=None):
-        """Robust connection with multiple strategies."""
-        for attempt in range(self._max_retries):
-            try:
-                # If no device provided, create client directly from address
-                if ble_device is None:
-                    client = BleakClient(self.address)
-                else:
-                    client = BleakClient(ble_device)
-
-                # Attempt connection
-                _LOGGER.debug(f"Connection attempt {attempt + 1}")
-                connected_client = await self._safe_connect(client)
-
-                if connected_client:
-                    # Authenticate after connection
-                    try:
-                        _LOGGER.debug("Starting authentication")
-                        await connected_client.write_gatt_char(self.char_uuid, INIT_SEQUENCE)
-                        _LOGGER.debug("Authentication successful")
-                    except Exception as auth_err:
-                        _LOGGER.error(f"Authentication failed: {auth_err}")
-                        await connected_client.disconnect()
-                        continue
-
-                    return connected_client
-
-            except Exception as e:
-                _LOGGER.error(f"Connection attempt failed: {e}")
-                await asyncio.sleep(self._retry_delay)
-
-        _LOGGER.error(f"Failed to connect to {self.address} after {self._max_retries} attempts")
-        return None
-
-    async def async_poll(self, ble_device=None):
-        """Connect to the kettle, send init command, and return parsed state."""
+    async def async_poll(self, ble_device=None) -> Dict[str, Any]:
+        """Connect to the kettle and retrieve its state."""
+        client = None
         try:
-            client = await self._ensure_connected(ble_device)
-            if not client:
-                _LOGGER.error("No client connection established")
+            # Use the provided device or create a new client from address
+            client = (BleakClient(ble_device) if ble_device else
+                      BleakClient(self.address))
+
+            # Attempt connection
+            connected_client = await self._safe_connect(client)
+            if not connected_client:
+                _LOGGER.error("Failed to establish BLE connection")
                 return {}
 
-            # Collect notifications
+            # Authenticate and get notifications
             notifications = []
-
             def notification_handler(sender, data):
                 notifications.append(data)
 
             try:
-                await client.start_notify(self.char_uuid, notification_handler)
+                # Authenticate
+                await connected_client.write_gatt_char(CHAR_UUID, INIT_SEQUENCE)
+
+                # Start notifications
+                await connected_client.start_notify(CHAR_UUID, notification_handler)
                 await asyncio.sleep(2.0)
-                await client.stop_notify(self.char_uuid)
+                await connected_client.stop_notify(CHAR_UUID)
             except Exception as err:
-                _LOGGER.error(f"Notification error: {err}")
+                _LOGGER.error(f"Notification or authentication error: {err}")
                 return {}
 
             # Parse and return state
-            state = self.parse_notifications(notifications)
-            return state
+            return self.parse_notifications(notifications)
 
         except Exception as err:
             _LOGGER.error(f"Polling error: {err}")
             return {}
         finally:
-            # Always attempt to disconnect
-            if self._client and self._client.is_connected:
+            # Always disconnect
+            if client and client.is_connected:
                 try:
-                    await self._client.disconnect()
-                except:
-                    pass
-                self._client = None
+                    await client.disconnect()
+                except Exception as disc_err:
+                    _LOGGER.error(f"Disconnection error: {disc_err}")
 
-    async def async_set_power(self, ble_device, power_on: bool):
-        """Turn the kettle on or off with robust connection handling."""
+    async def async_set_power(self, ble_device, power_on: bool) -> None:
+        """Turn the kettle on or off."""
+        client = None
         try:
-            client = await self._ensure_connected(ble_device)
-            if not client:
-                raise RuntimeError("Could not establish BLE connection")
+            client = BleakClient(ble_device)
+            await client.connect()
 
+            # Create power command (0 = off, 1 = on)
             command = self._create_command(0, 1 if power_on else 0)
-            await client.write_gatt_char(self.char_uuid, command)
+            await client.write_gatt_char(CHAR_UUID, command)
         except Exception as err:
             _LOGGER.error(f"Power control error: {err}")
-            raise
         finally:
             if client and client.is_connected:
                 await client.disconnect()
 
-    async def async_set_temperature(self, ble_device, temp: int, fahrenheit: bool = True):
-        """Set target temperature with robust connection handling."""
-        # Temperature conversion logic
-        if fahrenheit:
-            if temp > 212:
-                temp = 212
-            if temp < 104:
-                temp = 104
-            temp = round((temp - 32) * 5/9)
-        else:
-            if temp > 100:
-                temp = 100
-            if temp < 40:
-                temp = 40
-
-        temp_value = temp * 2
-
+    async def async_set_temperature(self, ble_device, temp: int, fahrenheit: bool = True) -> None:
+        """Set target temperature."""
+        client = None
         try:
-            client = await self._ensure_connected(ble_device)
-            if not client:
-                raise RuntimeError("Could not establish BLE connection")
+            client = BleakClient(ble_device)
+            await client.connect()
 
-            command = self._create_command(1, temp_value)
-            await client.write_gatt_char(self.char_uuid, command)
+            # Temperature conversion and bounds checking
+            if fahrenheit:
+                temp = max(104, min(212, temp))
+                # Convert to Celsius for internal representation
+                temp = round((temp - 32) * 5/9)
+            else:
+                temp = max(40, min(100, temp))
+
+            # Create temperature command
+            command = self._create_command(1, temp * 2)
+            await client.write_gatt_char(CHAR_UUID, command)
         except Exception as err:
             _LOGGER.error(f"Temperature setting error: {err}")
-            raise
         finally:
             if client and client.is_connected:
                 await client.disconnect()
 
-    def parse_notifications(self, notifications):
+    def parse_notifications(self, notifications: list) -> Dict[str, Any]:
         """Parse BLE notification payloads into kettle state."""
-        state = {}
+        state: Dict[str, Any] = {}
+
         i = 0
-        while i < len(notifications) - 1:  # Process pairs of notifications
+        while i < len(notifications) - 1:
             header = notifications[i]
             payload = notifications[i + 1]
 
@@ -174,55 +143,46 @@ class KettleBLEClient:
 
             msg_type = header[2]
 
-            if msg_type == 0:
-                # Power state
-                if len(payload) >= 1:
-                    state["power"] = payload[0] == 1
-            elif msg_type == 1:
-                # Hold state
-                if len(payload) >= 1:
-                    state["hold"] = payload[0] == 1
-            elif msg_type == 2:
-                # Target temperature
-                if len(payload) >= 2:
-                    temp = payload[0]  # Single byte temperature
-                    is_fahrenheit = payload[1] == 1
-                    state["target_temp"] = temp
-                    state["units"] = "F" if is_fahrenheit else "C"
-            elif msg_type == 3:
-                # Current temperature
-                if len(payload) >= 2:
-                    temp = payload[0]  # Single byte temperature
-                    is_fahrenheit = payload[1] == 1
-                    state["current_temp"] = temp
-                    state["units"] = "F" if is_fahrenheit else "C"
-            elif msg_type == 4:
-                # Countdown
-                if len(payload) >= 1:
-                    state["countdown"] = payload[0]
-            elif msg_type == 8:
-                # Kettle position
-                if len(payload) >= 1:
-                    state["lifted"] = payload[0] == 0
+            try:
+                if msg_type == 0:  # Power state
+                    state['power'] = payload[0] == 1 if len(payload) >= 1 else False
+                elif msg_type == 1:  # Hold state
+                    state['hold'] = payload[0] == 1 if len(payload) >= 1 else False
+                elif msg_type == 2:  # Target temperature
+                    if len(payload) >= 2:
+                        state['target_temp'] = payload[0]
+                        state['units'] = "F" if payload[1] == 1 else "C"
+                elif msg_type == 3:  # Current temperature
+                    if len(payload) >= 2:
+                        state['current_temp'] = payload[0]
+                        state['units'] = "F" if payload[1] == 1 else "C"
+                elif msg_type == 4:  # Countdown
+                    if len(payload) >= 1:
+                        state['countdown'] = payload[0]
+                elif msg_type == 8:  # Kettle position
+                    if len(payload) >= 1:
+                        state['lifted'] = payload[0] == 0
+            except Exception as e:
+                _LOGGER.error(f"Error parsing notification type {msg_type}: {e}")
 
             i += 2  # Move to next pair of notifications
 
         # Ensure default values
-        state.setdefault("power", False)
-        state.setdefault("units", "C")
-        state.setdefault("current_temp", None)
-        state.setdefault("target_temp", None)
+        state.setdefault('power', False)
+        state.setdefault('units', 'C')
+        state.setdefault('current_temp', None)
+        state.setdefault('target_temp', None)
 
         return state
 
     def _create_command(self, command_type: int, value: int) -> bytes:
-        """Basic command structure."""
+        """Create a command for the kettle."""
         return bytes([
-            0xef, 0xdd,  # Magic
+            0xef, 0xdd,  # Magic bytes
             0x0a,        # Command flag
-            0x00,        # Sequence (simplified to 0)
+            0x00,        # Sequence (simplified)
             command_type,
             value,
-            value,      # Simple checksum
+            value,       # Simple checksum
             command_type
         ])
