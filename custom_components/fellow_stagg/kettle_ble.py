@@ -16,13 +16,13 @@ class KettleBLEClient:
         self._client = None
 
     async def _ensure_connected(self, ble_device):
-    """Basic connection."""
-    if self._client is None or not self._client.is_connected:
-        _LOGGER.debug("Attempting to connect to %s", self.address)
-        self._client = BleakClient(ble_device)
-        await self._client.connect()
-        _LOGGER.debug("Connected successfully, proceeding to authenticate")
-        await self._authenticate()
+        """Basic connection."""
+        if self._client is None or not self._client.is_connected:
+            _LOGGER.debug("Attempting to connect to %s", self.address)
+            self._client = BleakClient(ble_device)
+            await self._client.connect()
+            _LOGGER.debug("Connected successfully, proceeding to authenticate")
+            await self._authenticate()
 
     async def _authenticate(self):
         """Simple authentication - just write the init sequence."""
