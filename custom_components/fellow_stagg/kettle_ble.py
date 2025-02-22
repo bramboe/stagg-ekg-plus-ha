@@ -7,12 +7,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Service and characteristic UUIDs
 MAIN_SERVICE_UUID = "7aebf330-6cb1-46e4-b23b-7cc2262c605e"
-CONTROL_CHAR_UUID = "2291c4b5-5d7f-4477-a88b-b266edb97142"  # For control commands
-STATUS_CHAR_UUID = "2291c4b7-5d7f-4477-a88b-b266edb97142"   # For status data
-
-def pad_command(command: bytes) -> bytes:
-    """Pad command to required length."""
-    return command + b'\x00' * (16 - len(command))
+CONTROL_CHAR_UUID = "2291c4b5-5d7f-4477-a88b-b266edb97142"  # For control and temperature
 
 class KettleBLEClient:
     """BLE client for the Fellow Stagg EKG+ kettle."""
@@ -81,26 +76,51 @@ class KettleBLEClient:
             await asyncio.sleep(0.2)
         self._last_command_time = current_time
 
+    def _parse_temperature_data(self, data: bytes) -> dict:
+        """Parse temperature data packet."""
+        if len(data) < 16:
+            return {}
+
+        # Command format appears to be:
+        # F7 17 0000 BC80 C080 0000 1900 011E 0000
+        # Where:
+        # - F7 = header
+        # - 17 = command type
+        # - BC80 = config flags?
+        # - 19 = sequence
+        # - 01 = units (01 = F, 00 = C)
+        # - 1E = temperature value
+
+        try:
+            state = {}
+            if data[0] != 0xF7:  # Check header
+                return state
+
+            state["units"] = "F" if data[8] & 0x01 else "C"
+            state["current_temp"] = data[9] if data[9] != 0xFF else 0
+            state["power"] = bool(data[8] & 0x02)  # Power bit
+
+            _LOGGER.debug("Parsed temperature data: %s", state)
+            return state
+
+        except Exception as err:
+            _LOGGER.debug("Error parsing temperature data: %s", err)
+            return {}
+
     def _create_command(self, command_type: int, value: int) -> bytes:
         """Create a command packet."""
         seq = (self._sequence + 1) & 0xFF
         command = bytearray([
             0xF7,        # Header
             command_type,  # Command type (0x15 = temp, 0x16 = power)
-            0x00,        # High byte value
-            value,       # Low byte value
-            0xbc,        # Static values from observed commands
-            0x80,
-            0xcd,
-            0x00,
-            0x00,
-            0x00,
-            seq,       # Sequence number
-            0x01,
-            0x1e,
-            0x00,
-            0x00,
-            seq + 1   # Checksum?
+            0x00, 0x00,  # Value (16-bit)
+            0xBC, 0x80,  # Static config
+            0xC0, 0x80,  # Static config
+            0x00, 0x00,  # Flags/units
+            seq, 0x00,   # Sequence
+            value,       # Command value
+            0x00, 0x00,  # Padding
+            seq + 1     # Checksum
         ])
         self._sequence = seq
         return bytes(command)
@@ -112,24 +132,13 @@ class KettleBLEClient:
             state = {"units": "C"}  # Default state
 
             try:
-                # Read status characteristic
-                status_data = await self._client.read_gatt_char(STATUS_CHAR_UUID)
-                _LOGGER.debug("Status data: %s", status_data.hex())
-                if len(status_data) >= 32:
-                    state["firmware"] = status_data[:16].decode('ascii', errors='ignore').strip()
-                    if not state["firmware"].startswith("1.1.75"):
-                        # If we don't get a valid firmware version, data is invalid
-                        return state
-
-                    # Power and temperature data
-                    state["current_temp"] = status_data[17]  # Temperature at offset 17
-                    state["power"] = bool(status_data[16] & 0x02)  # Power bit in status byte
-                    state["units"] = "F" if (status_data[16] & 0x01) else "C"  # Unit bit in status byte
-
+                # Read temperature characteristic
+                value = await self._client.read_gatt_char(CONTROL_CHAR_UUID)
+                _LOGGER.debug("Temperature data: %s", value.hex())
+                state.update(self._parse_temperature_data(value))
             except Exception as err:
-                _LOGGER.debug("Error reading status: %s", err)
+                _LOGGER.debug("Error reading temperature: %s", err)
 
-            _LOGGER.debug("Final state: %s", state)
             return state
 
         except Exception as err:
@@ -165,7 +174,11 @@ class KettleBLEClient:
             await self._ensure_debounce()
 
             command = self._create_command(0x15, temp)
-            _LOGGER.debug("Writing temperature command: %s", command.hex())
+            # Set units bit
+            command = bytearray(command)
+            command[8] = 0x01 if fahrenheit else 0x00
+
+            _LOGGER.debug("Writing temperature command: %s", bytes(command).hex())
             await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
             await asyncio.sleep(0.5)  # Wait for state to update
 
