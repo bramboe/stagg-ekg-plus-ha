@@ -52,7 +52,7 @@ class KettleBLEClient:
             "target_temp": None
         }
 
-    async def _ensure_connected(self, ble_device):
+    async def ensure_connected(self, ble_device):
         """Ensure BLE connection is established."""
         if self._is_connecting:
             _LOGGER.debug("Already attempting to connect...")
@@ -120,10 +120,7 @@ class KettleBLEClient:
         self._last_command_time = current_time
 
     def _create_command(self, celsius: float = None, power: bool = None) -> bytes:
-        """Create a command packet.
-        Format: F717 0000 TTTT C080 0000 09xx 010F 0000
-        Where TTTT is the temperature hex value
-        """
+        """Create a command packet."""
         seq = (self._sequence + 1) & 0xFF
         command = bytearray([
             0xF7,        # Header
@@ -153,7 +150,7 @@ class KettleBLEClient:
     async def async_poll(self, ble_device):
         """Connect to the kettle and read its state."""
         try:
-            await self._ensure_connected(ble_device)
+            await self.ensure_connected(ble_device)
             state = self._default_state.copy()  # Start with a copy of default state
 
             if not self._client or not self._client.is_connected:
@@ -188,7 +185,7 @@ class KettleBLEClient:
     async def async_set_power(self, ble_device, power_on: bool):
         """Turn the kettle on or off."""
         try:
-            await self._ensure_connected(ble_device)
+            await self.ensure_connected(ble_device)
             await self._ensure_debounce()
 
             command = self._create_command(power=power_on)
@@ -213,7 +210,7 @@ class KettleBLEClient:
             celsius = temp
 
         try:
-            await self._ensure_connected(ble_device)
+            await self.ensure_connected(ble_device)
             await self._ensure_debounce()
 
             command = self._create_command(celsius=celsius)
