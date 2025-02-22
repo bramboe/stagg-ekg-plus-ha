@@ -28,35 +28,37 @@ class KettleBLEClient:
 
     @staticmethod
     def _decode_temperature(data: bytes) -> float:
-        """Decode temperature from kettle data."""
+        """Decode temperature from kettle data in Fahrenheit."""
         if len(data) < 6:
             return 0
         temp_hex = (data[4] << 8) | data[5]
         celsius = temp_hex / 256.0
-        return round(celsius, 1)
+        # Convert to Fahrenheit
+        return round((celsius * 9/5) + 32, 1)
 
     @staticmethod
-    def _encode_temperature(celsius: float) -> bytes:
-        """Encode temperature to kettle format."""
+    def _encode_temperature(fahrenheit: float) -> bytes:
+        """Encode temperature from Fahrenheit to kettle format."""
+        # Convert Fahrenheit to Celsius for the device
+        celsius = (fahrenheit - 32) * 5/9
         temp_value = int(celsius * 256.0)
         return bytes([
             temp_value & 0xFF,  # Low byte
             temp_value >> 8     # High byte
         ])
 
-    def _create_command(self, celsius: float = None, power: bool = None) -> bytes:
+    def _create_command(self, fahrenheit: float = None, power: bool = None) -> bytes:
         """Create a command packet matching observed pattern."""
         seq = (self._sequence + 1) & 0xFF
 
         command = bytearray([
-            0xF7,   # Header byte
-            0x15,   # Command type (matches observed pattern)
-            0x00,   # Padding
-            0x00    # Padding
+            0xF7,        # Header
+            0x15,        # Command type
+            0x00, 0x00,  # Padding
         ])
 
-        if celsius is not None:
-            temp_bytes = self._encode_temperature(celsius)
+        if fahrenheit is not None:
+            temp_bytes = self._encode_temperature(fahrenheit)
             command.extend([
                 temp_bytes[0],  # Temperature low byte
                 0x00,           # Padding
@@ -64,7 +66,7 @@ class KettleBLEClient:
                 0x00           # Padding
             ])
         else:
-            # Default temperature bytes from observed pattern
+            # Default temperature bytes if no temperature specified
             command.extend([0x8F, 0x00, 0xCD, 0x00])
 
         command.extend([
@@ -72,105 +74,33 @@ class KettleBLEClient:
             seq,            # Sequence number
             0x00,           # Padding
             0x01,           # Static value
-            0x1E if power else 0x00,  # Power state (observed 0x1E in pattern)
+            0x1E,           # Power state
             0x00, 0x00,     # Padding
-            0x08            # End byte from observed pattern
+            0x08            # End byte
         ])
 
         self._sequence = seq
         return bytes(command)
 
-    async def ensure_connected(self, device: BluetoothScannerDevice | None = None) -> None:
-        """Ensure BLE connection is established."""
-        if self._is_connecting:
-            _LOGGER.debug("Already attempting to connect...")
-            return
-
-        if not device:
-            _LOGGER.warning(f"No device provided for {self.address}")
-            return
-
-        try:
-            self._is_connecting = True
-
-            if self._client and self._client.is_connected:
-                return
-
-            if self._client:
-                try:
-                    await self._client.disconnect()
-                except Exception as e:
-                    _LOGGER.debug(f"Error disconnecting previous client: {e}")
-                self._client = None
-                await asyncio.sleep(1.0)
-
-            _LOGGER.debug(f"Connecting to kettle at {self.address}")
-            self._client = BleakClient(device, timeout=20.0)
-
-            try:
-                await asyncio.wait_for(self._client.connect(), timeout=10.0)
-                await self._client.get_services()  # Ensure service discovery
-                _LOGGER.debug(f"Successfully connected to kettle {self.address}")
-            except asyncio.TimeoutError:
-                _LOGGER.error(f"Connection timeout for {self.address}")
-                return
-
-        except Exception as err:
-            _LOGGER.error(f"Error connecting to kettle {self.address}: {err}", exc_info=True)
-            if self._client:
-                try:
-                    await self._client.disconnect()
-                except Exception:
-                    pass
-                self._client = None
-        finally:
-            self._is_connecting = False
-
-    async def async_poll(self, device: BluetoothScannerDevice | None) -> dict:
-        """Poll kettle state."""
-        if not device:
-            return self._default_state.copy()
-
-        try:
-            await self.ensure_connected(device)
-            if not self._client or not self._client.is_connected:
-                return self._default_state.copy()
-
-            value = await self._client.read_gatt_char(CONTROL_CHAR_UUID)
-            _LOGGER.debug(f"Raw temperature data: {value.hex()}")
-
-            if len(value) >= 16:
-                temp_celsius = self._decode_temperature(value)
-                power_state = bool(value[12] == 0x0F)
-
-                return {
-                    "current_temp": temp_celsius,
-                    "power": power_state,
-                    "target_temp": temp_celsius,
-                    "units": "C"
-                }
-
-        except Exception as err:
-            _LOGGER.error(f"Error polling kettle: {err}", exc_info=True)
-
-        return self._default_state.copy()
-
-    async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = False):
+    async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = True):
         """Set target temperature."""
         if not device:
             return
 
-        celsius = (temp - 32) * 5 / 9 if fahrenheit else temp
-        celsius = min(max(celsius, 40), 100)
+        # For now, we're working in Fahrenheit only
+        temp_f = temp if fahrenheit else (temp * 9/5) + 32
+
+        # Clamp to valid range (104°F to 212°F)
+        temp_f = min(max(temp_f, 104), 212)
 
         try:
             await self.ensure_connected(device)
-            command = self._create_command(celsius=celsius)
+            command = self._create_command(fahrenheit=temp_f)
             _LOGGER.debug(f"Writing temperature command: {command.hex()}")
 
             if self._client and self._client.is_connected:
                 await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
-                _LOGGER.debug(f"Temperature set to {celsius}°C")
+                _LOGGER.debug(f"Temperature set to {temp_f}°F")
 
                 # Verify the change
                 await asyncio.sleep(0.5)
