@@ -26,6 +26,13 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.WATER_HEATER]
 POLLING_INTERVAL = timedelta(seconds=5)
 
+DEFAULT_DATA = {
+    "units": "C",
+    "power": False,
+    "current_temp": None,
+    "target_temp": None
+}
+
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching Fellow Stagg data."""
 
@@ -33,15 +40,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Initialize the coordinator."""
         self._address = address
         self.last_update_success = False
-        self._internal_data = {
-            "units": "C",
-            "power": False,
-            "current_temp": None,
-            "target_temp": None
-        }
         self.ble_device = None
         self.kettle = KettleBLEClient(address)
 
+        # Initialize base class first
         super().__init__(
             hass,
             _LOGGER,
@@ -57,14 +59,11 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
     @property
-    def data(self) -> dict[str, Any]:
-        """Return the current data."""
-        return self._internal_data
-
-    @property
     def temperature_unit(self) -> str:
         """Get the current temperature unit."""
-        return UnitOfTemperature.FAHRENHEIT if self._internal_data.get("units") == "F" else UnitOfTemperature.CELSIUS
+        if not self.data:
+            return UnitOfTemperature.CELSIUS
+        return UnitOfTemperature.FAHRENHEIT if self.data.get("units") == "F" else UnitOfTemperature.CELSIUS
 
     @property
     def min_temp(self) -> float:
@@ -86,7 +85,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if not device:
                 _LOGGER.debug("No connectable device found")
                 self.last_update_success = False
-                return self._internal_data.copy()
+                return DEFAULT_DATA.copy()
 
             self.ble_device = device
             new_data = await self.kettle.async_poll(device)
@@ -94,11 +93,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if new_data:
                 self.last_update_success = True
                 _LOGGER.debug("Successfully polled kettle data: %s", new_data)
-                self._internal_data = new_data
-                return self._internal_data
+                return new_data
 
             self.last_update_success = False
-            return self._internal_data.copy()
+            return DEFAULT_DATA.copy()
 
         except Exception as e:
             _LOGGER.error(
@@ -107,7 +105,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 str(e),
             )
             self.last_update_success = False
-            return self._internal_data.copy()
+            return DEFAULT_DATA.copy()
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Fellow Stagg integration."""
@@ -120,11 +118,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("No unique ID provided in config entry")
         return False
 
+    _LOGGER.debug("Setting up Fellow Stagg integration for device: %s", address)
     coordinator = FellowStaggDataUpdateCoordinator(hass, address)
+
+    # Do first update
     await coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
     return True
