@@ -5,10 +5,13 @@ from typing import Any
 
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
+    async_scanner_count,
+    BluetoothChange,
+    BluetoothScannerDevice,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -28,13 +31,17 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def __init__(self, hass: HomeAssistant, address: str) -> None:
         """Initialize the coordinator."""
-        self.kettle = KettleBLEClient(address)
-        self.ble_device = None
         self._address = address
         self.last_update_success = False
-        self._temp_unit = UnitOfTemperature.CELSIUS
+        self._internal_data = {
+            "units": "C",
+            "power": False,
+            "current_temp": None,
+            "target_temp": None
+        }
+        self.ble_device = None
+        self.kettle = KettleBLEClient(address)
 
-        # Initialize the base coordinator
         super().__init__(
             hass,
             _LOGGER,
@@ -50,10 +57,14 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
     @property
+    def data(self) -> dict[str, Any]:
+        """Return the current data."""
+        return self._internal_data
+
+    @property
     def temperature_unit(self) -> str:
         """Get the current temperature unit."""
-        data = self.data or {}
-        return UnitOfTemperature.FAHRENHEIT if data.get("units") == "F" else UnitOfTemperature.CELSIUS
+        return UnitOfTemperature.FAHRENHEIT if self._internal_data.get("units") == "F" else UnitOfTemperature.CELSIUS
 
     @property
     def min_temp(self) -> float:
@@ -70,25 +81,33 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
 
         try:
-            self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
-            if not self.ble_device:
+            # Get the device from address
+            device = async_ble_device_from_address(self.hass, self._address)
+            if not device:
                 _LOGGER.debug("No connectable device found")
                 self.last_update_success = False
-                return {"units": "C", "power": False, "current_temp": None, "target_temp": None}
+                return self._internal_data.copy()
 
-            data = await self.kettle.async_poll(self.ble_device)
-            if data:
+            self.ble_device = device
+            new_data = await self.kettle.async_poll(device)
+
+            if new_data:
                 self.last_update_success = True
-                _LOGGER.debug("Kettle data: %s", data)
-                return data
+                _LOGGER.debug("Successfully polled kettle data: %s", new_data)
+                self._internal_data = new_data
+                return self._internal_data
 
             self.last_update_success = False
-            return {"units": "C", "power": False, "current_temp": None, "target_temp": None}
+            return self._internal_data.copy()
 
         except Exception as e:
-            _LOGGER.error("Error polling Fellow Stagg kettle %s: %s", self._address, str(e))
+            _LOGGER.error(
+                "Error polling Fellow Stagg kettle %s: %s",
+                self._address,
+                str(e),
+            )
             self.last_update_success = False
-            return {"units": "C", "power": False, "current_temp": None, "target_temp": None}
+            return self._internal_data.copy()
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Fellow Stagg integration."""
@@ -105,6 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
