@@ -30,132 +30,48 @@ def _decode_temperature(data: bytes) -> float:
 
 def _encode_temperature(celsius: float) -> bytes:
     """Encode temperature to kettle format."""
-    # Convert temperature back to device format
-    temp_hex = int(celsius * 256.0)
-
+    # Convert temperature to hex value
+    temp_value = int(celsius * 256.0)
     return bytes([
-        (temp_hex >> 8) & 0xFF,  # High byte
-        temp_hex & 0xFF          # Low byte
+        temp_value & 0xFF,  # Low byte
+        temp_value >> 8     # High byte
     ])
 
-class KettleBLEClient:
-    """BLE client for the Fellow Stagg EKG+ kettle."""
+def _create_command(self, celsius: float = None, power: bool = None) -> bytes:
+    """Create a command packet matching observed pattern."""
+    seq = (self._sequence + 1) & 0xFF
 
-    def __init__(self, address: str):
-        """Initialize the kettle client."""
-        self.address = address
-        self._client = None
-        self._sequence = 0
-        self._last_command_time = 0
-        self._is_connecting = False
-        self._disconnect_timer = None
-        self._default_state = {
-            "units": "C",
-            "power": False,
-            "current_temp": None,
-            "target_temp": None
-        }
+    command = bytearray([
+        0xF7,   # Header byte
+        0x15,   # Command type (matches observed pattern)
+        0x00,   # Padding
+        0x00    # Padding
+    ])
 
-    async def ensure_connected(self, device: BluetoothScannerDevice | None = None) -> None:
-        """Ensure BLE connection is established."""
-        if self._is_connecting:
-            _LOGGER.debug("Already attempting to connect...")
-            return
-
-        # If no device is provided, make it optional
-        if not device:
-            _LOGGER.warning(f"No device provided for {self.address}")
-            return
-
-        try:
-            self._is_connecting = True
-
-            # Check if already connected
-            if self._client and self._client.is_connected:
-                return
-
-            # Clean up old connection if needed
-            if self._client:
-                try:
-                    await self._client.disconnect()
-                except Exception as e:
-                    _LOGGER.debug(f"Error disconnecting previous client: {e}")
-                self._client = None
-                await asyncio.sleep(1.0)
-
-            _LOGGER.debug(f"Connecting to kettle at {self.address}")
-
-            # Use the device directly, not just its address
-            self._client = BleakClient(device, timeout=20.0)
-
-            # Use wait_for to implement connection timeout
-            try:
-                await asyncio.wait_for(self._client.connect(), timeout=10.0)
-                _LOGGER.debug(f"Successfully connected to kettle {self.address}")
-            except asyncio.TimeoutError:
-                _LOGGER.error(f"Connection timeout for {self.address}")
-                return
-
-            # Reset disconnect timer
-            if self._disconnect_timer:
-                self._disconnect_timer.cancel()
-            self._disconnect_timer = asyncio.create_task(self._delayed_disconnect())
-
-        except Exception as err:
-            _LOGGER.error(f"Error connecting to kettle {self.address}: {err}", exc_info=True)
-            if self._client:
-                try:
-                    await self._client.disconnect()
-                except Exception:
-                    pass
-                self._client = None
-        finally:
-            self._is_connecting = False
-
-    async def _delayed_disconnect(self):
-        """Disconnect after period of inactivity."""
-        try:
-            await asyncio.sleep(30)  # Keep connection for 30 seconds
-            if self._client and self._client.is_connected:
-                _LOGGER.debug(f"Disconnecting {self.address} due to inactivity")
-                await self._client.disconnect()
-        except Exception as err:
-            _LOGGER.debug(f"Error in delayed disconnect for {self.address}: {err}")
-
-    async def _ensure_debounce(self):
-        """Ensure we don't send commands too frequently."""
-        current_time = int(time.time() * 1000)
-        if current_time - self._last_command_time < 200:
-            await asyncio.sleep(0.2)
-        self._last_command_time = current_time
-
-    def _create_command(self, celsius: float = None, power: bool = None) -> bytes:
-        """Create a command packet."""
-        seq = (self._sequence + 1) & 0xFF
-        command = bytearray([
-            0xF7,        # Header
-            0x17,        # Command type
-            0x00, 0x00,  # Zero padding
-        ])
-
-        if celsius is not None:
-            # Add temperature bytes
-            command.extend(_encode_temperature(celsius))
-        else:
-            # Power command
-            command.extend([0xBC, 0x80])  # Default temp bytes
-
+    if celsius is not None:
+        temp_bytes = _encode_temperature(celsius)
         command.extend([
-            0xC0, 0x80,  # Static values
-            0x00, 0x00,  # Zero padding
-            seq, 0x00,   # Sequence number
-            0x01,        # Static value
-            0x0F if power else 0x00,  # Power state
-            0x00, 0x00   # Zero padding
+            temp_bytes[0],  # Temperature low byte
+            0x00,           # Padding
+            temp_bytes[1],  # Temperature high byte
+            0x00           # Padding
         ])
+    else:
+        # Default temperature bytes from observed pattern
+        command.extend([0x8F, 0x00, 0xCD, 0x00])
 
-        self._sequence = seq
-        return bytes(command)
+    command.extend([
+        0x00, 0x00,     # Padding
+        seq,            # Sequence number
+        0x00,           # Padding
+        0x01,           # Static value
+        0x1E if power else 0x00,  # Power state (observed 0x1E in pattern)
+        0x00, 0x00,     # Padding
+        0x08            # End byte from observed pattern
+    ])
+
+    self._sequence = seq
+    return bytes(command)
 
     async def async_poll(self, device: BluetoothScannerDevice | None):
         """Connect to the kettle and read its state."""
@@ -228,24 +144,15 @@ class KettleBLEClient:
             raise
 
     async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = False):
-        """Set target temperature.
-
-        Args:
-            device: The Bluetooth device
-            temp: The target temperature
-            fahrenheit: Whether the input temperature is in Fahrenheit
-        """
+        """Set target temperature."""
         if not device:
             _LOGGER.warning(f"No device provided for temperature setting for {self.address}")
             return
 
         # Convert Fahrenheit to Celsius if needed
-        if fahrenheit:
-            celsius = (temp - 32) * 5 / 9
-        else:
-            celsius = temp
+        celsius = (temp - 32) * 5 / 9 if fahrenheit else temp
 
-        # Clamp to valid range
+        # Clamp to valid range (40-100°C)
         celsius = min(max(celsius, 40), 100)
 
         try:
@@ -256,9 +163,17 @@ class KettleBLEClient:
             _LOGGER.debug(f"Writing temperature command for {self.address}: {command.hex()}")
 
             if self._client and self._client.is_connected:
+                # Add explicit service discovery
+                await self._client.get_services()
+
+                # Send command
                 await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
-                _LOGGER.debug(f"Temperature set to {celsius}°C for {self.address}")
-                await asyncio.sleep(0.5)  # Wait for state to update
+                _LOGGER.debug(f"Temperature command sent: {celsius}°C")
+
+                # Add verification read
+                await asyncio.sleep(0.5)
+                verification = await self._client.read_gatt_char(CONTROL_CHAR_UUID)
+                _LOGGER.debug(f"Verification read after set: {verification.hex()}")
             else:
                 _LOGGER.warning(f"Client not connected for temperature setting on {self.address}")
 
