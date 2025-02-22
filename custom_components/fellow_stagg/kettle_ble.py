@@ -19,7 +19,7 @@ class KettleBLEClient:
         self._last_command_time = 0
         self._connection_lock = asyncio.Lock()
         self._default_state = {
-            "units": "C",  # Using Celsius
+            "units": "C",  # Always use Celsius
             "power": False,
             "current_temp": None,
             "target_temp": None
@@ -191,7 +191,7 @@ class KettleBLEClient:
                 _LOGGER.error(f"Failed to connect to kettle {self.address} for temperature setting")
                 return
 
-            # Convert Fahrenheit to Celsius if needed
+            # Convert to Celsius if input is Fahrenheit
             temp_c = temp if not fahrenheit else (temp - 32) * 5/9
 
             # Clamp to valid range (40°C-100°C)
