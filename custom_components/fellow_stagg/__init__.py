@@ -34,22 +34,24 @@ DEFAULT_DATA = {
 }
 
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Class to manage fetching Fellow Stagg data."""
-
     def __init__(self, hass: HomeAssistant, address: str) -> None:
-        """Initialize the coordinator."""
-        self._address = address
-        self.last_update_success = False
-        self.ble_device = None
-        self.kettle = KettleBLEClient(address)
+        # Initialize data before calling super().__init__
+        self._data = DEFAULT_DATA.copy()
 
-        # Initialize base class first
         super().__init__(
             hass,
             _LOGGER,
             name=f"Fellow Stagg {address}",
             update_interval=POLLING_INTERVAL,
         )
+
+        # Ensure data is set after initialization
+        self.data = self._data
+
+        self._address = address
+        self.last_update_success = False
+        self.ble_device = None
+        self.kettle = KettleBLEClient(address)
 
         self.device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
