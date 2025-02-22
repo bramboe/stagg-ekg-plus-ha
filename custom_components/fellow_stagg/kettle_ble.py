@@ -2,7 +2,7 @@
 import asyncio
 import logging
 import time
-from bleak import BleakClient
+from bleak import BleakClient, BleakError
 from homeassistant.components.bluetooth import BluetoothScannerDevice
 from .const import CONTROL_CHAR_UUID
 
@@ -17,47 +17,66 @@ class KettleBLEClient:
         self._client = None
         self._sequence = 0
         self._last_command_time = 0
-        self._is_connecting = False
-        self._disconnect_timer = None
+        self._connection_lock = asyncio.Lock()
         self._default_state = {
-            "units": "F",  # Using Fahrenheit
+            "units": "C",  # Using Celsius
             "power": False,
             "current_temp": None,
             "target_temp": None
         }
 
-    async def ensure_connected(self, device: BluetoothScannerDevice | None = None) -> None:
-        """Ensure BLE connection is established."""
-        if self._is_connecting:
-            _LOGGER.debug("Already attempting to connect...")
-            return
-
+    async def ensure_connected(self, device: BluetoothScannerDevice | None = None) -> bool:
+        """
+        Ensure BLE connection is established.
+        Returns True if connection is successful, False otherwise.
+        """
         if not device:
             _LOGGER.warning(f"No device provided for {self.address}")
-            return
+            return False
 
-        try:
-            self._is_connecting = True
-            if self._client and self._client.is_connected:
-                return
+        # Use a lock to prevent multiple simultaneous connection attempts
+        async with self._connection_lock:
+            try:
+                # If already connected, return True
+                if self._client and self._client.is_connected:
+                    return True
 
-            _LOGGER.debug(f"Connecting to kettle at {self.address}")
-            self._client = BleakClient(device, timeout=20.0)
+                # Disconnect any existing client first
+                if self._client:
+                    try:
+                        await self._client.disconnect()
+                    except Exception:
+                        pass
+                    self._client = None
 
-            await self._client.connect()
-            await self._client.get_services()
-            _LOGGER.debug(f"Successfully connected to kettle {self.address}")
+                # Create a new client
+                _LOGGER.debug(f"Connecting to kettle at {self.address}")
+                self._client = BleakClient(device, timeout=10.0)
 
-        except Exception as err:
-            _LOGGER.error(f"Error connecting to kettle {self.address}: {err}")
-            if self._client:
-                try:
-                    await self._client.disconnect()
-                except Exception:
-                    pass
-                self._client = None
-        finally:
-            self._is_connecting = False
+                # Attempt connection
+                await self._client.connect()
+
+                # Optional: Add service discovery
+                await self._client.get_services()
+
+                _LOGGER.debug(f"Successfully connected to kettle {self.address}")
+                return True
+
+            except (BleakError, asyncio.TimeoutError) as err:
+                _LOGGER.error(f"Connection error for kettle {self.address}: {err}")
+
+                # Ensure client is closed
+                if self._client:
+                    try:
+                        await self._client.disconnect()
+                    except Exception:
+                        pass
+                    self._client = None
+
+                return False
+            except Exception as err:
+                _LOGGER.error(f"Unexpected error connecting to kettle {self.address}: {err}")
+                return False
 
     @staticmethod
     def _decode_temperature(data: bytes) -> float:
@@ -65,7 +84,6 @@ class KettleBLEClient:
         Decode temperature from kettle data.
 
         The temperature seems to be stored as a 16-bit value representing Celsius * 256.
-        We always return Fahrenheit.
         """
         if len(data) < 6:
             return 0.0
@@ -74,20 +92,14 @@ class KettleBLEClient:
         temp_hex = (data[5] << 8) | data[4]
         celsius = temp_hex / 256.0
 
-        # Convert to Fahrenheit
-        fahrenheit = round((celsius * 9/5) + 32, 1)
-
-        return fahrenheit
+        return round(celsius, 1)
 
     @staticmethod
-    def _encode_temperature(fahrenheit: float) -> bytes:
+    def _encode_temperature(celsius: float) -> bytes:
         """
         Encode temperature to kettle's Celsius * 256 format.
-        Input is expected to be in Fahrenheit.
+        Input is expected to be in Celsius.
         """
-        # Convert Fahrenheit to Celsius
-        celsius = (fahrenheit - 32) * 5/9
-
         # Scale and convert to 16-bit integer
         temp_value = int(celsius * 256.0)
 
@@ -97,7 +109,7 @@ class KettleBLEClient:
             temp_value >> 8     # High byte
         ])
 
-    def _create_command(self, temp_f: float = None, power: bool = None) -> bytes:
+    def _create_command(self, temp_c: float = None, power: bool = None) -> bytes:
         """Create a command packet matching observed pattern."""
         seq = (self._sequence + 1) & 0xFF
 
@@ -108,8 +120,8 @@ class KettleBLEClient:
             0x00    # Padding
         ])
 
-        if temp_f is not None:
-            temp_bytes = self._encode_temperature(temp_f)
+        if temp_c is not None:
+            temp_bytes = self._encode_temperature(temp_c)
             command.extend([
                 temp_bytes[0],  # Temperature low byte
                 0x00,           # Padding
@@ -139,49 +151,58 @@ class KettleBLEClient:
             return self._default_state.copy()
 
         try:
-            await self.ensure_connected(device)
-            if not self._client or not self._client.is_connected:
+            # Ensure connection
+            if not await self.ensure_connected(device):
+                _LOGGER.error(f"Failed to connect to kettle {self.address}")
                 return self._default_state.copy()
 
+            # Verify client is connected
+            if not self._client or not self._client.is_connected:
+                _LOGGER.error(f"Client not connected for {self.address}")
+                return self._default_state.copy()
+
+            # Read characteristic
             value = await self._client.read_gatt_char(CONTROL_CHAR_UUID)
             _LOGGER.debug(f"Raw temperature data: {value.hex()}")
 
             if len(value) >= 16:
-                temp_f = self._decode_temperature(value)
+                temp_c = self._decode_temperature(value)
                 power_state = bool(value[12] == 0x0F)
 
                 return {
-                    "current_temp": temp_f,
+                    "current_temp": temp_c,
                     "power": power_state,
-                    "target_temp": temp_f,
-                    "units": "F"
+                    "target_temp": temp_c,
+                    "units": "C"
                 }
 
         except Exception as err:
-            _LOGGER.error(f"Error polling kettle: {err}")
+            _LOGGER.error(f"Error polling kettle {self.address}: {err}")
+            return self._default_state.copy()
 
-        return self._default_state.copy()
-
-    async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = True) -> None:
+    async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = False) -> None:
         """Set target temperature."""
         if not device:
             return
 
         try:
-            await self.ensure_connected(device)
+            # Ensure connection
+            if not await self.ensure_connected(device):
+                _LOGGER.error(f"Failed to connect to kettle {self.address} for temperature setting")
+                return
 
-            # Always expect Fahrenheit input
-            temp_f = temp if fahrenheit else (temp * 9/5) + 32
+            # Convert Fahrenheit to Celsius if needed
+            temp_c = temp if not fahrenheit else (temp - 32) * 5/9
 
-            # Clamp to valid range (104°F-212°F)
-            temp_f = min(max(temp_f, 104), 212)
+            # Clamp to valid range (40°C-100°C)
+            temp_c = min(max(temp_c, 40), 100)
 
-            command = self._create_command(temp_f=temp_f)
+            command = self._create_command(temp_c=temp_c)
             _LOGGER.debug(f"Writing temperature command: {command.hex()}")
 
             if self._client and self._client.is_connected:
                 await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
-                _LOGGER.debug(f"Temperature set to {temp_f}°F")
+                _LOGGER.debug(f"Temperature set to {temp_c}°C")
 
                 # Verify the change
                 await asyncio.sleep(0.5)
@@ -189,7 +210,7 @@ class KettleBLEClient:
                 _LOGGER.debug(f"Verification read: {verification.hex()}")
 
         except Exception as err:
-            _LOGGER.error(f"Error setting temperature: {err}")
+            _LOGGER.error(f"Error setting temperature for {self.address}: {err}")
             raise
 
     async def async_set_power(self, device: BluetoothScannerDevice | None, power_on: bool) -> None:
@@ -198,7 +219,11 @@ class KettleBLEClient:
             return
 
         try:
-            await self.ensure_connected(device)
+            # Ensure connection
+            if not await self.ensure_connected(device):
+                _LOGGER.error(f"Failed to connect to kettle {self.address} for power setting")
+                return
+
             command = self._create_command(power=power_on)
             _LOGGER.debug(f"Writing power command: {command.hex()}")
 
@@ -208,14 +233,16 @@ class KettleBLEClient:
                 await asyncio.sleep(0.5)
 
         except Exception as err:
-            _LOGGER.error(f"Error setting power: {err}")
+            _LOGGER.error(f"Error setting power for {self.address}: {err}")
             raise
 
     async def disconnect(self):
         """Disconnect from the kettle."""
-        if self._client and self._client.is_connected:
-            try:
-                await self._client.disconnect()
-            except Exception as err:
-                _LOGGER.error(f"Error disconnecting: {err}")
-            self._client = None
+        async with self._connection_lock:
+            if self._client and self._client.is_connected:
+                try:
+                    await self._client.disconnect()
+                except Exception as err:
+                    _LOGGER.error(f"Error disconnecting: {err}")
+                finally:
+                    self._client = None
