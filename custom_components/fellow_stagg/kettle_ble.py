@@ -8,8 +8,67 @@ from .const import CONTROL_CHAR_UUID
 
 _LOGGER = logging.getLogger(__name__)
 
-"""BLE client for Fellow Stagg EKG+ kettle."""
 class KettleBLEClient:
+    """BLE client for the Fellow Stagg EKG+ kettle."""
+
+    def __init__(self, address: str):
+        """Initialize the kettle client."""
+        self.address = address
+        self._client = None
+        self._sequence = 0
+        self._last_command_time = 0
+        self._connection_lock = asyncio.Lock()
+        self._default_state = {
+            "units": "C",  # Always use Celsius
+            "power": False,
+            "current_temp": None,
+            "target_temp": None
+        }
+
+    async def ensure_connected(self, device: BluetoothScannerDevice | None) -> bool:
+        """
+        Ensure BLE connection is established.
+
+        Handles connection attempts and manages connection state.
+        """
+        if not device:
+            _LOGGER.warning(f"No device provided for {self.address}")
+            return False
+
+        async with self._connection_lock:
+            try:
+                # If already connected, return True
+                if self._client and self._client.is_connected:
+                    return True
+
+                # Create a new client if needed
+                if not self._client:
+                    _LOGGER.debug(f"Creating new client for {self.address}")
+                    self._client = BleakClient(device, timeout=10.0)
+
+                # Attempt connection
+                _LOGGER.debug(f"Attempting to connect to {self.address}")
+                await self._client.connect()
+
+                # Optional: Get services to ensure full connection
+                await self._client.get_services()
+
+                _LOGGER.debug(f"Successfully connected to {self.address}")
+                return True
+
+            except Exception as err:
+                _LOGGER.error(f"Connection error for {self.address}: {err}")
+
+                # Ensure client is closed
+                if self._client:
+                    try:
+                        await self._client.disconnect()
+                    except Exception:
+                        pass
+                    self._client = None
+
+                return False
+
     @staticmethod
     def _decode_temperature(data: bytes) -> float:
         """
