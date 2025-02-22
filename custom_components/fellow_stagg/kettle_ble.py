@@ -1,9 +1,10 @@
 """BLE client for Fellow Stagg EKG+ kettle."""
 import asyncio
 import logging
+import time
 from bleak import BleakClient
 from homeassistant.components.bluetooth import BluetoothScannerDevice
-from .const import MAIN_SERVICE_UUID, CONTROL_CHAR_UUID
+from .const import CONTROL_CHAR_UUID
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,14 +54,16 @@ class KettleBLEClient:
             "target_temp": None
         }
 
-    async def ensure_connected(self, device: BluetoothScannerDevice) -> None:
+    async def ensure_connected(self, device: BluetoothScannerDevice | None = None) -> None:
         """Ensure BLE connection is established."""
         if self._is_connecting:
             _LOGGER.debug("Already attempting to connect...")
             return
 
+        # If no device is provided, make it optional
         if not device:
-            raise ValueError("No device provided")
+            _LOGGER.warning("No device provided. Skipping connection.")
+            return
 
         try:
             self._is_connecting = True
@@ -89,7 +92,7 @@ class KettleBLEClient:
                 _LOGGER.debug("Successfully connected to kettle")
             except asyncio.TimeoutError:
                 _LOGGER.error("Connection timeout")
-                raise
+                return
 
             # Reset disconnect timer
             if self._disconnect_timer:
@@ -104,7 +107,6 @@ class KettleBLEClient:
                 except Exception:
                     pass
                 self._client = None
-            raise
         finally:
             self._is_connecting = False
 
@@ -120,7 +122,6 @@ class KettleBLEClient:
 
     async def _ensure_debounce(self):
         """Ensure we don't send commands too frequently."""
-        import time
         current_time = int(time.time() * 1000)
         if current_time - self._last_command_time < 200:
             await asyncio.sleep(0.2)
@@ -154,15 +155,15 @@ class KettleBLEClient:
         self._sequence = seq
         return bytes(command)
 
-    async def async_poll(self, device: BluetoothScannerDevice):
+    async def async_poll(self, device: BluetoothScannerDevice | None):
         """Connect to the kettle and read its state."""
         if not device:
-            _LOGGER.debug("No device provided")
+            _LOGGER.warning("No device provided for poll")
             return self._default_state.copy()
 
         try:
             await self.ensure_connected(device)
-            state = self._default_state.copy()  # Start with a copy of default state
+            state = self._default_state.copy()
 
             if not self._client or not self._client.is_connected:
                 _LOGGER.debug("Not connected - returning default state")
@@ -185,7 +186,6 @@ class KettleBLEClient:
 
             except Exception as err:
                 _LOGGER.debug("Error reading temperature: %s", err)
-                # Don't raise here - return default state instead
 
             return state
 
@@ -193,27 +193,37 @@ class KettleBLEClient:
             _LOGGER.error("Error polling kettle: %s", err)
             return self._default_state.copy()
 
-    async def async_set_power(self, device: BluetoothScannerDevice, power_on: bool):
+    async def async_set_power(self, device: BluetoothScannerDevice | None, power_on: bool):
         """Turn the kettle on or off."""
+        if not device:
+            _LOGGER.warning("No device provided for power control")
+            return
+
         try:
             await self.ensure_connected(device)
             await self._ensure_debounce()
 
             command = self._create_command(power=power_on)
             _LOGGER.debug("Writing power command: %s", command.hex())
-            await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
-            await asyncio.sleep(0.5)  # Wait for state to update
+
+            if self._client and self._client.is_connected:
+                await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
+                await asyncio.sleep(0.5)  # Wait for state to update
+            else:
+                _LOGGER.warning("Client not connected for power control")
 
         except Exception as err:
             _LOGGER.error("Error setting power state: %s", err)
-            raise
 
-    async def async_set_temperature(self, device: BluetoothScannerDevice, temp: float, fahrenheit: bool = True):
+    async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = True):
         """Set target temperature."""
+        if not device:
+            _LOGGER.warning("No device provided for temperature setting")
+            return
+
         if fahrenheit:
             if temp > 212: temp = 212
             if temp < 104: temp = 104
-            # Convert to Celsius
             celsius = (temp - 32) * 5 / 9
         else:
             if temp > 100: temp = 100
@@ -226,12 +236,15 @@ class KettleBLEClient:
 
             command = self._create_command(celsius=celsius)
             _LOGGER.debug("Writing temperature command: %s", command.hex())
-            await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
-            await asyncio.sleep(0.5)  # Wait for state to update
+
+            if self._client and self._client.is_connected:
+                await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
+                await asyncio.sleep(0.5)  # Wait for state to update
+            else:
+                _LOGGER.warning("Client not connected for temperature setting")
 
         except Exception as err:
             _LOGGER.error("Error setting temperature: %s", err)
-            raise
 
     async def disconnect(self):
         """Disconnect from the kettle."""
