@@ -164,35 +164,41 @@ class KettleBLEClient:
         try:
             _LOGGER.debug(f"Attempting to poll device {self.address}")
             await self.ensure_connected(device)
-            state = self._default_state.copy()
 
             if not self._client or not self._client.is_connected:
                 _LOGGER.error(f"Not connected to {self.address}")
-                return state
+                return self._default_state.copy()
 
             try:
+                # Explicitly use CONTROL_CHAR_UUID for reading
                 _LOGGER.debug(f"Reading characteristic {CONTROL_CHAR_UUID}")
                 value = await self._client.read_gatt_char(CONTROL_CHAR_UUID)
-                _LOGGER.debug(f"Raw temperature data for {self.address}: {value.hex()}")
+                _LOGGER.debug(f"Raw temperature data: {value.hex()}")
 
+                # More robust data parsing
                 if len(value) >= 16:
                     temp_celsius = _decode_temperature(value)
-                    state.update({
+                    power_state = bool(value[12] == 0x0F)
+
+                    state = {
                         "current_temp": temp_celsius,
-                        "power": bool(value[12] == 0x0F),
-                        "target_temp": temp_celsius
-                    })
-                    _LOGGER.debug(f"Decoded state for {self.address}: {state}")
+                        "power": power_state,
+                        "target_temp": temp_celsius,  # Placeholder until we can accurately read target temp
+                        "units": "C"
+                    }
+
+                    _LOGGER.info(f"Decoded kettle state: {state}")
+                    return state
                 else:
-                    _LOGGER.warning(f"Incomplete data from kettle {self.address}")
+                    _LOGGER.warning(f"Incomplete data from kettle: {value.hex()}")
+                    return self._default_state.copy()
 
-            except Exception as err:
-                _LOGGER.error(f"Error reading temperature for {self.address}: {err}", exc_info=True)
+            except Exception as read_err:
+                _LOGGER.error(f"Error reading temperature: {read_err}", exc_info=True)
+                return self._default_state.copy()
 
-            return state
-
-        except Exception as err:
-            _LOGGER.error(f"Error polling kettle {self.address}: {err}", exc_info=True)
+        except Exception as poll_err:
+            _LOGGER.error(f"Polling error: {poll_err}", exc_info=True)
             return self._default_state.copy()
 
     async def async_set_power(self, device: BluetoothScannerDevice | None, power_on: bool):
