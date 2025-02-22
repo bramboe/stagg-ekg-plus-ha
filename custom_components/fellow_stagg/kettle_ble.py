@@ -25,7 +25,70 @@ class KettleBLEClient:
             "target_temp": None
         }
 
-    # [Previous methods remain the same]
+    async def ensure_connected(self, device: BluetoothScannerDevice | None) -> bool:
+        """
+        Ensure BLE connection is established.
+
+        Handles connection attempts and manages connection state.
+        """
+        if not device:
+            _LOGGER.warning(f"No device provided for {self.address}")
+            return False
+
+        async with self._connection_lock:
+            try:
+                # If already connected, return True
+                if self._client and self._client.is_connected:
+                    return True
+
+                # Create a new client if needed
+                if not self._client:
+                    _LOGGER.debug(f"Creating new client for {self.address}")
+                    self._client = BleakClient(device, timeout=10.0)
+
+                # Attempt connection
+                _LOGGER.debug(f"Attempting to connect to {self.address}")
+                await self._client.connect()
+
+                # Optional: Get services to ensure full connection
+                await self._client.get_services()
+
+                _LOGGER.debug(f"Successfully connected to {self.address}")
+                return True
+
+            except Exception as err:
+                _LOGGER.error(f"Connection error for {self.address}: {err}")
+
+                # Ensure client is closed
+                if self._client:
+                    try:
+                        await self._client.disconnect()
+                    except Exception:
+                        pass
+                    self._client = None
+
+                return False
+
+    @staticmethod
+    def _decode_temperature(data: bytes) -> float:
+        """
+        Decode temperature from kettle data.
+
+        The temperature seems to be stored as a 16-bit value representing Celsius * 256.
+        """
+        if len(data) < 6:
+            return 0.0
+
+        # Extract 16-bit temperature value (little-endian)
+        temp_hex = (data[5] << 8) | data[4]
+
+        # Ensure precise decoding
+        celsius = temp_hex / 256.0
+
+        # Clamp to reasonable range
+        celsius = min(max(celsius, 0), 100)
+
+        return round(celsius, 1)
 
     @staticmethod
     def _encode_temperature(celsius: float) -> bytes:
@@ -76,80 +139,6 @@ class KettleBLEClient:
         else:
             # Default temperature bytes if no temperature specified
             command.extend([0x00, 0x00, 0x28, 0x00])
-
-        command.extend([
-            0x00, 0x00,     # Padding
-            seq,            # Sequence number
-            0x00,           # Padding
-            0x01,           # Static value
-            0x1E if power else 0x00,  # Power state
-            0x00, 0x00,     # Padding
-            0x08            # End byte
-        ])
-
-        self._sequence = seq
-        return bytes(command)
-
-    @staticmethod
-    def _decode_temperature(data: bytes) -> float:
-        """
-        Decode temperature from kettle data.
-
-        The temperature seems to be stored as a 16-bit value representing Celsius * 256.
-        Use more robust decoding to handle various scenarios.
-        """
-        if len(data) < 6:
-            return 0.0
-
-        # Extract 16-bit temperature value (little-endian)
-        temp_hex = (data[5] << 8) | data[4]
-
-        # Ensure precise decoding
-        celsius = temp_hex / 256.0
-
-        # Clamp to reasonable range
-        celsius = min(max(celsius, 0), 100)
-
-        return round(celsius, 1)
-
-
-    @staticmethod
-    def _encode_temperature(celsius: float) -> bytes:
-        """
-        Encode temperature to kettle's Celsius * 256 format.
-        Input is expected to be in Celsius.
-        """
-        # Scale and convert to 16-bit integer
-        temp_value = int(celsius * 256.0)
-
-        # Return as little-endian bytes
-        return bytes([
-            temp_value & 0xFF,  # Low byte
-            temp_value >> 8     # High byte
-        ])
-
-    def _create_command(self, temp_c: float = None, power: bool = None) -> bytes:
-        """Create a command packet matching observed pattern."""
-        seq = (self._sequence + 1) & 0xFF
-
-        command = bytearray([
-            0xF7,   # Header byte
-            0x15,   # Command type
-            0x00,   # Padding
-            0x00    # Padding
-        ])
-
-        if temp_c is not None:
-            temp_bytes = self._encode_temperature(temp_c)
-            command.extend([
-                temp_bytes[0],  # Temperature low byte
-                0x00,           # Padding
-                temp_bytes[1],  # Temperature high byte
-                0x00            # Padding
-            ])
-        else:
-            # Default temperature bytes if no temperature specified
-            command.extend([0x8F, 0x00, 0xCD, 0x00])
 
         command.extend([
             0x00, 0x00,     # Padding
@@ -216,6 +205,7 @@ class KettleBLEClient:
             # Clamp to valid range (40°C-100°C)
             temp_c = min(max(temp_c, 40), 100)
 
+            # Create command with explicit Celsius encoding
             command = self._create_command(temp_c=temp_c)
             _LOGGER.debug(f"Writing temperature command: {command.hex()}")
 
