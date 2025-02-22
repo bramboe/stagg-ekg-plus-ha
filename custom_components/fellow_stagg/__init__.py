@@ -33,25 +33,46 @@ DEFAULT_DATA = {
     "target_temp": None
 }
 
-class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    def __init__(self, hass: HomeAssistant, address: str) -> None:
-        # Initialize data before calling super().__init__
-        self._data = DEFAULT_DATA.copy()
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from typing import Any, Dict
 
+class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
+    def __init__(self, hass: HomeAssistant, address: str) -> None:
+        # Define default data at the start
+        default_data = {
+            "units": "C",
+            "power": False,
+            "current_temp": None,
+            "target_temp": None
+        }
+
+        # Custom update method
+        async def _async_update_wrapper():
+            try:
+                # Use the existing _async_update_data method
+                updated_data = await self._async_update_data()
+                return updated_data
+            except Exception as err:
+                _LOGGER.error(f"Error updating data: {err}")
+                return default_data
+
+        # Initialize the coordinator with the wrapper method
         super().__init__(
             hass,
             _LOGGER,
             name=f"Fellow Stagg {address}",
+            update_method=_async_update_wrapper,
             update_interval=POLLING_INTERVAL,
         )
 
-        # Ensure data is set after initialization
-        self.data = self._data
-
+        # Additional initialization
         self._address = address
         self.last_update_success = False
         self.ble_device = None
         self.kettle = KettleBLEClient(address)
+
+        # Set initial data
+        self.data = default_data
 
         self.device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
