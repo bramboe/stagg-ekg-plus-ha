@@ -1,5 +1,6 @@
 """Support for Fellow Stagg EKG+ kettles."""
 import logging
+import asyncio
 from datetime import timedelta
 from typing import Any, Dict, Optional
 
@@ -99,33 +100,31 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         """Attempt to find the Bluetooth device through multiple methods."""
         _LOGGER.debug(f"Attempting to find Bluetooth device for {self._address}")
 
-        # Method 1: Direct address lookup
+        # Method 1: Discover devices with the specific service UUID
+        discovered_devices = async_discovered_service_info(self._hass)
+        for discovered_device in discovered_devices:
+            if (discovered_device.address == self._address and
+                SERVICE_UUID in discovered_device.service_uuids):
+                self.ble_device = discovered_device
+                _LOGGER.debug(f"Successfully found device for {self._address} via service UUID")
+                return
+
+        # Method 2: Direct address lookup
         device = async_ble_device_from_address(self._hass, self._address)
-
-        # Method 2: Scan through discovered devices
-        if not device:
-            discovered_devices = async_discovered_service_info(self._hass)
-            for discovered_device in discovered_devices:
-                if (discovered_device.address == self._address and
-                    SERVICE_UUID in discovered_device.service_uuids):
-                    device = discovered_device
-                    break
-
-        # Method 3: Broad scanning without service UUID filter
-        if not device:
-            discovered_devices = async_discovered_service_info(self._hass)
-            for discovered_device in discovered_devices:
-                if discovered_device.address == self._address:
-                    device = discovered_device
-                    break
-
         if device:
             self.ble_device = device
-            _LOGGER.debug(f"Successfully found device for {self._address}")
-        else:
-            _LOGGER.warning(f"Could not find Bluetooth device for {self._address}")
-            # Consider requesting a Bluetooth scan here if supported
-            # You might need to import additional Bluetooth scanning methods
+            _LOGGER.debug(f"Successfully found device for {self._address} via direct lookup")
+            return
+
+        # Method 3: Broad device discovery
+        if not self.ble_device:
+            for discovered_device in discovered_devices:
+                if discovered_device.address == self._address:
+                    self.ble_device = discovered_device
+                    _LOGGER.debug(f"Found device for {self._address} via broad discovery")
+                    return
+
+        _LOGGER.warning(f"Could not find Bluetooth device for {self._address}")
 
     @property
     def temperature_unit(self) -> str:
