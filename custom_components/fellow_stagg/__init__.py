@@ -1,19 +1,16 @@
 """Support for Fellow Stagg EKG+ kettles."""
 import logging
 from datetime import timedelta
-from typing import Any
+from typing import Any, Dict
 
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
-    async_scanner_count,
-    BluetoothChange,
     BluetoothScannerDevice,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
     DataUpdateCoordinator,
 )
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -33,28 +30,37 @@ DEFAULT_DATA = {
     "target_temp": None
 }
 
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from typing import Any, Dict
-
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, address: str) -> None:
-        # Define default data at the start
-        default_data = {
-            "units": "C",
-            "power": False,
-            "current_temp": None,
-            "target_temp": None
-        }
+        self._failed_update_count = 0
+        self._address = address
+        self.last_update_success = False
+        self.ble_device = None
+        self.kettle = KettleBLEClient(address)
 
-        # Custom update method
+        # Define update method
         async def _async_update_wrapper():
             try:
-                # Use the existing _async_update_data method
                 updated_data = await self._async_update_data()
+                self._failed_update_count = 0  # Reset on successful update
                 return updated_data
             except Exception as err:
-                _LOGGER.error(f"Error updating data: {err}")
-                return default_data
+                self._failed_update_count += 1
+                _LOGGER.warning(
+                    "Failed to update Fellow Stagg kettle %s (attempt %d): %s",
+                    self._address,
+                    self._failed_update_count,
+                    str(err)
+                )
+
+                # Optional: Log a more serious error after multiple failed attempts
+                if self._failed_update_count > 3:
+                    _LOGGER.error(
+                        "Persistent update failures for Fellow Stagg kettle %s. Check connection.",
+                        self._address
+                    )
+
+                return DEFAULT_DATA.copy()
 
         # Initialize the coordinator with the wrapper method
         super().__init__(
@@ -65,14 +71,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             update_interval=POLLING_INTERVAL,
         )
 
-        # Additional initialization
-        self._address = address
-        self.last_update_success = False
-        self.ble_device = None
-        self.kettle = KettleBLEClient(address)
-
         # Set initial data
-        self.data = default_data
+        self.data = DEFAULT_DATA.copy()
 
         self.device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
