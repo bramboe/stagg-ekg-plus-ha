@@ -2,6 +2,7 @@
 import asyncio
 import logging
 from bleak import BleakClient
+from homeassistant.components.bluetooth import BluetoothScannerDevice
 from .const import MAIN_SERVICE_UUID, CONTROL_CHAR_UUID
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,11 +53,14 @@ class KettleBLEClient:
             "target_temp": None
         }
 
-    async def ensure_connected(self, ble_device):
+    async def ensure_connected(self, device: BluetoothScannerDevice) -> None:
         """Ensure BLE connection is established."""
         if self._is_connecting:
             _LOGGER.debug("Already attempting to connect...")
             return
+
+        if not device:
+            raise ValueError("No device provided")
 
         try:
             self._is_connecting = True
@@ -76,9 +80,8 @@ class KettleBLEClient:
 
             _LOGGER.debug("Connecting to kettle at %s", self.address)
 
-            # Use the device's address property if available, otherwise use stored address
-            device_address = getattr(ble_device, "address", self.address)
-            self._client = BleakClient(device_address, timeout=20.0)
+            # Use the device directly, not just its address
+            self._client = BleakClient(device, timeout=20.0)
 
             # Use wait_for to implement connection timeout
             try:
@@ -151,10 +154,14 @@ class KettleBLEClient:
         self._sequence = seq
         return bytes(command)
 
-    async def async_poll(self, ble_device):
+    async def async_poll(self, device: BluetoothScannerDevice):
         """Connect to the kettle and read its state."""
+        if not device:
+            _LOGGER.debug("No device provided")
+            return self._default_state.copy()
+
         try:
-            await self.ensure_connected(ble_device)
+            await self.ensure_connected(device)
             state = self._default_state.copy()  # Start with a copy of default state
 
             if not self._client or not self._client.is_connected:
@@ -186,10 +193,10 @@ class KettleBLEClient:
             _LOGGER.error("Error polling kettle: %s", err)
             return self._default_state.copy()
 
-    async def async_set_power(self, ble_device, power_on: bool):
+    async def async_set_power(self, device: BluetoothScannerDevice, power_on: bool):
         """Turn the kettle on or off."""
         try:
-            await self.ensure_connected(ble_device)
+            await self.ensure_connected(device)
             await self._ensure_debounce()
 
             command = self._create_command(power=power_on)
@@ -201,7 +208,7 @@ class KettleBLEClient:
             _LOGGER.error("Error setting power state: %s", err)
             raise
 
-    async def async_set_temperature(self, ble_device, temp: float, fahrenheit: bool = True):
+    async def async_set_temperature(self, device: BluetoothScannerDevice, temp: float, fahrenheit: bool = True):
         """Set target temperature."""
         if fahrenheit:
             if temp > 212: temp = 212
@@ -214,7 +221,7 @@ class KettleBLEClient:
             celsius = temp
 
         try:
-            await self.ensure_connected(ble_device)
+            await self.ensure_connected(device)
             await self._ensure_debounce()
 
             command = self._create_command(celsius=celsius)
