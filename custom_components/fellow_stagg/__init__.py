@@ -1,7 +1,7 @@
 """Support for Fellow Stagg EKG+ kettles."""
 import logging
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
@@ -42,7 +42,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._address = address
         self._hass = hass
         self._failed_update_count = 0
-        self.ble_device = None
+        self.ble_device: Optional[BluetoothScannerDevice] = None
 
         # Define update method
         async def _async_update_wrapper():
@@ -66,7 +66,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 # Optional: Log a more serious error after multiple failed attempts
                 if self._failed_update_count > 3:
                     _LOGGER.error(
-                        "Persistent update failures for Fellow Stagg kettle %s. Check connection.",
+                        "Persistent update failures for Fellow Stagg kettle %s. Bluetooth proxy issues suspected.",
                         self._address
                     )
 
@@ -97,6 +97,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     async def _find_bluetooth_device(self) -> None:
         """Attempt to find the Bluetooth device through multiple methods."""
+        _LOGGER.debug(f"Attempting to find Bluetooth device for {self._address}")
+
         # Method 1: Direct address lookup
         device = async_ble_device_from_address(self._hass, self._address)
 
@@ -109,11 +111,21 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     device = discovered_device
                     break
 
+        # Method 3: Broad scanning without service UUID filter
+        if not device:
+            discovered_devices = async_discovered_service_info(self._hass)
+            for discovered_device in discovered_devices:
+                if discovered_device.address == self._address:
+                    device = discovered_device
+                    break
+
         if device:
             self.ble_device = device
             _LOGGER.debug(f"Successfully found device for {self._address}")
         else:
             _LOGGER.warning(f"Could not find Bluetooth device for {self._address}")
+            # Consider requesting a Bluetooth scan here if supported
+            # You might need to import additional Bluetooth scanning methods
 
     @property
     def temperature_unit(self) -> str:
