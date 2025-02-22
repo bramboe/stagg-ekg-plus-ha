@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
     DataUpdateCoordinator,
 )
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -22,13 +23,6 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.WATER_HEATER]
 POLLING_INTERVAL = timedelta(seconds=5)
 
-DEFAULT_DATA = {
-    "units": "C",
-    "power": False,
-    "current_temp": None,
-    "target_temp": None
-}
-
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching Fellow Stagg data."""
 
@@ -38,7 +32,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.ble_device = None
         self._address = address
         self.last_update_success = False
+        self._temp_unit = UnitOfTemperature.CELSIUS
 
+        # Initialize the base coordinator
         super().__init__(
             hass,
             _LOGGER,
@@ -56,9 +52,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @property
     def temperature_unit(self) -> str:
         """Get the current temperature unit."""
-        if not self.data:
-            return UnitOfTemperature.CELSIUS
-        return UnitOfTemperature.FAHRENHEIT if self.data.get("units") == "F" else UnitOfTemperature.CELSIUS
+        data = self.data or {}
+        return UnitOfTemperature.FAHRENHEIT if data.get("units") == "F" else UnitOfTemperature.CELSIUS
 
     @property
     def min_temp(self) -> float:
@@ -79,26 +74,21 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if not self.ble_device:
                 _LOGGER.debug("No connectable device found")
                 self.last_update_success = False
-                return DEFAULT_DATA.copy()
+                return {"units": "C", "power": False, "current_temp": None, "target_temp": None}
 
-            new_data = await self.kettle.async_poll(self.ble_device)
-
-            if new_data:
+            data = await self.kettle.async_poll(self.ble_device)
+            if data:
                 self.last_update_success = True
-                _LOGGER.debug("Successfully polled kettle data: %s", new_data)
-                return new_data
+                _LOGGER.debug("Kettle data: %s", data)
+                return data
 
             self.last_update_success = False
-            return DEFAULT_DATA.copy()
+            return {"units": "C", "power": False, "current_temp": None, "target_temp": None}
 
         except Exception as e:
-            _LOGGER.error(
-                "Error polling Fellow Stagg kettle %s: %s",
-                self._address,
-                str(e),
-            )
+            _LOGGER.error("Error polling Fellow Stagg kettle %s: %s", self._address, str(e))
             self.last_update_success = False
-            return DEFAULT_DATA.copy()
+            return {"units": "C", "power": False, "current_temp": None, "target_temp": None}
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Fellow Stagg integration."""
@@ -111,18 +101,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("No unique ID provided in config entry")
         return False
 
-    _LOGGER.debug("Setting up Fellow Stagg integration for device: %s", address)
     coordinator = FellowStaggDataUpdateCoordinator(hass, address)
-
     await coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
-    return True
-
-async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
-    """Migrate old entry."""
     return True
