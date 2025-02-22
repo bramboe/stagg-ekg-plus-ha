@@ -75,11 +75,15 @@ class KettleBLEClient:
                 await asyncio.sleep(1.0)
 
             _LOGGER.debug("Connecting to kettle at %s", self.address)
-            self._client = BleakClient(ble_device, timeout=20.0)
+
+            # Use the device's address property if available, otherwise use stored address
+            device_address = getattr(ble_device, "address", self.address)
+            self._client = BleakClient(device_address, timeout=20.0)
 
             # Use wait_for to implement connection timeout
             try:
                 await asyncio.wait_for(self._client.connect(), timeout=10.0)
+                _LOGGER.debug("Successfully connected to kettle")
             except asyncio.TimeoutError:
                 _LOGGER.error("Connection timeout")
                 raise
