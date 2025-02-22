@@ -62,7 +62,7 @@ class KettleBLEClient:
 
         # If no device is provided, make it optional
         if not device:
-            _LOGGER.warning("No device provided. Skipping connection.")
+            _LOGGER.warning(f"No device provided for {self.address}")
             return
 
         try:
@@ -76,12 +76,12 @@ class KettleBLEClient:
             if self._client:
                 try:
                     await self._client.disconnect()
-                except Exception:
-                    pass
+                except Exception as e:
+                    _LOGGER.debug(f"Error disconnecting previous client: {e}")
                 self._client = None
                 await asyncio.sleep(1.0)
 
-            _LOGGER.debug("Connecting to kettle at %s", self.address)
+            _LOGGER.debug(f"Connecting to kettle at {self.address}")
 
             # Use the device directly, not just its address
             self._client = BleakClient(device, timeout=20.0)
@@ -89,9 +89,9 @@ class KettleBLEClient:
             # Use wait_for to implement connection timeout
             try:
                 await asyncio.wait_for(self._client.connect(), timeout=10.0)
-                _LOGGER.debug("Successfully connected to kettle")
+                _LOGGER.debug(f"Successfully connected to kettle {self.address}")
             except asyncio.TimeoutError:
-                _LOGGER.error("Connection timeout")
+                _LOGGER.error(f"Connection timeout for {self.address}")
                 return
 
             # Reset disconnect timer
@@ -100,7 +100,7 @@ class KettleBLEClient:
             self._disconnect_timer = asyncio.create_task(self._delayed_disconnect())
 
         except Exception as err:
-            _LOGGER.error("Error connecting to kettle: %s", err)
+            _LOGGER.error(f"Error connecting to kettle {self.address}: {err}", exc_info=True)
             if self._client:
                 try:
                     await self._client.disconnect()
@@ -115,10 +115,10 @@ class KettleBLEClient:
         try:
             await asyncio.sleep(30)  # Keep connection for 30 seconds
             if self._client and self._client.is_connected:
-                _LOGGER.debug("Disconnecting due to inactivity")
+                _LOGGER.debug(f"Disconnecting {self.address} due to inactivity")
                 await self._client.disconnect()
         except Exception as err:
-            _LOGGER.debug("Error in delayed disconnect: %s", err)
+            _LOGGER.debug(f"Error in delayed disconnect for {self.address}: {err}")
 
     async def _ensure_debounce(self):
         """Ensure we don't send commands too frequently."""
@@ -158,45 +158,47 @@ class KettleBLEClient:
     async def async_poll(self, device: BluetoothScannerDevice | None):
         """Connect to the kettle and read its state."""
         if not device:
-            _LOGGER.warning("No device provided for poll")
+            _LOGGER.error(f"No device provided for poll for {self.address}")
             return self._default_state.copy()
 
         try:
+            _LOGGER.debug(f"Attempting to poll device {self.address}")
             await self.ensure_connected(device)
             state = self._default_state.copy()
 
             if not self._client or not self._client.is_connected:
-                _LOGGER.debug("Not connected - returning default state")
+                _LOGGER.error(f"Not connected to {self.address}")
                 return state
 
             try:
+                _LOGGER.debug(f"Reading characteristic {CONTROL_CHAR_UUID}")
                 value = await self._client.read_gatt_char(CONTROL_CHAR_UUID)
-                _LOGGER.debug("Temperature data: %s", value.hex())
+                _LOGGER.debug(f"Raw temperature data for {self.address}: {value.hex()}")
 
                 if len(value) >= 16:
                     temp_celsius = _decode_temperature(value)
                     state.update({
                         "current_temp": temp_celsius,
                         "power": bool(value[12] == 0x0F),
-                        "target_temp": temp_celsius  # Until we implement target temp reading
+                        "target_temp": temp_celsius
                     })
-                    _LOGGER.debug("Decoded state: %s", state)
+                    _LOGGER.debug(f"Decoded state for {self.address}: {state}")
                 else:
-                    _LOGGER.warning("Received incomplete data from kettle")
+                    _LOGGER.warning(f"Incomplete data from kettle {self.address}")
 
             except Exception as err:
-                _LOGGER.debug("Error reading temperature: %s", err)
+                _LOGGER.error(f"Error reading temperature for {self.address}: {err}", exc_info=True)
 
             return state
 
         except Exception as err:
-            _LOGGER.error("Error polling kettle: %s", err)
+            _LOGGER.error(f"Error polling kettle {self.address}: {err}", exc_info=True)
             return self._default_state.copy()
 
     async def async_set_power(self, device: BluetoothScannerDevice | None, power_on: bool):
         """Turn the kettle on or off."""
         if not device:
-            _LOGGER.warning("No device provided for power control")
+            _LOGGER.warning(f"No device provided for power control for {self.address}")
             return
 
         try:
@@ -204,21 +206,23 @@ class KettleBLEClient:
             await self._ensure_debounce()
 
             command = self._create_command(power=power_on)
-            _LOGGER.debug("Writing power command: %s", command.hex())
+            _LOGGER.debug(f"Writing power command for {self.address}: {command.hex()}")
 
             if self._client and self._client.is_connected:
                 await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
+                _LOGGER.debug(f"Power {('ON' if power_on else 'OFF')} command sent to {self.address}")
                 await asyncio.sleep(0.5)  # Wait for state to update
             else:
-                _LOGGER.warning("Client not connected for power control")
+                _LOGGER.warning(f"Client not connected for power control on {self.address}")
 
         except Exception as err:
-            _LOGGER.error("Error setting power state: %s", err)
+            _LOGGER.error(f"Error setting power state for {self.address}: {err}", exc_info=True)
+            raise
 
     async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = True):
         """Set target temperature."""
         if not device:
-            _LOGGER.warning("No device provided for temperature setting")
+            _LOGGER.warning(f"No device provided for temperature setting for {self.address}")
             return
 
         if fahrenheit:
@@ -235,19 +239,28 @@ class KettleBLEClient:
             await self._ensure_debounce()
 
             command = self._create_command(celsius=celsius)
-            _LOGGER.debug("Writing temperature command: %s", command.hex())
+            _LOGGER.debug(f"Writing temperature command for {self.address}: {command.hex()}")
 
             if self._client and self._client.is_connected:
                 await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
+                _LOGGER.debug(f"Temperature set to {temp}°{'F' if fahrenheit else 'C'} for {self.address}")
                 await asyncio.sleep(0.5)  # Wait for state to update
             else:
-                _LOGGER.warning("Client not connected for temperature setting")
+                _LOGGER.warning(f"Client not connected for temperature setting on {self.address}")
 
         except Exception as err:
-            _LOGGER.error("Error setting temperature: %s", err)
+            _LOGGER.error(f"Error setting temperature for {self.address}: {err}", exc_info=True)
+            raise
 
     async def disconnect(self):
         """Disconnect from the kettle."""
-        if self._client and self._client.is_connected:
-            await self._client.disconnect()
-        self._client = None
+        try:
+            if self._client and self._client.is_connected:
+                _LOGGER.debug(f"Disconnecting from {self.address}")
+                await self._client.disconnect()
+
+            self._client = None
+            _LOGGER.debug(f"Disconnected from {self.address}")
+
+        except Exception as err:
+            _LOGGER.error(f"Error disconnecting from {self.address}: {err}", exc_info=True)
