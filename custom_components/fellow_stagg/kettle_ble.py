@@ -6,10 +6,13 @@ from bleak import BleakClient
 _LOGGER = logging.getLogger(__name__)
 
 # Service and characteristic UUIDs
-CONTROL_SERVICE_UUID = "7aebf330-6cb1-46e4-b23b-7cc2262c605e"
-STATUS_CHAR_UUID = "2291c4b7-5d7f-4477-a88b-b266edb97142"  # Contains status data
+MAIN_SERVICE_UUID = "7aebf330-6cb1-46e4-b23b-7cc2262c605e"
 CONTROL_CHAR_UUID = "2291c4b5-5d7f-4477-a88b-b266edb97142"  # For control commands
-TEMP_DATA_CHAR_UUID = "2291c4b1-5d7f-4477-a88b-b266edb97142"  # Temperature data
+STATUS_CHAR_UUID = "2291c4b7-5d7f-4477-a88b-b266edb97142"   # For status data
+
+def pad_command(command: bytes) -> bytes:
+    """Pad command to required length."""
+    return command + b'\x00' * (16 - len(command))
 
 class KettleBLEClient:
     """BLE client for the Fellow Stagg EKG+ kettle."""
@@ -31,36 +34,22 @@ class KettleBLEClient:
 
         try:
             self._is_connecting = True
-
             if self._client and self._client.is_connected:
                 return
 
             if self._client:
                 await self._client.disconnect()
                 self._client = None
+                await asyncio.sleep(1.0)  # Wait a bit before reconnecting
 
             _LOGGER.debug("Connecting to kettle at %s", self.address)
-            self._client = BleakClient(ble_device, timeout=20.0, disconnected_callback=self._handle_disconnect)
+            self._client = BleakClient(ble_device, timeout=20.0)
             await self._client.connect()
 
             # Reset disconnect timer
             if self._disconnect_timer:
                 self._disconnect_timer.cancel()
             self._disconnect_timer = asyncio.create_task(self._delayed_disconnect())
-
-            # Debug logging for services and characteristics
-            services = self._client.services
-            for service in services:
-                _LOGGER.debug("Service %s characteristics:", service.uuid)
-                for char in service.characteristics:
-                    _LOGGER.debug("  Characteristic %s", char.uuid)
-                    _LOGGER.debug("    Properties: %s", char.properties)
-                    if "read" in char.properties:
-                        try:
-                            value = await self._client.read_gatt_char(char.uuid)
-                            _LOGGER.debug("    Value: %s", value.hex())
-                        except Exception as err:
-                            _LOGGER.debug("    Error reading: %s", err)
 
         except Exception as err:
             _LOGGER.error("Error connecting to kettle: %s", err)
@@ -73,11 +62,6 @@ class KettleBLEClient:
             raise
         finally:
             self._is_connecting = False
-
-    def _handle_disconnect(self, client):
-        """Handle disconnect event."""
-        _LOGGER.debug("Kettle disconnected")
-        self._client = None
 
     async def _delayed_disconnect(self):
         """Disconnect after period of inactivity."""
@@ -97,6 +81,30 @@ class KettleBLEClient:
             await asyncio.sleep(0.2)
         self._last_command_time = current_time
 
+    def _create_command(self, command_type: int, value: int) -> bytes:
+        """Create a command packet."""
+        seq = (self._sequence + 1) & 0xFF
+        command = bytearray([
+            0xF7,        # Header
+            command_type,  # Command type (0x15 = temp, 0x16 = power)
+            0x00,        # High byte value
+            value,       # Low byte value
+            0xbc,        # Static values from observed commands
+            0x80,
+            0xcd,
+            0x00,
+            0x00,
+            0x00,
+            seq,       # Sequence number
+            0x01,
+            0x1e,
+            0x00,
+            0x00,
+            seq + 1   # Checksum?
+        ])
+        self._sequence = seq
+        return bytes(command)
+
     async def async_poll(self, ble_device):
         """Connect to the kettle and read its state."""
         try:
@@ -107,28 +115,19 @@ class KettleBLEClient:
                 # Read status characteristic
                 status_data = await self._client.read_gatt_char(STATUS_CHAR_UUID)
                 _LOGGER.debug("Status data: %s", status_data.hex())
-
-                # Example: "312e312e3735535350204300f6c20040ffff3fb3f03e0840230a060010260940"
-                # Parse firmware version and status
                 if len(status_data) >= 32:
                     state["firmware"] = status_data[:16].decode('ascii', errors='ignore').strip()
-                    temp_data = status_data[16:20]
-                    if temp_data:
-                        state["current_temp"] = int(temp_data[1])  # Example value
-                        state["units"] = "F" if (temp_data[0] & 0x01) else "C"
-                        state["power"] = bool(temp_data[0] & 0x02)
+                    if not state["firmware"].startswith("1.1.75"):
+                        # If we don't get a valid firmware version, data is invalid
+                        return state
+
+                    # Power and temperature data
+                    state["current_temp"] = status_data[17]  # Temperature at offset 17
+                    state["power"] = bool(status_data[16] & 0x02)  # Power bit in status byte
+                    state["units"] = "F" if (status_data[16] & 0x01) else "C"  # Unit bit in status byte
 
             except Exception as err:
                 _LOGGER.debug("Error reading status: %s", err)
-
-            try:
-                # Read temperature data characteristic
-                temp_data = await self._client.read_gatt_char(TEMP_DATA_CHAR_UUID)
-                _LOGGER.debug("Temperature data: %s", temp_data.hex())
-                if len(temp_data) >= 4:
-                    state["target_temp"] = temp_data[2]  # Example parsing
-            except Exception as err:
-                _LOGGER.debug("Error reading temperature: %s", err)
 
             _LOGGER.debug("Final state: %s", state)
             return state
@@ -143,7 +142,7 @@ class KettleBLEClient:
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
 
-            command = bytes([0xF7, 0x16, 0x00, 0x01 if power_on else 0x00])
+            command = self._create_command(0x16, 0x01 if power_on else 0x00)
             _LOGGER.debug("Writing power command: %s", command.hex())
             await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
             await asyncio.sleep(0.5)  # Wait for state to update
@@ -165,7 +164,7 @@ class KettleBLEClient:
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
 
-            command = bytes([0xF7, 0x15, 0x00, temp, 0x01 if fahrenheit else 0x00])
+            command = self._create_command(0x15, temp)
             _LOGGER.debug("Writing temperature command: %s", command.hex())
             await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
             await asyncio.sleep(0.5)  # Wait for state to update
