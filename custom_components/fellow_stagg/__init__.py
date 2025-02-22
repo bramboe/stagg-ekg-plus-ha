@@ -1,6 +1,6 @@
 """Support for Fellow Stagg EKG+ kettles."""
-import logging
 import asyncio
+import logging
 from datetime import timedelta
 from typing import Any, Dict, Optional
 
@@ -11,11 +11,12 @@ from homeassistant.components.bluetooth import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.event import async_call_later
 
 from .const import DOMAIN, SERVICE_UUID
 from .kettle_ble import KettleBLEClient
@@ -30,9 +31,11 @@ PLATFORMS: list[Platform] = [
     Platform.WATER_HEATER
 ]
 POLLING_INTERVAL = timedelta(seconds=5)
+BLUETOOTH_DISCOVERY_INTERVAL = 30  # Seconds to retry Bluetooth discovery
+MAX_DISCOVERY_ATTEMPTS = 3
 
 DEFAULT_DATA = {
-    "units": "F",  # Always use Fahrenheit
+    "units": "C",  # Always use Celsius
     "power": False,
     "current_temp": None,
     "target_temp": None
@@ -44,7 +47,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._address = address
         self._hass = hass
         self._failed_update_count = 0
+        self._discovery_attempts = 0
         self.ble_device: Optional[BluetoothScannerDevice] = None
+        self._discovery_cancel = None
 
         # Define update method
         async def _async_update_wrapper():
@@ -54,6 +59,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
                 updated_data = await self._async_update_data()
                 self._failed_update_count = 0  # Reset on successful update
+                self._discovery_attempts = 0  # Reset discovery attempts
                 return updated_data
             except Exception as err:
                 self._failed_update_count += 1
@@ -65,12 +71,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     exc_info=True
                 )
 
-                # Log a more serious error after multiple failed attempts
+                # More aggressive discovery if updates consistently fail
                 if self._failed_update_count > 3:
-                    _LOGGER.error(
-                        "Persistent update failures for Fellow Stagg kettle %s. Bluetooth proxy issues suspected.",
-                        self._address
-                    )
+                    await self._schedule_bluetooth_discovery()
 
                 return DEFAULT_DATA.copy()
 
@@ -97,11 +100,53 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             model="Stagg EKG+",
         )
 
+    @callback
+    async def _schedule_bluetooth_discovery(self) -> None:
+        """Schedule periodic Bluetooth device discovery."""
+        # Cancel any existing discovery attempt
+        if self._discovery_cancel:
+            self._discovery_cancel()
+
+        # Limit discovery attempts
+        if self._discovery_attempts >= MAX_DISCOVERY_ATTEMPTS:
+            _LOGGER.error(f"Max Bluetooth discovery attempts reached for {self._address}")
+            return
+
+        self._discovery_attempts += 1
+        _LOGGER.debug(f"Scheduling Bluetooth discovery for {self._address} (Attempt {self._discovery_attempts})")
+
+        async def _discovery_timeout():
+            """Timeout for discovery attempts."""
+            try:
+                # Force a re-discovery
+                self.ble_device = None
+                await self._find_bluetooth_device()
+            except Exception as err:
+                _LOGGER.error(f"Error during scheduled discovery: {err}")
+
+        # Schedule discovery with a timeout
+        self._discovery_cancel = async_call_later(
+            self._hass,
+            BLUETOOTH_DISCOVERY_INTERVAL,
+            _discovery_timeout
+        )
+
     async def _find_bluetooth_device(self) -> None:
         """Attempt to find the Bluetooth device through multiple methods."""
+        # If we already have a device, skip discovery
+        if self.ble_device:
+            return
+
         _LOGGER.debug(f"Attempting to find Bluetooth device for {self._address}")
 
-        # Method 1: Discover devices with the specific service UUID
+        # Method 1: Direct address lookup (usually fastest)
+        device = async_ble_device_from_address(self._hass, self._address)
+        if device:
+            self.ble_device = device
+            _LOGGER.debug(f"Successfully found device for {self._address} via direct lookup")
+            return
+
+        # Method 2: Discover devices with the specific service UUID
         discovered_devices = async_discovered_service_info(self._hass)
         for discovered_device in discovered_devices:
             if (discovered_device.address == self._address and
@@ -110,37 +155,31 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 _LOGGER.debug(f"Successfully found device for {self._address} via service UUID")
                 return
 
-        # Method 2: Direct address lookup
-        device = async_ble_device_from_address(self._hass, self._address)
-        if device:
-            self.ble_device = device
-            _LOGGER.debug(f"Successfully found device for {self._address} via direct lookup")
-            return
-
         # Method 3: Broad device discovery
-        if not self.ble_device:
-            for discovered_device in discovered_devices:
-                if discovered_device.address == self._address:
-                    self.ble_device = discovered_device
-                    _LOGGER.debug(f"Found device for {self._address} via broad discovery")
-                    return
+        for discovered_device in discovered_devices:
+            if discovered_device.address == self._address:
+                self.ble_device = discovered_device
+                _LOGGER.debug(f"Found device for {self._address} via broad discovery")
+                return
 
+        # If no device found, log warning and schedule discovery
         _LOGGER.warning(f"Could not find Bluetooth device for {self._address}")
+        await self._schedule_bluetooth_discovery()
 
     @property
     def temperature_unit(self) -> str:
-        """Always return Fahrenheit."""
-        return UnitOfTemperature.FAHRENHEIT
+        """Always return Celsius."""
+        return UnitOfTemperature.CELSIUS
 
     @property
     def min_temp(self) -> float:
-        """Get the minimum temperature in Fahrenheit."""
-        return 104  # 40°C equivalent
+        """Get the minimum temperature in Celsius."""
+        return 40
 
     @property
     def max_temp(self) -> float:
-        """Get the maximum temperature in Fahrenheit."""
-        return 212  # 100°C equivalent
+        """Get the maximum temperature in Celsius."""
+        return 100
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the kettle."""
@@ -158,7 +197,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
             new_data = await self.kettle.async_poll(self.ble_device)
 
-            if new_data:
+            if new_data and any(new_data.values()):
                 self.last_update_success = True
                 _LOGGER.debug("Successfully polled kettle data: %s", new_data)
                 return new_data
@@ -174,6 +213,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 exc_info=True
             )
             self.last_update_success = False
+            await self._schedule_bluetooth_discovery()
             return DEFAULT_DATA.copy()
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
