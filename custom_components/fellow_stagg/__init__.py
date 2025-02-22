@@ -40,28 +40,27 @@ DEFAULT_DATA = {
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, address: str) -> None:
         self._address = address
+        self._hass = hass
         self._failed_update_count = 0
-
-        # Try to get the device during initialization
-        try:
-            self.ble_device = async_ble_device_from_address(hass, address)
-        except Exception as e:
-            _LOGGER.warning(f"Could not get BLE device during initialization: {e}")
-            self.ble_device = None
+        self.ble_device = None
 
         # Define update method
         async def _async_update_wrapper():
             try:
+                # Attempt to find device before updating
+                await self._find_bluetooth_device()
+
                 updated_data = await self._async_update_data()
                 self._failed_update_count = 0  # Reset on successful update
                 return updated_data
             except Exception as err:
                 self._failed_update_count += 1
-                _LOGGER.warning(
+                _LOGGER.error(
                     "Failed to update Fellow Stagg kettle %s (attempt %d): %s",
                     self._address,
                     self._failed_update_count,
-                    str(err)
+                    str(err),
+                    exc_info=True
                 )
 
                 # Optional: Log a more serious error after multiple failed attempts
@@ -96,6 +95,26 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             model="Stagg EKG+",
         )
 
+    async def _find_bluetooth_device(self) -> None:
+        """Attempt to find the Bluetooth device through multiple methods."""
+        # Method 1: Direct address lookup
+        device = async_ble_device_from_address(self._hass, self._address)
+
+        # Method 2: Scan through discovered devices
+        if not device:
+            discovered_devices = async_discovered_service_info(self._hass)
+            for discovered_device in discovered_devices:
+                if (discovered_device.address == self._address and
+                    SERVICE_UUID in discovered_device.service_uuids):
+                    device = discovered_device
+                    break
+
+        if device:
+            self.ble_device = device
+            _LOGGER.debug(f"Successfully found device for {self._address}")
+        else:
+            _LOGGER.warning(f"Could not find Bluetooth device for {self._address}")
+
     @property
     def temperature_unit(self) -> str:
         """Get the current temperature unit."""
@@ -118,25 +137,16 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
 
         try:
-            # Try multiple methods to get the device
-            device = self.ble_device or async_ble_device_from_address(self.hass, self._address)
+            # Ensure we have a device
+            if not self.ble_device:
+                await self._find_bluetooth_device()
 
-            if not device:
-                # Attempt to discover devices if direct address lookup fails
-                discovered_devices = async_discovered_service_info(self.hass)
-                for discovered_device in discovered_devices:
-                    if (discovered_device.address == self._address and
-                        SERVICE_UUID in discovered_device.service_uuids):
-                        device = discovered_device
-                        break
-
-            if not device:
+            if not self.ble_device:
                 _LOGGER.warning(f"No Bluetooth device found for address {self._address}")
                 self.last_update_success = False
                 return DEFAULT_DATA.copy()
 
-            self.ble_device = device
-            new_data = await self.kettle.async_poll(device)
+            new_data = await self.kettle.async_poll(self.ble_device)
 
             if new_data:
                 self.last_update_success = True
@@ -151,7 +161,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 "Error polling Fellow Stagg kettle %s: %s",
                 self._address,
                 str(e),
-                exc_info=True  # Add full traceback
+                exc_info=True
             )
             self.last_update_success = False
             return DEFAULT_DATA.copy()
