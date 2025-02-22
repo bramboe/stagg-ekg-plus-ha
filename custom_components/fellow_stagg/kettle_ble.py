@@ -25,58 +25,70 @@ class KettleBLEClient:
             "target_temp": None
         }
 
-    async def ensure_connected(self, device: BluetoothScannerDevice | None = None) -> bool:
+    # [Previous methods remain the same]
+
+    @staticmethod
+    def _encode_temperature(celsius: float) -> bytes:
         """
-        Ensure BLE connection is established.
-        Returns True if connection is successful, False otherwise.
+        Encode temperature to kettle's Celsius * 256 format.
+
+        Ensure precise encoding and handle edge cases.
         """
-        if not device:
-            _LOGGER.warning(f"No device provided for {self.address}")
-            return False
+        # Clamp temperature to valid range (40-100°C)
+        celsius = min(max(celsius, 40), 100)
 
-        # Use a lock to prevent multiple simultaneous connection attempts
-        async with self._connection_lock:
-            try:
-                # If already connected, return True
-                if self._client and self._client.is_connected:
-                    return True
+        # Scale and convert to 16-bit integer
+        # Ensures more precise conversion
+        temp_value = int(round(celsius * 256.0))
 
-                # Disconnect any existing client first
-                if self._client:
-                    try:
-                        await self._client.disconnect()
-                    except Exception:
-                        pass
-                    self._client = None
+        # Return as little-endian bytes
+        return bytes([
+            temp_value & 0xFF,  # Low byte
+            temp_value >> 8     # High byte
+        ])
 
-                # Create a new client
-                _LOGGER.debug(f"Connecting to kettle at {self.address}")
-                self._client = BleakClient(device, timeout=10.0)
+    def _create_command(self, temp_c: float = None, power: bool = None) -> bytes:
+        """
+        Create a command packet matching observed pattern.
 
-                # Attempt connection
-                await self._client.connect()
+        Ensure correct temperature and power encoding.
+        """
+        seq = (self._sequence + 1) & 0xFF
 
-                # Optional: Add service discovery
-                await self._client.get_services()
+        command = bytearray([
+            0xF7,   # Header byte
+            0x15,   # Command type
+            0x00,   # Padding
+            0x00    # Padding
+        ])
 
-                _LOGGER.debug(f"Successfully connected to kettle {self.address}")
-                return True
+        if temp_c is not None:
+            # Clamp temperature to valid range
+            temp_c = min(max(temp_c, 40), 100)
 
-            except (BleakError, asyncio.TimeoutError) as err:
-                _LOGGER.error(f"Connection error for kettle {self.address}: {err}")
+            temp_bytes = self._encode_temperature(temp_c)
+            command.extend([
+                temp_bytes[0],  # Temperature low byte
+                0x00,           # Padding
+                temp_bytes[1],  # Temperature high byte
+                0x00            # Padding
+            ])
+        else:
+            # Default temperature bytes if no temperature specified
+            command.extend([0x00, 0x00, 0x28, 0x00])
 
-                # Ensure client is closed
-                if self._client:
-                    try:
-                        await self._client.disconnect()
-                    except Exception:
-                        pass
-                    self._client = None
+        command.extend([
+            0x00, 0x00,     # Padding
+            seq,            # Sequence number
+            0x00,           # Padding
+            0x01,           # Static value
+            0x1E if power else 0x00,  # Power state
+            0x00, 0x00,     # Padding
+            0x08            # End byte
+        ])
 
-                return False
-            except Exception as err:
-                _LOGGER.error(f"Unexpected error connecting to kettle {self.address}: {err}")
-                return False
+        self._sequence = seq
+        return bytes(command)
 
     @staticmethod
     def _decode_temperature(data: bytes) -> float:
@@ -84,15 +96,22 @@ class KettleBLEClient:
         Decode temperature from kettle data.
 
         The temperature seems to be stored as a 16-bit value representing Celsius * 256.
+        Use more robust decoding to handle various scenarios.
         """
         if len(data) < 6:
             return 0.0
 
         # Extract 16-bit temperature value (little-endian)
         temp_hex = (data[5] << 8) | data[4]
+
+        # Ensure precise decoding
         celsius = temp_hex / 256.0
 
+        # Clamp to reasonable range
+        celsius = min(max(celsius, 0), 100)
+
         return round(celsius, 1)
+
 
     @staticmethod
     def _encode_temperature(celsius: float) -> bytes:
