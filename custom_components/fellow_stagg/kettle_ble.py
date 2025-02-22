@@ -6,44 +6,6 @@ from .const import MAIN_SERVICE_UUID, CONTROL_CHAR_UUID
 
 _LOGGER = logging.getLogger(__name__)
 
-def _decode_temperature(data: bytes) -> float:
-    """
-    Decode temperature from kettle data.
-    Example mapping:
-    100°C = 0x8805 = 13289 (decimal)
-    90°C = 0xB480 = 46208
-    82°C = 0xA480 = 42112
-    73.5°C = 0x9380 = 37760
-    """
-    if len(data) < 6:
-        return 0
-
-    # Extract 16-bit temperature value
-    temp_hex = (data[4] << 8) | data[5]  # Bytes 4-5 contain the temperature
-
-    # Approximate conversion back to Celsius
-    if temp_hex > 46208:  # Above 90°C
-        celsius = 90 + ((46208 - temp_hex) / 512)
-    else:  # Below 90°C
-        celsius = 73.5 + ((37760 - temp_hex) / 512)
-
-    return round(celsius, 1)
-
-def _encode_temperature(celsius: float) -> bytes:
-    """
-    Encode temperature to kettle format.
-    Uses inverse of the decoding formula.
-    """
-    if celsius >= 90:
-        temp_hex = int(46208 - ((celsius - 90) * 512))
-    else:
-        temp_hex = int(37760 - ((celsius - 73.5) * 512))
-
-    return bytes([
-        (temp_hex >> 8) & 0xFF,  # High byte
-        temp_hex & 0xFF          # Low byte
-    ])
-
 class KettleBLEClient:
     """BLE client for the Fellow Stagg EKG+ kettle."""
 
@@ -55,6 +17,47 @@ class KettleBLEClient:
         self._last_command_time = 0
         self._is_connecting = False
         self._disconnect_timer = None
+        self._default_state = {
+            "units": "C",
+            "power": False,
+            "current_temp": None,
+            "target_temp": None
+        }
+
+    async def async_poll(self, ble_device):
+        """Connect to the kettle and read its state."""
+        try:
+            await self._ensure_connected(ble_device)
+            state = self._default_state.copy()  # Start with a copy of default state
+
+            if not self._client or not self._client.is_connected:
+                _LOGGER.debug("Not connected - returning default state")
+                return state
+
+            try:
+                value = await self._client.read_gatt_char(CONTROL_CHAR_UUID)
+                _LOGGER.debug("Temperature data: %s", value.hex())
+
+                if len(value) >= 16:
+                    temp_celsius = _decode_temperature(value)
+                    state.update({
+                        "current_temp": temp_celsius,
+                        "power": bool(value[12] == 0x0F),
+                        "target_temp": temp_celsius  # Until we implement target temp reading
+                    })
+                    _LOGGER.debug("Decoded state: %s", state)
+                else:
+                    _LOGGER.warning("Received incomplete data from kettle")
+
+            except Exception as err:
+                _LOGGER.debug("Error reading temperature: %s", err)
+                # Don't raise here - return default state instead
+
+            return state
+
+        except Exception as err:
+            _LOGGER.error("Error polling kettle: %s", err)
+            return self._default_state.copy()
 
     async def _ensure_connected(self, ble_device):
         """Ensure BLE connection is established."""
@@ -64,17 +67,29 @@ class KettleBLEClient:
 
         try:
             self._is_connecting = True
+
+            # Check if already connected
             if self._client and self._client.is_connected:
                 return
 
+            # Clean up old connection if needed
             if self._client:
-                await self._client.disconnect()
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    pass
                 self._client = None
-                await asyncio.sleep(1.0)  # Wait a bit before reconnecting
+                await asyncio.sleep(1.0)
 
             _LOGGER.debug("Connecting to kettle at %s", self.address)
             self._client = BleakClient(ble_device, timeout=20.0)
-            await self._client.connect()
+
+            # Use wait_for to implement connection timeout
+            try:
+                await asyncio.wait_for(self._client.connect(), timeout=10.0)
+            except asyncio.TimeoutError:
+                _LOGGER.error("Connection timeout")
+                raise
 
             # Reset disconnect timer
             if self._disconnect_timer:
