@@ -61,21 +61,37 @@ class KettleBLEClient:
 
     @staticmethod
     def _decode_temperature(data: bytes) -> float:
-        """Decode temperature from kettle data and convert to Fahrenheit."""
+        """
+        Decode temperature from kettle data.
+
+        The temperature seems to be stored as a 16-bit value representing Celsius * 256.
+        We always return Fahrenheit.
+        """
         if len(data) < 6:
-            return 0
-        temp_hex = (data[4] << 8) | data[5]
+            return 0.0
+
+        # Extract 16-bit temperature value (little-endian)
+        temp_hex = (data[5] << 8) | data[4]
         celsius = temp_hex / 256.0
+
         # Convert to Fahrenheit
-        fahrenheit = (celsius * 9/5) + 32
-        return round(fahrenheit, 1)
+        fahrenheit = round((celsius * 9/5) + 32, 1)
+
+        return fahrenheit
 
     @staticmethod
     def _encode_temperature(fahrenheit: float) -> bytes:
-        """Encode temperature from Fahrenheit to kettle format."""
-        # Convert Fahrenheit to Celsius for device
+        """
+        Encode temperature to kettle's Celsius * 256 format.
+        Input is expected to be in Fahrenheit.
+        """
+        # Convert Fahrenheit to Celsius
         celsius = (fahrenheit - 32) * 5/9
+
+        # Scale and convert to 16-bit integer
         temp_value = int(celsius * 256.0)
+
+        # Return as little-endian bytes
         return bytes([
             temp_value & 0xFF,  # Low byte
             temp_value >> 8     # High byte
@@ -98,7 +114,7 @@ class KettleBLEClient:
                 temp_bytes[0],  # Temperature low byte
                 0x00,           # Padding
                 temp_bytes[1],  # Temperature high byte
-                0x00           # Padding
+                0x00            # Padding
             ])
         else:
             # Default temperature bytes if no temperature specified
