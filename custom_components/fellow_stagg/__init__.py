@@ -207,3 +207,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
     return True
+
+async def print_bluetooth_details(self) -> None:
+    """Print detailed Bluetooth service and characteristic information."""
+    discovered_devices = async_discovered_service_info(self._hass)
+    for device in discovered_devices:
+        if device.address == self._address:
+            _LOGGER.info(f"Matched Device: {device}")
+            _LOGGER.info(f"Services: {device.service_uuids}")
+            _LOGGER.info(f"Manufacturer Data: {device.manufacturer_data}")
