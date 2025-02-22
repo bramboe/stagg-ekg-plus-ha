@@ -189,3 +189,9 @@ class KettleBLEClient:
             except Exception as err:
                 _LOGGER.error(f"Error disconnecting: {err}")
             self._client = None
+
+# Export the class
+__all__ = ["KettleBLEClient"]
+
+# Make sure the class is available at module level
+KettleBLEClient = KettleBLEClient  # This makes it explicitly available for import
