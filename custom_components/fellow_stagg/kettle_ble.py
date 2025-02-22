@@ -46,7 +46,7 @@ class KettleBLEClient:
 
     def _create_command(self, command_type: int, value: int, unit: bool = True) -> bytes:
         """Create a command with proper sequence number and checksum.
-        
+
         Command format:
         - Bytes 0-1: Magic (0xef, 0xdd)
         - Byte 2: Command flag (0x0a)
@@ -78,12 +78,19 @@ class KettleBLEClient:
                 notifications.append(data)
 
             try:
+                # Try notifications first
                 await self._client.start_notify(self.char_uuid, notification_handler)
                 await asyncio.sleep(2.0)
                 await self._client.stop_notify(self.char_uuid)
             except Exception as err:
-                _LOGGER.error("Error during notifications: %s", err)
-                return {}
+                _LOGGER.debug("Notification failed, falling back to direct read: %s", err)
+                try:
+                    # Fallback to direct read
+                    value = await self._client.read_gatt_char(self.char_uuid)
+                    notifications.append(value)
+                except Exception as read_err:
+                    _LOGGER.error("Both notification and read failed: %s", read_err)
+                    return {}
 
             state = self.parse_notifications(notifications)
             return state
@@ -164,13 +171,13 @@ class KettleBLEClient:
         while i < len(notifications) - 1:  # Process pairs of notifications
             header = notifications[i]
             payload = notifications[i + 1]
-            
+
             if len(header) < 3 or header[0] != 0xEF or header[1] != 0xDD:
                 i += 1
                 continue
-                
+
             msg_type = header[2]
-            
+
             if msg_type == 0:
                 # Power state
                 if len(payload) >= 1:
@@ -201,7 +208,7 @@ class KettleBLEClient:
                 # Kettle position
                 if len(payload) >= 1:
                     state["lifted"] = payload[0] == 0
-            
+
             i += 2  # Move to next pair of notifications
-            
+
         return state
