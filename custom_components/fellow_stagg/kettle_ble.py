@@ -2,12 +2,47 @@
 import asyncio
 import logging
 from bleak import BleakClient
+from .const import MAIN_SERVICE_UUID, CONTROL_CHAR_UUID
 
 _LOGGER = logging.getLogger(__name__)
 
-# Service and characteristic UUIDs
-MAIN_SERVICE_UUID = "7aebf330-6cb1-46e4-b23b-7cc2262c605e"
-CONTROL_CHAR_UUID = "2291c4b5-5d7f-4477-a88b-b266edb97142"  # For control and temperature
+def _decode_temperature(data: bytes) -> float:
+    """
+    Decode temperature from kettle data.
+    Example mapping:
+    100°C = 0x8805 = 13289 (decimal)
+    90°C = 0xB480 = 46208
+    82°C = 0xA480 = 42112
+    73.5°C = 0x9380 = 37760
+    """
+    if len(data) < 6:
+        return 0
+
+    # Extract 16-bit temperature value
+    temp_hex = (data[4] << 8) | data[5]  # Bytes 4-5 contain the temperature
+
+    # Approximate conversion back to Celsius
+    if temp_hex > 46208:  # Above 90°C
+        celsius = 90 + ((46208 - temp_hex) / 512)
+    else:  # Below 90°C
+        celsius = 73.5 + ((37760 - temp_hex) / 512)
+
+    return round(celsius, 1)
+
+def _encode_temperature(celsius: float) -> bytes:
+    """
+    Encode temperature to kettle format.
+    Uses inverse of the decoding formula.
+    """
+    if celsius >= 90:
+        temp_hex = int(46208 - ((celsius - 90) * 512))
+    else:
+        temp_hex = int(37760 - ((celsius - 73.5) * 512))
+
+    return bytes([
+        (temp_hex >> 8) & 0xFF,  # High byte
+        temp_hex & 0xFF          # Low byte
+    ])
 
 class KettleBLEClient:
     """BLE client for the Fellow Stagg EKG+ kettle."""
@@ -76,52 +111,34 @@ class KettleBLEClient:
             await asyncio.sleep(0.2)
         self._last_command_time = current_time
 
-    def _parse_temperature_data(self, data: bytes) -> dict:
-        """Parse temperature data packet."""
-        if len(data) < 16:
-            return {}
-
-        # Command format appears to be:
-        # F7 17 0000 BC80 C080 0000 1900 011E 0000
-        # Where:
-        # - F7 = header
-        # - 17 = command type
-        # - BC80 = config flags?
-        # - 19 = sequence
-        # - 01 = units (01 = F, 00 = C)
-        # - 1E = temperature value
-
-        try:
-            state = {}
-            if data[0] != 0xF7:  # Check header
-                return state
-
-            state["units"] = "F" if data[8] & 0x01 else "C"
-            state["current_temp"] = data[9] if data[9] != 0xFF else 0
-            state["power"] = bool(data[8] & 0x02)  # Power bit
-
-            _LOGGER.debug("Parsed temperature data: %s", state)
-            return state
-
-        except Exception as err:
-            _LOGGER.debug("Error parsing temperature data: %s", err)
-            return {}
-
-    def _create_command(self, command_type: int, value: int) -> bytes:
-        """Create a command packet."""
+    def _create_command(self, celsius: float = None, power: bool = None) -> bytes:
+        """Create a command packet.
+        Format: F717 0000 TTTT C080 0000 09xx 010F 0000
+        Where TTTT is the temperature hex value
+        """
         seq = (self._sequence + 1) & 0xFF
         command = bytearray([
             0xF7,        # Header
-            command_type,  # Command type (0x15 = temp, 0x16 = power)
-            0x00, 0x00,  # Value (16-bit)
-            0xBC, 0x80,  # Static config
-            0xC0, 0x80,  # Static config
-            0x00, 0x00,  # Flags/units
-            seq, 0x00,   # Sequence
-            value,       # Command value
-            0x00, 0x00,  # Padding
-            seq + 1     # Checksum
+            0x17,        # Command type
+            0x00, 0x00,  # Zero padding
         ])
+
+        if celsius is not None:
+            # Add temperature bytes
+            command.extend(_encode_temperature(celsius))
+        else:
+            # Power command
+            command.extend([0xBC, 0x80])  # Default temp bytes
+
+        command.extend([
+            0xC0, 0x80,  # Static values
+            0x00, 0x00,  # Zero padding
+            seq, 0x00,   # Sequence number
+            0x01,        # Static value
+            0x0F if power else 0x00,  # Power state
+            0x00, 0x00   # Zero padding
+        ])
+
         self._sequence = seq
         return bytes(command)
 
@@ -135,7 +152,12 @@ class KettleBLEClient:
                 # Read temperature characteristic
                 value = await self._client.read_gatt_char(CONTROL_CHAR_UUID)
                 _LOGGER.debug("Temperature data: %s", value.hex())
-                state.update(self._parse_temperature_data(value))
+                if len(value) >= 16:
+                    # Parse state
+                    temp_celsius = _decode_temperature(value)
+                    state["current_temp"] = temp_celsius
+                    state["power"] = bool(value[12] == 0x0F)  # 0x0F means power on
+                    state["target_temp"] = temp_celsius  # TODO: Extract target temp
             except Exception as err:
                 _LOGGER.debug("Error reading temperature: %s", err)
 
@@ -151,7 +173,7 @@ class KettleBLEClient:
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
 
-            command = self._create_command(0x16, 0x01 if power_on else 0x00)
+            command = self._create_command(power=power_on)
             _LOGGER.debug("Writing power command: %s", command.hex())
             await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
             await asyncio.sleep(0.5)  # Wait for state to update
@@ -160,25 +182,24 @@ class KettleBLEClient:
             _LOGGER.error("Error setting power state: %s", err)
             raise
 
-    async def async_set_temperature(self, ble_device, temp: int, fahrenheit: bool = True):
+    async def async_set_temperature(self, ble_device, temp: float, fahrenheit: bool = True):
         """Set target temperature."""
         if fahrenheit:
             if temp > 212: temp = 212
             if temp < 104: temp = 104
+            # Convert to Celsius
+            celsius = (temp - 32) * 5 / 9
         else:
             if temp > 100: temp = 100
             if temp < 40: temp = 40
+            celsius = temp
 
         try:
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
 
-            command = self._create_command(0x15, temp)
-            # Set units bit
-            command = bytearray(command)
-            command[8] = 0x01 if fahrenheit else 0x00
-
-            _LOGGER.debug("Writing temperature command: %s", bytes(command).hex())
+            command = self._create_command(celsius=celsius)
+            _LOGGER.debug("Writing temperature command: %s", command.hex())
             await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
             await asyncio.sleep(0.5)  # Wait for state to update
 
