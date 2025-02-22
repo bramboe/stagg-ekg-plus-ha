@@ -1,30 +1,21 @@
+"""BLE client for Fellow Stagg EKG+ kettle."""
 import asyncio
 import logging
 from bleak import BleakClient
-from .const import (
-    SERVICE_UUID,
-    CHAR_UUID,
-    TEMP_CHAR_UUID,
-    STATUS_CHAR_UUID,
-    SETTINGS_CHAR_UUID,
-    INFO_CHAR_UUID,
-    INIT_SEQUENCE
-)
 
 _LOGGER = logging.getLogger(__name__)
+
+# Service and characteristic UUIDs
+MAIN_SERVICE_UUID = "7aebf330-6cb1-46e4-b23b-7cc2262c605e"
+CONTROL_CHAR_UUID = "2291c4b5-5d7f-4477-a88b-b266edb97142"  # For control commands
+STATUS_CHAR_UUID = "2291c4b1-5d7f-4477-a88b-b266edb97142"   # For status notifications
 
 class KettleBLEClient:
     """BLE client for the Fellow Stagg EKG+ kettle."""
 
     def __init__(self, address: str):
+        """Initialize the kettle client."""
         self.address = address
-        self.service_uuid = SERVICE_UUID
-        self.char_uuid = CHAR_UUID
-        self.temp_char_uuid = TEMP_CHAR_UUID
-        self.status_char_uuid = STATUS_CHAR_UUID
-        self.settings_char_uuid = SETTINGS_CHAR_UUID
-        self.info_char_uuid = INFO_CHAR_UUID
-        self.init_sequence = INIT_SEQUENCE
         self._client = None
         self._sequence = 0
         self._last_command_time = 0
@@ -50,19 +41,6 @@ class KettleBLEClient:
                         except Exception as err:
                             _LOGGER.debug("    Error reading: %s", err)
 
-            await self._authenticate()
-
-    async def _authenticate(self):
-        """Send authentication sequence to kettle."""
-        try:
-            _LOGGER.debug("Writing init sequence to characteristic %s", self.char_uuid)
-            await self._ensure_debounce()
-            await self._client.write_gatt_char(self.char_uuid, self.init_sequence)
-            _LOGGER.debug("Init sequence written successfully")
-        except Exception as err:
-            _LOGGER.error("Error writing init sequence: %s", err)
-            raise
-
     async def _ensure_debounce(self):
         """Ensure we don't send commands too frequently."""
         import time
@@ -71,33 +49,48 @@ class KettleBLEClient:
             await asyncio.sleep(0.2)
         self._last_command_time = current_time
 
+    def _create_command(self, command_type: int, value: int) -> bytes:
+        """Create a command packet."""
+        command = bytearray([
+            0xF7,        # Header
+            command_type,  # Command type (0x15 = temp, 0x16 = power)
+            0x00,        # Sequence number
+            0x00        # Value
+        ])
+        self._sequence = (self._sequence + 1) & 0xFF
+        return bytes(command)
+
     async def async_poll(self, ble_device):
         """Connect to the kettle and read its state."""
         try:
             await self._ensure_connected(ble_device)
-            state = {"units": "C"}  # Default state
+            state = {}
+            notifications = []
 
-            # Try reading status first
+            def notification_handler(sender, data):
+                notifications.append(data)
+                _LOGGER.debug("Received notification: %s", data.hex())
+
+            # Setup notifications for status
             try:
-                _LOGGER.debug("Reading status characteristic %s", self.status_char_uuid)
-                status = await self._client.read_gatt_char(self.status_char_uuid)
-                _LOGGER.debug("Status data: %s", status.hex())
-                if len(status) >= 1:
-                    state["power"] = bool(status[0] & 0x01)
+                await self._client.start_notify(CONTROL_CHAR_UUID, notification_handler)
+
+                # Read current status
+                value = await self._client.read_gatt_char(CONTROL_CHAR_UUID)
+                _LOGGER.debug("Current status data: %s", value.hex())
+
+                if len(value) >= 4:
+                    # Decode status
+                    if value[0] == 0xF7:
+                        state["power"] = bool(value[1] & 0x01)
+                        state["current_temp"] = value[2]
+                        state["units"] = "F" if (value[3] & 0x01) else "C"
+
+                await asyncio.sleep(0.5)  # Wait for notifications
+                await self._client.stop_notify(CONTROL_CHAR_UUID)
+
             except Exception as err:
                 _LOGGER.debug("Error reading status: %s", err)
-
-            # Try reading temperature
-            try:
-                _LOGGER.debug("Reading temperature characteristic %s", self.temp_char_uuid)
-                temp = await self._client.read_gatt_char(self.temp_char_uuid)
-                _LOGGER.debug("Temperature data: %s", temp.hex())
-                if len(temp) >= 2:
-                    state["current_temp"] = temp[0]
-                    state["target_temp"] = temp[0]  # Default to current temp if no target
-                    state["units"] = "F" if temp[1] & 0x01 else "C"
-            except Exception as err:
-                _LOGGER.debug("Error reading temperature: %s", err)
 
             _LOGGER.debug("Final state: %s", state)
             return state
@@ -114,10 +107,12 @@ class KettleBLEClient:
         try:
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
-            command = bytes([0x01 if power_on else 0x00])
+
+            command = self._create_command(0x16, 0x01 if power_on else 0x00)
             _LOGGER.debug("Writing power command: %s", command.hex())
-            await self._client.write_gatt_char(self.char_uuid, command)
+            await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
             await asyncio.sleep(0.5)  # Wait for state to update
+
         except Exception as err:
             _LOGGER.error("Error setting power state: %s", err)
             if self._client and self._client.is_connected:
@@ -137,10 +132,12 @@ class KettleBLEClient:
         try:
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
-            command = bytes([temp, 0x01 if fahrenheit else 0x00])
+
+            command = self._create_command(0x15, temp)
             _LOGGER.debug("Writing temperature command: %s", command.hex())
-            await self._client.write_gatt_char(self.temp_char_uuid, command)
+            await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
             await asyncio.sleep(0.5)  # Wait for state to update
+
         except Exception as err:
             _LOGGER.error("Error setting temperature: %s", err)
             if self._client and self._client.is_connected:
