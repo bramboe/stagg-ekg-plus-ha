@@ -5,6 +5,7 @@ from typing import Any, Dict
 
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
+    async_discovered_service_info,
     BluetoothScannerDevice,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -15,12 +16,18 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN
+from .const import DOMAIN, SERVICE_UUID
 from .kettle_ble import KettleBLEClient
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.WATER_HEATER]
+PLATFORMS: list[Platform] = [
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.SWITCH,
+    Platform.NUMBER,
+    Platform.WATER_HEATER
+]
 POLLING_INTERVAL = timedelta(seconds=5)
 
 DEFAULT_DATA = {
@@ -32,11 +39,15 @@ DEFAULT_DATA = {
 
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, address: str) -> None:
-        self._failed_update_count = 0
         self._address = address
-        self.last_update_success = False
-        self.ble_device = None
-        self.kettle = KettleBLEClient(address)
+        self._failed_update_count = 0
+
+        # Try to get the device during initialization
+        try:
+            self.ble_device = async_ble_device_from_address(hass, address)
+        except Exception as e:
+            _LOGGER.warning(f"Could not get BLE device during initialization: {e}")
+            self.ble_device = None
 
         # Define update method
         async def _async_update_wrapper():
@@ -71,6 +82,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             update_interval=POLLING_INTERVAL,
         )
 
+        # Additional initialization
+        self.last_update_success = False
+        self.kettle = KettleBLEClient(address)
+
         # Set initial data
         self.data = DEFAULT_DATA.copy()
 
@@ -103,10 +118,20 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
 
         try:
-            # Get the device from address
-            device = async_ble_device_from_address(self.hass, self._address)
+            # Try multiple methods to get the device
+            device = self.ble_device or async_ble_device_from_address(self.hass, self._address)
+
             if not device:
-                _LOGGER.debug("No connectable device found")
+                # Attempt to discover devices if direct address lookup fails
+                discovered_devices = async_discovered_service_info(self.hass)
+                for discovered_device in discovered_devices:
+                    if (discovered_device.address == self._address and
+                        SERVICE_UUID in discovered_device.service_uuids):
+                        device = discovered_device
+                        break
+
+            if not device:
+                _LOGGER.warning(f"No Bluetooth device found for address {self._address}")
                 self.last_update_success = False
                 return DEFAULT_DATA.copy()
 
@@ -126,6 +151,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 "Error polling Fellow Stagg kettle %s: %s",
                 self._address,
                 str(e),
+                exc_info=True  # Add full traceback
             )
             self.last_update_success = False
             return DEFAULT_DATA.copy()
@@ -136,6 +162,13 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Fellow Stagg integration from a config entry."""
+    from homeassistant.components.bluetooth import async_scanner_count
+
+    # Check if Bluetooth adapters are available
+    if async_scanner_count(hass) == 0:
+        _LOGGER.error("No Bluetooth adapters available")
+        return False
+
     address = entry.unique_id
     if address is None:
         _LOGGER.error("No unique ID provided in config entry")
