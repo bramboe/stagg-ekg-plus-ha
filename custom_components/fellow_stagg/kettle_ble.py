@@ -52,6 +52,104 @@ class KettleBLEClient:
             "target_temp": None
         }
 
+    async def _ensure_connected(self, ble_device):
+        """Ensure BLE connection is established."""
+        if self._is_connecting:
+            _LOGGER.debug("Already attempting to connect...")
+            return
+
+        try:
+            self._is_connecting = True
+
+            # Check if already connected
+            if self._client and self._client.is_connected:
+                return
+
+            # Clean up old connection if needed
+            if self._client:
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    pass
+                self._client = None
+                await asyncio.sleep(1.0)
+
+            _LOGGER.debug("Connecting to kettle at %s", self.address)
+            self._client = BleakClient(ble_device, timeout=20.0)
+
+            # Use wait_for to implement connection timeout
+            try:
+                await asyncio.wait_for(self._client.connect(), timeout=10.0)
+            except asyncio.TimeoutError:
+                _LOGGER.error("Connection timeout")
+                raise
+
+            # Reset disconnect timer
+            if self._disconnect_timer:
+                self._disconnect_timer.cancel()
+            self._disconnect_timer = asyncio.create_task(self._delayed_disconnect())
+
+        except Exception as err:
+            _LOGGER.error("Error connecting to kettle: %s", err)
+            if self._client:
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    pass
+                self._client = None
+            raise
+        finally:
+            self._is_connecting = False
+
+    async def _delayed_disconnect(self):
+        """Disconnect after period of inactivity."""
+        try:
+            await asyncio.sleep(30)  # Keep connection for 30 seconds
+            if self._client and self._client.is_connected:
+                _LOGGER.debug("Disconnecting due to inactivity")
+                await self._client.disconnect()
+        except Exception as err:
+            _LOGGER.debug("Error in delayed disconnect: %s", err)
+
+    async def _ensure_debounce(self):
+        """Ensure we don't send commands too frequently."""
+        import time
+        current_time = int(time.time() * 1000)
+        if current_time - self._last_command_time < 200:
+            await asyncio.sleep(0.2)
+        self._last_command_time = current_time
+
+    def _create_command(self, celsius: float = None, power: bool = None) -> bytes:
+        """Create a command packet.
+        Format: F717 0000 TTTT C080 0000 09xx 010F 0000
+        Where TTTT is the temperature hex value
+        """
+        seq = (self._sequence + 1) & 0xFF
+        command = bytearray([
+            0xF7,        # Header
+            0x17,        # Command type
+            0x00, 0x00,  # Zero padding
+        ])
+
+        if celsius is not None:
+            # Add temperature bytes
+            command.extend(_encode_temperature(celsius))
+        else:
+            # Power command
+            command.extend([0xBC, 0x80])  # Default temp bytes
+
+        command.extend([
+            0xC0, 0x80,  # Static values
+            0x00, 0x00,  # Zero padding
+            seq, 0x00,   # Sequence number
+            0x01,        # Static value
+            0x0F if power else 0x00,  # Power state
+            0x00, 0x00   # Zero padding
+        ])
+
+        self._sequence = seq
+        return bytes(command)
+
     async def async_poll(self, ble_device):
         """Connect to the kettle and read its state."""
         try:
