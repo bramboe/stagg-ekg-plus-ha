@@ -49,14 +49,14 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     self._attr_unique_id = f"{coordinator._address}_water_heater"
     self._attr_device_info = coordinator.device_info
 
-    _LOGGER.debug("Initializing water heater with units: Fahrenheit")
+    _LOGGER.debug("Initializing water heater with units: Celsius")
 
-    self._attr_min_temp = 104  # 40°C equivalent
-    self._attr_max_temp = 212  # 100°C equivalent
-    self._attr_temperature_unit = UnitOfTemperature.FAHRENHEIT
+    self._attr_min_temp = 40  # 40°C
+    self._attr_max_temp = 100  # 100°C
+    self._attr_temperature_unit = UnitOfTemperature.CELSIUS
 
     _LOGGER.debug(
-      "Water heater temperature range set to: %s°F - %s°F",
+      "Water heater temperature range set to: %s°C - %s°C",
       self._attr_min_temp,
       self._attr_max_temp,
     )
@@ -65,14 +65,14 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
   def current_temperature(self) -> float | None:
     """Return the current temperature."""
     value = self.coordinator.data.get("current_temp") if self.coordinator.data else None
-    _LOGGER.debug("Water heater current temperature read as: %s°F", value)
+    _LOGGER.debug("Water heater current temperature read as: %s°C", value)
     return value
 
   @property
   def target_temperature(self) -> float | None:
     """Return the target temperature."""
     value = self.coordinator.data.get("target_temp") if self.coordinator.data else None
-    _LOGGER.debug("Water heater target temperature read as: %s°F", value)
+    _LOGGER.debug("Water heater target temperature read as: %s°C", value)
     return value
 
   @property
@@ -94,14 +94,14 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     temperature = min(max(temperature, self._attr_min_temp), self._attr_max_temp)
 
     _LOGGER.debug(
-      "Setting water heater target temperature to %s°F",
+      "Setting water heater target temperature to %s°C",
       temperature
     )
 
     await self.coordinator.kettle.async_set_temperature(
       self.coordinator.ble_device,
       temperature,
-      fahrenheit=True  # Explicitly set as Fahrenheit
+      fahrenheit=False  # Explicitly set as Celsius
     )
     _LOGGER.debug("Target temperature command sent, waiting before refresh")
 
