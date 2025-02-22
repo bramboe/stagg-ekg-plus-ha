@@ -32,7 +32,7 @@ PLATFORMS: list[Platform] = [
 POLLING_INTERVAL = timedelta(seconds=5)
 
 DEFAULT_DATA = {
-    "units": "C",
+    "units": "F",  # Always use Fahrenheit
     "power": False,
     "current_temp": None,
     "target_temp": None
@@ -40,6 +40,7 @@ DEFAULT_DATA = {
 
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, address: str) -> None:
+        """Initialize the coordinator."""
         self._address = address
         self._hass = hass
         self._failed_update_count = 0
@@ -64,7 +65,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     exc_info=True
                 )
 
-                # Optional: Log a more serious error after multiple failed attempts
+                # Log a more serious error after multiple failed attempts
                 if self._failed_update_count > 3:
                     _LOGGER.error(
                         "Persistent update failures for Fellow Stagg kettle %s. Bluetooth proxy issues suspected.",
@@ -128,20 +129,18 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     @property
     def temperature_unit(self) -> str:
-        """Get the current temperature unit."""
-        if not self.data:
-            return UnitOfTemperature.CELSIUS
-        return UnitOfTemperature.FAHRENHEIT if self.data.get("units") == "F" else UnitOfTemperature.CELSIUS
+        """Always return Fahrenheit."""
+        return UnitOfTemperature.FAHRENHEIT
 
     @property
     def min_temp(self) -> float:
-        """Get the minimum temperature based on current units."""
-        return 104 if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else 40
+        """Get the minimum temperature in Fahrenheit."""
+        return 104  # 40°C equivalent
 
     @property
     def max_temp(self) -> float:
-        """Get the maximum temperature based on current units."""
-        return 212 if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else 100
+        """Get the maximum temperature in Fahrenheit."""
+        return 212  # 100°C equivalent
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the kettle."""
