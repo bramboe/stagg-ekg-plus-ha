@@ -13,23 +13,25 @@ def _decode_temperature(data: bytes) -> float:
     if len(data) < 6:
         return 0
 
-    # Extract 16-bit temperature value
-    temp_hex = (data[4] << 8) | data[5]  # Bytes 4-5 contain the temperature
+    # Temperature is in bytes 4-5
+    temp_hex = (data[4] << 8) | data[5]
 
-    # Approximate conversion back to Celsius
-    if temp_hex > 46208:  # Above 90°C
-        celsius = 90 + ((46208 - temp_hex) / 512)
-    else:  # Below 90°C
-        celsius = 73.5 + ((37760 - temp_hex) / 512)
+    # Based on logs, it appears the kettle uses a linear scale
+    # Empirically derived conversion formula
+    celsius = temp_hex / 256.0
+
+    # Prevent unreasonable values
+    if celsius > 100:
+        celsius = 100
+    elif celsius < 20:  # Assuming room temperature minimum
+        celsius = 20
 
     return round(celsius, 1)
 
 def _encode_temperature(celsius: float) -> bytes:
     """Encode temperature to kettle format."""
-    if celsius >= 90:
-        temp_hex = int(46208 - ((celsius - 90) * 512))
-    else:
-        temp_hex = int(37760 - ((celsius - 73.5) * 512))
+    # Convert temperature back to device format
+    temp_hex = int(celsius * 256.0)
 
     return bytes([
         (temp_hex >> 8) & 0xFF,  # High byte
@@ -225,20 +227,26 @@ class KettleBLEClient:
             _LOGGER.error(f"Error setting power state for {self.address}: {err}", exc_info=True)
             raise
 
-    async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = True):
-        """Set target temperature."""
+    async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = False):
+        """Set target temperature.
+
+        Args:
+            device: The Bluetooth device
+            temp: The target temperature
+            fahrenheit: Whether the input temperature is in Fahrenheit
+        """
         if not device:
             _LOGGER.warning(f"No device provided for temperature setting for {self.address}")
             return
 
+        # Convert Fahrenheit to Celsius if needed
         if fahrenheit:
-            if temp > 212: temp = 212
-            if temp < 104: temp = 104
             celsius = (temp - 32) * 5 / 9
         else:
-            if temp > 100: temp = 100
-            if temp < 40: temp = 40
             celsius = temp
+
+        # Clamp to valid range
+        celsius = min(max(celsius, 40), 100)
 
         try:
             await self.ensure_connected(device)
@@ -249,7 +257,7 @@ class KettleBLEClient:
 
             if self._client and self._client.is_connected:
                 await self._client.write_gatt_char(CONTROL_CHAR_UUID, command)
-                _LOGGER.debug(f"Temperature set to {temp}°{'F' if fahrenheit else 'C'} for {self.address}")
+                _LOGGER.debug(f"Temperature set to {celsius}°C for {self.address}")
                 await asyncio.sleep(0.5)  # Wait for state to update
             else:
                 _LOGGER.warning(f"Client not connected for temperature setting on {self.address}")
