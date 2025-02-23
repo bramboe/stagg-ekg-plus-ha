@@ -15,13 +15,57 @@ class KettleBLEClient:
         self._client = None
         self._sequence = 0
         self._last_command_time = 0
-        self._connection_lock = None
+        self._connection_lock = asyncio.Lock()
         self._default_state = {
             "units": "C",  # Always use Celsius
             "power": False,
             "current_temp": None,
             "target_temp": None
         }
+
+    async def ensure_connected(self, device: BluetoothScannerDevice | None) -> bool:
+        """
+        Ensure BLE connection is established.
+
+        Handles connection attempts and manages connection state.
+        """
+        if not device:
+            _LOGGER.warning(f"No device provided for {self.address}")
+            return False
+
+        async with self._connection_lock:
+            try:
+                # If already connected, return True
+                if self._client and self._client.is_connected:
+                    return True
+
+                # Create a new client if needed
+                if not self._client:
+                    _LOGGER.debug(f"Creating new client for {self.address}")
+                    self._client = BleakClient(device, timeout=10.0)
+
+                # Attempt connection
+                _LOGGER.debug(f"Attempting to connect to {self.address}")
+                await self._client.connect()
+
+                # Optional: Get services to ensure full connection
+                await self._client.get_services()
+
+                _LOGGER.debug(f"Successfully connected to {self.address}")
+                return True
+
+            except Exception as err:
+                _LOGGER.error(f"Connection error for {self.address}: {err}")
+
+                # Ensure client is closed
+                if self._client:
+                    try:
+                        await self._client.disconnect()
+                    except Exception:
+                        pass
+                    self._client = None
+
+                return False
 
     @staticmethod
     def _decode_temperature(data: bytes) -> float:
@@ -52,6 +96,12 @@ class KettleBLEClient:
             temp_value >> 8     # High byte
         ])
 
+    def _decode_power_state(self, data: bytes) -> bool:
+        """Decode power state from response."""
+        if len(data) < 16:
+            return False
+        return bool(data[12] == 0x01)  # Looking for 0x01 for ON state
+
     def _create_command(self, temp_c: float = None, power: bool = None) -> bytes:
         """Create a command packet for the kettle."""
         seq = (self._sequence + 1) & 0xFF
@@ -81,7 +131,7 @@ class KettleBLEClient:
             seq,            # Sequence number
             0x00,           # Padding
             0x01,           # Static value
-            0x1E if power else 0x00,  # Power state
+            0x01 if power else 0x00,  # Changed power state encoding to 01/00
             0x00, 0x00,     # Padding
             0x08            # End byte
         ])
@@ -107,11 +157,11 @@ class KettleBLEClient:
 
             # Read characteristic
             value = await self._client.read_gatt_char(CONTROL_CHAR_UUID)
-            _LOGGER.debug(f"Raw temperature data: {value.hex()}")
+            _LOGGER.debug(f"Raw data: {value.hex()}")
 
             if len(value) >= 16:
                 temp_c = self._decode_temperature(value)
-                power_state = bool(value[12] == 0x0F)
+                power_state = self._decode_power_state(value)
 
                 return {
                     "current_temp": temp_c,
@@ -123,6 +173,8 @@ class KettleBLEClient:
         except Exception as err:
             _LOGGER.error(f"Error polling kettle {self.address}: {err}")
             return self._default_state.copy()
+
+        return self._default_state.copy()
 
     async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = False) -> None:
         """Set target temperature."""
