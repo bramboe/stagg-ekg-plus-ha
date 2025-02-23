@@ -49,30 +49,32 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     self._attr_unique_id = f"{coordinator._address}_water_heater"
     self._attr_device_info = coordinator.device_info
 
-    _LOGGER.debug("Initializing water heater with units: Celsius")
-
-    self._attr_min_temp = 40  # 40°C
-    self._attr_max_temp = 100  # 100°C
-    self._attr_temperature_unit = UnitOfTemperature.CELSIUS
-
+    _LOGGER.debug("Initializing water heater with units: %s", coordinator.temperature_unit)
+    
+    self._attr_min_temp = coordinator.min_temp
+    self._attr_max_temp = coordinator.max_temp
+    self._attr_temperature_unit = coordinator.temperature_unit
+    
     _LOGGER.debug(
-      "Water heater temperature range set to: %s°C - %s°C",
+      "Water heater temperature range set to: %s°%s - %s°%s",
       self._attr_min_temp,
+      self._attr_temperature_unit,
       self._attr_max_temp,
+      self._attr_temperature_unit,
     )
 
   @property
   def current_temperature(self) -> float | None:
     """Return the current temperature."""
     value = self.coordinator.data.get("current_temp") if self.coordinator.data else None
-    _LOGGER.debug("Water heater current temperature read as: %s°C", value)
+    _LOGGER.debug("Water heater current temperature read as: %s°%s", value, self.coordinator.temperature_unit)
     return value
 
   @property
   def target_temperature(self) -> float | None:
     """Return the target temperature."""
     value = self.coordinator.data.get("target_temp") if self.coordinator.data else None
-    _LOGGER.debug("Water heater target temperature read as: %s°C", value)
+    _LOGGER.debug("Water heater target temperature read as: %s°%s", value, self.coordinator.temperature_unit)
     return value
 
   @property
@@ -90,24 +92,20 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     if temperature is None:
       return
 
-    # Clamp temperature to allowed range
-    temperature = min(max(temperature, self._attr_min_temp), self._attr_max_temp)
-
     _LOGGER.debug(
-      "Setting water heater target temperature to %s°C",
-      temperature
+      "Setting water heater target temperature to %s°%s",
+      temperature,
+      self.coordinator.temperature_unit
     )
-
+    
     await self.coordinator.kettle.async_set_temperature(
       self.coordinator.ble_device,
-      temperature,
-      fahrenheit=False  # Explicitly set as Celsius
+      int(temperature),
+      fahrenheit=self.coordinator.temperature_unit == UnitOfTemperature.FAHRENHEIT
     )
     _LOGGER.debug("Target temperature command sent, waiting before refresh")
-
     # Give the kettle a moment to update its internal state
     await asyncio.sleep(0.5)
-
     _LOGGER.debug("Requesting refresh after temperature change")
     await self.coordinator.async_request_refresh()
 
@@ -116,10 +114,8 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     _LOGGER.debug("Turning water heater ON")
     await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, True)
     _LOGGER.debug("Power ON command sent, waiting before refresh")
-
     # Give the kettle a moment to update its internal state
     await asyncio.sleep(0.5)
-
     _LOGGER.debug("Requesting refresh after power change")
     await self.coordinator.async_request_refresh()
 
@@ -128,9 +124,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     _LOGGER.debug("Turning water heater OFF")
     await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, False)
     _LOGGER.debug("Power OFF command sent, waiting before refresh")
-
     # Give the kettle a moment to update its internal state
     await asyncio.sleep(0.5)
-
     _LOGGER.debug("Requesting refresh after power change")
-    await self.coordinator.async_request_refresh()
+    await self.coordinator.async_request_refresh() 
