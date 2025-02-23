@@ -1,6 +1,10 @@
 import asyncio
 import logging
+from typing import Optional, Any
 from bleak import BleakClient
+from bleak import BleakClient, BleakError
+from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
+
 from .const import SERVICE_UUID, CHAR_UUID, INIT_SEQUENCE
 
 _LOGGER = logging.getLogger(__name__)
@@ -18,115 +22,99 @@ class KettleBLEClient:
         self._sequence = 0  # For command sequence numbering
         self._last_command_time = 0  # For debouncing commands
 
-    async def _ensure_connected(self, ble_device):
+    async def _ensure_connected(self, ble_device: Optional[BluetoothServiceInfoBleak] = None):
+        """Ensure BLE connection is established with comprehensive error handling."""
         try:
-            # Use safer method to log device details
             _LOGGER.debug(f"Attempting to connect to {self.address}")
-            _LOGGER.debug(f"Device details: {getattr(ble_device, 'address', 'Unknown')}")
 
-            if self._client is None or not self._client.is_connected:
-                _LOGGER.debug(f"Connecting to kettle at {self.address}")
+            # Log device details safely
+            device_info = f"Address: {self.address}"
+            if ble_device:
+                device_info += f", Name: {getattr(ble_device, 'name', 'Unknown')}"
+            _LOGGER.debug(f"Device details: {device_info}")
 
-                # Increased timeout and added more detailed logging
-                self._client = BleakClient(ble_device, timeout=20.0)
-                await self._client.connect()
+            # Create BleakClient directly using address
+            self._client = BleakClient(self.address, timeout=15.0)
 
-                # Log discovered services and characteristics
+            # Attempt connection
+            await self._client.connect()
+
+            if not self._client.is_connected:
+                _LOGGER.error(f"Failed to establish connection with {self.address}")
+                return False
+
+            # Log discovered services
+            try:
                 services = await self._client.get_services()
-                for service in services:
-                    _LOGGER.debug(f"Service UUID: {service.uuid}")
-                    for char in service.characteristics:
-                        _LOGGER.debug(f"  Characteristic UUID: {char.uuid}")
+                _LOGGER.debug(f"Discovered {len(list(services))} services")
 
-                await self._authenticate()
+                # Optional: Log specific service UUIDs
+                service_uuids = [str(service.uuid) for service in services]
+                _LOGGER.debug(f"Service UUIDs: {service_uuids}")
+            except Exception as service_err:
+                _LOGGER.error(f"Error discovering services: {service_err}")
 
-            return self._client.is_connected
-        except Exception as connection_error:
-            _LOGGER.error(f"Connection error for {ble_device.address}: {connection_error}", exc_info=True)
-            if self._client:
-                try:
-                    await self._client.disconnect()
-                except Exception:
-                    pass
-            self._client = None
+            # Authenticate if needed
+            await self._authenticate()
+
+            return True
+
+        except BleakError as ble_err:
+            _LOGGER.error(f"Bleak connection error for {self.address}: {ble_err}")
+            return False
+        except Exception as comprehensive_err:
+            _LOGGER.error(
+                f"Comprehensive connection error for {self.address}: {comprehensive_err}",
+                exc_info=True
+            )
             return False
 
     async def _authenticate(self):
-        """Send authentication sequence to kettle with extensive logging."""
+        """Send authentication sequence to kettle."""
         try:
-            _LOGGER.debug(f"Writing init sequence to characteristic {self.char_uuid}")
-            _LOGGER.debug(f"Init sequence: {self.init_sequence.hex()}")
-
-            await self._ensure_debounce()
+            _LOGGER.debug(f"Attempting authentication for {self.address}")
             await self._client.write_gatt_char(self.char_uuid, self.init_sequence)
-
             _LOGGER.debug("Authentication sequence sent successfully")
-        except Exception as err:
-            _LOGGER.error(f"Detailed authentication error: {err}", exc_info=True)
-            # Log any available connection details
-            if self._client:
-                _LOGGER.error(f"Is connected: {self._client.is_connected}")
-                try:
-                    _LOGGER.error(f"Available services: {await self._client.get_services()}")
-                except Exception as service_err:
-                    _LOGGER.error(f"Error checking services: {service_err}")
+        except Exception as auth_err:
+            _LOGGER.error(f"Authentication error: {auth_err}")
             raise
 
-    async def async_poll(self, ble_device):
-        """Enhanced polling method with comprehensive debugging and error handling."""
+    async def async_poll(self, ble_device=None):
+        """Poll kettle data with enhanced error handling."""
         try:
-            _LOGGER.debug(f"Starting poll for device: {ble_device.address}")
-
-            # Log detailed device information
-            _LOGGER.debug(f"Device details: {vars(ble_device) if hasattr(ble_device, '__dict__') else 'No detailed info'}")
-
-            # Ensure connection with more robust method
+            # Ensure connection
             connection_result = await self._ensure_connected(ble_device)
             if not connection_result:
-                _LOGGER.error(f"Failed to establish connection with {ble_device.address}")
+                _LOGGER.error(f"Failed to connect to {self.address}")
                 return None
 
-            # Detailed connection state logging
-            if self._client:
-                _LOGGER.debug(f"Connection status: {self._client.is_connected}")
-                try:
-                    services = await self._client.get_services()
-                    _LOGGER.debug(f"Available services: {len(list(services))}")
-                except Exception as service_err:
-                    _LOGGER.error(f"Error checking services: {service_err}")
-
-            # Existing notification collection logic
+            # Collect notifications
             notifications = []
             def notification_handler(sender, data):
                 _LOGGER.debug(f"Notification received - Sender: {sender}, Data: {data.hex()}")
                 notifications.append(data)
 
             try:
+                # Start and stop notifications
                 await self._client.start_notify(self.char_uuid, notification_handler)
-                await asyncio.sleep(2.0)  # Give time for notifications
+                await asyncio.sleep(2.0)
                 await self._client.stop_notify(self.char_uuid)
             except Exception as notify_err:
-                _LOGGER.error(f"Notification collection error: {notify_err}")
+                _LOGGER.error(f"Notification error: {notify_err}")
                 return None
 
-            # Parse and return state
+            # Parse notifications
             state = self.parse_notifications(notifications)
             _LOGGER.debug(f"Parsed state: {state}")
             return state
 
-        except Exception as comprehensive_error:
+        except Exception as comprehensive_err:
             _LOGGER.error(
-                f"Comprehensive polling error for {ble_device.address}: {comprehensive_error}",
+                f"Comprehensive polling error for {self.address}: {comprehensive_err}",
                 exc_info=True
             )
-            # Ensure client is disconnected on error
-            if self._client and self._client.is_connected:
-                try:
-                    await self._client.disconnect()
-                except Exception:
-                    pass
-            self._client = None
             return None
+
 
     async def async_set_power(self, ble_device, power_on: bool):
         """Turn the kettle on or off."""
