@@ -19,10 +19,10 @@ class KettleBLEClient:
         self._last_command_time = 0  # For debouncing commands
 
     async def _ensure_connected(self, ble_device):
-        """Ensure BLE connection is established with comprehensive logging."""
         try:
-            _LOGGER.debug(f"Attempting to connect to {ble_device.address}")
-            _LOGGER.debug(f"Device details: {vars(ble_device)}")
+            # Use safer method to log device details
+            _LOGGER.debug(f"Attempting to connect to {self.address}")
+            _LOGGER.debug(f"Device details: {getattr(ble_device, 'address', 'Unknown')}")
 
             if self._client is None or not self._client.is_connected:
                 _LOGGER.debug(f"Connecting to kettle at {self.address}")
