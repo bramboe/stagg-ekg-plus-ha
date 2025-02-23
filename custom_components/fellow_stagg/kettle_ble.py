@@ -73,60 +73,60 @@ class KettleBLEClient:
             raise
 
     async def async_poll(self, ble_device):
-    """Enhanced polling method with comprehensive debugging and error handling."""
-    try:
-        _LOGGER.debug(f"Starting poll for device: {ble_device.address}")
-
-        # Log detailed device information
-        _LOGGER.debug(f"Device details: {vars(ble_device) if hasattr(ble_device, '__dict__') else 'No detailed info'}")
-
-        # Ensure connection with more robust method
-        connection_result = await self._ensure_connected(ble_device)
-        if not connection_result:
-            _LOGGER.error(f"Failed to establish connection with {ble_device.address}")
-            return None
-
-        # Detailed connection state logging
-        if self._client:
-            _LOGGER.debug(f"Connection status: {self._client.is_connected}")
-            try:
-                services = await self._client.get_services()
-                _LOGGER.debug(f"Available services: {len(list(services))}")
-            except Exception as service_err:
-                _LOGGER.error(f"Error checking services: {service_err}")
-
-        # Existing notification collection logic
-        notifications = []
-        def notification_handler(sender, data):
-            _LOGGER.debug(f"Notification received - Sender: {sender}, Data: {data.hex()}")
-            notifications.append(data)
-
+        """Enhanced polling method with comprehensive debugging and error handling."""
         try:
-            await self._client.start_notify(self.char_uuid, notification_handler)
-            await asyncio.sleep(2.0)  # Give time for notifications
-            await self._client.stop_notify(self.char_uuid)
-        except Exception as notify_err:
-            _LOGGER.error(f"Notification collection error: {notify_err}")
-            return None
+            _LOGGER.debug(f"Starting poll for device: {ble_device.address}")
 
-        # Parse and return state
-        state = self.parse_notifications(notifications)
-        _LOGGER.debug(f"Parsed state: {state}")
-        return state
+            # Log detailed device information
+            _LOGGER.debug(f"Device details: {vars(ble_device) if hasattr(ble_device, '__dict__') else 'No detailed info'}")
 
-    except Exception as comprehensive_error:
-        _LOGGER.error(
-            f"Comprehensive polling error for {ble_device.address}: {comprehensive_error}",
-            exc_info=True
-        )
-        # Ensure client is disconnected on error
-        if self._client and self._client.is_connected:
+            # Ensure connection with more robust method
+            connection_result = await self._ensure_connected(ble_device)
+            if not connection_result:
+                _LOGGER.error(f"Failed to establish connection with {ble_device.address}")
+                return None
+
+            # Detailed connection state logging
+            if self._client:
+                _LOGGER.debug(f"Connection status: {self._client.is_connected}")
+                try:
+                    services = await self._client.get_services()
+                    _LOGGER.debug(f"Available services: {len(list(services))}")
+                except Exception as service_err:
+                    _LOGGER.error(f"Error checking services: {service_err}")
+
+            # Existing notification collection logic
+            notifications = []
+            def notification_handler(sender, data):
+                _LOGGER.debug(f"Notification received - Sender: {sender}, Data: {data.hex()}")
+                notifications.append(data)
+
             try:
-                await self._client.disconnect()
-            except Exception:
-                pass
-        self._client = None
-        return None
+                await self._client.start_notify(self.char_uuid, notification_handler)
+                await asyncio.sleep(2.0)  # Give time for notifications
+                await self._client.stop_notify(self.char_uuid)
+            except Exception as notify_err:
+                _LOGGER.error(f"Notification collection error: {notify_err}")
+                return None
+
+            # Parse and return state
+            state = self.parse_notifications(notifications)
+            _LOGGER.debug(f"Parsed state: {state}")
+            return state
+
+        except Exception as comprehensive_error:
+            _LOGGER.error(
+                f"Comprehensive polling error for {ble_device.address}: {comprehensive_error}",
+                exc_info=True
+            )
+            # Ensure client is disconnected on error
+            if self._client and self._client.is_connected:
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    pass
+            self._client = None
+            return None
 
     async def async_set_power(self, ble_device, power_on: bool):
         """Turn the kettle on or off."""
