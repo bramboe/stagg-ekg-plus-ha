@@ -29,72 +29,50 @@ MIN_TEMP_C = 40
 MAX_TEMP_C = 100
 
 
+# Replace the existing FellowStaggDataUpdateCoordinator with this enhanced version
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching Fellow Stagg data."""
-
     def __init__(self, hass: HomeAssistant, address: str) -> None:
-        """Initialize the coordinator."""
         super().__init__(
             hass,
             _LOGGER,
             name=f"Fellow Stagg {address}",
-            update_interval=POLLING_INTERVAL,
+            update_interval=timedelta(seconds=5)  # Keep existing polling interval
         )
         self.kettle = KettleBLEClient(address)
         self.ble_device = None
         self._address = address
-        self._last_successful_data = None
-
-        self.device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=f"Fellow Stagg EKG+ {address}",
-            manufacturer="Fellow",
-            model="Stagg EKG+",
-        )
-
-    @property
-    def temperature_unit(self) -> str:
-        """Get the current temperature unit."""
-        return (UnitOfTemperature.FAHRENHEIT
-                if self._last_successful_data and self._last_successful_data.get("units") == "F"
-                else UnitOfTemperature.CELSIUS)
-
-    @property
-    def min_temp(self) -> float:
-        """Get the minimum temperature based on current units."""
-        return MIN_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MIN_TEMP_C
-
-    @property
-    def max_temp(self) -> float:
-        """Get the maximum temperature based on current units."""
-        return MAX_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MAX_TEMP_C
+        self._last_successful_data = None  # New attribute to store last good data
 
     async def _async_update_data(self) -> dict[str, Any] | None:
-        """Fetch data from the kettle with improved error handling."""
-        _LOGGER.debug("Attempting to update data for %s", self._address)
+        """Enhanced data update method with fallback mechanism."""
+        _LOGGER.debug(f"Attempting to update data for {self._address}")
 
         try:
+            # Try to get the Bluetooth device
             self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
+
             if not self.ble_device:
-                _LOGGER.warning("No connectable device found for %s", self._address)
+                _LOGGER.warning(f"No connectable device found for {self._address}")
                 return self._last_successful_data
 
+            # Attempt to poll data
             data = await self.kettle.async_poll(self.ble_device)
 
+            # If new data is retrieved, update last successful data
             if data:
                 self._last_successful_data = data
                 return data
-            else:
-                _LOGGER.error("Failed to retrieve data from %s", self._address)
-                return self._last_successful_data
+
+            # Fall back to last successful data if no new data
+            _LOGGER.warning("No new data retrieved. Using last known data.")
+            return self._last_successful_data
 
         except Exception as e:
             _LOGGER.error(
-                "Critical error updating Fellow Stagg kettle %s: %s",
-                self._address,
-                str(e),
+                f"Comprehensive error updating Fellow Stagg kettle {self._address}: {e}",
                 exc_info=True
             )
+            # Always return last successful data to prevent complete failure
             return self._last_successful_data
 
 
