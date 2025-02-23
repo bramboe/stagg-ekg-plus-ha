@@ -17,51 +17,70 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
-  hass: HomeAssistant,
-  entry: ConfigEntry,
-  async_add_entities: AddEntitiesCallback,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
-  """Set up Fellow Stagg switch based on a config entry."""
-  coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-  async_add_entities([FellowStaggPowerSwitch(coordinator)])
+    """Set up Fellow Stagg switch based on a config entry."""
+    coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([FellowStaggPowerSwitch(coordinator)])
 
 class FellowStaggPowerSwitch(SwitchEntity):
-  """Switch class for Fellow Stagg kettle power control."""
+    """Switch class for Fellow Stagg kettle power control."""
 
-  _attr_has_entity_name = True
-  _attr_name = "Power"
+    _attr_has_entity_name = True
+    _attr_name = "Power"
 
-  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
-    """Initialize the switch."""
-    super().__init__()
-    self.coordinator = coordinator
-    self._attr_unique_id = f"{coordinator._address}_power"
-    self._attr_device_info = coordinator.device_info
-    _LOGGER.debug("Initialized power switch for %s", coordinator._address)
+    def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+        """Initialize the switch."""
+        super().__init__()
+        self.coordinator = coordinator
+        self._attr_unique_id = f"{coordinator._address}_power"
+        self._attr_device_info = coordinator.device_info
+        _LOGGER.debug("Initialized power switch for %s", coordinator._address)
 
-  @property
-  def is_on(self) -> bool | None:
-    """Return true if the switch is on."""
-    value = self.coordinator.data.get("power")
-    _LOGGER.debug("Power switch state read as: %s", value)
-    return value
+    @property
+    def is_on(self) -> bool | None:
+        """Return true if the switch is on."""
+        try:
+            # Use _last_successful_data as a fallback
+            value = (
+                self.coordinator.data.get("power")
+                if self.coordinator.data
+                else self.coordinator._last_successful_data.get("power")
+                if self.coordinator._last_successful_data
+                else None
+            )
+            _LOGGER.debug("Power switch state read as: %s", value)
+            return value
+        except Exception as e:
+            _LOGGER.error(f"Error reading power switch state: {e}")
+            return None
 
-  async def async_turn_on(self, **kwargs: Any) -> None:
-    """Turn the switch on."""
-    _LOGGER.debug("Turning power switch ON")
-    await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, True)
-    _LOGGER.debug("Power ON command sent, waiting before refresh")
-    # Give the kettle a moment to update its internal state
-    await asyncio.sleep(0.5)
-    _LOGGER.debug("Requesting refresh after power change")
-    await self.coordinator.async_request_refresh()
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn the switch on."""
+        try:
+            _LOGGER.debug("Turning power switch ON")
+            await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, True)
+            _LOGGER.debug("Power ON command sent, waiting before refresh")
+            # Give the kettle a moment to update its internal state
+            await asyncio.sleep(0.5)
+            _LOGGER.debug("Requesting refresh after power change")
+            await self.coordinator.async_request_refresh()
+        except Exception as e:
+            _LOGGER.error(f"Error turning switch on: {e}")
+            raise
 
-  async def async_turn_off(self, **kwargs: Any) -> None:
-    """Turn the switch off."""
-    _LOGGER.debug("Turning power switch OFF")
-    await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, False)
-    _LOGGER.debug("Power OFF command sent, waiting before refresh")
-    # Give the kettle a moment to update its internal state
-    await asyncio.sleep(0.5)
-    _LOGGER.debug("Requesting refresh after power change")
-    await self.coordinator.async_request_refresh() 
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the switch off."""
+        try:
+            _LOGGER.debug("Turning power switch OFF")
+            await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, False)
+            _LOGGER.debug("Power OFF command sent, waiting before refresh")
+            # Give the kettle a moment to update its internal state
+            await asyncio.sleep(0.5)
+            _LOGGER.debug("Requesting refresh after power change")
+            await self.coordinator.async_request_refresh()
+        except Exception as e:
+            _LOGGER.error(f"Error turning switch off: {e}")
+            raise
