@@ -20,76 +20,76 @@ class KettleBLEClient:
 
     async def _ensure_connected(self, ble_device):
         """Ensure BLE connection is established."""
-        if self._client is None or not self._client.is_connected:
-            _LOGGER.debug("Connecting to kettle at %s", self.address)
-            self._client = BleakClient(ble_device, timeout=10.0)
-            await self._client.connect()
-            await self._authenticate()
+        try:
+            if self._client is None or not self._client.is_connected:
+                _LOGGER.debug(f"Connecting to kettle at {self.address}")
+                # Increased timeout and added more detailed logging
+                self._client = BleakClient(ble_device, timeout=15.0)
+                await self._client.connect()
 
-    async def _ensure_debounce(self):
-        """Ensure we don't send commands too frequently."""
-        import time
-        current_time = int(time.time() * 1000)  # Current time in milliseconds
-        if current_time - self._last_command_time < 200:  # 200ms debounce
-            await asyncio.sleep(0.2)  # Wait 200ms
-        self._last_command_time = current_time
+                # Log discovered services and characteristics
+                services = await self._client.get_services()
+                for service in services:
+                    _LOGGER.debug(f"Service UUID: {service.uuid}")
+                    for char in service.characteristics:
+                        _LOGGER.debug(f"  Characteristic UUID: {char.uuid}")
+
+                await self._authenticate()
+
+            return True
+        except Exception as e:
+            _LOGGER.error(f"Connection error: {e}")
+            return False
 
     async def _authenticate(self):
-        """Send authentication sequence to kettle."""
+        """Send authentication sequence to kettle with extensive logging."""
         try:
-            _LOGGER.debug("Writing init sequence to characteristic %s", self.char_uuid)
+            _LOGGER.debug(f"Writing init sequence to characteristic {self.char_uuid}")
+            _LOGGER.debug(f"Init sequence: {self.init_sequence.hex()}")
+
             await self._ensure_debounce()
             await self._client.write_gatt_char(self.char_uuid, self.init_sequence)
+
+            _LOGGER.debug("Authentication sequence sent successfully")
         except Exception as err:
-            _LOGGER.error("Error writing init sequence: %s", err)
+            _LOGGER.error(f"Detailed authentication error: {err}")
+            # Log any available connection details
+            if self._client:
+                _LOGGER.error(f"Is connected: {self._client.is_connected}")
+                _LOGGER.error(f"Available services: {await self._client.get_services()}")
             raise
 
-    def _create_command(self, command_type: int, value: int, unit: bool = True) -> bytes:
-        """Create a command with proper sequence number and checksum.
-        
-        Command format:
-        - Bytes 0-1: Magic (0xef, 0xdd)
-        - Byte 2: Command flag (0x0a)
-        - Byte 3: Sequence number
-        - Byte 4: Command type (0=power, 1=temp)
-        - Byte 5: Value
-        - Byte 6: Checksum 1 (sequence + value)
-        - Byte 7: Checksum 2 (command type)
-        """
-        command = bytearray([
-            0xef, 0xdd,  # Magic
-            0x0a,        # Command flag
-            self._sequence,  # Sequence number
-            command_type,    # Command type
-            value,          # Value
-            (self._sequence + value) & 0xFF,  # Checksum 1
-            command_type    # Checksum 2
-        ])
-        self._sequence = (self._sequence + 1) & 0xFF
-        return bytes(command)
-
     async def async_poll(self, ble_device):
-        """Connect to the kettle, send init command, and return parsed state."""
+        """Enhanced polling method with more robust error handling."""
         try:
-            await self._ensure_connected(ble_device)
+            # Attempt connection with detailed logging
+            connection_result = await self._ensure_connected(ble_device)
+            if not connection_result:
+                _LOGGER.error("Failed to establish connection")
+                return {}
+
             notifications = []
 
             def notification_handler(sender, data):
+                _LOGGER.debug(f"Notification received - Sender: {sender}, Data: {data.hex()}")
                 notifications.append(data)
 
             try:
+                # More verbose notification setup
+                _LOGGER.debug(f"Starting notify on characteristic {self.char_uuid}")
                 await self._client.start_notify(self.char_uuid, notification_handler)
                 await asyncio.sleep(2.0)
                 await self._client.stop_notify(self.char_uuid)
             except Exception as err:
-                _LOGGER.error("Error during notifications: %s", err)
+                _LOGGER.error(f"Notification error: {err}")
                 return {}
 
             state = self.parse_notifications(notifications)
+            _LOGGER.debug(f"Parsed state: {state}")
             return state
 
         except Exception as err:
-            _LOGGER.error("Error polling kettle: %s", err)
+            _LOGGER.error(f"Comprehensive polling error: {err}")
             if self._client and self._client.is_connected:
                 await self._client.disconnect()
             self._client = None
@@ -164,13 +164,13 @@ class KettleBLEClient:
         while i < len(notifications) - 1:  # Process pairs of notifications
             header = notifications[i]
             payload = notifications[i + 1]
-            
+
             if len(header) < 3 or header[0] != 0xEF or header[1] != 0xDD:
                 i += 1
                 continue
-                
+
             msg_type = header[2]
-            
+
             if msg_type == 0:
                 # Power state
                 if len(payload) >= 1:
@@ -201,7 +201,7 @@ class KettleBLEClient:
                 # Kettle position
                 if len(payload) >= 1:
                     state["lifted"] = payload[0] == 0
-            
+
             i += 2  # Move to next pair of notifications
-            
+
         return state
