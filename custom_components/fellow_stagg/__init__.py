@@ -4,7 +4,6 @@ import logging
 from datetime import timedelta
 from typing import Any, Optional
 
-from bleak import BleakError
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
 )
@@ -13,11 +12,19 @@ from homeassistant.const import Platform, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
-    UpdateFailed
 )
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    POLLING_INTERVAL,
+    MIN_TEMP_F,
+    MAX_TEMP_F,
+    MIN_TEMP_C,
+    MAX_TEMP_C,
+    CONNECTION_TIMEOUT,
+    MAX_CONNECTION_ATTEMPTS
+)
 from .kettle_ble import KettleBLEClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,35 +37,35 @@ PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR
 ]
 
-# Polling configuration
-POLLING_INTERVAL = timedelta(seconds=30)  # Reduced from 5 to 30 to reduce connection attempts
-MAX_CONSECUTIVE_FAILURES = 3
-RETRY_DELAY = 30  # seconds between retries after consecutive failures
-
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching Fellow Stagg data with enhanced error handling."""
+    """Enhanced coordinator for Fellow Stagg kettle data management."""
 
     def __init__(
         self,
         hass: HomeAssistant,
-        address: str,
-        device_info: Optional[DeviceInfo] = None
+        address: str
     ) -> None:
-        """Initialize the coordinator with advanced configuration."""
+        """
+        Initialize the coordinator with advanced configuration.
+
+        Args:
+            hass: Home Assistant instance
+            address: Bluetooth MAC address of the kettle
+        """
         super().__init__(
             hass,
             _LOGGER,
             name=f"Fellow Stagg {address}",
-            update_interval=POLLING_INTERVAL,
+            update_interval=timedelta(seconds=POLLING_INTERVAL),
         )
         self.kettle = KettleBLEClient(address)
         self.ble_device = None
         self._address = address
         self._last_successful_data: Optional[dict] = None
-        self._consecutive_failures = 0
+        self._connection_attempts = 0
 
-        # Device info for registry
-        self.device_info = device_info or DeviceInfo(
+        # Create device info for registry
+        self.device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=f"Fellow Stagg EKG+ {address}",
             manufacturer="Fellow",
@@ -67,68 +74,81 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
 
     @property
     def temperature_unit(self) -> str:
-        """Determine current temperature unit."""
+        """
+        Determine the current temperature unit.
+
+        Returns:
+            Temperature unit (Fahrenheit or Celsius)
+        """
         return (
             UnitOfTemperature.FAHRENHEIT
             if self._last_successful_data and self._last_successful_data.get("units") == "F"
             else UnitOfTemperature.CELSIUS
         )
 
+    @property
+    def min_temp(self) -> float:
+        """
+        Get the minimum temperature based on current units.
+
+        Returns:
+            Minimum temperature
+        """
+        return MIN_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MIN_TEMP_C
+
+    @property
+    def max_temp(self) -> float:
+        """
+        Get the maximum temperature based on current units.
+
+        Returns:
+            Maximum temperature
+        """
+        return MAX_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MAX_TEMP_C
+
     async def _async_update_data(self) -> Optional[dict]:
         """
-        Enhanced data fetching with comprehensive error handling.
+        Fetch data from the kettle with comprehensive error handling.
 
-        Implements:
-        - Connection retry logic
-        - Failure tracking
-        - Fallback to last known state
+        Returns:
+            Parsed kettle data or last known state
         """
         _LOGGER.debug(f"Attempting to update data for {self._address}")
 
         try:
-            # Reset if we've been failing consistently
-            if self._consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                _LOGGER.warning(
-                    f"Reached max consecutive failures ({MAX_CONSECUTIVE_FAILURES}) "
-                    f"for {self._address}. Waiting before retry."
-                )
-                await asyncio.sleep(RETRY_DELAY)
-                self._consecutive_failures = 0
+            # Reset connection attempts if max is reached
+            if self._connection_attempts >= MAX_CONNECTION_ATTEMPTS:
+                _LOGGER.warning(f"Reached max connection attempts for {self._address}")
+                self._connection_attempts = 0
+                return self._last_successful_data
 
             # Try to get connectable device
             self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
 
             if not self.ble_device:
                 _LOGGER.warning(f"No connectable device found for {self._address}")
-                self._consecutive_failures += 1
+                self._connection_attempts += 1
                 return self._last_successful_data
 
             # Attempt to poll data
             data = await self.kettle.async_poll(self.ble_device)
 
             if data:
-                # Reset failure counter on success
-                self._consecutive_failures = 0
+                # Reset connection attempts on successful data retrieval
+                self._connection_attempts = 0
                 self._last_successful_data = data
                 return data
             else:
-                _LOGGER.warning("No new data retrieved.")
-                self._consecutive_failures += 1
+                _LOGGER.warning("No new data retrieved. Using last known data.")
+                self._connection_attempts += 1
                 return self._last_successful_data
-
-        except BleakError as ble_error:
-            _LOGGER.error(
-                f"Bleak connection error for {self._address}: {ble_error}"
-            )
-            self._consecutive_failures += 1
-            return self._last_successful_data
 
         except Exception as comprehensive_err:
             _LOGGER.error(
                 f"Critical error updating Fellow Stagg kettle {self._address}: {comprehensive_err}",
                 exc_info=True
             )
-            self._consecutive_failures += 1
+            self._connection_attempts += 1
             return self._last_successful_data
 
 
@@ -138,7 +158,16 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Fellow Stagg integration from a config entry."""
+    """
+    Set up Fellow Stagg integration from a config entry.
+
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry
+
+    Returns:
+        Boolean indicating successful setup
+    """
     address = entry.unique_id
     if address is None:
         _LOGGER.error("No unique ID provided in config entry")
@@ -146,30 +175,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _LOGGER.debug(f"Setting up Fellow Stagg integration for device: {address}")
 
-    # Create device info
-    device_info = DeviceInfo(
-        identifiers={(DOMAIN, address)},
-        name=f"Fellow Stagg EKG+ {address}",
-        manufacturer="Fellow",
-        model="Stagg EKG+",
-    )
-
     # Create coordinator
-    coordinator = FellowStaggDataUpdateCoordinator(
-        hass,
-        address,
-        device_info
-    )
+    coordinator = FellowStaggDataUpdateCoordinator(hass, address)
 
-    # First update
+    # Perform first refresh
     try:
         await coordinator.async_config_entry_first_refresh()
     except Exception as first_refresh_error:
         _LOGGER.error(
             f"Failed to perform first refresh for {address}: {first_refresh_error}"
         )
-        # Optionally, you could return False here to prevent integration setup
-        # But for now, we'll continue and let the coordinator handle retries
+        # Continue setup despite first refresh failure
 
     # Store coordinator
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
@@ -182,7 +198,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
+    """
+    Unload a config entry.
+
+    Args:
+        hass: Home Assistant instance
+        entry: Configuration entry to unload
+
+    Returns:
+        Boolean indicating successful unload
+    """
     _LOGGER.debug(f"Unloading Fellow Stagg integration for entry: {entry.entry_id}")
 
     # Unload all platforms
@@ -194,6 +219,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
-    """Migrate old entry."""
+    """
+    Migrate old entry.
+
+    Args:
+        hass: Home Assistant instance
+        config_entry: Configuration entry to migrate
+
+    Returns:
+        Boolean indicating successful migration
+    """
     _LOGGER.debug(f"Migrating Fellow Stagg configuration for {config_entry.entry_id}")
     return True
