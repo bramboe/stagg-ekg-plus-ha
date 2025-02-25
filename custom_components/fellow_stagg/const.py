@@ -17,10 +17,21 @@ STATUS_CHAR_UUID = "021AFF52-0382-4AEA-BFF4-6B3F1C5ADFB4"
 SETTINGS_CHAR_UUID = "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4"
 INFO_CHAR_UUID = "021AFF54-0382-4AEA-BFF4-6B3F1C5ADFB4"
 
-# Initialization sequence for authentication
-INIT_SEQUENCE = bytes.fromhex(
-    "455350100125A2012220889794D1273C492FD635D0DD20AD3F972C0CE3B95D4FB4B5B24D2EAD51DD4EABE3ED637744"
-)
+# Initialization sequences (multiple for different models)
+INIT_SEQUENCES = {
+    "EKG-2d-25-b0": bytes.fromhex(
+        "EF DD 00 00 00"  # Basic power-on/initialization sequence
+    ),
+    "EKG-Pro": bytes.fromhex(
+        "EF DD 01 00 00"  # Alternative initialization
+    ),
+    "default": bytes.fromhex(
+        "455350100125A2012220889794D1273C492FD635D0DD20AD3F972C0CE3B95D4FB4B5B24D2EAD51DD4EABE3ED637744"
+    )
+}
+
+# Select the appropriate initialization sequence
+INIT_SEQUENCE = INIT_SEQUENCES.get("EKG-2d-25-b0", INIT_SEQUENCES["default"])
 
 # Notification service UUIDs
 NOTIFICATION_SERVICES = [
@@ -46,3 +57,12 @@ MAX_CONNECTION_ATTEMPTS = 3
 
 # Logging Configuration
 LOG_LEVEL = "DEBUG"
+
+# Notification Characteristics
+NOTIFICATION_CHARS = [
+    "2291c4b1-5d7f-4477-a88b-b266edb97142",  # Read, Notify
+    "2291c4b2-5d7f-4477-a88b-b266edb97142",  # Read, Notify
+    "2291c4b3-5d7f-4477-a88b-b266edb97142",  # Read, Notify
+    "2291c4b5-5d7f-4477-a88b-b266edb97142",  # Read, Write, Notify
+    "2291c4b6-5d7f-4477-a88b-b266edb97142"   # Write, Notify
+]
