@@ -6,6 +6,13 @@ from bleak import BleakClient, BleakError
 from bleak.backends.device import BLEDevice
 from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 
+from .const import (
+    INIT_SEQUENCE,
+    NOTIFICATION_CHARS,
+    CONTROL_SERVICE_UUID,
+    MAIN_SERVICE_UUID
+)
+
 class EnhancedKettleBLEClient:
     """Enhanced BLE client with advanced connection management."""
 
@@ -32,7 +39,7 @@ class EnhancedKettleBLEClient:
         """
         self.address = address
         self.logger = logger or logging.getLogger(__name__)
-        self._init_sequence = init_sequence
+        self._init_sequence = init_sequence or INIT_SEQUENCE
         self._client: Optional[BleakClient] = None
         self._connection_lock = asyncio.Lock()
         self._connection_attempts = 0
@@ -92,9 +99,8 @@ class EnhancedKettleBLEClient:
                 # Discover services
                 await self._discover_services()
 
-                # Perform authentication if init sequence provided
-                if self._init_sequence:
-                    await self._authenticate()
+                # Advanced authentication approach
+                await self._advanced_authentication()
 
                 # Reset connection attempts on success
                 self._connection_attempts = 0
@@ -111,81 +117,115 @@ class EnhancedKettleBLEClient:
                 )
                 return False
 
-    async def notify(self, service_uuid: str, callback):
+    async def _advanced_authentication(self):
         """
-        Context manager for handling BLE notifications.
+        Advanced authentication method with multiple strategies.
+        """
+        try:
+            # Try multiple authentication methods
+            auth_methods = [
+                self._basic_init_sequence,
+                self._characteristic_write_auth,
+                self._notification_setup_auth
+            ]
 
-        Args:
-            service_uuid: UUID of the service to notify
-            callback: Notification handler function
+            for method in auth_methods:
+                try:
+                    await method()
+                    return
+                except Exception as method_err:
+                    self.logger.warning(f"Authentication method failed: {method_err}")
+
+            raise RuntimeError("All authentication methods failed")
+
+        except Exception as auth_error:
+            self.logger.error(f"Advanced authentication failed: {auth_error}")
+            raise
+
+    async def _basic_init_sequence(self):
         """
-        if not self._client or not self._client.is_connected:
-            self.logger.warning("Cannot start notifications. Not connected.")
+        Basic initialization sequence write.
+        """
+        if not self._init_sequence:
             return
 
         try:
-            # Reset notification state
-            self._collected_notifications.clear()
-            self._notification_event.clear()
-
-            # Start notifications
-            await self._client.start_notify(service_uuid, callback)
-
-            # Wait for notifications with timeout
-            try:
-                await asyncio.wait_for(
-                    self._notification_event.wait(),
-                    timeout=self.NOTIFICATION_TIMEOUT
-                )
-            except asyncio.TimeoutError:
-                self.logger.warning("Notification collection timed out")
-
-            # Stop notifications
-            await self._client.stop_notify(service_uuid)
-
-        except Exception as notify_err:
-            self.logger.error(f"Notification error: {notify_err}")
-        finally:
-            # Ensure notifications are stopped
-            try:
-                await self._client.stop_notify(service_uuid)
-            except Exception:
-                pass
-
-    async def _discover_services(self):
-        """Discover and log available services and characteristics."""
-        if not self._client:
-            return
-
-        try:
-            services = await self._client.get_services()
-
-            for service in services:
-                self.logger.debug(f"Service UUID: {service.uuid}")
-                for char in service.characteristics:
-                    self.logger.debug(
-                        f"  Characteristic UUID: {char.uuid}, "
-                        f"Properties: {char.properties}"
-                    )
-        except Exception as e:
-            self.logger.error(f"Error discovering services: {e}")
-
-    async def _authenticate(self):
-        """
-        Perform device-specific authentication.
-
-        Uses the provided initialization sequence.
-        """
-        try:
-            # Write initialization sequence to primary control characteristic
+            # Write to primary characteristic
             await self._client.write_gatt_char(
                 "021AFF50-0382-4AEA-BFF4-6B3F1C5ADFB4",
                 self._init_sequence
             )
-            self.logger.debug("Authentication sequence sent successfully")
+            self.logger.debug("Basic initialization sequence sent successfully")
         except Exception as e:
-            self.logger.error(f"Authentication failed: {e}")
+            self.logger.error(f"Basic init sequence failed: {e}")
             raise
+
+    async def _characteristic_write_auth(self):
+        """
+        Alternative authentication via characteristic writes.
+        """
+        try:
+            # Attempt writes to multiple characteristics
+            write_chars = [
+                "021AFF50-0382-4AEA-BFF4-6B3F1C5ADFB4",
+                "2291c4b5-5d7f-4477-a88b-b266edb97142",
+                "2291c4b6-5d7f-4477-a88b-b266edb97142"
+            ]
+
+            for char in write_chars:
+                try:
+                    await self._client.write_gatt_char(
+                        char,
+                        bytes([0xEF, 0xDD, 0x00, 0x00, 0x00])
+                    )
+                except Exception as write_err:
+                    self.logger.warning(f"Characteristic write failed for {char}: {write_err}")
+
+            self.logger.debug("Characteristic write authentication completed")
+        except Exception as e:
+            self.logger.error(f"Characteristic write authentication failed: {e}")
+            raise
+
+    async def _notification_setup_auth(self):
+        """
+        Authentication via notification setup.
+        """
+        try:
+            # Enable notifications for key characteristics
+            for char_uuid in NOTIFICATION_CHARS:
+                try:
+                    await self._client.start_notify(
+                        char_uuid,
+                        self._notification_handler
+                    )
+                except Exception as notify_err:
+                    self.logger.warning(f"Notification setup failed for {char_uuid}: {notify_err}")
+
+            # Wait briefly for notifications
+            await asyncio.sleep(1)
+
+            # Disable notifications
+            for char_uuid in NOTIFICATION_CHARS:
+                try:
+                    await self._client.stop_notify(char_uuid)
+                except Exception:
+                    pass
+
+            self.logger.debug("Notification-based authentication completed")
+        except Exception as e:
+            self.logger.error(f"Notification authentication failed: {e}")
+            raise
+
+    def _notification_handler(self, sender: str, data: bytes):
+        """
+        Handle incoming notifications during authentication.
+
+        Args:
+            sender: Characteristic sender
+            data: Notification data
+        """
+        self.logger.debug(f"Notification received - Sender: {sender}, Data: {data.hex()}")
+        self._collected_notifications.append(data)
 
     def _on_disconnect(self, client: BleakClient):
         """
@@ -196,23 +236,6 @@ class EnhancedKettleBLEClient:
         self.logger.warning(f"Unexpected disconnection from {self.address}")
         self._client = None
         self._connection_attempts = 0
-
-    async def disconnect(self):
-        """
-        Safely disconnect from the device.
-
-        Ensures clean disconnection and resets connection state.
-        """
-        async with self._connection_lock:
-            if self._client and self._client.is_connected:
-                try:
-                    await self._client.disconnect()
-                    self.logger.info(f"Disconnected from {self.address}")
-                except Exception as e:
-                    self.logger.error(f"Error during disconnection: {e}")
-
-            self._client = None
-            self._connection_attempts = 0
 
     async def read_characteristic(
         self,
