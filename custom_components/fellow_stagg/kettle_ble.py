@@ -16,10 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class KettleBLEClient:
     """
-    BLE client for the Fellow Stagg EKG+ kettle with enhanced reliability.
-
-    Manages Bluetooth communication, state tracking, and command generation
-    for the Fellow Stagg EKG+ electric kettle.
+    Enhanced BLE client for Fellow Stagg EKG+ kettle with robust connection management.
     """
 
     def __init__(self, address: str):
@@ -36,46 +33,28 @@ class KettleBLEClient:
             logger=_LOGGER
         )
         self._last_state: Optional[Dict[str, Any]] = None
-        self._sequence: int = 0  # Explicitly initialize sequence
+        self._sequence: int = 0  # Command sequence number
 
     async def async_poll(self, ble_device: Optional[BluetoothServiceInfoBleak] = None) -> Optional[Dict[str, Any]]:
         """
-        Poll kettle data with enhanced error handling and connection management.
+        Poll kettle data with enhanced connection and error handling.
 
         Args:
-            ble_device: Optional Bluetooth device info (not used in this implementation)
+            ble_device: Optional Bluetooth device info
 
         Returns:
-            Optional dictionary of kettle state or None if polling fails
+            Parsed kettle state or None
         """
         try:
-            # Ensure connection
+            # Ensure connection with comprehensive error handling
             if not await self._enhanced_client.connect():
                 _LOGGER.error(f"Failed to connect to kettle at {self.address}")
                 return self._last_state
 
-            # Collect notifications
-            notifications = []
+            # Collect and parse notifications
+            notifications = await self._collect_notifications()
 
-            try:
-                async def notification_handler(sender: str, data: bytes):
-                    """Handle incoming BLE notifications."""
-                    _LOGGER.debug(f"Notification received - Sender: {sender}, Data: {data.hex()}")
-                    notifications.append(data)
-
-                # Temporarily start notifications
-                async with self._enhanced_client._client.notify(
-                    SERVICE_UUID,
-                    notification_handler
-                ):
-                    # Wait for notifications
-                    await asyncio.sleep(2.0)
-
-            except Exception as notify_err:
-                _LOGGER.error(f"Notification collection error: {notify_err}")
-                return self._last_state
-
-            # Parse notifications
+            # Parse and validate notifications
             state = self.parse_notifications(notifications)
 
             if state:
@@ -91,16 +70,43 @@ class KettleBLEClient:
             )
             return self._last_state
 
+    async def _collect_notifications(self) -> list:
+        """
+        Collect BLE notifications with robust error handling.
+
+        Returns:
+            List of notification data
+        """
+        notifications = []
+        try:
+            async def notification_handler(sender: str, data: bytes):
+                """Handle incoming BLE notifications."""
+                _LOGGER.debug(f"Notification received - Sender: {sender}, Data: {data.hex()}")
+                notifications.append(data)
+
+            # Use context manager for notification collection
+            async with self._enhanced_client._client.notify(
+                SERVICE_UUID,
+                notification_handler
+            ):
+                # Wait for notifications
+                await asyncio.sleep(2.0)
+
+        except Exception as notify_err:
+            _LOGGER.error(f"Notification collection error: {notify_err}")
+
+        return notifications
+
     async def async_set_power(self, ble_device: Any, power_on: bool) -> bool:
         """
-        Turn the kettle on or off.
+        Turn the kettle on or off with enhanced error handling.
 
         Args:
-            ble_device: Bluetooth device (placeholder, not used)
+            ble_device: Bluetooth device (placeholder)
             power_on: True to turn on, False to turn off
 
         Returns:
-            bool: True if command was sent successfully, False otherwise
+            Success status of power command
         """
         try:
             # Ensure connection
@@ -130,17 +136,17 @@ class KettleBLEClient:
         fahrenheit: bool = True
     ) -> bool:
         """
-        Set target temperature with enhanced validation.
+        Set target temperature with comprehensive validation.
 
         Args:
-            ble_device: Bluetooth device (placeholder, not used)
+            ble_device: Bluetooth device (placeholder)
             temp: Target temperature
-            fahrenheit: True for Fahrenheit, False for Celsius
+            fahrenheit: Temperature unit (Fahrenheit or Celsius)
 
         Returns:
-            bool: True if temperature was set successfully, False otherwise
+            Success status of temperature setting
         """
-        # Temperature validation
+        # Temperature range validation
         if fahrenheit:
             temp = max(104, min(temp, 212))
         else:
@@ -169,9 +175,7 @@ class KettleBLEClient:
 
     async def disconnect(self) -> None:
         """
-        Disconnect from the kettle.
-
-        Safely terminates the Bluetooth connection.
+        Safely disconnect from the kettle.
         """
         await self._enhanced_client.disconnect()
         _LOGGER.info(f"Disconnected from kettle at {self.address}")
@@ -181,16 +185,16 @@ class KettleBLEClient:
         Create a command packet with sequence number.
 
         Args:
-            command_type: Type of command (0 for power, 1 for temperature, etc.)
-            value: Value to send with the command
+            command_type: Type of command (0 for power, 1 for temperature)
+            value: Command value
 
         Returns:
-            bytes: Formatted command packet
+            Formatted command packet
         """
         # Increment and wrap sequence number
         self._sequence = (self._sequence + 1) % 256
 
-        # Create command packet
+        # Command packet structure:
         # [0xEF, 0xDD]: Magic bytes
         # [command_type]: Command type
         # [sequence]: Sequence number
@@ -206,7 +210,7 @@ class KettleBLEClient:
             notifications: List of notification data bytes
 
         Returns:
-            Dictionary of parsed kettle state or None
+            Parsed kettle state or None
         """
         state: Dict[str, Any] = {}
         i = 0
@@ -252,7 +256,7 @@ class KettleBLEClient:
 
             i += 2  # Move to next pair of notifications
 
-        # Log parsed state if not empty
+        # Log and return parsed state
         if state:
             _LOGGER.debug(f"Parsed kettle state: {state}")
 
