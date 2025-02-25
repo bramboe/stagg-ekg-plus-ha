@@ -14,6 +14,7 @@ class EnhancedKettleBLEClient:
     INITIAL_RETRY_DELAY = 1  # seconds
     MAX_RETRY_DELAY = 10  # seconds
     CONNECTION_TIMEOUT = 30  # seconds
+    NOTIFICATION_TIMEOUT = 5  # seconds
 
     def __init__(
         self,
@@ -35,6 +36,8 @@ class EnhancedKettleBLEClient:
         self._client: Optional[BleakClient] = None
         self._connection_lock = asyncio.Lock()
         self._connection_attempts = 0
+        self._notification_event = asyncio.Event()
+        self._collected_notifications: List[bytes] = []
 
     async def connect(self) -> bool:
         """
@@ -107,6 +110,47 @@ class EnhancedKettleBLEClient:
                     exc_info=True
                 )
                 return False
+
+    async def notify(self, service_uuid: str, callback):
+        """
+        Context manager for handling BLE notifications.
+
+        Args:
+            service_uuid: UUID of the service to notify
+            callback: Notification handler function
+        """
+        if not self._client or not self._client.is_connected:
+            self.logger.warning("Cannot start notifications. Not connected.")
+            return
+
+        try:
+            # Reset notification state
+            self._collected_notifications.clear()
+            self._notification_event.clear()
+
+            # Start notifications
+            await self._client.start_notify(service_uuid, callback)
+
+            # Wait for notifications with timeout
+            try:
+                await asyncio.wait_for(
+                    self._notification_event.wait(),
+                    timeout=self.NOTIFICATION_TIMEOUT
+                )
+            except asyncio.TimeoutError:
+                self.logger.warning("Notification collection timed out")
+
+            # Stop notifications
+            await self._client.stop_notify(service_uuid)
+
+        except Exception as notify_err:
+            self.logger.error(f"Notification error: {notify_err}")
+        finally:
+            # Ensure notifications are stopped
+            try:
+                await self._client.stop_notify(service_uuid)
+            except Exception:
+                pass
 
     async def _discover_services(self):
         """Discover and log available services and characteristics."""
