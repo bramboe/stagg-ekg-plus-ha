@@ -15,9 +15,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
 from .const import DOMAIN
-import logging
 
-_LOGGER = logging.getLogger(__name__)
 
 @dataclass
 class FellowStaggSensorEntityDescription(SensorEntityDescription):
@@ -112,30 +110,14 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
 
         # Update unit of measurement based on kettle's current units
         if description.device_class == SensorDeviceClass.TEMPERATURE:
-            try:
-                is_fahrenheit = (
-                    coordinator._last_successful_data and
-                    coordinator._last_successful_data.get("units") == "F"
-                )
-                self._attr_native_unit_of_measurement = (
-                    UnitOfTemperature.FAHRENHEIT if is_fahrenheit else UnitOfTemperature.CELSIUS
-                )
-            except Exception as e:
-                _LOGGER.error(f"Error setting temperature unit: {e}")
-                # Default to Fahrenheit if unable to determine
-                self._attr_native_unit_of_measurement = UnitOfTemperature.FAHRENHEIT
+            is_fahrenheit = coordinator.data.get("units") == "F"
+            self._attr_native_unit_of_measurement = (
+                UnitOfTemperature.FAHRENHEIT if is_fahrenheit else UnitOfTemperature.CELSIUS
+            )
 
     @property
     def native_value(self) -> str | None:
         """Return the state of the sensor."""
         if self.coordinator.data is None:
-            _LOGGER.debug(f"No data available for sensor {self.entity_description.key}")
             return None
-
-        try:
-            value = VALUE_FUNCTIONS[self.entity_description.key](self.coordinator.data)
-            _LOGGER.debug(f"Sensor {self.entity_description.key} value: {value}")
-            return value
-        except Exception as e:
-            _LOGGER.error(f"Error getting value for {self.entity_description.key}: {e}")
-            return None
+        return VALUE_FUNCTIONS[self.entity_description.key](self.coordinator.data)
