@@ -2,7 +2,7 @@ import logging
 import asyncio
 from bleak import BleakClient
 
-from .const import SERVICE_UUID, CONTROL_SERVICE_UUID, CHAR_CONTROL_UUID
+from .const import DOMAIN, SERVICE_UUID, CONTROL_SERVICE_UUID, CHAR_CONTROL_UUID
 
 _LOGGER = logging.getLogger(__name__)
 
