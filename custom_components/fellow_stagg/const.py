@@ -1,9 +1,16 @@
 DOMAIN = "fellow_stagg"
 
-# BLE UUIDs for the Fellow Stagg kettle’s “Serial Port Service”
-SERVICE_UUID = "00001820-0000-1000-8000-00805f9b34fb"
-CHAR_UUID = "00002A80-0000-1000-8000-00805f9b34fb"
+# BLE UUIDs for the Fellow Stagg kettle
+# Main service UUIDs observed in logs
+PRIMARY_SERVICE_UUID = "7AEBF330-6CB1-46E4-B23B-7CC2262C605E"
+SECONDARY_SERVICE_UUID = "021A9004-0382-4AEA-BFF4-6B3F1C5ADFB4"
 
-# The magic init sequence (in hex) used to authenticate with the kettle:
-# ef dd 0b 30 31 32 33 34 35 36 37 38 39 30 31 32 33 34 9a 6d
+# Temperature characteristic - observed receiving notifications in logs
+TEMP_CHAR_UUID = "2291C4B5-5D7F-4477-A88B-B266EDB97142"
+
+# Control characteristic - based on logs, potential write characteristic
+CONTROL_CHAR_UUID = "2291C4B7-5D7F-4477-A88B-B266EDB97142"
+
+# The magic init sequence (in hex)
+# Keeping original sequence for now, may need to be adjusted
 INIT_SEQUENCE = bytes.fromhex("efdd0b3031323334353637383930313233349a6d")
