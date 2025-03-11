@@ -9,7 +9,7 @@ from homeassistant.components.bluetooth import (
 )
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import DOMAIN, SERVICE_UUID
+from .const import DOMAIN, SERVICE_UUID, CONTROL_SERVICE_UUID
 
 _LOGGER = logging.getLogger(__name__)
 
