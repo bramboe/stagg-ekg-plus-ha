@@ -2,7 +2,18 @@ import asyncio
 import logging
 import time
 from bleak import BleakClient
-from .const import SERVICE_UUID, CHAR_UUID, INIT_SEQUENCE
+from .const import (
+    SERVICE_UUID,
+    CHAR_UUID,
+    INIT_SEQUENCE,
+    POWER_ON_CMD,
+    POWER_OFF_CMD,
+    TEMP_CMD_PREFIX,
+    TEMP_CMD_SUFFIX,
+    UNIT_FAHRENHEIT_CMD,
+    UNIT_CELSIUS_CMD,
+    READ_TEMP_CMD
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -12,8 +23,8 @@ class KettleBLEClient:
 
     def __init__(self, address: str):
         self.address = address
-        self.service_uuid = SERVICE_UUID  # Updated for Pro model
-        self.char_uuid = CHAR_UUID  # Updated for Pro model
+        self.service_uuid = SERVICE_UUID
+        self.char_uuid = CHAR_UUID
         self.init_sequence = INIT_SEQUENCE
         self._client = None
         self._sequence = 0  # For command sequence numbering
@@ -35,25 +46,48 @@ class KettleBLEClient:
 
                     # Log all available services and characteristics
                     services = await self._client.get_services()
-                    _LOGGER.debug("Available services:")
-                    for service in services:
-                        _LOGGER.debug("  Service: %s", service.uuid)
-                        for char in service.characteristics:
-                            _LOGGER.debug("    Characteristic: %s, Properties: %s",
-                                         char.uuid, char.properties)
+                    _LOGGER.debug("Found services: %s",
+                                 [service.uuid for service in services])
 
-                    # Try to send an initialization sequence if there's one defined
-                    if self.init_sequence and len(self.init_sequence) > 0:
-                        _LOGGER.debug("Sending initialization sequence")
-                        await self._ensure_debounce()
-                        await self._client.write_gatt_char(self.char_uuid, self.init_sequence)
+                    # Find the target service
+                    target_service = None
+                    for service in services:
+                        if service.uuid.lower() == self.service_uuid.lower():
+                            target_service = service
+                            _LOGGER.debug("Found main service %s", self.service_uuid)
+                            break
+
+                    if target_service:
+                        char_uuids = [char.uuid for char in target_service.characteristics]
+                        _LOGGER.debug("Found characteristics: %s", char_uuids)
+
+                        # Check if our target characteristic exists
+                        if any(char.uuid.lower() == self.char_uuid.lower()
+                               for char in target_service.characteristics):
+                            _LOGGER.debug("Found main characteristic %s", self.char_uuid)
+
+                            # Send initialization sequence
+                            if self.init_sequence and len(self.init_sequence) > 0:
+                                try:
+                                    _LOGGER.debug("Writing init sequence to characteristic %s",
+                                                self.char_uuid)
+                                    await self._client.write_gatt_char(
+                                        self.char_uuid,
+                                        self.init_sequence
+                                    )
+                                    _LOGGER.debug("Init sequence sent successfully")
+                                except Exception as init_err:
+                                    _LOGGER.error("Error writing init sequence: %s", init_err)
+                                    # Don't fail the connection if init sequence fails
+                    else:
+                        _LOGGER.warning("Target service not found")
                 else:
                     _LOGGER.error("Failed to connect to kettle")
                     raise Exception("Connection failed")
             else:
                 _LOGGER.debug("Already connected to kettle")
         except Exception as err:
-            _LOGGER.error("Error ensuring connection: %s", err, exc_info=True)
+            _LOGGER.error("Connection error: %s", err)
             self._client = None
             raise
 
@@ -66,21 +100,11 @@ class KettleBLEClient:
             await asyncio.sleep(delay)
         self._last_command_time = int(time.time() * 1000)
 
-    def _create_command(self, command_type: int, value: int, unit: bool = True) -> bytes:
-        """Create a command with proper sequence number and checksum."""
-        # Keep the original command format - this appears the same based on logs
-        command = bytearray([
-            0xef, 0xdd,  # Magic
-            0x0a,        # Command flag
-            self._sequence,  # Sequence number
-            command_type,    # Command type
-            value,          # Value
-            (self._sequence + value) & 0xFF,  # Checksum 1
-            command_type    # Checksum 2
-        ])
-        self._sequence = (self._sequence + 1) & 0xFF
-        _LOGGER.debug("Created command: %s", " ".join(f"{b:02x}" for b in command))
-        return bytes(command)
+    def _create_temperature_command(self, temp: int) -> bytes:
+        """Create a command to set temperature with proper format."""
+        # Based on observed format, insert the temperature byte
+        temp_byte = bytes([temp])
+        return TEMP_CMD_PREFIX + temp_byte + TEMP_CMD_SUFFIX
 
     async def async_poll(self, ble_device):
         """Connect to the kettle and return parsed state."""
@@ -95,34 +119,41 @@ class KettleBLEClient:
                 notifications.append(data)
 
             try:
+                # Set up notifications
                 _LOGGER.debug("Starting notification handling on %s", self.char_uuid)
                 await self._client.start_notify(self.char_uuid, notification_handler)
 
-                # Try to trigger notifications by sending a simple command
+                # Try to trigger notifications by first reading the characteristic
                 try:
-                    _LOGGER.debug("Attempting to trigger notifications")
-                    # Try reading characteristic first
+                    _LOGGER.debug("Attempting to read from characteristic")
                     read_data = await self._client.read_gatt_char(self.char_uuid)
                     _LOGGER.debug("Read response: %s", " ".join(f"{b:02x}" for b in read_data))
-                except Exception as err:
-                    _LOGGER.debug("Read attempt failed: %s. Will try different approach.", err)
-                    pass
 
+                    # Send a read command to request current temperature
+                    await self._client.write_gatt_char(self.char_uuid, READ_TEMP_CMD)
+                    _LOGGER.debug("Sent temperature read command")
+                except Exception as read_err:
+                    _LOGGER.debug("Read attempt failed: %s. Will try different approach.", read_err)
+
+                # Wait for notifications
                 _LOGGER.debug("Waiting for notifications (2s)")
                 await asyncio.sleep(2.0)
 
-                # If we haven't received any notifications, try sending a command
-                if not notifications:
-                    _LOGGER.debug("No notifications received, trying to send a request command")
+                # Check for notifications on other characteristics
+                for i in range(1, 5):
+                    other_char = self.char_uuid.replace("FF50", f"FF5{i}")
                     try:
-                        # Send a command that might trigger state updates
-                        # This is a simple "read state" command (guessing at the format)
-                        request_command = bytes([0xef, 0xdd, 0x00, 0x00, 0x00, 0x00, 0x00])
-                        await self._client.write_gatt_char(self.char_uuid, request_command)
-                        _LOGGER.debug("Sent request command, waiting for response")
-                        await asyncio.sleep(1.0)
-                    except Exception as req_err:
-                        _LOGGER.debug("Failed to send request command: %s", req_err)
+                        # Try reading from other characteristics too
+                        read_data = await self._client.read_gatt_char(other_char)
+                        _LOGGER.debug("Read from %s: %s", other_char,
+                                     " ".join(f"{b:02x}" for b in read_data))
+
+                        # Try setting up notifications on other characteristics
+                        await self._client.start_notify(other_char, notification_handler)
+                        await asyncio.sleep(0.5)  # Brief wait for each characteristic
+                        await self._client.stop_notify(other_char)
+                    except Exception as err:
+                        _LOGGER.debug("Error with characteristic %s: %s", other_char, err)
 
                 _LOGGER.debug("Stopping notifications")
                 await self._client.stop_notify(self.char_uuid)
@@ -132,7 +163,7 @@ class KettleBLEClient:
                     _LOGGER.debug("Notification %d: %s", i, " ".join(f"{b:02x}" for b in notif))
 
             except Exception as err:
-                _LOGGER.error("Error during notification handling: %s", err, exc_info=True)
+                _LOGGER.error("Error during notification handling: %s", err)
                 return {}
 
             state = self.parse_notifications(notifications)
@@ -140,7 +171,7 @@ class KettleBLEClient:
             return state
 
         except Exception as err:
-            _LOGGER.error("Error polling kettle: %s", err, exc_info=True)
+            _LOGGER.error("Error polling kettle: %s", err)
             if self._client and self._client.is_connected:
                 try:
                     await self._client.disconnect()
@@ -155,12 +186,15 @@ class KettleBLEClient:
             _LOGGER.debug("Setting power: %s", "ON" if power_on else "OFF")
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
-            command = self._create_command(0, 1 if power_on else 0)
+
+            # Use the correct power command
+            command = POWER_ON_CMD if power_on else POWER_OFF_CMD
+
             _LOGGER.debug("Sending power command: %s", " ".join(f"{b:02x}" for b in command))
             await self._client.write_gatt_char(self.char_uuid, command)
             _LOGGER.debug("Power command sent successfully")
         except Exception as err:
-            _LOGGER.error("Error setting power state: %s", err, exc_info=True)
+            _LOGGER.error("Error setting power state: %s", err)
             if self._client and self._client.is_connected:
                 try:
                     await self._client.disconnect()
@@ -192,12 +226,38 @@ class KettleBLEClient:
             _LOGGER.debug("Setting temperature: %d°%s", temp, "F" if fahrenheit else "C")
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
-            command = self._create_command(1, temp)  # Type 1 = temperature command
+
+            # Create temperature command based on the format from Wireshark
+            command = self._create_temperature_command(temp)
+
             _LOGGER.debug("Sending temperature command: %s", " ".join(f"{b:02x}" for b in command))
             await self._client.write_gatt_char(self.char_uuid, command)
             _LOGGER.debug("Temperature command sent successfully")
         except Exception as err:
-            _LOGGER.error("Error setting temperature: %s", err, exc_info=True)
+            _LOGGER.error("Error setting temperature: %s", err)
+            if self._client and self._client.is_connected:
+                try:
+                    await self._client.disconnect()
+                except:
+                    pass
+            self._client = None
+            raise
+
+    async def async_set_temperature_unit(self, ble_device, fahrenheit: bool):
+        """Set temperature unit to Fahrenheit or Celsius."""
+        try:
+            _LOGGER.debug("Setting temperature unit to: %s", "Fahrenheit" if fahrenheit else "Celsius")
+            await self._ensure_connected(ble_device)
+            await self._ensure_debounce()
+
+            # Use the correct unit command based on the Wireshark captures
+            command = UNIT_FAHRENHEIT_CMD if fahrenheit else UNIT_CELSIUS_CMD
+
+            _LOGGER.debug("Sending unit command: %s", " ".join(f"{b:02x}" for b in command))
+            await self._client.write_gatt_char(self.char_uuid, command)
+            _LOGGER.debug("Unit command sent successfully")
+        except Exception as err:
+            _LOGGER.error("Error setting temperature unit: %s", err)
             if self._client and self._client.is_connected:
                 try:
                     await self._client.disconnect()
@@ -217,110 +277,6 @@ class KettleBLEClient:
                 _LOGGER.error("Error disconnecting: %s", err)
         self._client = None
 
-    def _parse_notification_pairs(self, notifications):
-        """Parse notifications as pairs of header + payload."""
-        state = {}
-        i = 0
-
-        try:
-            while i < len(notifications) - 1:
-                header = notifications[i]
-
-                # Check for valid header format
-                if len(header) >= 3 and header[0] == 0xEF and header[1] == 0xDD:
-                    msg_type = header[2]
-                    _LOGGER.debug("Found header with message type: %d", msg_type)
-
-                    # Try to process payload if there's another notification
-                    if i + 1 < len(notifications):
-                        payload = notifications[i + 1]
-                        _LOGGER.debug("Processing payload: %s", " ".join(f"{b:02x}" for b in payload))
-
-                        if msg_type == 0:
-                            # Power state
-                            if len(payload) >= 1:
-                                state["power"] = payload[0] == 1
-                                _LOGGER.debug("Parsed power state: %s", state["power"])
-                        elif msg_type == 1:
-                            # Hold state
-                            if len(payload) >= 1:
-                                state["hold"] = payload[0] == 1
-                                _LOGGER.debug("Parsed hold state: %s", state["hold"])
-                        elif msg_type == 2:
-                            # Target temperature
-                            if len(payload) >= 2:
-                                temp = payload[0]  # Single byte temperature
-                                is_fahrenheit = payload[1] == 1
-                                state["target_temp"] = temp
-                                state["units"] = "F" if is_fahrenheit else "C"
-                                _LOGGER.debug("Parsed target temp: %d°%s", temp, state["units"])
-                        elif msg_type == 3:
-                            # Current temperature
-                            if len(payload) >= 2:
-                                temp = payload[0]  # Single byte temperature
-                                is_fahrenheit = payload[1] == 1
-                                state["current_temp"] = temp
-                                state["units"] = "F" if is_fahrenheit else "C"
-                                _LOGGER.debug("Parsed current temp: %d°%s", temp, state["units"])
-                        elif msg_type == 4:
-                            # Countdown
-                            if len(payload) >= 1:
-                                state["countdown"] = payload[0]
-                                _LOGGER.debug("Parsed countdown: %d", state["countdown"])
-                        elif msg_type == 8:
-                            # Kettle position
-                            if len(payload) >= 1:
-                                state["lifted"] = payload[0] == 0
-                                _LOGGER.debug("Parsed kettle position: %s",
-                                             "Lifted" if state["lifted"] else "On base")
-
-                        i += 2  # Move to next pair of notifications
-                    else:
-                        i += 1  # Not enough notifications left for a pair
-                else:
-                    i += 1  # Not a valid header, skip
-        except Exception as err:
-            _LOGGER.error("Error parsing notification pairs: %s", err, exc_info=True)
-
-        return state
-
-    def _parse_direct_notifications(self, notifications):
-        """Alternative parsing approach that looks at each notification individually."""
-        state = {}
-
-        try:
-            for notification in notifications:
-                # Check if this is a direct state notification
-                if len(notification) >= 3 and notification[0] == 0xEF and notification[1] == 0xDD:
-                    msg_type = notification[2]
-                    _LOGGER.debug("Processing direct notification type %d: %s",
-                                 msg_type, " ".join(f"{b:02x}" for b in notification))
-
-                    if msg_type == 0 and len(notification) >= 4:
-                        # Power state
-                        state["power"] = notification[3] == 1
-                    elif msg_type == 1 and len(notification) >= 4:
-                        # Hold state
-                        state["hold"] = notification[3] == 1
-                    elif msg_type == 2 and len(notification) >= 5:
-                        # Target temperature
-                        state["target_temp"] = notification[3]
-                        state["units"] = "F" if notification[4] == 1 else "C"
-                    elif msg_type == 3 and len(notification) >= 5:
-                        # Current temperature
-                        state["current_temp"] = notification[3]
-                        state["units"] = "F" if notification[4] == 1 else "C"
-                    elif msg_type == 4 and len(notification) >= 4:
-                        # Countdown
-                        state["countdown"] = notification[3]
-                    elif msg_type == 8 and len(notification) >= 4:
-                        # Kettle position
-                        state["lifted"] = notification[3] == 0
-        except Exception as err:
-            _LOGGER.error("Error in direct notification parsing: %s", err, exc_info=True)
-
-        return state
-
     def parse_notifications(self, notifications):
         """Parse BLE notification payloads into kettle state."""
         state = {}
@@ -331,28 +287,81 @@ class KettleBLEClient:
 
         _LOGGER.debug("Parsing %d notifications", len(notifications))
 
-        # Try two different parsing approaches
+        for notification in notifications:
+            try:
+                # Based on the Wireshark captures, look for both message formats
 
-        # Approach 1: Parse notifications as pairs (header + payload)
-        parsed_from_pairs = self._parse_notification_pairs(notifications)
-        if parsed_from_pairs:
-            _LOGGER.debug("Successfully parsed state from notification pairs")
-            state.update(parsed_from_pairs)
+                # Format 1: f7 17 00 00 50 8c ... (Hold command format)
+                if len(notification) >= 12 and notification[0] == 0xf7 and notification[1] in (0x17, 0x15):
+                    # This matches our observed command format
 
-        # Approach 2: Look at each notification individually
-        if not state or len(state) < 2:  # If we didn't get much from approach 1
-            _LOGGER.debug("Trying alternative parsing method")
-            parsed_direct = self._parse_direct_notifications(notifications)
-            if parsed_direct:
-                _LOGGER.debug("Successfully parsed state from direct notifications")
-                # Add any fields that weren't in the first parsing method
-                for key, value in parsed_direct.items():
-                    if key not in state:
-                        state[key] = value
+                    # Check for unit type message format (c1 in position 4)
+                    if len(notification) > 4 and notification[4] == 0xc1:
+                        # This is a unit type message
+                        unit_code = notification[5:10]  # Extract the unit code section
+                        if unit_code[1] == 0xc0:  # Pattern seen in Fahrenheit command
+                            state["units"] = "F"
+                            _LOGGER.debug("Parsed temperature unit: Fahrenheit")
+                        elif unit_code[1] == 0xcd:  # Pattern seen in Celsius command
+                            state["units"] = "C"
+                            _LOGGER.debug("Parsed temperature unit: Celsius")
 
-        if not state:
-            _LOGGER.warning("Failed to parse any state from notifications")
-        else:
-            _LOGGER.debug("Final parsed state: %s", state)
+                    # Standard command format
+                    elif len(notification) > 12:
+                        command_category = notification[10]
+                        command_type = notification[12]
+
+                        if len(notification) > 13:
+                            value_byte = notification[13]
+
+                            if command_type == 0x01:  # Power state
+                                state["power"] = value_byte == 1
+                                _LOGGER.debug("Parsed power state: %s", state["power"])
+
+                            elif command_type == 0x02:  # Temperature setting
+                                state["target_temp"] = value_byte
+                                _LOGGER.debug("Parsed target temp: %d", state["target_temp"])
+
+                            elif command_type == 0x03:  # Current temperature
+                                state["current_temp"] = value_byte
+                                _LOGGER.debug("Parsed current temp: %d", state["current_temp"])
+
+                            elif command_type in (0x10, 0x11, 0x12, 0x13):  # Hold times
+                                # Maps to 15min, 30min, 45min, 60min
+                                hold_times = {0x10: 15, 0x11: 30, 0x12: 45, 0x13: 60}
+
+                                # If value_byte is 0, hold is off
+                                if value_byte == 0:
+                                    state["hold"] = False
+                                    state["hold_time"] = 0
+                                else:
+                                    state["hold"] = True
+                                    state["hold_time"] = hold_times.get(command_type, 0)
+
+                                _LOGGER.debug("Parsed hold state: %s, time: %d minutes",
+                                            state["hold"], state["hold_time"])
+
+                # Format 2: EF DD format for notifications (alternative response format)
+                elif len(notification) >= 3 and notification[0] == 0xEF and notification[1] == 0xDD:
+                    msg_type = notification[2]
+
+                    if msg_type == 0 and len(notification) >= 4:
+                        # Power state
+                        state["power"] = notification[3] == 1
+                        _LOGGER.debug("Parsed power state: %s", state["power"])
+                    elif msg_type == 2 and len(notification) >= 5:
+                        # Target temperature
+                        state["target_temp"] = notification[3]
+                        state["units"] = "F" if notification[4] == 1 else "C"
+                        _LOGGER.debug("Parsed target temp: %d°%s",
+                                    state["target_temp"], state["units"])
+                    elif msg_type == 3 and len(notification) >= 5:
+                        # Current temperature
+                        state["current_temp"] = notification[3]
+                        state["units"] = "F" if notification[4] == 1 else "C"
+                        _LOGGER.debug("Parsed current temp: %d°%s",
+                                    state["current_temp"], state["units"])
+            except Exception as err:
+                _LOGGER.error("Error parsing notification: %s", err)
 
         return state
