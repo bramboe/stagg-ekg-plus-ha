@@ -12,6 +12,8 @@ from homeassistant.components.water_heater import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
   ATTR_TEMPERATURE,
+  STATE_OFF,
+  STATE_ON,
   UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
@@ -40,7 +42,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     WaterHeaterEntityFeature.TARGET_TEMPERATURE |
     WaterHeaterEntityFeature.ON_OFF
   )
-  _attr_operation_list = ["off", "on"]
+  _attr_operation_list = [STATE_OFF, STATE_ON]
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     """Initialize the water heater."""
@@ -50,11 +52,11 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     self._attr_device_info = coordinator.device_info
 
     _LOGGER.debug("Initializing water heater with units: %s", coordinator.temperature_unit)
-    
+
     self._attr_min_temp = coordinator.min_temp
     self._attr_max_temp = coordinator.max_temp
     self._attr_temperature_unit = coordinator.temperature_unit
-    
+
     _LOGGER.debug(
       "Water heater temperature range set to: %s°%s - %s°%s",
       self._attr_min_temp,
@@ -66,14 +68,18 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
   @property
   def current_temperature(self) -> float | None:
     """Return the current temperature."""
-    value = self.coordinator.data.get("current_temp") if self.coordinator.data else None
+    if not self.coordinator.data:
+      return None
+    value = self.coordinator.data.get("current_temp")
     _LOGGER.debug("Water heater current temperature read as: %s°%s", value, self.coordinator.temperature_unit)
     return value
 
   @property
   def target_temperature(self) -> float | None:
     """Return the target temperature."""
-    value = self.coordinator.data.get("target_temp") if self.coordinator.data else None
+    if not self.coordinator.data:
+      return None
+    value = self.coordinator.data.get("target_temp")
     _LOGGER.debug("Water heater target temperature read as: %s°%s", value, self.coordinator.temperature_unit)
     return value
 
@@ -82,9 +88,14 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     """Return current operation."""
     if not self.coordinator.data:
       return None
-    value = "on" if self.coordinator.data.get("power") else "off"
+    value = STATE_ON if self.coordinator.data.get("power") else STATE_OFF
     _LOGGER.debug("Water heater operation state read as: %s", value)
     return value
+
+  @property
+  def available(self) -> bool:
+    """Return if entity is available."""
+    return self.coordinator.last_update_success and self.coordinator.data and self.coordinator.data.get("connected", False)
 
   async def async_set_temperature(self, **kwargs: Any) -> None:
     """Set new target temperature."""
@@ -97,7 +108,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
       temperature,
       self.coordinator.temperature_unit
     )
-    
+
     await self.coordinator.kettle.async_set_temperature(
       self.coordinator.ble_device,
       int(temperature),
@@ -127,4 +138,11 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     # Give the kettle a moment to update its internal state
     await asyncio.sleep(0.5)
     _LOGGER.debug("Requesting refresh after power change")
-    await self.coordinator.async_request_refresh() 
+    await self.coordinator.async_request_refresh()
+
+  async def async_update(self) -> None:
+    """Update the entity.
+
+    Only used by the generic entity update service.
+    """
+    await self.coordinator.async_request_refresh()
