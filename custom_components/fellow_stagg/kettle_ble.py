@@ -8,7 +8,8 @@ from .const import (
     SERVICE_UUID,
     CONTROL_SERVICE_UUID,
     CHAR_CONTROL_UUID,
-    CHAR_WRITE_UUID
+    CHAR_WRITE_UUID,
+    INIT_SEQUENCE
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -215,7 +216,7 @@ class KettleBLEClient:
                             self.ble_device = ble_device
                             
                             # Wait after initial connection
-                            await asyncio.sleep(1.0)
+                            await asyncio.sleep(2.0)  # Increased wait time
                             
                             # Run initialization sequence
                             if INIT_SEQUENCE:
@@ -226,26 +227,40 @@ class KettleBLEClient:
                                         data = init_step["data"]
                                         _LOGGER.debug(f"Init step: Writing {data.hex()} to {char_uuid}")
                                         
-                                        # Try write with response first
-                                        try:
-                                            await self._client.write_gatt_char(
-                                                char_uuid,
-                                                data,
-                                                response=True
-                                            )
-                                            _LOGGER.debug(f"Init write successful to {char_uuid}")
-                                        except Exception as write_err:
-                                            _LOGGER.debug(f"Init write with response failed: {write_err}")
-                                            # Try without response
-                                            await self._client.write_gatt_char(
-                                                char_uuid,
-                                                data,
-                                                response=False
-                                            )
-                                            _LOGGER.debug(f"Init write without response successful to {char_uuid}")
+                                        # Try multiple write approaches
+                                        success = False
+                                        for write_attempt in range(3):  # Try up to 3 times
+                                            try:
+                                                # Try write without response first
+                                                await self._client.write_gatt_char(
+                                                    char_uuid,
+                                                    data,
+                                                    response=False
+                                                )
+                                                _LOGGER.debug(f"Init write without response successful to {char_uuid}")
+                                                success = True
+                                                break
+                                            except Exception as write_err:
+                                                _LOGGER.debug(f"Init write without response failed (attempt {write_attempt + 1}): {write_err}")
+                                                try:
+                                                    # Try with response
+                                                    await self._client.write_gatt_char(
+                                                        char_uuid,
+                                                        data,
+                                                        response=True
+                                                    )
+                                                    _LOGGER.debug(f"Init write with response successful to {char_uuid}")
+                                                    success = True
+                                                    break
+                                                except Exception as write_err2:
+                                                    _LOGGER.debug(f"Init write with response failed (attempt {write_attempt + 1}): {write_err2}")
+                                                    await asyncio.sleep(1.0)  # Wait before retry
+                                        
+                                        if not success:
+                                            _LOGGER.warning(f"Failed all write attempts for {char_uuid}")
                                         
                                         # Small delay between initialization steps
-                                        await asyncio.sleep(0.5)
+                                        await asyncio.sleep(1.0)  # Increased delay
                                         
                                     except Exception as init_err:
                                         _LOGGER.warning(f"Init step failed for {char_uuid}: {init_err}")
@@ -254,7 +269,7 @@ class KettleBLEClient:
                                 _LOGGER.debug("Initialization sequence completed")
                             
                             # Wait after initialization
-                            await asyncio.sleep(1.0)
+                            await asyncio.sleep(2.0)  # Increased wait time
                             
                             # Subscribe to notifications
                             await self._subscribe_to_notifications()
@@ -333,7 +348,7 @@ class KettleBLEClient:
 
     async def async_set_temperature(self, temperature: int, fahrenheit: bool = False):
         """
-        Enhanced temperature setting method.
+        Enhanced temperature setting method with improved error handling.
         """
         try:
             # Ensure connection
@@ -342,8 +357,8 @@ class KettleBLEClient:
                 return False
 
             # Delay if we just sent a command (avoid flooding)
-            if time.time() - self._last_command_time < 0.5:
-                await asyncio.sleep(0.5)
+            if time.time() - self._last_command_time < 1.0:  # Increased delay
+                await asyncio.sleep(1.0)
 
             # Convert temperature to observed hex encoding
             if not fahrenheit:
@@ -380,12 +395,51 @@ class KettleBLEClient:
             )
             _LOGGER.debug(f"Command hex: {command.hex()}")
 
-            # Write with longer timeout
-            await self._client.write_gatt_char(
-                CHAR_WRITE_UUID,
-                command,
-                response=True
-            )
+            # Try multiple write approaches
+            success = False
+            for write_attempt in range(3):  # Try up to 3 times
+                try:
+                    # Try write without response first
+                    await self._client.write_gatt_char(
+                        CHAR_WRITE_UUID,
+                        command,
+                        response=False
+                    )
+                    _LOGGER.debug("Temperature set command sent successfully without response")
+                    success = True
+                    break
+                except Exception as write_err:
+                    _LOGGER.debug(f"Temperature set without response failed (attempt {write_attempt + 1}): {write_err}")
+                    try:
+                        # Try with response
+                        await self._client.write_gatt_char(
+                            CHAR_WRITE_UUID,
+                            command,
+                            response=True
+                        )
+                        _LOGGER.debug("Temperature set command sent successfully with response")
+                        success = True
+                        break
+                    except Exception as write_err2:
+                        _LOGGER.debug(f"Temperature set with response failed (attempt {write_attempt + 1}): {write_err2}")
+                        # Try alternate characteristic
+                        try:
+                            await self._client.write_gatt_char(
+                                CHAR_CONTROL_UUID,
+                                command,
+                                response=False
+                            )
+                            _LOGGER.debug("Temperature set command sent successfully to control characteristic")
+                            success = True
+                            break
+                        except Exception as write_err3:
+                            _LOGGER.debug(f"Temperature set to control characteristic failed (attempt {write_attempt + 1}): {write_err3}")
+                    
+                    await asyncio.sleep(1.0)  # Wait before retry
+
+            if not success:
+                _LOGGER.error("Failed all attempts to set temperature")
+                return False
 
             self._last_command_time = time.time()
 
@@ -394,7 +448,7 @@ class KettleBLEClient:
             self._units = "F" if fahrenheit else "C"
 
             # Allow some time for the device to process
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1.0)
 
             return True
 
