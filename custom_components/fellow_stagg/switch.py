@@ -42,6 +42,8 @@ class FellowStaggPowerSwitch(SwitchEntity):
   @property
   def is_on(self) -> bool | None:
     """Return true if the switch is on."""
+    if self.coordinator.data is None:
+        return None
     value = self.coordinator.data.get("power")
     _LOGGER.debug("Power switch state read as: %s", value)
     return value
@@ -64,4 +66,4 @@ class FellowStaggPowerSwitch(SwitchEntity):
     # Give the kettle a moment to update its internal state
     await asyncio.sleep(0.5)
     _LOGGER.debug("Requesting refresh after power change")
-    await self.coordinator.async_request_refresh() 
+    await self.coordinator.async_request_refresh()
