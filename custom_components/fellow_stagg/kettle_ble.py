@@ -177,7 +177,7 @@ class KettleBLEClient:
 
     async def _ensure_connected(self, ble_device=None):
         """
-        Enhanced connection method with comprehensive error handling.
+        Enhanced connection method with comprehensive error handling and initialization sequence.
         """
         if self._connected and self._client and self._client.is_connected:
             return True
@@ -214,43 +214,49 @@ class KettleBLEClient:
                             self._connected = True
                             self.ble_device = ble_device
                             
-                            # Diagnostic: Try to read from various characteristics
-                            _LOGGER.debug("Attempting to read from characteristics...")
+                            # Wait after initial connection
+                            await asyncio.sleep(1.0)
                             
-                            # Try reading from the first service characteristics
-                            for char_uuid in [
-                                "021aff50-0382-4aea-bff4-6b3f1c5adfb4",
-                                "021aff51-0382-4aea-bff4-6b3f1c5adfb4",
-                                "021aff52-0382-4aea-bff4-6b3f1c5adfb4",
-                                "021aff53-0382-4aea-bff4-6b3f1c5adfb4",
-                                "021aff54-0382-4aea-bff4-6b3f1c5adfb4"
-                            ]:
-                                try:
-                                    value = await self._client.read_gatt_char(char_uuid)
-                                    _LOGGER.debug(f"Read from {char_uuid}: {value.hex()}")
-                                except Exception as read_err:
-                                    _LOGGER.debug(f"Could not read from {char_uuid}: {read_err}")
+                            # Run initialization sequence
+                            if INIT_SEQUENCE:
+                                _LOGGER.debug("Starting initialization sequence...")
+                                for init_step in INIT_SEQUENCE:
+                                    try:
+                                        char_uuid = init_step["uuid"]
+                                        data = init_step["data"]
+                                        _LOGGER.debug(f"Init step: Writing {data.hex()} to {char_uuid}")
+                                        
+                                        # Try write with response first
+                                        try:
+                                            await self._client.write_gatt_char(
+                                                char_uuid,
+                                                data,
+                                                response=True
+                                            )
+                                            _LOGGER.debug(f"Init write successful to {char_uuid}")
+                                        except Exception as write_err:
+                                            _LOGGER.debug(f"Init write with response failed: {write_err}")
+                                            # Try without response
+                                            await self._client.write_gatt_char(
+                                                char_uuid,
+                                                data,
+                                                response=False
+                                            )
+                                            _LOGGER.debug(f"Init write without response successful to {char_uuid}")
+                                        
+                                        # Small delay between initialization steps
+                                        await asyncio.sleep(0.5)
+                                        
+                                    except Exception as init_err:
+                                        _LOGGER.warning(f"Init step failed for {char_uuid}: {init_err}")
+                                        continue  # Continue with next step even if one fails
+                                
+                                _LOGGER.debug("Initialization sequence completed")
                             
-                            # Try reading from the second service characteristics
-                            for char_uuid in [
-                                "2291c4b1-5d7f-4477-a88b-b266edb97142",
-                                "2291c4b2-5d7f-4477-a88b-b266edb97142",
-                                "2291c4b3-5d7f-4477-a88b-b266edb97142",
-                                "2291c4b4-5d7f-4477-a88b-b266edb97142",
-                                "2291c4b5-5d7f-4477-a88b-b266edb97142",
-                                "2291c4b6-5d7f-4477-a88b-b266edb97142",
-                                "2291c4b7-5d7f-4477-a88b-b266edb97142",
-                                "2291c4b8-5d7f-4477-a88b-b266edb97142",
-                                "2291c4b9-5d7f-4477-a88b-b266edb97142"
-                            ]:
-                                try:
-                                    value = await self._client.read_gatt_char(char_uuid)
-                                    _LOGGER.debug(f"Read from {char_uuid}: {value.hex()}")
-                                except Exception as read_err:
-                                    _LOGGER.debug(f"Could not read from {char_uuid}: {read_err}")
+                            # Wait after initialization
+                            await asyncio.sleep(1.0)
                             
-                            # Wait a moment before subscribing
-                            await asyncio.sleep(0.5)
+                            # Subscribe to notifications
                             await self._subscribe_to_notifications()
                             return True
 
