@@ -339,9 +339,7 @@ class KettleBLEClient:
             return {"connected": False}
 
     async def async_set_temperature(self, temperature: int, fahrenheit: bool = False):
-        """
-        Enhanced temperature setting method.
-        """
+        """Enhanced temperature setting method."""
         try:
             # Ensure connection
             if not await self._ensure_connected():
@@ -387,9 +385,12 @@ class KettleBLEClient:
             )
             _LOGGER.debug(f"Command hex: {command.hex()}")
 
+            # Use the correct characteristic (the one that worked for power)
+            write_char_uuid = "2291c4b7-5d7f-4477-a88b-b266edb97142"  # <-- This is the key change
+
             # Write with longer timeout
             await self._client.write_gatt_char(
-                CHAR_WRITE_UUID,
+                write_char_uuid,
                 command,
                 response=True
             )
