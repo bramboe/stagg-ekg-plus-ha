@@ -525,7 +525,11 @@ class KettleBLEClient:
                 0xF7,  # Header
                 0x01,  # Power command
                 0x00, 0x00,  # Padding
-                0x01 if power_on else 0x00  # Power state
+                0x01 if power_on else 0x00,  # Power state
+                0x00,  # Additional padding
+                0x00,  # Additional padding
+                0x00,  # Additional padding
+                0x00,  # Additional padding
             ])
 
             _LOGGER.debug(f"Setting power {'ON' if power_on else 'OFF'}")
