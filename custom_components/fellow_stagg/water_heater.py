@@ -69,7 +69,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
   def current_temperature(self) -> float | None:
     """Return the current temperature."""
     if not self.coordinator.data:
-      return None
+        return None
     value = self.coordinator.data.get("current_temp")
     _LOGGER.debug("Water heater current temperature read as: %s°%s", value, self.coordinator.temperature_unit)
     return value
@@ -78,7 +78,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
   def target_temperature(self) -> float | None:
     """Return the target temperature."""
     if not self.coordinator.data:
-      return None
+        return None
     value = self.coordinator.data.get("target_temp")
     _LOGGER.debug("Water heater target temperature read as: %s°%s", value, self.coordinator.temperature_unit)
     return value
