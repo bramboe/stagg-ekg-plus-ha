@@ -35,6 +35,8 @@ class FellowStaggPowerSwitch(SwitchEntity):
 
   _attr_has_entity_name = True
   _attr_name = "Power"
+  _attr_icon = "mdi:kettle"
+  _attr_entity_category = EntityCategory.SWITCH
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     """Initialize the switch."""
@@ -62,7 +64,7 @@ class FellowStaggPowerSwitch(SwitchEntity):
     _LOGGER.debug("Power switch state read as: %s", value)
     return value
 
-  async def _async_perform_action_with_retry(self, action_func, *args) -> bool:
+  async def _async_perform_action_with_retry(self, power_on: bool) -> bool:
     """Perform an action with retry logic."""
     self._operation_in_progress = True
     success = False
@@ -73,26 +75,26 @@ class FellowStaggPowerSwitch(SwitchEntity):
                 if attempt > 0:
                     _LOGGER.debug(f"Retrying operation (attempt {attempt+1}/{MAX_RETRY_ATTEMPTS})")
 
-                # Call the action function (either turn_on or turn_off)
-                success = await action_func(*args)
+                # Call the power set method
+                success = await self.coordinator.kettle.async_set_power(power_on)
 
                 if success:
-                    _LOGGER.debug("Operation successful")
+                    _LOGGER.debug(f"Power {'ON' if power_on else 'OFF'} operation successful")
                     break
                 else:
-                    _LOGGER.warning("Operation returned False, will retry")
+                    _LOGGER.warning("Power operation returned False, will retry")
                     await asyncio.sleep(RETRY_DELAY)
             except Exception as err:
-                _LOGGER.error(f"Error during operation (attempt {attempt+1}): {err}")
+                _LOGGER.error(f"Error during power operation (attempt {attempt+1}): {err}")
                 if attempt < MAX_RETRY_ATTEMPTS - 1:
                     await asyncio.sleep(RETRY_DELAY)
 
         if not success:
-            _LOGGER.error("Failed to complete operation after %d attempts", MAX_RETRY_ATTEMPTS)
+            _LOGGER.error("Failed to complete power operation after %d attempts", MAX_RETRY_ATTEMPTS)
 
         # Give the kettle a moment to update its internal state
         await asyncio.sleep(0.5)
-        _LOGGER.debug("Requesting refresh after state change")
+        _LOGGER.debug("Requesting refresh after power state change")
         await self.coordinator.async_request_refresh()
 
         return success
@@ -102,25 +104,17 @@ class FellowStaggPowerSwitch(SwitchEntity):
   async def async_turn_on(self, **kwargs: Any) -> None:
     """Turn the switch on."""
     if self._operation_in_progress:
-        _LOGGER.debug("Operation already in progress, skipping")
+        _LOGGER.debug("Power operation already in progress, skipping")
         return
 
-    _LOGGER.debug("Turning power switch ON")
-    await self._async_perform_action_with_retry(
-        self.coordinator.kettle.async_set_power,
-        self.coordinator.ble_device,
-        True
-    )
+    _LOGGER.debug("Turning kettle power ON")
+    await self._async_perform_action_with_retry(True)
 
   async def async_turn_off(self, **kwargs: Any) -> None:
     """Turn the switch off."""
     if self._operation_in_progress:
-        _LOGGER.debug("Operation already in progress, skipping")
+        _LOGGER.debug("Power operation already in progress, skipping")
         return
 
-    _LOGGER.debug("Turning power switch OFF")
-    await self._async_perform_action_with_retry(
-        self.coordinator.kettle.async_set_power,
-        self.coordinator.ble_device,
-        False
-    )
+    _LOGGER.debug("Turning kettle power OFF")
+    await self._async_perform_action_with_retry(False)
