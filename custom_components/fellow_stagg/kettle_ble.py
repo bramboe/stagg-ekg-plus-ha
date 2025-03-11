@@ -213,6 +213,42 @@ class KettleBLEClient:
                         if connected:
                             self._connected = True
                             self.ble_device = ble_device
+                            
+                            # Diagnostic: Try to read from various characteristics
+                            _LOGGER.debug("Attempting to read from characteristics...")
+                            
+                            # Try reading from the first service characteristics
+                            for char_uuid in [
+                                "021aff50-0382-4aea-bff4-6b3f1c5adfb4",
+                                "021aff51-0382-4aea-bff4-6b3f1c5adfb4",
+                                "021aff52-0382-4aea-bff4-6b3f1c5adfb4",
+                                "021aff53-0382-4aea-bff4-6b3f1c5adfb4",
+                                "021aff54-0382-4aea-bff4-6b3f1c5adfb4"
+                            ]:
+                                try:
+                                    value = await self._client.read_gatt_char(char_uuid)
+                                    _LOGGER.debug(f"Read from {char_uuid}: {value.hex()}")
+                                except Exception as read_err:
+                                    _LOGGER.debug(f"Could not read from {char_uuid}: {read_err}")
+                            
+                            # Try reading from the second service characteristics
+                            for char_uuid in [
+                                "2291c4b1-5d7f-4477-a88b-b266edb97142",
+                                "2291c4b2-5d7f-4477-a88b-b266edb97142",
+                                "2291c4b3-5d7f-4477-a88b-b266edb97142",
+                                "2291c4b4-5d7f-4477-a88b-b266edb97142",
+                                "2291c4b5-5d7f-4477-a88b-b266edb97142",
+                                "2291c4b6-5d7f-4477-a88b-b266edb97142",
+                                "2291c4b7-5d7f-4477-a88b-b266edb97142",
+                                "2291c4b8-5d7f-4477-a88b-b266edb97142",
+                                "2291c4b9-5d7f-4477-a88b-b266edb97142"
+                            ]:
+                                try:
+                                    value = await self._client.read_gatt_char(char_uuid)
+                                    _LOGGER.debug(f"Read from {char_uuid}: {value.hex()}")
+                                except Exception as read_err:
+                                    _LOGGER.debug(f"Could not read from {char_uuid}: {read_err}")
+                            
                             # Wait a moment before subscribing
                             await asyncio.sleep(0.5)
                             await self._subscribe_to_notifications()
@@ -237,12 +273,22 @@ class KettleBLEClient:
         Helper method to subscribe to relevant notifications
         """
         try:
-            # Subscribe to the control characteristic
-            await self._client.start_notify(
-                CHAR_CONTROL_UUID,
-                self._notification_handler
-            )
-            _LOGGER.debug("Successfully subscribed to notifications")
+            # Try to subscribe to multiple characteristics that have notification capability
+            notification_chars = [
+                "2291c4b1-5d7f-4477-a88b-b266edb97142",
+                "2291c4b2-5d7f-4477-a88b-b266edb97142",
+                "2291c4b3-5d7f-4477-a88b-b266edb97142",
+                "2291c4b5-5d7f-4477-a88b-b266edb97142",
+                "2291c4b6-5d7f-4477-a88b-b266edb97142"
+            ]
+            
+            for char_uuid in notification_chars:
+                try:
+                    await self._client.start_notify(char_uuid, self._notification_handler)
+                    _LOGGER.debug(f"Successfully subscribed to notifications for {char_uuid}")
+                except Exception as char_err:
+                    _LOGGER.debug(f"Could not subscribe to {char_uuid}: {char_err}")
+                    
         except Exception as notify_err:
             _LOGGER.warning(f"Notification subscription error: {notify_err}")
 
