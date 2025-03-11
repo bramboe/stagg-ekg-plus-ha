@@ -92,14 +92,9 @@ class KettleBLEClient:
 
     def _parse_notification(self, data):
         """
-        Parse BLE notification data for Fellow Stagg EKG+ kettle.
+        Enhanced notification parsing for Fellow Stagg EKG+ kettle.
 
-        Notification data format seems to be:
-        - Bytes 0-1: Command header or command type
-        - Bytes 2-3: Current temperature (scaled)
-        - Bytes 4-5: Target temperature (scaled)
-        - Byte 6: Power state or command
-        - Byte 7: Hold mode or other state flags
+        Handles the more complex temperature encoding we discovered.
         """
         try:
             # Ensure data is long enough
@@ -112,32 +107,45 @@ class KettleBLEClient:
             # Decode target temperature (bytes 4-5)
             target_temp_raw = int.from_bytes(data[4:6], byteorder='little')
 
-            # Scale and interpret temperatures
-            # Divide by 10 to get whole number temperatures
-            self._current_temp = current_temp_raw / 10.0
-            self._target_temp = target_temp_raw / 10.0
+            # Custom scaling and conversion function
+            def decode_temperature(raw_value):
+                """
+                Convert the raw hex value to a more accurate temperature.
+                Based on observed encoding patterns.
+                """
+                # Convert to floating point with more precise scaling
+                temp = raw_value / 200.0  # Adjusted scaling factor
 
-            # Determine power state (byte 6)
-            # Assuming 0x01 means power on, 0x00 means power off
-            self._power_state = data[6] == 0x01
+                # Additional calibration adjustments
+                if 20000 <= raw_value <= 25000:
+                    temp = (raw_value - 20000) / 100.0 + 40.0
+                elif 25000 <= raw_value <= 30000:
+                    temp = (raw_value - 25000) / 100.0 + 50.0
 
-            # Determine hold mode (byte 7)
-            # Assuming 0x0F means hold is on, 0x00 means hold is off
-            self._hold_mode = data[7] == 0x0F
+                return round(temp, 1)
+
+            # Apply the custom decoding
+            self._current_temp = decode_temperature(current_temp_raw)
+            self._target_temp = decode_temperature(target_temp_raw)
 
             # Determine temperature units (intelligent guess based on value)
-            # This is a simple heuristic and might need refinement
             if self._current_temp > 100 or self._target_temp > 100:
                 self._units = "F"
             else:
                 self._units = "C"
+
+            # Determine power and hold states
+            self._power_state = data[6] == 0x01
+            self._hold_mode = data[7] == 0x0F
 
             _LOGGER.debug(
                 f"Parsed notification - "
                 f"Current: {self._current_temp}°{self._units}, "
                 f"Target: {self._target_temp}°{self._units}, "
                 f"Power: {self._power_state}, "
-                f"Hold: {self._hold_mode}"
+                f"Hold: {self._hold_mode}, "
+                f"Raw current: {current_temp_raw}, "
+                f"Raw target: {target_temp_raw}"
             )
 
             return True
