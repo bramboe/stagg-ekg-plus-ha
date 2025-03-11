@@ -1,31 +1,22 @@
-"""Constants for the Fellow Stagg integration."""
-
 DOMAIN = "fellow_stagg"
 
-# BLE UUIDs for the Fellow Stagg kettle
-# Original UUIDs from the base project
-ORIGINAL_SERVICE_UUID = "00001820-0000-1000-8000-00805f9b34fb"
-ORIGINAL_CHAR_UUID = "00002A80-0000-1000-8000-00805f9b34fb"
+# Primary service UUID for Fellow Stagg kettle
+SERVICE_UUID = "021a9004-0382-4aea-bff4-6b3f1c5adfb4"
 
-# Custom UUIDs identified in the code
-CUSTOM_SERVICE_UUID = "021a9004-0302-4aea-bff4-6b3f1c5adfb4"
+# Secondary service UUID (control service)
+CONTROL_SERVICE_UUID = "7aebf330-6cb1-46e4-b23b-7cc2262c605e"
 
-# After running the discovery tool, update these values
-# They will be used by the integration
-SERVICE_UUID = "021A9004-0382-4AEA-BFF4-6B3F1C5ADFB4"  # Primary service UUID from logs
-CHAR_UUID = "021AFF50-0382-4AEA-BFF4-6B3F1C5ADFB4"     # Try this characteristic first
+# Main service characteristics
+CHAR_MAIN_UUID = "021aff50-0382-4aea-bff4-6b3f1c5adfb4"
+CHAR_TEMP_UUID = "021aff51-0382-4aea-bff4-6b3f1c5adfb4"
+CHAR_STATUS_UUID = "021aff52-0382-4aea-bff4-6b3f1c5adfb4"
+CHAR_SETTINGS_UUID = "021aff53-0382-4aea-bff4-6b3f1c5adfb4"
+CHAR_INFO_UUID = "021aff54-0382-4aea-bff4-6b3f1c5adfb4"
 
-# The magic init sequence (in hex) used to authenticate with the kettle
-INIT_SEQUENCE = bytes.fromhex("efdd0b3031323334353637383930313233349a6d")
+# Control service characteristics
+CHAR_CONTROL_UUID = "2291c4b5-5d7f-4477-a88b-b266edb97142"  # For notifications
+CHAR_WRITE_UUID = "2291c4b7-5d7f-4477-a88b-b266edb97142"  # For writing commands
 
-# Temperature ranges for the kettle
-MIN_TEMP_F = 104
-MAX_TEMP_F = 212
-MIN_TEMP_C = 40
-MAX_TEMP_C = 100
-
-# Polling interval in seconds (increased for better reliability)
-POLLING_INTERVAL_SECONDS = 60  # Only poll once per minute to reduce BLE traffic
-
-# Connection timeout in seconds
-CONNECTION_TIMEOUT = 15
+# Based on sniffer data, we may not need a magic init sequence
+# but keeping it as a placeholder for now
+INIT_SEQUENCE = None  # Will determine if needed after further testing
