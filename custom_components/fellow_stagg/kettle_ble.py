@@ -1,5 +1,5 @@
 import logging
-import time  # Added for timestamp tracking
+import time
 import asyncio
 from bleak import BleakClient
 from bleak.exc import BleakError
@@ -27,6 +27,7 @@ class KettleBLEClient:
 
         # Notification tracking
         self._notifications = []
+        self._last_notification = None
 
         # State tracking
         self._current_temp = None
@@ -37,18 +38,36 @@ class KettleBLEClient:
         self._lifted = False
         self._units = "C"  # Default to Celsius
         self._last_notification_time = 0
+        self._last_command_time = 0
 
         # Connection management
         self._connection_lock = asyncio.Lock()
         self._connection_retry_count = 0
         self._max_connection_retries = 3
         self._connection_retry_delay = 1.0  # seconds
+        self._connected = False
+        self._reconnect_task = None
 
     def _handle_disconnect(self, client):
         """Handle disconnection events."""
         _LOGGER.debug("Kettle disconnected")
+        self._connected = False
         self._client = None
         self._notifications = []
+
+        # Schedule reconnection after a brief delay if needed
+        if self._reconnect_task is None or self._reconnect_task.done():
+            self._reconnect_task = asyncio.create_task(self._delayed_reconnect())
+
+    async def _delayed_reconnect(self):
+        """Delay before reconnecting to avoid rapid reconnection attempts."""
+        await asyncio.sleep(2.0)  # Wait 2 seconds before reconnecting
+        try:
+            if not self._connected and self.ble_device:
+                _LOGGER.debug("Attempting delayed reconnection")
+                await self._ensure_connected(self.ble_device)
+        except Exception as err:
+            _LOGGER.error("Error during delayed reconnection: %s", err)
 
     def _notification_handler(self, sender, data):
         """
@@ -56,80 +75,117 @@ class KettleBLEClient:
         """
         try:
             _LOGGER.debug(f"Raw notification: {data.hex()}")
+            self._last_notification = data.hex()
+            self._last_notification_time = time.time()
+
+            # Store notification for pattern analysis
+            self._notifications.append((time.time(), data.hex()))
+
+            # Keep only the last 10 notifications to avoid memory issues
+            if len(self._notifications) > 10:
+                self._notifications = self._notifications[-10:]
 
             # Check data length and header
-            if len(data) < 12 or data[0] != 0xF7:
-                _LOGGER.debug(f"Invalid notification format: {data.hex()}")
+            if len(data) < 12:
+                _LOGGER.debug(f"Notification too short: {len(data)} bytes")
                 return
 
-            # Improved temperature parsing with diagnostic logging
             # Log each byte in hex format to help with analysis
             byte_str = " ".join([f"{b:02x}" for b in data])
             _LOGGER.debug(f"Bytes: {byte_str}")
 
-            # Try multiple parsing strategies
-            current_temp = None
-            target_temp = None
-            is_fahrenheit = False
-            power_state = False
-            hold_mode = False
-
-            # Strategy 1: Common format (based on log patterns)
+            # Common header pattern: f7 followed by message type
             if data[0] == 0xF7:
-                # Try to extract temperature from different byte positions
-                # Sample data shows temps may be at bytes 6-7, 8-9
-                for temp_pos in [(6, 8), (8, 10), (4, 6)]:
-                    if len(data) >= temp_pos[1]:
-                        try:
-                            temp_bytes = data[temp_pos[0]:temp_pos[1]]
-                            temp_raw = int.from_bytes(temp_bytes, byteorder='little')
+                message_type = data[1] if len(data) > 1 else None
+                _LOGGER.debug(f"Message type: {message_type}")
 
-                            # Check if temperature seems valid (between 0-105°C)
-                            if 0 <= temp_raw <= 21000:  # Raw value scaled
-                                temp_c = temp_raw / 200.0
-                                if 0 <= temp_c <= 105:
-                                    current_temp = round(temp_c, 1)
-                                    _LOGGER.debug(f"Found current temp at pos {temp_pos}: {current_temp}°C (raw: {temp_raw})")
-                                    break
-                        except Exception as temp_err:
-                            _LOGGER.debug(f"Temp parsing error at {temp_pos}: {temp_err}")
+                # Parse based on message type (from your Wireshark screenshots)
+                if message_type == 0x17:  # Status update
+                    self._parse_status_message(data)
+                elif message_type == 0x15:  # Another status variant
+                    self._parse_status_message(data)
 
             # Look for power state in common positions
-            if len(data) >= 12:
-                power_byte = data[12] if len(data) > 12 else 0
-                power_state = power_byte > 0
+            # Usually around byte 12 or 13
+            if len(data) >= 13:
+                power_byte = data[12]
+                self._power_state = power_byte > 0
 
-                # Check for hold mode
-                hold_byte = data[14] if len(data) > 14 else 0
-                hold_mode = hold_byte == 0x0F
+                # Check for hold mode flag - often at byte 14
+                if len(data) > 14:
+                    hold_byte = data[14]
+                    self._hold_mode = hold_byte == 0x0F
 
-            # Store parsed values if found
-            if current_temp is not None:
-                self._current_temp = current_temp
-            if target_temp is not None:
-                self._target_temp = target_temp
-            if power_state is not None:
-                self._power_state = power_state
-            if hold_mode is not None:
-                self._hold_mode = hold_mode
-
-            # Log complete parsed state
+            # Log parsed state
             _LOGGER.debug(
                 f"Parsed notification - "
                 f"Current: {self._current_temp}°{self._units}, "
                 f"Target: {self._target_temp}°{self._units}, "
                 f"Power: {self._power_state}, "
-                f"Hold: {self._hold_mode}, "
-                f"Full data: {data.hex()}"
+                f"Hold: {self._hold_mode}"
             )
         except Exception as err:
             _LOGGER.error(f"Error parsing notification: {err}")
+
+    def _parse_status_message(self, data):
+        """Parse a status message from the kettle."""
+        try:
+            # Based on your Wireshark captures, temperature data is typically
+            # in bytes 4-8 in little-endian format
+
+            # For current temperature - this is approximate and needs calibration
+            if len(data) >= 8:
+                # Different message types might have temperature at different positions
+                # Try a few common locations
+                current_temp = None
+
+                # Try position based on message type
+                if data[1] == 0x17:  # Standard status message
+                    if len(data) >= 8:
+                        temp_bytes = data[4:6]
+                        temp_raw = int.from_bytes(temp_bytes, byteorder='little')
+                        if 0 <= temp_raw <= 30000:  # Reasonable range check
+                            current_temp = round(temp_raw / 200.0, 1)  # Scale factor from logs
+
+                # If that didn't work, try alternate positions
+                if current_temp is None and len(data) >= 10:
+                    temp_bytes = data[8:10]
+                    temp_raw = int.from_bytes(temp_bytes, byteorder='little')
+                    if 0 <= temp_raw <= 30000:
+                        current_temp = round(temp_raw / 200.0, 1)
+
+                if current_temp is not None and 0 <= current_temp <= 105:
+                    self._current_temp = current_temp
+                    _LOGGER.debug(f"Current temperature parsed: {current_temp}°C")
+
+            # For target temperature - usually in later bytes or in different messages
+            # This is harder to determine without more packet analysis
+            if len(data) >= 12:
+                # Target temp might be in bytes 10-12
+                try:
+                    temp_bytes = data[10:12]
+                    temp_raw = int.from_bytes(temp_bytes, byteorder='little')
+                    target_temp = round(temp_raw / 200.0, 1)
+                    if 40 <= target_temp <= 100:  # Reasonable range for target temp
+                        self._target_temp = target_temp
+                        _LOGGER.debug(f"Target temperature parsed: {target_temp}°C")
+                except Exception as temp_err:
+                    _LOGGER.debug(f"Target temp parsing error: {temp_err}")
+
+        except Exception as err:
+            _LOGGER.error(f"Error parsing status message: {err}")
 
     async def _ensure_connected(self, ble_device=None):
         """
         Enhanced connection method with comprehensive error handling.
         """
+        if self._connected and self._client and self._client.is_connected:
+            return True
+
         async with self._connection_lock:
+            if self._connected and self._client and self._client.is_connected:
+                return True
+
             try:
                 # Connection attempts
                 for attempt in range(self._max_connection_retries):
@@ -155,6 +211,7 @@ class KettleBLEClient:
                         connected = await self._client.connect()
 
                         if connected:
+                            self._connected = True
                             self.ble_device = ble_device
                             # Wait a moment before subscribing
                             await asyncio.sleep(0.5)
@@ -168,9 +225,11 @@ class KettleBLEClient:
                         _LOGGER.error(f"Connection error (attempt {attempt + 1}): {err}")
                         await asyncio.sleep(2.0)
 
+                self._connected = False
                 return False
             except Exception as err:
                 _LOGGER.error(f"Connection error: {err}")
+                self._connected = False
                 return False
 
     async def _subscribe_to_notifications(self):
@@ -226,11 +285,13 @@ class KettleBLEClient:
         """
         try:
             # Ensure connection
-            if not self._client or not self._client.is_connected:
-                connected = await self._ensure_connected()
-                if not connected:
-                    _LOGGER.error("Failed to connect for temperature setting")
-                    return False
+            if not await self._ensure_connected():
+                _LOGGER.error("Failed to connect for temperature setting")
+                return False
+
+            # Delay if we just sent a command (avoid flooding)
+            if time.time() - self._last_command_time < 0.5:
+                await asyncio.sleep(0.5)
 
             # Convert temperature to observed hex encoding
             if not fahrenheit:
@@ -274,6 +335,8 @@ class KettleBLEClient:
                 response=True
             )
 
+            self._last_command_time = time.time()
+
             # Update local state after successful command
             self._target_temp = temperature
             self._units = "F" if fahrenheit else "C"
@@ -292,7 +355,7 @@ class KettleBLEClient:
         Args: minutes: Hold time in minutes (0=off, 15, 30, 45, or 60)
         """
         try:
-            if not self._client or not self._client.is_connected:
+            if not await self._ensure_connected():
                 _LOGGER.error("No active BLE connection")
                 return False
 
@@ -301,6 +364,10 @@ class KettleBLEClient:
             if minutes not in valid_times:
                 _LOGGER.error(f"Invalid hold time: {minutes}. Must be one of {valid_times}")
                 return False
+
+            # Delay if we just sent a command (avoid flooding)
+            if time.time() - self._last_command_time < 0.5:
+                await asyncio.sleep(0.5)
 
             # Hold mode command structure
             command = bytearray([
@@ -323,8 +390,11 @@ class KettleBLEClient:
                 response=True
             )
 
+            self._last_command_time = time.time()
+
             # Update local state
             self._hold_mode = minutes > 0
+            self._hold_minutes = minutes
 
             return True
         except Exception as err:
@@ -334,20 +404,28 @@ class KettleBLEClient:
     async def async_set_temperature_unit(self, fahrenheit=False):
         """Switch between Celsius and Fahrenheit."""
         try:
-            if not self._client or not self._client.is_connected:
+            if not await self._ensure_connected():
                 _LOGGER.error("No active BLE connection")
                 return False
 
-            # Unit toggle command structure (exact command format needs verification)
+            # Delay if we just sent a command (avoid flooding)
+            if time.time() - self._last_command_time < 0.5:
+                await asyncio.sleep(0.5)
+
+            # Unit toggle command structure based on your Wireshark captures
             command = bytearray([
                 0xF7,  # Header
-                0x04,  # Unit command (hypothetical)
+                0x04,  # Unit command
                 0x00, 0x00,  # Padding
-                0x01 if fahrenheit else 0x00,  # Units flag
+                0x01 if fahrenheit else 0x00,  # Units flag - 1=F, 0=C
+                0x00,  # Padding
+                0x00,  # Padding
+                0x00,  # Padding
                 0x00,  # Padding
             ])
 
             _LOGGER.debug(f"Setting temperature unit to {'Fahrenheit' if fahrenheit else 'Celsius'}")
+            _LOGGER.debug(f"Sending command: {command.hex()}")
 
             await self._client.write_gatt_char(
                 CHAR_WRITE_UUID,
@@ -355,8 +433,13 @@ class KettleBLEClient:
                 response=True
             )
 
+            self._last_command_time = time.time()
+
             # Update local state
             self._units = "F" if fahrenheit else "C"
+
+            # Wait for the device to process the command
+            await asyncio.sleep(0.5)
 
             return True
         except Exception as err:
@@ -369,9 +452,13 @@ class KettleBLEClient:
         """
         try:
             # Ensure connection
-            if not self._client or not self._client.is_connected:
+            if not await self._ensure_connected():
                 _LOGGER.error("No active BLE connection")
                 return False
+
+            # Delay if we just sent a command (avoid flooding)
+            if time.time() - self._last_command_time < 0.5:
+                await asyncio.sleep(0.5)
 
             # Power command structure
             command = bytearray([
@@ -393,8 +480,13 @@ class KettleBLEClient:
                 response=True
             )
 
+            self._last_command_time = time.time()
+
             # Update local state
             self._power_state = power_on
+
+            # Wait for the device to process the command
+            await asyncio.sleep(0.5)
 
             return True
 
@@ -421,10 +513,10 @@ class KettleBLEClient:
             self._client = None
             self.ble_device = None
             self._notifications = []
-            self._current_temp = None
-            self._target_temp = None
-            self._power_state = None
-            self._hold_mode = None
+            self._connected = False
+
+            # Keep the last known values in case we reconnect
+            # but mark as disconnected
 
         except Exception as err:
             _LOGGER.error(f"Error during disconnect: {err}")
