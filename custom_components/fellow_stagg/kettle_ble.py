@@ -8,8 +8,7 @@ from .const import (
     SERVICE_UUID,
     CONTROL_SERVICE_UUID,
     CHAR_CONTROL_UUID,
-    CHAR_WRITE_UUID,
-    INIT_SEQUENCE
+    CHAR_WRITE_UUID
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -178,7 +177,7 @@ class KettleBLEClient:
 
     async def _ensure_connected(self, ble_device=None):
         """
-        Enhanced connection method with comprehensive error handling and initialization sequence.
+        Enhanced connection method with comprehensive error handling.
         """
         if self._connected and self._client and self._client.is_connected:
             return True
@@ -214,64 +213,8 @@ class KettleBLEClient:
                         if connected:
                             self._connected = True
                             self.ble_device = ble_device
-                            
-                            # Wait after initial connection
-                            await asyncio.sleep(2.0)  # Increased wait time
-                            
-                            # Run initialization sequence
-                            if INIT_SEQUENCE:
-                                _LOGGER.debug("Starting initialization sequence...")
-                                for init_step in INIT_SEQUENCE:
-                                    try:
-                                        char_uuid = init_step["uuid"]
-                                        data = init_step["data"]
-                                        _LOGGER.debug(f"Init step: Writing {data.hex()} to {char_uuid}")
-                                        
-                                        # Try multiple write approaches
-                                        success = False
-                                        for write_attempt in range(3):  # Try up to 3 times
-                                            try:
-                                                # Try write without response first
-                                                await self._client.write_gatt_char(
-                                                    char_uuid,
-                                                    data,
-                                                    response=False
-                                                )
-                                                _LOGGER.debug(f"Init write without response successful to {char_uuid}")
-                                                success = True
-                                                break
-                                            except Exception as write_err:
-                                                _LOGGER.debug(f"Init write without response failed (attempt {write_attempt + 1}): {write_err}")
-                                                try:
-                                                    # Try with response
-                                                    await self._client.write_gatt_char(
-                                                        char_uuid,
-                                                        data,
-                                                        response=True
-                                                    )
-                                                    _LOGGER.debug(f"Init write with response successful to {char_uuid}")
-                                                    success = True
-                                                    break
-                                                except Exception as write_err2:
-                                                    _LOGGER.debug(f"Init write with response failed (attempt {write_attempt + 1}): {write_err2}")
-                                                    await asyncio.sleep(1.0)  # Wait before retry
-                                        
-                                        if not success:
-                                            _LOGGER.warning(f"Failed all write attempts for {char_uuid}")
-                                        
-                                        # Small delay between initialization steps
-                                        await asyncio.sleep(1.0)  # Increased delay
-                                        
-                                    except Exception as init_err:
-                                        _LOGGER.warning(f"Init step failed for {char_uuid}: {init_err}")
-                                        continue  # Continue with next step even if one fails
-                                
-                                _LOGGER.debug("Initialization sequence completed")
-                            
-                            # Wait after initialization
-                            await asyncio.sleep(2.0)  # Increased wait time
-                            
-                            # Subscribe to notifications
+                            # Wait a moment before subscribing
+                            await asyncio.sleep(0.5)
                             await self._subscribe_to_notifications()
                             return True
 
@@ -294,22 +237,12 @@ class KettleBLEClient:
         Helper method to subscribe to relevant notifications
         """
         try:
-            # Try to subscribe to multiple characteristics that have notification capability
-            notification_chars = [
-                "2291c4b1-5d7f-4477-a88b-b266edb97142",
-                "2291c4b2-5d7f-4477-a88b-b266edb97142",
-                "2291c4b3-5d7f-4477-a88b-b266edb97142",
-                "2291c4b5-5d7f-4477-a88b-b266edb97142",
-                "2291c4b6-5d7f-4477-a88b-b266edb97142"
-            ]
-            
-            for char_uuid in notification_chars:
-                try:
-                    await self._client.start_notify(char_uuid, self._notification_handler)
-                    _LOGGER.debug(f"Successfully subscribed to notifications for {char_uuid}")
-                except Exception as char_err:
-                    _LOGGER.debug(f"Could not subscribe to {char_uuid}: {char_err}")
-                    
+            # Subscribe to the control characteristic
+            await self._client.start_notify(
+                CHAR_CONTROL_UUID,
+                self._notification_handler
+            )
+            _LOGGER.debug("Successfully subscribed to notifications")
         except Exception as notify_err:
             _LOGGER.warning(f"Notification subscription error: {notify_err}")
 
@@ -348,7 +281,7 @@ class KettleBLEClient:
 
     async def async_set_temperature(self, temperature: int, fahrenheit: bool = False):
         """
-        Enhanced temperature setting method with improved error handling.
+        Enhanced temperature setting method.
         """
         try:
             # Ensure connection
@@ -357,8 +290,8 @@ class KettleBLEClient:
                 return False
 
             # Delay if we just sent a command (avoid flooding)
-            if time.time() - self._last_command_time < 1.0:  # Increased delay
-                await asyncio.sleep(1.0)
+            if time.time() - self._last_command_time < 0.5:
+                await asyncio.sleep(0.5)
 
             # Convert temperature to observed hex encoding
             if not fahrenheit:
@@ -395,51 +328,12 @@ class KettleBLEClient:
             )
             _LOGGER.debug(f"Command hex: {command.hex()}")
 
-            # Try multiple write approaches
-            success = False
-            for write_attempt in range(3):  # Try up to 3 times
-                try:
-                    # Try write without response first
-                    await self._client.write_gatt_char(
-                        CHAR_WRITE_UUID,
-                        command,
-                        response=False
-                    )
-                    _LOGGER.debug("Temperature set command sent successfully without response")
-                    success = True
-                    break
-                except Exception as write_err:
-                    _LOGGER.debug(f"Temperature set without response failed (attempt {write_attempt + 1}): {write_err}")
-                    try:
-                        # Try with response
-                        await self._client.write_gatt_char(
-                            CHAR_WRITE_UUID,
-                            command,
-                            response=True
-                        )
-                        _LOGGER.debug("Temperature set command sent successfully with response")
-                        success = True
-                        break
-                    except Exception as write_err2:
-                        _LOGGER.debug(f"Temperature set with response failed (attempt {write_attempt + 1}): {write_err2}")
-                        # Try alternate characteristic
-                        try:
-                            await self._client.write_gatt_char(
-                                CHAR_CONTROL_UUID,
-                                command,
-                                response=False
-                            )
-                            _LOGGER.debug("Temperature set command sent successfully to control characteristic")
-                            success = True
-                            break
-                        except Exception as write_err3:
-                            _LOGGER.debug(f"Temperature set to control characteristic failed (attempt {write_attempt + 1}): {write_err3}")
-                    
-                    await asyncio.sleep(1.0)  # Wait before retry
-
-            if not success:
-                _LOGGER.error("Failed all attempts to set temperature")
-                return False
+            # Write with longer timeout
+            await self._client.write_gatt_char(
+                CHAR_WRITE_UUID,
+                command,
+                response=True
+            )
 
             self._last_command_time = time.time()
 
@@ -448,7 +342,7 @@ class KettleBLEClient:
             self._units = "F" if fahrenheit else "C"
 
             # Allow some time for the device to process
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(0.5)
 
             return True
 
@@ -566,93 +460,35 @@ class KettleBLEClient:
             if time.time() - self._last_command_time < 0.5:
                 await asyncio.sleep(0.5)
 
-            # Try different command structures
-            commands = [
-                # Original 9-byte command
-                bytearray([
-                    0xF7,  # Header
-                    0x01,  # Power command
-                    0x00,  # Padding
-                    0x00,  # Padding
-                    0x01 if power_on else 0x00,  # Power state
-                    0x00,  # Padding
-                    0x00,  # Padding
-                    0x00,  # Padding
-                    0x00   # Padding
-                ]),
-                # Shorter 5-byte command
-                bytearray([
-                    0xF7,  # Header
-                    0x01,  # Power command
-                    0x00,  # Padding
-                    0x00,  # Padding
-                    0x01 if power_on else 0x00  # Power state
-                ]),
-                # Longer 12-byte command
-                bytearray([
-                    0xF7,  # Header
-                    0x01,  # Power command
-                    0x00, 0x00,  # Padding
-                    0x01 if power_on else 0x00,  # Power state
-                    0x00,  # Padding
-                    0x04,  # Additional metadata
-                    0x01,  # Additional metadata
-                    0x16,  # Additional metadata
-                    0x30,  # Additional metadata
-                    0x00,  # Padding
-                    0x20   # Additional metadata
-                ])
-            ]
+            # Power command structure
+            command = bytearray([
+                0xF7,  # Header
+                0x01,  # Power command
+                0x00, 0x00,  # Padding
+                0x01 if power_on else 0x00  # Power state
+            ])
 
             _LOGGER.debug(
                 f"Setting power {'ON' if power_on else 'OFF'}"
             )
+            _LOGGER.debug(f"Sending command: {command.hex()}")
 
-            # Try each command structure
-            for i, command in enumerate(commands):
-                _LOGGER.debug(f"Trying command variant {i+1}: {command.hex()}")
-                
-                # Try writing to both characteristics
-                for char_uuid in [CHAR_WRITE_UUID, CHAR_CONTROL_UUID]:
-                    try:
-                        _LOGGER.debug(f"Attempting write to characteristic: {char_uuid}")
-                        
-                        # Try with response first
-                        try:
-                            await self._client.write_gatt_char(
-                                char_uuid,
-                                command,
-                                response=True
-                            )
-                            _LOGGER.debug(f"Successfully wrote to {char_uuid} with response")
-                            self._last_command_time = time.time()
-                            self._power_state = power_on
-                            return True
-                        except Exception as write_err:
-                            _LOGGER.debug(f"Failed to write with response to {char_uuid}: {write_err}")
-                            
-                            # Try without response
-                            try:
-                                await self._client.write_gatt_char(
-                                    char_uuid,
-                                    command,
-                                    response=False
-                                )
-                                _LOGGER.debug(f"Successfully wrote to {char_uuid} without response")
-                                self._last_command_time = time.time()
-                                self._power_state = power_on
-                                return True
-                            except Exception as write_err2:
-                                _LOGGER.debug(f"Failed to write without response to {char_uuid}: {write_err2}")
-                                
-                    except Exception as char_err:
-                        _LOGGER.debug(f"Error with characteristic {char_uuid}: {char_err}")
-                
-                # Small delay between command variants
-                await asyncio.sleep(0.5)
+            # Send command via characteristic write
+            await self._client.write_gatt_char(
+                CHAR_WRITE_UUID,
+                command,
+                response=True
+            )
 
-            _LOGGER.error("All command variants failed")
-            return False
+            self._last_command_time = time.time()
+
+            # Update local state
+            self._power_state = power_on
+
+            # Wait for the device to process the command
+            await asyncio.sleep(0.5)
+
+            return True
 
         except Exception as err:
             _LOGGER.error(f"Failed to set power state: {err}")
