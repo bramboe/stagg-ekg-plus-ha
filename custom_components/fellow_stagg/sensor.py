@@ -1,13 +1,14 @@
 """Support for Fellow Stagg EKG+ kettle sensors."""
 from dataclasses import dataclass
-import logging
 from typing import Any, Callable
 
 from homeassistant import config_entries
 from homeassistant.components.sensor import (
+    SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
 )
+from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -15,42 +16,65 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import FellowStaggDataUpdateCoordinator
 from .const import DOMAIN
 
-_LOGGER = logging.getLogger(__name__)
-
 
 @dataclass
 class FellowStaggSensorEntityDescription(SensorEntityDescription):
     """Description of a Fellow Stagg sensor."""
 
 
-# Create very basic sensors for debugging
-SENSOR_DESCRIPTIONS = [
-    FellowStaggSensorEntityDescription(
-        key="raw_temp_data",
-        name="Raw Temperature Data",
-        icon="mdi:thermometer",
-    ),
-    FellowStaggSensorEntityDescription(
-        key="temp_byte_3",
-        name="Temperature Byte 3",
-        icon="mdi:thermometer",
-    ),
-    FellowStaggSensorEntityDescription(
-        key="temp_byte_5",
-        name="Temperature Byte 5",
-        icon="mdi:thermometer",
-    ),
-    FellowStaggSensorEntityDescription(
-        key="notif_temp_byte_3",
-        name="Notification Temperature Byte 3",
-        icon="mdi:thermometer-check",
-    ),
-    FellowStaggSensorEntityDescription(
-        key="notif_temp_byte_5",
-        name="Notification Temperature Byte 5",
-        icon="mdi:thermometer-check",
-    ),
-]
+# Define value functions separately to avoid serialization issues
+VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
+    "power": lambda data: "On" if data and data.get("power") else "Off",
+    "current_temp": lambda data: data.get("current_temp") if data else None,
+    "target_temp": lambda data: data.get("target_temp") if data else None,
+    "hold": lambda data: "Hold" if data and data.get("hold") else "Normal",
+    "lifted": lambda data: "Lifted" if data and data.get("lifted") else "On Base",
+    "countdown": lambda data: data.get("countdown") if data else None,
+}
+
+
+def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
+    """Get sensor descriptions."""
+    return [
+        FellowStaggSensorEntityDescription(
+            key="power",
+            name="Power",
+            icon="mdi:power",
+        ),
+        FellowStaggSensorEntityDescription(
+            key="current_temp",
+            name="Current Temperature",
+            icon="mdi:thermometer",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            native_unit_of_measurement=UnitOfTemperature.FAHRENHEIT,
+        ),
+        FellowStaggSensorEntityDescription(
+            key="target_temp",
+            name="Target Temperature",
+            icon="mdi:thermometer",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            native_unit_of_measurement=UnitOfTemperature.FAHRENHEIT,
+        ),
+        FellowStaggSensorEntityDescription(
+            key="hold",
+            name="Hold Mode",
+            icon="mdi:timer",
+        ),
+        FellowStaggSensorEntityDescription(
+            key="lifted",
+            name="Kettle Position",
+            icon="mdi:cup",
+        ),
+        FellowStaggSensorEntityDescription(
+            key="countdown",
+            name="Countdown",
+            icon="mdi:timer",
+        ),
+    ]
+
+
+# Get sensor descriptions once at module load
+SENSOR_DESCRIPTIONS = get_sensor_descriptions()
 
 
 async def async_setup_entry(
@@ -84,11 +108,16 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
         self._attr_unique_id = f"{coordinator._address}_{description.key}"
         self._attr_device_info = coordinator.device_info
 
+        # Update unit of measurement based on kettle's current units
+        if description.device_class == SensorDeviceClass.TEMPERATURE:
+            is_fahrenheit = coordinator.data.get("units") == "F"
+            self._attr_native_unit_of_measurement = (
+                UnitOfTemperature.FAHRENHEIT if is_fahrenheit else UnitOfTemperature.CELSIUS
+            )
+
     @property
-    def native_value(self) -> Any:
+    def native_value(self) -> str | None:
         """Return the state of the sensor."""
         if self.coordinator.data is None:
             return None
-
-        # Just return the raw value from the coordinator data
-        return self.coordinator.data.get(self.entity_description.key)
+        return VALUE_FUNCTIONS[self.entity_description.key](self.coordinator.data)
