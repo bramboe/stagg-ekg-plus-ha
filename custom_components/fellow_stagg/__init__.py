@@ -58,8 +58,22 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
 
     self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
     if not self.ble_device:
-      _LOGGER.debug("No connectable device found")
-      return None
+      _LOGGER.debug("No connectable device found via Home Assistant Bluetooth")
+
+      # Try using BleakScanner directly as a fallback
+      try:
+        from bleak import BleakScanner
+        _LOGGER.debug("Trying to scan for device using BleakScanner directly")
+        device = await BleakScanner.find_device_by_address(self._address)
+        if device:
+          _LOGGER.debug("Found device using direct BleakScanner: %s", device)
+          self.ble_device = device
+        else:
+          _LOGGER.debug("Device not found using BleakScanner either")
+          return None
+      except Exception as e:
+        _LOGGER.error("Error during BleakScanner fallback: %s", str(e))
+        return None
 
     try:
       _LOGGER.debug("Attempting to poll kettle data...")
