@@ -47,70 +47,135 @@ class KettleBLEClient:
         self._notifications = []
 
     def _notification_handler(self, sender, data):
-        """
-        Handle notifications from the kettle.
+    """
+    Handle notifications from the kettle with comprehensive parsing.
+    """
+    try:
+        _LOGGER.debug(f"Raw notification received: {data.hex()}")
 
-        Comprehensive notification parsing with detailed logging
-        """
-        try:
-            _LOGGER.debug(f"Raw notification received: {data.hex()}")
+        # Ensure minimum data length
+        if len(data) < 8:
+            _LOGGER.debug(f"Notification data too short: {data.hex()}")
+            return
 
-            # Ensure minimum data length
-            if len(data) < 8:
-                _LOGGER.debug(f"Notification data too short: {data.hex()}")
-                return
+        # Check packet header (should start with 0xF7)
+        if data[0] != 0xF7:
+            _LOGGER.debug(f"Unexpected notification header: {data[0]:02x}")
+            return
 
-            # Decode current temperature (bytes 2-3)
-            current_temp_raw = int.from_bytes(data[2:4], byteorder='little')
-            # Decode target temperature (bytes 4-5)
-            target_temp_raw = int.from_bytes(data[4:6], byteorder='little')
+        # Decode current temperature (bytes 2-3)
+        current_temp_raw = int.from_bytes(data[2:4], byteorder='little')
 
-            # Enhanced temperature decoding
-            def decode_temperature(raw_value):
-                """
-                Sophisticated temperature decoding with multiple scaling methods
-                """
-                # Base scaling
+        # Decode target temperature (bytes 4-5)
+        target_temp_raw = int.from_bytes(data[4:6], byteorder='little')
+
+        # Temperature decoding function
+        def decode_temperature(raw_value):
+            """
+            Decode temperature from raw value.
+            Different algorithms based on temperature range.
+            """
+            # Simple proportional calculation
+            if raw_value == 0:
+                return 0
+
+            # For Celsius range (typically under 25000)
+            if raw_value < 25000:
+                # Standard Celsius scaling
                 temp = raw_value / 200.0
-
-                # Refined scaling based on observed ranges
-                if 20000 <= raw_value <= 25000:
+                # Adjustment for observed values
+                if 20000 <= raw_value <= 21000:
                     temp = (raw_value - 20000) / 100.0 + 40.0
-                elif 25000 <= raw_value <= 30000:
-                    temp = (raw_value - 25000) / 100.0 + 50.0
 
-                return round(temp, 1)
-
-            # Apply decoding
-            self._current_temp = decode_temperature(current_temp_raw)
-            self._target_temp = decode_temperature(target_temp_raw)
-
-            # Determine temperature units
-            if self._current_temp > 100 or self._target_temp > 100:
-                self._units = "F"
+            # For Fahrenheit range (typically above 25000)
             else:
-                self._units = "C"
+                # Standard Fahrenheit scaling
+                temp = (raw_value - 25000) / 100.0 + 100.0
 
-            # Determine power and hold states
-            self._power_state = data[6] == 0x01
-            self._hold_mode = data[7] == 0x0F
+            return round(temp, 1)
 
-            _LOGGER.debug(
-                f"Parsed notification - "
-                f"Current: {self._current_temp}°{self._units}, "
-                f"Target: {self._target_temp}°{self._units}, "
-                f"Power: {self._power_state}, "
-                f"Hold: {self._hold_mode}, "
-                f"Raw current: {current_temp_raw}, "
-                f"Raw target: {target_temp_raw}"
-            )
+        # Apply temperature decoding
+        self._current_temp = decode_temperature(current_temp_raw)
+        self._target_temp = decode_temperature(target_temp_raw)
 
-            # Store for potential later analysis
-            self._notifications.append(data)
+        # Determine temperature units based on range
+        # Fahrenheit temperatures are typically over 100, Celsius under 100
+        if current_temp_raw > 25000 or target_temp_raw > 25000:
+            self._units = "F"
+        else:
+            self._units = "C"
 
-        except Exception as err:
-            _LOGGER.error(f"Error parsing notification: {err}")
-            _LOGGER.error(f"Problematic data: {data.hex()}")
+        # Determine power state (byte 6)
+        # 0x00 = Off, 0x01 = On
+        self._power_state = data[6] == 0x01
+
+        # Determine hold mode status (byte 7)
+        # 0x00 = Normal, 0x0F = Hold mode
+        hold_mode_active = data[7] == 0x0F
+        self._hold_mode = hold_mode_active
+
+        # Determine hold time if in hold mode
+        # The exact value needs to be inferred from other bytes
+        if hold_mode_active and len(data) >= 10:
+            # Example mapping based on observed patterns
+            # This may need adjustment based on actual values
+            value_byte = data[6]  # The byte that seems to indicate hold duration
+
+            if value_byte == 0x06:
+                self._hold_minutes = 15
+            elif value_byte == 0x07:
+                self._hold_minutes = 30
+            elif value_byte == 0x08:
+                self._hold_minutes = 45
+            elif value_byte == 0x09:
+                self._hold_minutes = 60
+            else:
+                self._hold_minutes = 0
+        else:
+            self._hold_minutes = 0
+
+        # Check if kettle is lifted (if the data includes this info)
+        # This is speculative - would need actual data to confirm
+        if len(data) >= 12:
+            self._lifted = (data[11] & 0x01) == 0x01
+
+        # Update connection state
+        self._last_notification_time = time.time()
+
+        # Log the parsed data
+        _LOGGER.debug(
+            f"Parsed notification - "
+            f"Current: {self._current_temp}°{self._units}, "
+            f"Target: {self._target_temp}°{self._units}, "
+            f"Power: {self._power_state}, "
+            f"Hold: {self._hold_mode}, "
+            f"Hold minutes: {self._hold_minutes}, "
+            f"Raw current: {current_temp_raw}, "
+            f"Raw target: {target_temp_raw}, "
+            f"Full data: {data.hex()}"
+        )
+
+        # Store notification for analysis
+        self._notifications.append({
+            'time': time.time(),
+            'data': data.hex(),
+            'parsed': {
+                'current_temp': self._current_temp,
+                'target_temp': self._target_temp,
+                'units': self._units,
+                'power': self._power_state,
+                'hold': self._hold_mode,
+                'hold_minutes': self._hold_minutes
+            }
+        })
+
+        # Keep only the last 20 notifications to avoid memory issues
+        if len(self._notifications) > 20:
+            self._notifications = self._notifications[-20:]
+
+    except Exception as err:
+        _LOGGER.error(f"Error parsing notification: {err}")
+        _LOGGER.error(f"Problematic data: {data.hex()}")
 
     async def _ensure_connected(self, ble_device=None):
         """
@@ -286,6 +351,84 @@ class KettleBLEClient:
 
         except Exception as err:
             _LOGGER.error(f"Comprehensive temperature set failed: {err}")
+            return False
+
+    async def async_set_hold_mode(self, minutes=0):
+        """Set the hold mode timer.
+
+        Args:
+            minutes: Hold time in minutes (0=off, 15, 30, 45, or 60)
+        """
+        try:
+            if not self._client or not self._client.is_connected:
+                _LOGGER.error("No active BLE connection")
+                return False
+
+            # Valid hold times
+            valid_times = [0, 15, 30, 45, 60]
+            if minutes not in valid_times:
+                _LOGGER.error(f"Invalid hold time: {minutes}. Must be one of {valid_times}")
+                return False
+
+            # Hold mode command structure
+            command = bytearray([
+                0xF7,  # Header
+                0x03,  # Hold mode command (based on pattern analysis)
+                0x00, 0x00,  # Padding
+                minutes,  # Minutes to hold
+                0x00,  # Padding
+                0x01,  # Constant
+                0x00,  # Padding
+                0x00,  # Padding
+            ])
+
+            _LOGGER.debug(f"Setting hold mode to {minutes} minutes")
+            _LOGGER.debug(f"Sending command: {command.hex()}")
+
+            await self._client.write_gatt_char(
+                CHAR_WRITE_UUID,
+                command,
+                response=True
+            )
+
+            # Update local state
+            self._hold_mode = minutes > 0
+
+            return True
+        except Exception as err:
+            _LOGGER.error(f"Failed to set hold mode: {err}")
+            return False
+
+    async def async_set_temperature_unit(self, fahrenheit=False):
+        """Switch between Celsius and Fahrenheit."""
+        try:
+            if not self._client or not self._client.is_connected:
+                _LOGGER.error("No active BLE connection")
+                return False
+
+            # Unit toggle command structure (exact command format needs verification)
+            command = bytearray([
+                0xF7,  # Header
+                0x04,  # Unit command (hypothetical)
+                0x00, 0x00,  # Padding
+                0x01 if fahrenheit else 0x00,  # Units flag
+                0x00,  # Padding
+            ])
+
+            _LOGGER.debug(f"Setting temperature unit to {'Fahrenheit' if fahrenheit else 'Celsius'}")
+
+            await self._client.write_gatt_char(
+                CHAR_WRITE_UUID,
+                command,
+                response=True
+            )
+
+            # Update local state
+            self._units = "F" if fahrenheit else "C"
+
+            return True
+        except Exception as err:
+            _LOGGER.error(f"Failed to set temperature unit: {err}")
             return False
 
     async def async_set_power(self, power_on: bool):
