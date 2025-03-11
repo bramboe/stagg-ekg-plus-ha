@@ -133,28 +133,18 @@ class KettleBLEClient:
             # Based on your Wireshark captures, temperature data is typically
             # in bytes 4-8 in little-endian format
 
-            # For current temperature - this is approximate and needs calibration
-            if len(data) >= 8:
-                # Different message types might have temperature at different positions
-                # Try a few common locations
-                current_temp = None
+            # For current temperature
+            if data[1] == 0x17 and len(data) >= 6:  # Standard status message
+                temp_bytes = data[4:6]
+                temp_raw = int.from_bytes(temp_bytes, byteorder='little')
 
-                # Try position based on message type
-                if data[1] == 0x17:  # Standard status message
-                    if len(data) >= 8:
-                        temp_bytes = data[4:6]
-                        temp_raw = int.from_bytes(temp_bytes, byteorder='little')
-                        if 0 <= temp_raw <= 30000:  # Reasonable range check
-                            current_temp = round(temp_raw / 200.0, 1)  # Scale factor from logs
+                # TODO: Determine correct scale factor and offset
+                scale_factor = 1.0  # Placeholder, needs to be determined
+                offset = 0  # Placeholder, needs to be determined
 
-                # If that didn't work, try alternate positions
-                if current_temp is None and len(data) >= 10:
-                    temp_bytes = data[8:10]
-                    temp_raw = int.from_bytes(temp_bytes, byteorder='little')
-                    if 0 <= temp_raw <= 30000:
-                        current_temp = round(temp_raw / 200.0, 1)
+                current_temp = round((temp_raw - offset) / scale_factor, 1)
 
-                if current_temp is not None and 0 <= current_temp <= 105:
+                if 0 <= current_temp <= 105:  # Reasonable range check
                     self._current_temp = current_temp
                     _LOGGER.debug(f"Current temperature parsed: {current_temp}°C")
 
