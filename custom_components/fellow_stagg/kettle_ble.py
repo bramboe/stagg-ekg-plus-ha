@@ -130,37 +130,53 @@ class KettleBLEClient:
     def _parse_status_message(self, data):
         """Parse a status message from the kettle."""
         try:
-            # Based on your Wireshark captures, temperature data is typically
-            # in bytes 4-8 in little-endian format
+            # Check data length
+            if len(data) < 8:
+                _LOGGER.debug(f"Status message too short: {len(data)} bytes")
+                return
 
-            # For current temperature
-            if data[1] == 0x17 and len(data) >= 6:  # Standard status message
+            # Parse current temperature
+            if len(data) >= 6:
                 temp_bytes = data[4:6]
                 temp_raw = int.from_bytes(temp_bytes, byteorder='little')
+                current_temp = round(temp_raw / 100.0, 2)
 
-                # TODO: Determine correct scale factor and offset
-                scale_factor = 1.0  # Placeholder, needs to be determined
-                offset = 0  # Placeholder, needs to be determined
-
-                current_temp = round((temp_raw - offset) / scale_factor, 1)
-
-                if 0 <= current_temp <= 105:  # Reasonable range check
+                if 0 <= current_temp <= 100:
                     self._current_temp = current_temp
                     _LOGGER.debug(f"Current temperature parsed: {current_temp}°C")
+                else:
+                    _LOGGER.warning(f"Parsed temperature out of expected range: {current_temp}°C")
 
-            # For target temperature - usually in later bytes or in different messages
-            # This is harder to determine without more packet analysis
-            if len(data) >= 12:
-                # Target temp might be in bytes 10-12
-                try:
-                    temp_bytes = data[10:12]
-                    temp_raw = int.from_bytes(temp_bytes, byteorder='little')
-                    target_temp = round(temp_raw / 200.0, 1)
-                    if 40 <= target_temp <= 100:  # Reasonable range for target temp
-                        self._target_temp = target_temp
-                        _LOGGER.debug(f"Target temperature parsed: {target_temp}°C")
-                except Exception as temp_err:
-                    _LOGGER.debug(f"Target temp parsing error: {temp_err}")
+            # Parse target temperature (if available)
+            if len(data) >= 10:
+                target_bytes = data[8:10]
+                target_raw = int.from_bytes(target_bytes, byteorder='little')
+                target_temp = round(target_raw / 100.0, 2)
+
+                if 0 <= target_temp <= 100:
+                    self._target_temp = target_temp
+                    _LOGGER.debug(f"Target temperature parsed: {target_temp}°C")
+                else:
+                    _LOGGER.warning(f"Parsed target temperature out of expected range: {target_temp}°C")
+
+            # Parse power state (if available)
+            if len(data) >= 13:
+                power_byte = data[12]
+                self._power_state = power_byte == 0x01
+
+            # Parse hold temperature state (if available)
+            if len(data) >= 15:
+                hold_byte = data[14]
+                self._hold_mode = hold_byte == 0x0F
+
+            # Log final parsed state
+            _LOGGER.debug(
+                f"Parsed status - "
+                f"Current: {self._current_temp}°C, "
+                f"Target: {self._target_temp}°C, "
+                f"Power: {self._power_state}, "
+                f"Hold: {self._hold_mode}"
+            )
 
         except Exception as err:
             _LOGGER.error(f"Error parsing status message: {err}")
