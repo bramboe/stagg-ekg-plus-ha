@@ -34,46 +34,57 @@ class KettleBLEClient:
         self._units = "C"  # Default to Celsius
 
     async def _ensure_connected(self, ble_device):
-        """Ensure BLE connection is established with proper error handling and retry logic."""
-        if self._client is not None and self._client.is_connected:
-            return True
+        """
+        Enhanced connection method with more comprehensive error handling
+        and logging.
+        """
+        # Disconnect any existing connection
+        if self._client and self._client.is_connected:
+            try:
+                await self._client.disconnect()
+            except Exception as disconnect_err:
+                _LOGGER.warning(f"Error during disconnection: {disconnect_err}")
 
-        async with self._connection_lock:
-            if self._client is not None and self._client.is_connected:
-                return True  # Connection was established by another task while waiting
+        # Reset client
+        self._client = None
 
-            for retry in range(self._max_connection_retries):
-                try:
-                    _LOGGER.debug("Connecting to kettle at %s (attempt %d/%d)",
-                                 self.address, retry + 1, self._max_connection_retries)
+        # Comprehensive connection attempts
+        connection_attempts = 3
+        connection_delay = 1.0  # seconds between attempts
 
-                    self._client = BleakClient(ble_device, timeout=10.0, disconnected_callback=self._handle_disconnect)
-                    connected = await self._client.connect()
+        for attempt in range(connection_attempts):
+            try:
+                _LOGGER.debug(f"Connection attempt {attempt + 1}/{connection_attempts}")
 
-                    if connected:
-                        _LOGGER.debug("Successfully connected to kettle")
-                        self._connection_retry_count = 0
-                        return True
+                # Create a new client instance for each attempt
+                client = BleakClient(
+                    ble_device,
+                    timeout=10.0,
+                    disconnected_callback=self._handle_disconnect
+                )
 
-                except BleakError as err:
-                    _LOGGER.warning("Error connecting to kettle (attempt %d/%d): %s",
-                                   retry + 1, self._max_connection_retries, err)
-                    # Clean up client instance
-                    self._client = None
+                # Try to connect
+                connected = await client.connect()
 
-                    if retry < self._max_connection_retries - 1:
-                        # Wait before retrying
-                        await asyncio.sleep(self._connection_retry_delay * (retry + 1))
-                except Exception as err:
-                    _LOGGER.error("Unexpected error connecting to kettle: %s", err)
-                    self._client = None
+                if connected:
+                    _LOGGER.debug("Successfully established BLE connection")
+                    self._client = client
 
-                    if retry < self._max_connection_retries - 1:
-                        await asyncio.sleep(self._connection_retry_delay * (retry + 1))
+                    # Optional: Add extra validation steps here if needed
+                    # For example, check for specific services or characteristics
 
-            _LOGGER.error("Failed to connect to kettle after %d attempts", self._max_connection_retries)
-            self._connection_retry_count += 1
-            return False
+                    return True
+
+                _LOGGER.warning(f"Connection attempt {attempt + 1} failed")
+
+            except Exception as err:
+                _LOGGER.error(f"Connection error (attempt {attempt + 1}): {err}")
+
+            # Delay between connection attempts
+            await asyncio.sleep(connection_delay)
+
+        _LOGGER.error("Failed to establish BLE connection after multiple attempts")
+        return False
 
     def _handle_disconnect(self, client):
         """Handle disconnection events."""
