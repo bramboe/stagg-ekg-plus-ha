@@ -2,6 +2,7 @@ import logging
 import asyncio
 import struct
 from bleak import BleakClient
+from bleak.exc import BleakError
 
 from .const import (
     SERVICE_UUID,
@@ -19,6 +20,10 @@ class KettleBLEClient:
         self.address = address
         self._client = None
         self._notifications = []
+        self._connection_lock = asyncio.Lock()
+        self._connection_retry_count = 0
+        self._max_connection_retries = 3
+        self._connection_retry_delay = 1.0  # seconds
 
         # State tracking
         self._current_temp = None
@@ -29,24 +34,63 @@ class KettleBLEClient:
         self._units = None  # "C" or "F"
 
     async def _ensure_connected(self, ble_device):
-        """Ensure BLE connection is established."""
-        if self._client is None or not self._client.is_connected:
-            _LOGGER.debug("Connecting to kettle at %s", self.address)
-            try:
-                self._client = BleakClient(ble_device, timeout=10.0)
-                connected = await self._client.connect()
-                if connected:
-                    _LOGGER.debug("Successfully connected to kettle")
-                    # Log all available services and characteristics
-                    for service in self._client.services:
-                        _LOGGER.debug(f"Service: {service.uuid}")
-                        for char in service.characteristics:
-                            _LOGGER.debug(f"  Characteristic: {char.uuid}, Properties: {char.properties}")
-                return connected
-            except Exception as err:
-                _LOGGER.error("Error connecting to kettle: %s", err)
-                self._client = None
-                return False
+        """Ensure BLE connection is established with proper error handling and retry logic."""
+        if self._client is not None and self._client.is_connected:
+            return True
+
+        async with self._connection_lock:
+            if self._client is not None and self._client.is_connected:
+                return True  # Connection was established by another task while waiting
+
+            for retry in range(self._max_connection_retries):
+                try:
+                    _LOGGER.debug("Connecting to kettle at %s (attempt %d/%d)",
+                                 self.address, retry + 1, self._max_connection_retries)
+
+                    self._client = BleakClient(ble_device, timeout=10.0, disconnected_callback=self._handle_disconnect)
+                    connected = await self._client.connect()
+
+                    if connected:
+                        _LOGGER.debug("Successfully connected to kettle")
+                        self._connection_retry_count = 0
+
+                        # Log all available services and characteristics for debugging
+                        try:
+                            for service in self._client.services:
+                                _LOGGER.debug(f"Service: {service.uuid}")
+                                for char in service.characteristics:
+                                    _LOGGER.debug(f"  Characteristic: {char.uuid}, Properties: {char.properties}")
+                        except Exception as err:
+                            _LOGGER.warning(f"Error enumerating services: {err}")
+
+                        return True
+
+                except BleakError as err:
+                    _LOGGER.warning("Error connecting to kettle (attempt %d/%d): %s",
+                                   retry + 1, self._max_connection_retries, err)
+                    # Clean up client instance
+                    self._client = None
+
+                    if retry < self._max_connection_retries - 1:
+                        # Wait before retrying
+                        await asyncio.sleep(self._connection_retry_delay * (retry + 1))
+                except Exception as err:
+                    _LOGGER.error("Unexpected error connecting to kettle: %s", err)
+                    self._client = None
+
+                    if retry < self._max_connection_retries - 1:
+                        await asyncio.sleep(self._connection_retry_delay * (retry + 1))
+
+            _LOGGER.error("Failed to connect to kettle after %d attempts", self._max_connection_retries)
+            self._connection_retry_count += 1
+            return False
+
+    def _handle_disconnect(self, client):
+        """Handle disconnection events."""
+        _LOGGER.debug("Kettle disconnected")
+        self._client = None
+        # Reset notification list when disconnected
+        self._notifications = []
 
     def _notification_handler(self, sender, data):
         """Handle notifications from the kettle."""
@@ -106,7 +150,7 @@ class KettleBLEClient:
             connected = await self._ensure_connected(ble_device)
             if not connected:
                 _LOGGER.error("Failed to connect to kettle")
-                return {}
+                return {"connected": False}
 
             # Start with a minimal state response
             state = {"connected": True}
@@ -149,10 +193,25 @@ class KettleBLEClient:
 
         except Exception as err:
             _LOGGER.error("Error polling kettle: %s", err)
-            if self._client and self._client.is_connected:
+            await self._safe_disconnect()
+            return {"connected": False}
+
+    async def _safe_disconnect(self):
+        """Safely disconnect from the device."""
+        if self._client and self._client.is_connected:
+            try:
+                # Try to stop notifications
+                try:
+                    await self._client.stop_notify(CHAR_CONTROL_UUID)
+                except:
+                    pass
+
+                # Disconnect
                 await self._client.disconnect()
-            self._client = None
-            return {}
+            except Exception as err:
+                _LOGGER.warning(f"Error during disconnect: {err}")
+
+        self._client = None
 
     async def async_set_power(self, ble_device, power_on: bool):
         """Turn the kettle on or off."""
@@ -175,6 +234,7 @@ class KettleBLEClient:
             return True
         except Exception as err:
             _LOGGER.error(f"Error setting power state: {err}")
+            await self._safe_disconnect()
             return False
 
     async def async_set_temperature(self, ble_device, temperature: int, fahrenheit: bool = True):
@@ -216,6 +276,7 @@ class KettleBLEClient:
             return True
         except Exception as err:
             _LOGGER.error(f"Error setting temperature: {err}")
+            await self._safe_disconnect()
             return False
 
     async def async_set_hold(self, ble_device, hold_enabled: bool):
@@ -239,14 +300,9 @@ class KettleBLEClient:
             return True
         except Exception as err:
             _LOGGER.error(f"Error setting hold mode: {err}")
+            await self._safe_disconnect()
             return False
 
     async def disconnect(self):
         """Disconnect from the kettle."""
-        if self._client and self._client.is_connected:
-            try:
-                await self._client.stop_notify(CHAR_CONTROL_UUID)
-            except:
-                pass
-            await self._client.disconnect()
-        self._client = None
+        await self._safe_disconnect()
