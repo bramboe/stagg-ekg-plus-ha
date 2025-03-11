@@ -9,7 +9,7 @@ from homeassistant.components.bluetooth import (
 )
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import DOMAIN, SERVICE_UUID, CONTROL_SERVICE_UUID
+from .const import SERVICE_UUID, CONTROL_SERVICE_UUID
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,6 +48,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 continue
             if SERVICE_UUID in discovery_info.service_uuids:
                 self._discovered_devices[address] = discovery_info
+
+
 
         if not self._discovered_devices:
             return await self.async_step_manual()
