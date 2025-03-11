@@ -1,3 +1,4 @@
+"""Config flow for Fellow Stagg integration."""
 import logging
 from typing import Any
 
@@ -9,20 +10,19 @@ from homeassistant.components.bluetooth import (
 )
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import DOMAIN, SERVICE_UUID
+from .const import DOMAIN, PRIMARY_SERVICE_UUID
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Fellow Stagg integration."""
 
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self._discovered_devices: dict[str, BluetoothServiceInfoBleak] = {}
-        self._discovery_class = "fellow_stagg"
+        self._discovered_devices = {}
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step."""
@@ -46,7 +46,22 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             address = discovery_info.address
             if address in current_addresses:
                 continue
-            if SERVICE_UUID in discovery_info.service_uuids:
+
+            # Check if our primary service UUID is in the service UUIDs
+            # Also add devices with "EKG" in the name as a backup
+            found_service = False
+            if discovery_info.service_uuids:
+                for uuid in discovery_info.service_uuids:
+                    if uuid.upper() == PRIMARY_SERVICE_UUID:
+                        found_service = True
+                        break
+
+            # Fallback to name-based detection
+            if not found_service and discovery_info.name:
+                if "EKG" in discovery_info.name:
+                    found_service = True
+
+            if found_service:
                 self._discovered_devices[address] = discovery_info
 
         if not self._discovered_devices:
