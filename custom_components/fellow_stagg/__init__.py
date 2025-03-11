@@ -103,23 +103,6 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
         )
         self._unsubscribe_callbacks.append(unsubscribe)
 
-        # Register a callback for when the device is unavailable
-        @callback
-        def _async_device_unavailable(
-            service_info, change: BluetoothChange
-        ) -> None:
-            """Handle bluetooth device going unavailable."""
-            _LOGGER.debug(f"Kettle device unavailable: {self._address}")
-            self._available = False
-
-        unsubscribe = async_register_callback(
-            self.hass,
-            _async_device_unavailable,
-            BluetoothCallbackMatcher(address=self._address),
-            BluetoothChange.UNAVAILABLE,
-        )
-        self._unsubscribe_callbacks.append(unsubscribe)
-
     async def _async_update_data(self) -> dict[str, Any] | None:
         """Fetch data from the kettle."""
         _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
