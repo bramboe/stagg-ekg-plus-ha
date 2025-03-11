@@ -116,7 +116,6 @@ class FellowStaggTargetTemperature(NumberEntity):
                 # Set the temperature
                 is_fahrenheit = self.coordinator.temperature_unit == UnitOfTemperature.FAHRENHEIT
                 success = await self.coordinator.kettle.async_set_temperature(
-                    self.coordinator.ble_device,
                     int(value),
                     fahrenheit=is_fahrenheit
                 )
