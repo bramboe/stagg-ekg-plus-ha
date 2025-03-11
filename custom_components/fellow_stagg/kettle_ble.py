@@ -101,48 +101,67 @@ class KettleBLEClient:
         self._parse_notification(data)
 
     def _parse_notification(self, data):
-        """Parse notification data to extract kettle state."""
+        """
+        Parse BLE notification data for Fellow Stagg EKG+ kettle.
+
+        Notification data format seems to be:
+        - First 2 bytes: Header (likely command type)
+        - Bytes 4-5: Current temperature (scaled)
+        - Bytes 6-7: Target temperature (scaled)
+        - Byte 12: Power state
+        - Byte 13: Hold mode or other state flags
+        """
         try:
-            # Based on looking at the notification data in the logs
-            # This is a simplified interpretation - needs refinement based on actual protocol
-            if len(data) >= 16:
-                # Sample notification format based on the logs:
-                # F7 17 00 00 BC 80 C0 80 00 00 07 00 01 0F 00 00
+            # Ensure data is long enough
+            if len(data) < 14:
+                _LOGGER.debug(f"Notification data too short: {data.hex()}")
+                return False
 
-                # Get current temp from bytes 4-5 (BC 80)
-                current_temp_raw = data[4] + (data[5] << 8)
-                if current_temp_raw != 0:
-                    # This is likely a scaled value, needs calibration
-                    self._current_temp = current_temp_raw / 10.0
+            # Debugging: log full hex data
+            _LOGGER.debug(f"Raw notification data: {data.hex()}")
 
-                # Get target temp from bytes 6-7 (C0 80)
-                target_temp_raw = data[6] + (data[7] << 8)
-                if target_temp_raw != 0:
-                    self._target_temp = target_temp_raw / 10.0
+            # Decode current temperature (bytes 4-5)
+            # Use little-endian decoding
+            current_temp_raw = int.from_bytes(data[4:6], byteorder='little')
 
-                # Power state possibly in byte 12 (01)
-                self._power_state = data[12] > 0
+            # Decode target temperature (bytes 6-7)
+            target_temp_raw = int.from_bytes(data[6:8], byteorder='little')
 
-                # Hold mode possibly in byte 13 (0F)
-                self._hold_mode = data[13] > 0
+            # Interpret temperatures
+            # Divide by 100 or 10 depending on observed scaling
+            self._current_temp = current_temp_raw / 100.0
+            self._target_temp = target_temp_raw / 100.0
 
-                # Other state values - need to be refined based on real-world testing
+            # Power state (byte 12)
+            self._power_state = data[12] == 0x01
 
-                # Determine temperature units (F/C) based on values
-                # Typically, if current_temp > 50, it's likely Fahrenheit
-                if self._current_temp is not None:
-                    self._units = "F" if self._current_temp > 50 else "C"
+            # Hold mode or other state (byte 13)
+            self._hold_mode = data[13] == 0x0F
 
-                _LOGGER.debug(
-                    "Parsed notification - Current: %s, Target: %s, Power: %s, Hold: %s, Units: %s",
-                    self._current_temp,
-                    self._target_temp,
-                    self._power_state,
-                    self._hold_mode,
-                    self._units
-                )
+            # Determine temperature units
+            # This might need adjustment based on actual device behavior
+            if self._current_temp > 100:  # Fahrenheit scale
+                self._units = "F"
+                # Convert to more reasonable temperature range
+                self._current_temp /= 10.0
+                self._target_temp /= 10.0
+            else:  # Celsius scale
+                self._units = "C"
+
+            _LOGGER.debug(
+                f"Parsed notification - "
+                f"Current: {self._current_temp}°{self._units}, "
+                f"Target: {self._target_temp}°{self._units}, "
+                f"Power: {self._power_state}, "
+                f"Hold: {self._hold_mode}"
+            )
+
+            return True
+
         except Exception as err:
-            _LOGGER.error("Error parsing notification: %s", err)
+            _LOGGER.error(f"Error parsing notification: {err}")
+            _LOGGER.error(f"Problematic data: {data.hex()}")
+            return False
 
     async def async_poll(self, ble_device):
         """Connect to the kettle and return basic state."""
@@ -213,70 +232,92 @@ class KettleBLEClient:
 
         self._client = None
 
-    async def async_set_power(self, ble_device, power_on: bool):
-        """Turn the kettle on or off."""
+    async def async_set_temperature(self, temperature: int, fahrenheit: bool = True):
+        """
+        Set the target temperature for the kettle.
+
+        Command structure appears to be:
+        - First bytes: Command header
+        - Next 2 bytes: Temperature (scaled)
+        - Last byte: Units flag
+        """
         try:
-            connected = await self._ensure_connected(ble_device)
-            if not connected:
-                _LOGGER.error("Failed to connect to kettle")
-                return False
+            # Scale temperature (assuming 100x multiplier)
+            temp_scaled = int(temperature * 100)
 
-            # Command structure based on BLE logs and reverse engineering
-            # This is a placeholder - actual command format needs to be determined
-            command = bytearray([0xF7, 0x01, 0x00, 0x00, 0x01 if power_on else 0x00])
+            # Command format based on observed BLE logs
+            # F7 02 00 00 XX XX 01/00
+            command = bytearray([
+                0xF7,  # Header
+                0x02,  # Temperature set command
+                0x00, 0x00,  # Padding
+            ])
 
-            _LOGGER.debug(f"Setting power to: {'ON' if power_on else 'OFF'}")
-            await self._client.write_gatt_char(CHAR_WRITE_UUID, command, response=True)
+            # Add temperature bytes (little-endian)
+            command.extend(temp_scaled.to_bytes(2, byteorder='little'))
+
+            # Add unit flag (0x01 for Fahrenheit, 0x00 for Celsius)
+            command.append(0x01 if fahrenheit else 0x00)
+
+            _LOGGER.debug(
+                f"Setting temperature to {temperature}°{' F' if fahrenheit else ' C'}"
+            )
+            _LOGGER.debug(f"Sending command: {command.hex()}")
+
+            # Send command via characteristic write
+            await self._client.write_gatt_char(
+                self.CHAR_WRITE_UUID,
+                command,
+                response=True
+            )
+
+            # Update local state
+            self._target_temp = temperature
+            self._units = "F" if fahrenheit else "C"
+
+            return True
+
+        except Exception as err:
+            _LOGGER.error(f"Failed to set temperature: {err}")
+            return False
+
+    async def async_set_power(self, power_on: bool):
+        """
+        Turn the kettle on or off.
+
+        Command structure:
+        - First bytes: Command header
+        - Last byte: Power state
+        """
+        try:
+            # Command format based on observed BLE logs
+            # F7 01 00 00 01/00
+            command = bytearray([
+                0xF7,  # Header
+                0x01,  # Power command
+                0x00, 0x00,  # Padding
+                0x01 if power_on else 0x00  # Power state
+            ])
+
+            _LOGGER.debug(
+                f"Setting power {'ON' if power_on else 'OFF'}"
+            )
+            _LOGGER.debug(f"Sending command: {command.hex()}")
+
+            # Send command via characteristic write
+            await self._client.write_gatt_char(
+                self.CHAR_WRITE_UUID,
+                command,
+                response=True
+            )
 
             # Update local state
             self._power_state = power_on
 
             return True
+
         except Exception as err:
-            _LOGGER.error(f"Error setting power state: {err}")
-            await self._safe_disconnect()
-            return False
-
-    async def async_set_temperature(self, ble_device, temperature: int, fahrenheit: bool = True):
-        """Set the target temperature."""
-        try:
-            connected = await self._ensure_connected(ble_device)
-            if not connected:
-                _LOGGER.error("Failed to connect to kettle")
-                return False
-
-            # Convert to celsius if needed for internal consistency
-            temp_to_set = temperature
-            if not fahrenheit:
-                # If temperature is already in celsius, use as is
-                pass
-            else:
-                # If in F, we'll work with it directly since the device accepts both units
-                pass
-
-            _LOGGER.debug(f"Setting temperature to: {temp_to_set}{'°F' if fahrenheit else '°C'}")
-
-            # Command structure based on BLE logs and reverse engineering
-            # This is a placeholder - actual command format needs to be determined
-            # We'll encode the temperature as a 2-byte value (likely scaled)
-            temp_scaled = temp_to_set * 10  # Scale to account for decimal precision
-            temp_bytes = struct.pack("<H", temp_scaled)
-
-            # Command format: header + temp value + units flag
-            command = bytearray([0xF7, 0x02, 0x00, 0x00])
-            command.extend(temp_bytes)
-            command.append(0x01 if fahrenheit else 0x00)
-
-            await self._client.write_gatt_char(CHAR_WRITE_UUID, command, response=True)
-
-            # Update local state
-            self._target_temp = temp_to_set
-            self._units = "F" if fahrenheit else "C"
-
-            return True
-        except Exception as err:
-            _LOGGER.error(f"Error setting temperature: {err}")
-            await self._safe_disconnect()
+            _LOGGER.error(f"Failed to set power state: {err}")
             return False
 
     async def async_set_hold(self, ble_device, hold_enabled: bool):
