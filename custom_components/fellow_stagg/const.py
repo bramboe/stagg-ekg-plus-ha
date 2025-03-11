@@ -5,6 +5,9 @@ DOMAIN = "fellow_stagg"
 PRIMARY_SERVICE_UUID = "7AEBF330-6CB1-46E4-B23B-7CC2262C605E"
 SECONDARY_SERVICE_UUID = "021A9004-0382-4AEA-BFF4-6B3F1C5ADFB4"
 
+# Keep the original SERVICE_UUID for backward compatibility with config_flow
+SERVICE_UUID = PRIMARY_SERVICE_UUID
+
 # Temperature characteristic - observed receiving notifications in logs
 TEMP_CHAR_UUID = "2291C4B5-5D7F-4477-A88B-B266EDB97142"
 
