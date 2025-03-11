@@ -36,7 +36,7 @@ class FellowStaggPowerSwitch(SwitchEntity):
   _attr_has_entity_name = True
   _attr_name = "Power"
   _attr_icon = "mdi:kettle"
-  _attr_entity_category = EntityCategory.SWITCH
+  _attr_entity_category = EntityCategory.CONFIG
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     """Initialize the switch."""
