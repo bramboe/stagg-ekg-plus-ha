@@ -236,13 +236,17 @@ class KettleBLEClient:
         """
         Set the target temperature for the kettle.
 
-        Command structure:
-        - F7 02 00 00 Temperature bytes (scaled)
-        - Temperature units
+        Command structure matches observed BLE packets
         """
         try:
-            # Scale temperature (multiplying by 10 for single-decimal precision)
-            temp_scaled = int(temperature * 10)
+            # Convert temperature to observed hex encoding
+            # Approximate mapping based on previous observations
+            if not fahrenheit:
+                # Celsius encoding
+                temp_hex = int(temperature * 200 + 20000)
+            else:
+                # Fahrenheit encoding (if needed)
+                temp_hex = int(temperature * 200 + 25000)
 
             # Command format based on observed BLE logs
             command = bytearray([
@@ -252,15 +256,24 @@ class KettleBLEClient:
             ])
 
             # Add temperature bytes (little-endian)
-            command.extend(temp_scaled.to_bytes(2, byteorder='little'))
+            command.extend(temp_hex.to_bytes(2, byteorder='little'))
 
-            # Add unit flag (0x01 for Fahrenheit, 0x00 for Celsius)
-            command.append(0x01 if fahrenheit else 0x00)
+            # Add additional metadata bytes
+            command.extend([
+                0x08,  # Observed unit/metadata byte
+                0x00,  # Padding/additional metadata
+                0x04,  # Constant observed in packets
+                0x01,  # Constant observed in packets
+                0x16,  # Constant observed in packets
+                0x30,  # Constant observed in packets
+                0x00,  # Padding
+                0x20,  # Constant observed in packets
+            ])
 
             _LOGGER.debug(
                 f"Setting temperature to {temperature}°{' F' if fahrenheit else ' C'}"
             )
-            _LOGGER.debug(f"Sending command: {command.hex()}")
+            _LOGGER.debug(f"Sending full command: {command.hex()}")
 
             # Send command via characteristic write
             await self._client.write_gatt_char(
