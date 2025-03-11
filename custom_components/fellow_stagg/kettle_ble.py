@@ -1,4 +1,5 @@
 import logging
+import time  # Added for timestamp tracking
 import asyncio
 from bleak import BleakClient
 from bleak.exc import BleakError
@@ -31,8 +32,11 @@ class KettleBLEClient:
         self._current_temp = None
         self._target_temp = None
         self._power_state = None
-        self._hold_mode = None
+        self._hold_mode = False
+        self._hold_minutes = 0
+        self._lifted = False
         self._units = "C"  # Default to Celsius
+        self._last_notification_time = 0
 
         # Connection management
         self._connection_lock = asyncio.Lock()
