@@ -69,12 +69,12 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
   async def _async_update_data(self) -> dict[str, Any] | None:
     """Fetch data from the kettle."""
     _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
-    
+
     self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
     if not self.ble_device:
       _LOGGER.debug("No connectable device found")
       return None
-        
+
     try:
       _LOGGER.debug("Attempting to poll kettle data...")
       data = await self.kettle.async_poll(self.ble_device)
@@ -83,17 +83,17 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
         self._address,
         data,
       )
-      
+
       # Log any changes in data compared to previous state
       if self.data is not None:
         changes = {
-          k: (self.data.get(k), v) 
-          for k, v in data.items() 
+          k: (self.data.get(k), v)
+          for k, v in data.items()
           if k in self.data and self.data.get(k) != v
         }
         if changes:
           _LOGGER.debug("Data changes detected: %s", changes)
-      
+
       return data
     except Exception as e:
       _LOGGER.error(
@@ -125,7 +125,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-  
+
   _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
   return True
 
