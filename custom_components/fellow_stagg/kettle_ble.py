@@ -506,12 +506,17 @@ class KettleBLEClient:
             if time.time() - self._last_command_time < 0.5:
                 await asyncio.sleep(0.5)
 
-            # Power command structure
+            # Simpler power command structure for testing
             command = bytearray([
                 0xF7,  # Header
                 0x01,  # Power command
-                0x00, 0x00,  # Padding
-                0x01 if power_on else 0x00  # Power state
+                0x00,  # Padding
+                0x00,  # Padding
+                0x01 if power_on else 0x00,  # Power state
+                0x00,  # Padding
+                0x00,  # Padding
+                0x00,  # Padding
+                0x00   # Padding
             ])
 
             _LOGGER.debug(
@@ -519,12 +524,18 @@ class KettleBLEClient:
             )
             _LOGGER.debug(f"Sending command: {command.hex()}")
 
-            # Send command via characteristic write
-            await self._client.write_gatt_char(
-                CHAR_WRITE_UUID,
-                command,
-                response=True
-            )
+            # Try writing to both characteristics for testing
+            for char_uuid in [CHAR_WRITE_UUID, CHAR_CONTROL_UUID]:
+                try:
+                    _LOGGER.debug(f"Attempting write to characteristic: {char_uuid}")
+                    await self._client.write_gatt_char(
+                        char_uuid,
+                        command,
+                        response=True
+                    )
+                    _LOGGER.debug(f"Successfully wrote to {char_uuid}")
+                except Exception as write_err:
+                    _LOGGER.debug(f"Failed to write to {char_uuid}: {write_err}")
 
             self._last_command_time = time.time()
 
