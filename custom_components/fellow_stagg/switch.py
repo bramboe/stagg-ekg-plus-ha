@@ -16,11 +16,6 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# Maximum number of retry attempts for switch operations
-MAX_RETRY_ATTEMPTS = 2
-# Delay between retry attempts
-RETRY_DELAY = 2.0  # seconds
-
 async def async_setup_entry(
   hass: HomeAssistant,
   entry: ConfigEntry,
@@ -35,8 +30,6 @@ class FellowStaggPowerSwitch(SwitchEntity):
 
   _attr_has_entity_name = True
   _attr_name = "Power"
-  _attr_icon = "mdi:kettle"
-  _attr_entity_category = EntityCategory.CONFIG
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     """Initialize the switch."""
@@ -44,77 +37,31 @@ class FellowStaggPowerSwitch(SwitchEntity):
     self.coordinator = coordinator
     self._attr_unique_id = f"{coordinator._address}_power"
     self._attr_device_info = coordinator.device_info
-
-    # Flag to track pending operations
-    self._operation_in_progress = False
-
     _LOGGER.debug("Initialized power switch for %s", coordinator._address)
-
-  @property
-  def available(self) -> bool:
-    """Return if entity is available."""
-    return self.coordinator.available
 
   @property
   def is_on(self) -> bool | None:
     """Return true if the switch is on."""
-    if self.coordinator.data is None:
-        return None
     value = self.coordinator.data.get("power")
     _LOGGER.debug("Power switch state read as: %s", value)
     return value
 
-  async def _async_perform_action_with_retry(self, power_on: bool) -> bool:
-    """Perform an action with retry logic."""
-    self._operation_in_progress = True
-    success = False
-
-    try:
-        for attempt in range(MAX_RETRY_ATTEMPTS):
-            try:
-                if attempt > 0:
-                    _LOGGER.debug(f"Retrying operation (attempt {attempt+1}/{MAX_RETRY_ATTEMPTS})")
-
-                # Call the power set method
-                success = await self.coordinator.kettle.async_set_power(power_on)
-
-                if success:
-                    _LOGGER.debug(f"Power {'ON' if power_on else 'OFF'} operation successful")
-                    break
-                else:
-                    _LOGGER.warning("Power operation returned False, will retry")
-                    await asyncio.sleep(RETRY_DELAY)
-            except Exception as err:
-                _LOGGER.error(f"Error during power operation (attempt {attempt+1}): {err}")
-                if attempt < MAX_RETRY_ATTEMPTS - 1:
-                    await asyncio.sleep(RETRY_DELAY)
-
-        if not success:
-            _LOGGER.error("Failed to complete power operation after %d attempts", MAX_RETRY_ATTEMPTS)
-
-        # Give the kettle a moment to update its internal state
-        await asyncio.sleep(0.5)
-        _LOGGER.debug("Requesting refresh after power state change")
-        await self.coordinator.async_request_refresh()
-
-        return success
-    finally:
-        self._operation_in_progress = False
-
   async def async_turn_on(self, **kwargs: Any) -> None:
     """Turn the switch on."""
-    if self._operation_in_progress:
-        _LOGGER.debug("Power operation already in progress, skipping")
-        return
-
-    _LOGGER.debug("Turning kettle power ON")
-    await self._async_perform_action_with_retry(True)
+    _LOGGER.debug("Turning power switch ON")
+    await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, True)
+    _LOGGER.debug("Power ON command sent, waiting before refresh")
+    # Give the kettle a moment to update its internal state
+    await asyncio.sleep(0.5)
+    _LOGGER.debug("Requesting refresh after power change")
+    await self.coordinator.async_request_refresh()
 
   async def async_turn_off(self, **kwargs: Any) -> None:
     """Turn the switch off."""
-    if self._operation_in_progress:
-        _LOGGER.debug("Power operation already in progress, skipping")
-        return
-
-    _LOGGER.debug("Turning kettle power OFF")
-    await self._async_perform_action_with_retry(False)
+    _LOGGER.debug("Turning power switch OFF")
+    await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, False)
+    _LOGGER.debug("Power OFF command sent, waiting before refresh")
+    # Give the kettle a moment to update its internal state
+    await asyncio.sleep(0.5)
+    _LOGGER.debug("Requesting refresh after power change")
+    await self.coordinator.async_request_refresh() 
