@@ -234,13 +234,17 @@ class KettleBLEClient:
 
     async def async_set_temperature(self, temperature: int, fahrenheit: bool = False):
         """
-        Set the target temperature for the kettle.
-
-        Command structure matches observed BLE packets
+        Enhanced temperature setting method with extensive debugging.
         """
         try:
+            # Potential write characteristics to try
+            potential_write_chars = [
+                CHAR_WRITE_UUID,  # Original write UUID
+                "2291c4b7-5d7f-4477-a88b-b266edb97142",  # Exact match from logs
+                "021aff54-0382-4aea-bff4-6b3f1c5adfb4",  # From first service
+            ]
+
             # Convert temperature to observed hex encoding
-            # Approximate mapping based on previous observations
             if not fahrenheit:
                 # Celsius encoding
                 temp_hex = int(temperature * 200 + 20000)
@@ -248,7 +252,7 @@ class KettleBLEClient:
                 # Fahrenheit encoding (if needed)
                 temp_hex = int(temperature * 200 + 25000)
 
-            # Command format based on observed BLE logs
+            # Detailed command construction with extensive logging
             command = bytearray([
                 0xF7,  # Header
                 0x02,  # Temperature set command
@@ -270,26 +274,49 @@ class KettleBLEClient:
                 0x20,  # Constant observed in packets
             ])
 
-            _LOGGER.debug(
-                f"Setting temperature to {temperature}°{' F' if fahrenheit else ' C'}"
-            )
-            _LOGGER.debug(f"Sending full command: {command.hex()}")
+            _LOGGER.debug(f"Attempting to set temperature to {temperature}°{' F' if fahrenheit else ' C'}")
+            _LOGGER.debug(f"Full command hex: {command.hex()}")
+            _LOGGER.debug(f"Calculated temperature hex: {temp_hex:04x}")
 
-            # Send command via characteristic write
-            await self._client.write_gatt_char(
-                CHAR_WRITE_UUID,
-                command,
-                response=True
-            )
+            # Try writing to multiple potential characteristics
+            success = False
+            for char_uuid in potential_write_chars:
+                try:
+                    _LOGGER.debug(f"Attempting to write to characteristic: {char_uuid}")
+
+                    # Ensure client is connected
+                    if not self._client or not self._client.is_connected:
+                        _LOGGER.error("BLE client is not connected")
+                        return False
+
+                    await self._client.write_gatt_char(
+                        char_uuid,
+                        command,
+                        response=True
+                    )
+
+                    _LOGGER.debug(f"Successfully wrote to {char_uuid}")
+                    success = True
+                    break
+                except Exception as write_err:
+                    _LOGGER.warning(f"Failed to write to {char_uuid}: {write_err}")
+
+            if not success:
+                _LOGGER.error("Could not write temperature setting to any characteristic")
+                return False
 
             # Update local state
             self._target_temp = temperature
             self._units = "F" if fahrenheit else "C"
 
+            # Request immediate refresh to verify state
+            await asyncio.sleep(0.5)
+            await self.async_poll(self.ble_device)
+
             return True
 
         except Exception as err:
-            _LOGGER.error(f"Failed to set temperature: {err}")
+            _LOGGER.error(f"Comprehensive temperature set failed: {err}")
             return False
 
     async def disconnect(self):
