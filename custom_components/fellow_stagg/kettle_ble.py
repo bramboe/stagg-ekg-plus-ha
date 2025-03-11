@@ -127,49 +127,49 @@ class KettleBLEClient:
         """
         Enhanced connection method with comprehensive error handling.
         """
-        async with self._connection_lock:
-            try:
-                # Connection attempts
-                for attempt in range(self._max_connection_retries):
-                    try:
-                        _LOGGER.debug(f"Connecting to kettle (attempt {attempt + 1})")
+    async with self._connection_lock:
+        try:
+            # Connection attempts
+            for attempt in range(self._max_connection_retries):
+                try:
+                    _LOGGER.debug(f"Connecting to kettle (attempt {attempt + 1})")
 
-                        # Disconnect existing connection if active
-                        if self._client and self._client.is_connected:
-                            try:
-                                await self._client.disconnect()
-                                await asyncio.sleep(1.0)  # Add sleep after disconnect
-                            except Exception as disconnect_err:
-                                _LOGGER.warning(f"Disconnection error: {disconnect_err}")
+                    # Disconnect existing connection if active
+                    if self._client and self._client.is_connected:
+                        try:
+                            await self._client.disconnect()
+                            await asyncio.sleep(1.0)  # Add sleep after disconnect
+                        except Exception as disconnect_err:
+                            _LOGGER.warning(f"Disconnection error: {disconnect_err}")
 
-                        # Connection settings
-                        self._client = BleakClient(
-                            ble_device or self.address,
-                            timeout=20.0,  # Increased timeout
-                            disconnected_callback=self._handle_disconnect
-                        )
+                    # Connection settings
+                    self._client = BleakClient(
+                        ble_device or self.address,
+                        timeout=20.0,  # Increased timeout
+                        disconnected_callback=self._handle_disconnect
+                    )
 
-                        # Attempt connection with longer timeout
-                        connected = await self._client.connect()
+                    # Attempt connection with longer timeout
+                    connected = await self._client.connect()
 
-                        if connected:
-                            self.ble_device = ble_device
-                            # Wait a moment before subscribing
-                            await asyncio.sleep(0.5)
-                            await self._subscribe_to_notifications()
-                            return True
+                    if connected:
+                        self.ble_device = ble_device
+                        # Wait a moment before subscribing
+                        await asyncio.sleep(0.5)
+                        await self._subscribe_to_notifications()
+                        return True
 
-                        # If connection failed, wait before retry
-                        await asyncio.sleep(2.0)  # Longer delay between attempts
+                    # If connection failed, wait before retry
+                    await asyncio.sleep(2.0)  # Longer delay between attempts
 
-                    except Exception as err:
-                        _LOGGER.error(f"Connection error (attempt {attempt + 1}): {err}")
-                        await asyncio.sleep(2.0)
+                except Exception as err:
+                    _LOGGER.error(f"Connection error (attempt {attempt + 1}): {err}")
+                    await asyncio.sleep(2.0)
 
-                return False
-            except Exception as err:
-                _LOGGER.error(f"Connection error: {err}")
-                return False
+            return False
+        except Exception as err:
+            _LOGGER.error(f"Connection error: {err}")
+            return False
 
     async def _subscribe_to_notifications(self):
         """
