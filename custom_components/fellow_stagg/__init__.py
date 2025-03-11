@@ -2,9 +2,11 @@
 import logging
 from datetime import timedelta
 from typing import Any
+import asyncio
 
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
+    async_scanner_count,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
@@ -14,7 +16,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN
+from .const import DOMAIN, PRIMARY_SERVICE_UUID, SECONDARY_SERVICE_UUID
 from .kettle_ble import KettleBLEClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,27 +54,92 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
     # Default to Celsius for now
     return UnitOfTemperature.CELSIUS
 
+  async def _find_device_bleak(self):
+    """Find the device using BleakScanner directly."""
+    try:
+        from bleak import BleakScanner
+
+        # Log Bluetooth adapter information
+        _LOGGER.debug("Checking Bluetooth adapters...")
+        scanner_count = async_scanner_count(self.hass)
+        _LOGGER.debug(f"Number of active Bluetooth scanners: {scanner_count}")
+
+        # Look for the device by address first
+        _LOGGER.debug(f"Scanning for device {self._address} using BleakScanner with 10s timeout")
+        device = await BleakScanner.find_device_by_address(
+            self._address,
+            timeout=10.0,  # Longer timeout for better chance of discovery
+        )
+
+        if device:
+            _LOGGER.debug(f"Found device by address: {device}")
+            return device
+
+        # If not found by address, do a full scan for all devices
+        _LOGGER.debug("Device not found by address, performing full scan...")
+
+        # Normalize the address format for comparison
+        normalized_addr = self._address.lower().replace(":", "")
+
+        all_devices = await BleakScanner.discover(timeout=10.0)
+        _LOGGER.debug(f"Found {len(all_devices)} devices in full scan")
+
+        # Log all found devices for debugging
+        for d in all_devices:
+            _LOGGER.debug(f"Found device: {d.name} ({d.address})")
+
+            # Check if name contains EKG (from your logs)
+            if d.name and 'EKG' in d.name:
+                _LOGGER.debug(f"Found EKG-named device: {d.name} ({d.address})")
+
+                # Check if it's our device by comparing address parts
+                if normalized_addr in d.address.lower().replace(":", ""):
+                    _LOGGER.debug(f"Found our EKG device by name pattern: {d.name} ({d.address})")
+                    return d
+
+        # Third approach: scan specifically for Fellow Stagg service UUIDs
+        _LOGGER.debug(f"Scanning specifically for Fellow Stagg service UUIDs")
+        specific_scan = await BleakScanner.discover(
+            timeout=10.0,
+            service_uuids=[PRIMARY_SERVICE_UUID, SECONDARY_SERVICE_UUID]
+        )
+
+        if specific_scan:
+            _LOGGER.debug(f"Found {len(specific_scan)} devices with specific services")
+            for d in specific_scan:
+                _LOGGER.debug(f"Found device with matching service: {d.name} ({d.address})")
+                # If any device has our address
+                if normalized_addr in d.address.lower().replace(":", ""):
+                    return d
+                # Or if it has EKG in the name as a fallback
+                if d.name and 'EKG' in d.name:
+                    return d
+
+            # If multiple devices found but none matching our address, return the first one
+            if specific_scan:
+                _LOGGER.debug(f"Using first device with matching service: {specific_scan[0].name} ({specific_scan[0].address})")
+                return specific_scan[0]
+
+        _LOGGER.debug("No matching device found in any scan method")
+        return None
+
+    except Exception as e:
+        _LOGGER.error(f"Error during BleakScanner operation: {str(e)}")
+        return None
+
   async def _async_update_data(self) -> dict[str, Any] | None:
     """Fetch data from the kettle."""
     _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
 
-    self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
+    self.ble_device = async_ble_device_from_address(self.hass, self._address, connectable=True)
     if not self.ble_device:
       _LOGGER.debug("No connectable device found via Home Assistant Bluetooth")
 
-      # Try using BleakScanner directly as a fallback
-      try:
-        from bleak import BleakScanner
-        _LOGGER.debug("Trying to scan for device using BleakScanner directly")
-        device = await BleakScanner.find_device_by_address(self._address)
-        if device:
-          _LOGGER.debug("Found device using direct BleakScanner: %s", device)
-          self.ble_device = device
-        else:
-          _LOGGER.debug("Device not found using BleakScanner either")
-          return None
-      except Exception as e:
-        _LOGGER.error("Error during BleakScanner fallback: %s", str(e))
+      # Try using BleakScanner directly as a fallback with enhanced scanning
+      self.ble_device = await self._find_device_bleak()
+
+      if not self.ble_device:
+        _LOGGER.debug("Device not found using enhanced BleakScanner methods")
         return None
 
     try:
