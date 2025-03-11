@@ -47,135 +47,135 @@ class KettleBLEClient:
         self._notifications = []
 
     def _notification_handler(self, sender, data):
-    """
-    Handle notifications from the kettle with comprehensive parsing.
-    """
-    try:
-        _LOGGER.debug(f"Raw notification received: {data.hex()}")
+        """
+        Handle notifications from the kettle with comprehensive parsing.
+        """
+        try:
+            _LOGGER.debug(f"Raw notification received: {data.hex()}")
 
-        # Ensure minimum data length
-        if len(data) < 8:
-            _LOGGER.debug(f"Notification data too short: {data.hex()}")
-            return
+            # Ensure minimum data length
+            if len(data) < 8:
+                _LOGGER.debug(f"Notification data too short: {data.hex()}")
+                return
 
-        # Check packet header (should start with 0xF7)
-        if data[0] != 0xF7:
-            _LOGGER.debug(f"Unexpected notification header: {data[0]:02x}")
-            return
+            # Check packet header (should start with 0xF7)
+            if data[0] != 0xF7:
+                _LOGGER.debug(f"Unexpected notification header: {data[0]:02x}")
+                return
 
-        # Decode current temperature (bytes 2-3)
-        current_temp_raw = int.from_bytes(data[2:4], byteorder='little')
+            # Decode current temperature (bytes 2-3)
+            current_temp_raw = int.from_bytes(data[2:4], byteorder='little')
 
-        # Decode target temperature (bytes 4-5)
-        target_temp_raw = int.from_bytes(data[4:6], byteorder='little')
+            # Decode target temperature (bytes 4-5)
+            target_temp_raw = int.from_bytes(data[4:6], byteorder='little')
 
-        # Temperature decoding function
-        def decode_temperature(raw_value):
-            """
-            Decode temperature from raw value.
-            Different algorithms based on temperature range.
-            """
-            # Simple proportional calculation
-            if raw_value == 0:
-                return 0
+            # Temperature decoding function
+            def decode_temperature(raw_value):
+                """
+                Decode temperature from raw value.
+                Different algorithms based on temperature range.
+                """
+                # Simple proportional calculation
+                if raw_value == 0:
+                    return 0
 
-            # For Celsius range (typically under 25000)
-            if raw_value < 25000:
-                # Standard Celsius scaling
-                temp = raw_value / 200.0
-                # Adjustment for observed values
-                if 20000 <= raw_value <= 21000:
-                    temp = (raw_value - 20000) / 100.0 + 40.0
+                # For Celsius range (typically under 25000)
+                if raw_value < 25000:
+                    # Standard Celsius scaling
+                    temp = raw_value / 200.0
+                    # Adjustment for observed values
+                    if 20000 <= raw_value <= 21000:
+                        temp = (raw_value - 20000) / 100.0 + 40.0
 
-            # For Fahrenheit range (typically above 25000)
+                # For Fahrenheit range (typically above 25000)
+                else:
+                    # Standard Fahrenheit scaling
+                    temp = (raw_value - 25000) / 100.0 + 100.0
+
+                return round(temp, 1)
+
+            # Apply temperature decoding
+            self._current_temp = decode_temperature(current_temp_raw)
+            self._target_temp = decode_temperature(target_temp_raw)
+
+            # Determine temperature units based on range
+            # Fahrenheit temperatures are typically over 100, Celsius under 100
+            if current_temp_raw > 25000 or target_temp_raw > 25000:
+                self._units = "F"
             else:
-                # Standard Fahrenheit scaling
-                temp = (raw_value - 25000) / 100.0 + 100.0
+                self._units = "C"
 
-            return round(temp, 1)
+            # Determine power state (byte 6)
+            # 0x00 = Off, 0x01 = On
+            self._power_state = data[6] == 0x01
 
-        # Apply temperature decoding
-        self._current_temp = decode_temperature(current_temp_raw)
-        self._target_temp = decode_temperature(target_temp_raw)
+            # Determine hold mode status (byte 7)
+            # 0x00 = Normal, 0x0F = Hold mode
+            hold_mode_active = data[7] == 0x0F
+            self._hold_mode = hold_mode_active
 
-        # Determine temperature units based on range
-        # Fahrenheit temperatures are typically over 100, Celsius under 100
-        if current_temp_raw > 25000 or target_temp_raw > 25000:
-            self._units = "F"
-        else:
-            self._units = "C"
+            # Determine hold time if in hold mode
+            # The exact value needs to be inferred from other bytes
+            if hold_mode_active and len(data) >= 10:
+                # Example mapping based on observed patterns
+                # This may need adjustment based on actual values
+                value_byte = data[6]  # The byte that seems to indicate hold duration
 
-        # Determine power state (byte 6)
-        # 0x00 = Off, 0x01 = On
-        self._power_state = data[6] == 0x01
-
-        # Determine hold mode status (byte 7)
-        # 0x00 = Normal, 0x0F = Hold mode
-        hold_mode_active = data[7] == 0x0F
-        self._hold_mode = hold_mode_active
-
-        # Determine hold time if in hold mode
-        # The exact value needs to be inferred from other bytes
-        if hold_mode_active and len(data) >= 10:
-            # Example mapping based on observed patterns
-            # This may need adjustment based on actual values
-            value_byte = data[6]  # The byte that seems to indicate hold duration
-
-            if value_byte == 0x06:
-                self._hold_minutes = 15
-            elif value_byte == 0x07:
-                self._hold_minutes = 30
-            elif value_byte == 0x08:
-                self._hold_minutes = 45
-            elif value_byte == 0x09:
-                self._hold_minutes = 60
+                if value_byte == 0x06:
+                    self._hold_minutes = 15
+                elif value_byte == 0x07:
+                    self._hold_minutes = 30
+                elif value_byte == 0x08:
+                    self._hold_minutes = 45
+                elif value_byte == 0x09:
+                    self._hold_minutes = 60
+                else:
+                    self._hold_minutes = 0
             else:
                 self._hold_minutes = 0
-        else:
-            self._hold_minutes = 0
 
-        # Check if kettle is lifted (if the data includes this info)
-        # This is speculative - would need actual data to confirm
-        if len(data) >= 12:
-            self._lifted = (data[11] & 0x01) == 0x01
+            # Check if kettle is lifted (if the data includes this info)
+            # This is speculative - would need actual data to confirm
+            if len(data) >= 12:
+                self._lifted = (data[11] & 0x01) == 0x01
 
-        # Update connection state
-        self._last_notification_time = time.time()
+            # Update connection state
+            self._last_notification_time = time.time()
 
-        # Log the parsed data
-        _LOGGER.debug(
-            f"Parsed notification - "
-            f"Current: {self._current_temp}°{self._units}, "
-            f"Target: {self._target_temp}°{self._units}, "
-            f"Power: {self._power_state}, "
-            f"Hold: {self._hold_mode}, "
-            f"Hold minutes: {self._hold_minutes}, "
-            f"Raw current: {current_temp_raw}, "
-            f"Raw target: {target_temp_raw}, "
-            f"Full data: {data.hex()}"
-        )
+            # Log the parsed data
+            _LOGGER.debug(
+                f"Parsed notification - "
+                f"Current: {self._current_temp}°{self._units}, "
+                f"Target: {self._target_temp}°{self._units}, "
+                f"Power: {self._power_state}, "
+                f"Hold: {self._hold_mode}, "
+                f"Hold minutes: {self._hold_minutes}, "
+                f"Raw current: {current_temp_raw}, "
+                f"Raw target: {target_temp_raw}, "
+                f"Full data: {data.hex()}"
+            )
 
-        # Store notification for analysis
-        self._notifications.append({
-            'time': time.time(),
-            'data': data.hex(),
-            'parsed': {
-                'current_temp': self._current_temp,
-                'target_temp': self._target_temp,
-                'units': self._units,
-                'power': self._power_state,
-                'hold': self._hold_mode,
-                'hold_minutes': self._hold_minutes
-            }
-        })
+            # Store notification for analysis
+            self._notifications.append({
+                'time': time.time(),
+                'data': data.hex(),
+                'parsed': {
+                    'current_temp': self._current_temp,
+                    'target_temp': self._target_temp,
+                    'units': self._units,
+                    'power': self._power_state,
+                    'hold': self._hold_mode,
+                    'hold_minutes': self._hold_minutes
+                }
+            })
 
-        # Keep only the last 20 notifications to avoid memory issues
-        if len(self._notifications) > 20:
-            self._notifications = self._notifications[-20:]
+            # Keep only the last 20 notifications to avoid memory issues
+            if len(self._notifications) > 20:
+                self._notifications = self._notifications[-20:]
 
-    except Exception as err:
-        _LOGGER.error(f"Error parsing notification: {err}")
-        _LOGGER.error(f"Problematic data: {data.hex()}")
+        except Exception as err:
+            _LOGGER.error(f"Error parsing notification: {err}")
+            _LOGGER.error(f"Problematic data: {data.hex()}")
 
     async def _ensure_connected(self, ble_device=None):
         """
