@@ -46,7 +46,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
             name=f"Fellow Stagg {address}",
             update_interval=POLLING_INTERVAL,
         )
-        self.kettle = KettleBLEClient(address)
+        self.kettle = KettleBLEClient(address, hass)
         self.ble_device = None
         self._address = address
         self._available = False
