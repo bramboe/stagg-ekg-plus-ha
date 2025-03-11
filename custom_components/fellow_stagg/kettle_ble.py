@@ -176,9 +176,39 @@ class KettleBLEClient:
         except Exception as err:
             _LOGGER.error(f"Error parsing status message: {err}")
 
+    async def _authenticate_device(self):
+        """Authenticate with the kettle using a single token."""
+        try:
+            # Try authentication using the write characteristic
+            write_char_uuid = "2291c4b7-5d7f-4477-a88b-b266edb97142"  # From your logs
+
+            # Create an authentication token similar to the other model
+            auth_token = bytearray([
+                0xef, 0xdd,  # Header
+                0x0b,        # Length
+                # ASCII "01234567890123" as hex - password/identifier
+                0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33,
+                0x9a, 0x6d   # Footer/checksum
+            ])
+
+            _LOGGER.debug(f"Sending authentication token: {auth_token.hex()}")
+
+            await self._client.write_gatt_char(
+                write_char_uuid,
+                auth_token,
+                response=True
+            )
+
+            _LOGGER.debug("Authentication token sent successfully")
+            return True
+
+        except Exception as auth_err:
+            _LOGGER.error(f"Authentication failed: {auth_err}")
+            return False
+
     async def _ensure_connected(self, ble_device=None):
         """
-        Enhanced connection method with comprehensive error handling.
+        Enhanced connection method with comprehensive error handling and authentication.
         """
         if self._connected and self._client and self._client.is_connected:
             return True
@@ -214,6 +244,16 @@ class KettleBLEClient:
                         if connected:
                             self._connected = True
                             self.ble_device = ble_device
+
+                            # Add authentication step here - before any other operations
+                            _LOGGER.debug("Connection successful, attempting authentication")
+                            auth_success = await self._authenticate_device()
+                            if not auth_success:
+                                _LOGGER.warning("Device authentication failed, commands may be rejected")
+                                # Continue anyway - some operations might still work
+                            else:
+                                _LOGGER.debug("Authentication successful")
+
                             # Wait a moment before subscribing
                             await asyncio.sleep(0.5)
                             await self._subscribe_to_notifications()
@@ -487,27 +527,58 @@ class KettleBLEClient:
                 0x01 if power_on else 0x00  # Power state
             ])
 
-            _LOGGER.debug(
-                f"Setting power {'ON' if power_on else 'OFF'}"
-            )
+            _LOGGER.debug(f"Setting power {'ON' if power_on else 'OFF'}")
             _LOGGER.debug(f"Sending command: {command.hex()}")
 
-            # Send command via characteristic write
-            await self._client.write_gatt_char(
-                CHAR_WRITE_UUID,
-                command,
-                response=True
-            )
+            # Use the correct write characteristic
+            # This is the one from your logs that worked for writes
+            write_char_uuid = "2291c4b7-5d7f-4477-a88b-b266edb97142"
+
+            success = False
+            try:
+                await self._client.write_gatt_char(
+                    write_char_uuid,
+                    command,
+                    response=True
+                )
+                success = True
+                _LOGGER.debug("Power command sent successfully")
+            except Exception as write_err:
+                _LOGGER.error(f"Failed to write power command: {write_err}")
+
+                # Try an alternative approach - if we have the handles cached
+                try:
+                    _LOGGER.debug("Attempting alternative write method to handle 0x002D")
+                    services = await self._client.get_services()
+                    for service in services:
+                        for char in service.characteristics:
+                            if char.uuid.lower() == write_char_uuid.lower():
+                                # Write to the found characteristic
+                                await self._client.write_gatt_char(
+                                    char,  # Pass the actual characteristic object
+                                    command,
+                                    response=True
+                                )
+                                success = True
+                                _LOGGER.debug("Power command sent successfully using characteristic object")
+                                break
+                        if success:
+                            break
+                except Exception as alt_err:
+                    _LOGGER.error(f"Alternative write method failed: {alt_err}")
+                    return False
 
             self._last_command_time = time.time()
 
             # Update local state
-            self._power_state = power_on
+            if success:
+                self._power_state = power_on
 
-            # Wait for the device to process the command
-            await asyncio.sleep(0.5)
-
-            return True
+                # Wait for the device to process the command
+                await asyncio.sleep(0.5)
+                return True
+            else:
+                return False
 
         except Exception as err:
             _LOGGER.error(f"Failed to set power state: {err}")
