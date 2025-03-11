@@ -43,13 +43,13 @@ class FellowStaggTargetTemperature(NumberEntity):
     self.coordinator = coordinator
     self._attr_unique_id = f"{coordinator._address}_target_temp"
     self._attr_device_info = coordinator.device_info
-    
+
     _LOGGER.debug("Initializing target temp with units: %s", coordinator.temperature_unit)
-    
+
     self._attr_native_min_value = coordinator.min_temp
     self._attr_native_max_value = coordinator.max_temp
     self._attr_native_unit_of_measurement = coordinator.temperature_unit
-    
+
     _LOGGER.debug(
       "Target temp range set to: %s°%s - %s°%s",
       self._attr_native_min_value,
@@ -61,6 +61,8 @@ class FellowStaggTargetTemperature(NumberEntity):
   @property
   def native_value(self) -> float | None:
     """Return the current target temperature."""
+    if self.coordinator.data is None:
+        return None
     value = self.coordinator.data.get("target_temp")
     _LOGGER.debug("Target temperature read as: %s°%s", value, self.coordinator.temperature_unit)
     return value
@@ -72,7 +74,7 @@ class FellowStaggTargetTemperature(NumberEntity):
       value,
       self.coordinator.temperature_unit
     )
-    
+
     await self.coordinator.kettle.async_set_temperature(
       self.coordinator.ble_device,
       int(value),
@@ -82,4 +84,4 @@ class FellowStaggTargetTemperature(NumberEntity):
     # Give the kettle a moment to update its internal state
     await asyncio.sleep(0.5)
     _LOGGER.debug("Requesting refresh after temperature change")
-    await self.coordinator.async_request_refresh() 
+    await self.coordinator.async_request_refresh()
