@@ -1,6 +1,6 @@
 """Support for Fellow Stagg EKG+ kettles."""
-import logging
 import asyncio  # Add this import
+import logging
 from datetime import timedelta
 from typing import Any
 
