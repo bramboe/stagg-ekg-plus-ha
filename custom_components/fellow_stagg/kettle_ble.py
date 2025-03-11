@@ -1,617 +1,207 @@
-import logging
-import time
 import asyncio
+import logging
 from bleak import BleakClient
-from bleak.exc import BleakError
-
-from .const import (
-    SERVICE_UUID,
-    CONTROL_SERVICE_UUID,
-    CHAR_CONTROL_UUID,
-    CHAR_WRITE_UUID,
-    INIT_SEQUENCE
-)
+from .const import SERVICE_UUID, CHAR_UUID, INIT_SEQUENCE
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class KettleBLEClient:
     """BLE client for the Fellow Stagg EKG+ kettle."""
 
-    def __init__(self, address: str, hass=None):
-        """Initialize the BLE client."""
+    def __init__(self, address: str):
         self.address = address
-        self.hass = hass
-
-        # Connection management
+        self.service_uuid = SERVICE_UUID
+        self.char_uuid = CHAR_UUID
+        self.init_sequence = INIT_SEQUENCE
         self._client = None
-        self.ble_device = None
+        self._sequence = 0  # For command sequence numbering
+        self._last_command_time = 0  # For debouncing commands
 
-        # Notification tracking
-        self._notifications = []
-        self._last_notification = None
+    async def _ensure_connected(self, ble_device):
+        """Ensure BLE connection is established."""
+        if self._client is None or not self._client.is_connected:
+            _LOGGER.debug("Connecting to kettle at %s", self.address)
+            self._client = BleakClient(ble_device, timeout=10.0)
+            await self._client.connect()
+            await self._authenticate()
 
-        # State tracking
-        self._current_temp = None
-        self._target_temp = None
-        self._power_state = None
-        self._hold_mode = False
-        self._hold_minutes = 0
-        self._lifted = False
-        self._units = "C"  # Default to Celsius
-        self._last_notification_time = 0
-        self._last_command_time = 0
+    async def _ensure_debounce(self):
+        """Ensure we don't send commands too frequently."""
+        import time
+        current_time = int(time.time() * 1000)  # Current time in milliseconds
+        if current_time - self._last_command_time < 200:  # 200ms debounce
+            await asyncio.sleep(0.2)  # Wait 200ms
+        self._last_command_time = current_time
 
-        # Connection management
-        self._connection_lock = asyncio.Lock()
-        self._connection_retry_count = 0
-        self._max_connection_retries = 3
-        self._connection_retry_delay = 1.0  # seconds
-        self._connected = False
-        self._reconnect_task = None
-
-    def _handle_disconnect(self, client):
-        """Handle disconnection events."""
-        _LOGGER.debug("Kettle disconnected")
-        self._connected = False
-        self._client = None
-        self._notifications = []
-
-        # Schedule reconnection after a brief delay if needed
-        if self._reconnect_task is None or self._reconnect_task.done():
-            self._reconnect_task = asyncio.create_task(self._delayed_reconnect())
-
-    async def _delayed_reconnect(self):
-        """Delay before reconnecting to avoid rapid reconnection attempts."""
-        await asyncio.sleep(2.0)  # Wait 2 seconds before reconnecting
+    async def _authenticate(self):
+        """Send authentication sequence to kettle."""
         try:
-            if not self._connected and self.ble_device:
-                _LOGGER.debug("Attempting delayed reconnection")
-                await self._ensure_connected(self.ble_device)
+            _LOGGER.debug("Writing init sequence to characteristic %s", self.char_uuid)
+            await self._ensure_debounce()
+            await self._client.write_gatt_char(self.char_uuid, self.init_sequence)
         except Exception as err:
-            _LOGGER.error("Error during delayed reconnection: %s", err)
+            _LOGGER.error("Error writing init sequence: %s", err)
+            raise
 
-    def _notification_handler(self, sender, data):
+    def _create_command(self, command_type: int, value: int, unit: bool = True) -> bytes:
+        """Create a command with proper sequence number and checksum.
+        
+        Command format:
+        - Bytes 0-1: Magic (0xef, 0xdd)
+        - Byte 2: Command flag (0x0a)
+        - Byte 3: Sequence number
+        - Byte 4: Command type (0=power, 1=temp)
+        - Byte 5: Value
+        - Byte 6: Checksum 1 (sequence + value)
+        - Byte 7: Checksum 2 (command type)
         """
-        Enhanced notification handler with better binary parsing.
-        """
+        command = bytearray([
+            0xef, 0xdd,  # Magic
+            0x0a,        # Command flag
+            self._sequence,  # Sequence number
+            command_type,    # Command type
+            value,          # Value
+            (self._sequence + value) & 0xFF,  # Checksum 1
+            command_type    # Checksum 2
+        ])
+        self._sequence = (self._sequence + 1) & 0xFF
+        return bytes(command)
+
+    async def async_poll(self, ble_device):
+        """Connect to the kettle, send init command, and return parsed state."""
         try:
-            _LOGGER.debug(f"Raw notification: {data.hex()}")
-            self._last_notification = data.hex()
-            self._last_notification_time = time.time()
+            await self._ensure_connected(ble_device)
+            notifications = []
 
-            # Store notification for pattern analysis
-            self._notifications.append((time.time(), data.hex()))
-
-            # Keep only the last 10 notifications to avoid memory issues
-            if len(self._notifications) > 10:
-                self._notifications = self._notifications[-10:]
-
-            # Check data length and header
-            if len(data) < 12:
-                _LOGGER.debug(f"Notification too short: {len(data)} bytes")
-                return
-
-            # Log each byte in hex format to help with analysis
-            byte_str = " ".join([f"{b:02x}" for b in data])
-            _LOGGER.debug(f"Bytes: {byte_str}")
-
-            # Common header pattern: f7 followed by message type
-            if data[0] == 0xF7:
-                message_type = data[1] if len(data) > 1 else None
-                _LOGGER.debug(f"Message type: {message_type}")
-
-                # Parse based on message type (from your Wireshark screenshots)
-                if message_type == 0x17:  # Status update
-                    self._parse_status_message(data)
-                elif message_type == 0x15:  # Another status variant
-                    self._parse_status_message(data)
-
-            # Look for power state in common positions
-            # Usually around byte 12 or 13
-            if len(data) >= 13:
-                power_byte = data[12]
-                self._power_state = power_byte > 0
-
-                # Check for hold mode flag - often at byte 14
-                if len(data) > 14:
-                    hold_byte = data[14]
-                    self._hold_mode = hold_byte == 0x0F
-
-            # Log parsed state
-            _LOGGER.debug(
-                f"Parsed notification - "
-                f"Current: {self._current_temp}°{self._units}, "
-                f"Target: {self._target_temp}°{self._units}, "
-                f"Power: {self._power_state}, "
-                f"Hold: {self._hold_mode}"
-            )
-        except Exception as err:
-            _LOGGER.error(f"Error parsing notification: {err}")
-
-    def _parse_status_message(self, data):
-        """Parse a status message from the kettle."""
-        try:
-            # Based on your Wireshark captures, temperature data is typically
-            # in bytes 4-8 in little-endian format
-
-            # For current temperature - this is approximate and needs calibration
-            if len(data) >= 8:
-                # Different message types might have temperature at different positions
-                # Try a few common locations
-                current_temp = None
-
-                # Try position based on message type
-                if data[1] == 0x17:  # Standard status message
-                    if len(data) >= 8:
-                        temp_bytes = data[4:6]
-                        temp_raw = int.from_bytes(temp_bytes, byteorder='little')
-                        if 0 <= temp_raw <= 30000:  # Reasonable range check
-                            current_temp = round(temp_raw / 200.0, 1)  # Scale factor from logs
-
-                # If that didn't work, try alternate positions
-                if current_temp is None and len(data) >= 10:
-                    temp_bytes = data[8:10]
-                    temp_raw = int.from_bytes(temp_bytes, byteorder='little')
-                    if 0 <= temp_raw <= 30000:
-                        current_temp = round(temp_raw / 200.0, 1)
-
-                if current_temp is not None and 0 <= current_temp <= 105:
-                    self._current_temp = current_temp
-                    _LOGGER.debug(f"Current temperature parsed: {current_temp}°C")
-
-            # For target temperature - usually in later bytes or in different messages
-            # This is harder to determine without more packet analysis
-            if len(data) >= 12:
-                # Target temp might be in bytes 10-12
-                try:
-                    temp_bytes = data[10:12]
-                    temp_raw = int.from_bytes(temp_bytes, byteorder='little')
-                    target_temp = round(temp_raw / 200.0, 1)
-                    if 40 <= target_temp <= 100:  # Reasonable range for target temp
-                        self._target_temp = target_temp
-                        _LOGGER.debug(f"Target temperature parsed: {target_temp}°C")
-                except Exception as temp_err:
-                    _LOGGER.debug(f"Target temp parsing error: {temp_err}")
-
-        except Exception as err:
-            _LOGGER.error(f"Error parsing status message: {err}")
-
-    async def _authenticate_device(self):
-        """Authenticate with the kettle using a single token."""
-        try:
-            # Try authentication using the write characteristic
-            write_char_uuid = "2291c4b7-5d7f-4477-a88b-b266edb97142"  # From your logs
-
-            # Create an authentication token similar to the other model
-            auth_token = bytearray([
-                0xef, 0xdd,  # Header
-                0x0b,        # Length
-                # ASCII "01234567890123" as hex - password/identifier
-                0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33,
-                0x9a, 0x6d   # Footer/checksum
-            ])
-
-            _LOGGER.debug(f"Sending authentication token: {auth_token.hex()}")
-
-            await self._client.write_gatt_char(
-                write_char_uuid,
-                auth_token,
-                response=True
-            )
-
-            _LOGGER.debug("Authentication token sent successfully")
-            return True
-
-        except Exception as auth_err:
-            _LOGGER.error(f"Authentication failed: {auth_err}")
-            return False
-
-    async def _ensure_connected(self, ble_device=None):
-        """
-        Enhanced connection method with comprehensive error handling and authentication.
-        """
-        if self._connected and self._client and self._client.is_connected:
-            return True
-
-        async with self._connection_lock:
-            if self._connected and self._client and self._client.is_connected:
-                return True
+            def notification_handler(sender, data):
+                notifications.append(data)
 
             try:
-                # Connection attempts
-                for attempt in range(self._max_connection_retries):
-                    try:
-                        _LOGGER.debug(f"Connecting to kettle (attempt {attempt + 1})")
-
-                        # Disconnect existing connection if active
-                        if self._client and self._client.is_connected:
-                            try:
-                                await self._client.disconnect()
-                                await asyncio.sleep(1.0)  # Add sleep after disconnect
-                            except Exception as disconnect_err:
-                                _LOGGER.warning(f"Disconnection error: {disconnect_err}")
-
-                        # Connection settings
-                        self._client = BleakClient(
-                            ble_device or self.address,
-                            timeout=20.0,  # Increased timeout
-                            disconnected_callback=self._handle_disconnect
-                        )
-
-                        # Attempt connection with longer timeout
-                        connected = await self._client.connect()
-
-                        if connected:
-                            self._connected = True
-                            self.ble_device = ble_device
-
-                            # Add authentication step here - before any other operations
-                            _LOGGER.debug("Connection successful, attempting authentication")
-                            auth_success = await self._authenticate_device()
-                            if not auth_success:
-                                _LOGGER.warning("Device authentication failed, commands may be rejected")
-                                # Continue anyway - some operations might still work
-                            else:
-                                _LOGGER.debug("Authentication successful")
-
-                            # Wait a moment before subscribing
-                            await asyncio.sleep(0.5)
-                            await self._subscribe_to_notifications()
-                            return True
-
-                        # If connection failed, wait before retry
-                        await asyncio.sleep(2.0)  # Longer delay between attempts
-
-                    except Exception as err:
-                        _LOGGER.error(f"Connection error (attempt {attempt + 1}): {err}")
-                        await asyncio.sleep(2.0)
-
-                self._connected = False
-                return False
+                await self._client.start_notify(self.char_uuid, notification_handler)
+                await asyncio.sleep(2.0)
+                await self._client.stop_notify(self.char_uuid)
             except Exception as err:
-                _LOGGER.error(f"Connection error: {err}")
-                self._connected = False
-                return False
+                _LOGGER.error("Error during notifications: %s", err)
+                return {}
 
-    async def _subscribe_to_notifications(self):
-        """Helper method to subscribe to relevant notifications and initialize the device"""
-        try:
-            # Subscribe to the control characteristic
-            await self._client.start_notify(
-                CHAR_CONTROL_UUID,
-                self._notification_handler
-            )
-            _LOGGER.debug("Successfully subscribed to notifications")
-
-            # Send initialization sequence if defined
-            if INIT_SEQUENCE:
-                _LOGGER.debug("Sending initialization sequence")
-                for command in INIT_SEQUENCE:
-                    char_uuid = command["uuid"]
-                    data = command["data"]
-                    try:
-                        await self._client.write_gatt_char(
-                            char_uuid,
-                            data,
-                            response=True
-                        )
-                        _LOGGER.debug(f"Wrote init data to {char_uuid}: {data.hex()}")
-                        await asyncio.sleep(0.2)  # Short delay between commands
-                    except Exception as write_err:
-                        _LOGGER.warning(f"Init write error to {char_uuid}: {write_err}")
-
-                _LOGGER.debug("Initialization sequence completed")
-
-        except Exception as notify_err:
-            _LOGGER.warning(f"Notification subscription error: {notify_err}")
-
-    async def async_poll(self, ble_device=None):
-        """
-        Connect to the kettle and return comprehensive state.
-        """
-        try:
-            # Ensure connection
-            connected = await self._ensure_connected(ble_device)
-            if not connected:
-                _LOGGER.error("Failed to connect to kettle")
-                return {"connected": False}
-
-            # Prepare state response
-            state = {"connected": True}
-
-            # Add parsed state information
-            if self._current_temp is not None:
-                state["current_temp"] = self._current_temp
-            if self._target_temp is not None:
-                state["target_temp"] = self._target_temp
-            if self._power_state is not None:
-                state["power"] = self._power_state
-            if self._hold_mode is not None:
-                state["hold"] = self._hold_mode
-            if self._units:
-                state["units"] = self._units
-
+            state = self.parse_notifications(notifications)
             return state
 
         except Exception as err:
-            _LOGGER.error(f"Error polling kettle: {err}")
-            await self.disconnect()
-            return {"connected": False}
+            _LOGGER.error("Error polling kettle: %s", err)
+            if self._client and self._client.is_connected:
+                await self._client.disconnect()
+            self._client = None
+            return {}
 
-    async def async_set_temperature(self, temperature: int, fahrenheit: bool = False):
-        """Enhanced temperature setting method."""
+    async def async_set_power(self, ble_device, power_on: bool):
+        """Turn the kettle on or off."""
         try:
-            # Ensure connection
-            if not await self._ensure_connected():
-                _LOGGER.error("Failed to connect for temperature setting")
-                return False
-
-            # Delay if we just sent a command (avoid flooding)
-            if time.time() - self._last_command_time < 0.5:
-                await asyncio.sleep(0.5)
-
-            # Convert temperature to observed hex encoding
-            if not fahrenheit:
-                # Celsius encoding - based on observed patterns
-                temp_hex = int(temperature * 200 + 20000)  # Adjust scaling based on logs
-            else:
-                # Fahrenheit encoding
-                temp_hex = int(temperature * 200 + 25000)  # Adjust for F scale
-
-            # Prepare command with known packet structure
-            command = bytearray([
-                0xF7,  # Header
-                0x02,  # Temperature set command
-                0x00, 0x00,  # Padding
-            ])
-
-            # Add temperature bytes (little-endian)
-            command.extend(temp_hex.to_bytes(2, byteorder='little'))
-
-            # Add additional metadata bytes observed in successful commands
-            command.extend([
-                0x08,  # Observed unit/metadata byte
-                0x00,  # Padding
-                0x04,  # Constant
-                0x01,  # Constant
-                0x16,  # Constant
-                0x30,  # Constant
-                0x00,  # Padding
-                0x20,  # Constant
-            ])
-
-            _LOGGER.debug(
-                f"Setting temperature to {temperature}°{' F' if fahrenheit else ' C'}"
-            )
-            _LOGGER.debug(f"Command hex: {command.hex()}")
-
-            # Use the correct characteristic (the one that worked for power)
-            write_char_uuid = "2291c4b7-5d7f-4477-a88b-b266edb97142"  # <-- This is the key change
-
-            # Write with longer timeout
-            await self._client.write_gatt_char(
-                write_char_uuid,
-                command,
-                response=True
-            )
-
-            self._last_command_time = time.time()
-
-            # Update local state after successful command
-            self._target_temp = temperature
-            self._units = "F" if fahrenheit else "C"
-
-            # Allow some time for the device to process
-            await asyncio.sleep(0.5)
-
-            return True
-
+            await self._ensure_connected(ble_device)
+            await self._ensure_debounce()
+            command = self._create_command(0, 1 if power_on else 0)
+            await self._client.write_gatt_char(self.char_uuid, command)
         except Exception as err:
-            _LOGGER.error(f"Failed to set temperature: {err}")
-            return False
+            _LOGGER.error("Error setting power state: %s", err)
+            if self._client and self._client.is_connected:
+                await self._client.disconnect()
+            self._client = None
+            raise
 
-    async def async_set_hold_mode(self, minutes=0):
-        """Set the hold mode timer.
-        Args: minutes: Hold time in minutes (0=off, 15, 30, 45, or 60)
-        """
+    async def async_set_temperature(self, ble_device, temp: int, fahrenheit: bool = True):
+        """Set target temperature."""
+        # Temperature validation from C++ setTemp method
+        if fahrenheit:
+            if temp > 212:
+                temp = 212
+            if temp < 104:
+                temp = 104
+        else:
+            if temp > 100:
+                temp = 100
+            if temp < 40:
+                temp = 40
+
         try:
-            if not await self._ensure_connected():
-                _LOGGER.error("No active BLE connection")
-                return False
-
-            # Valid hold times
-            valid_times = [0, 15, 30, 45, 60]
-            if minutes not in valid_times:
-                _LOGGER.error(f"Invalid hold time: {minutes}. Must be one of {valid_times}")
-                return False
-
-            # Delay if we just sent a command (avoid flooding)
-            if time.time() - self._last_command_time < 0.5:
-                await asyncio.sleep(0.5)
-
-            # Hold mode command structure
-            command = bytearray([
-                0xF7,  # Header
-                0x03,  # Hold mode command (based on pattern analysis)
-                0x00, 0x00,  # Padding
-                minutes,  # Minutes to hold
-                0x00,  # Padding
-                0x01,  # Constant
-                0x00,  # Padding
-                0x00,  # Padding
-            ])
-
-            _LOGGER.debug(f"Setting hold mode to {minutes} minutes")
-            _LOGGER.debug(f"Sending command: {command.hex()}")
-
-            await self._client.write_gatt_char(
-                CHAR_WRITE_UUID,
-                command,
-                response=True
-            )
-
-            self._last_command_time = time.time()
-
-            # Update local state
-            self._hold_mode = minutes > 0
-            self._hold_minutes = minutes
-
-            return True
+            await self._ensure_connected(ble_device)
+            await self._ensure_debounce()
+            command = self._create_command(1, temp)  # Type 1 = temperature command
+            await self._client.write_gatt_char(self.char_uuid, command)
         except Exception as err:
-            _LOGGER.error(f"Failed to set hold mode: {err}")
-            return False
-
-    async def async_set_temperature_unit(self, fahrenheit=False):
-        """Switch between Celsius and Fahrenheit."""
-        try:
-            if not await self._ensure_connected():
-                _LOGGER.error("No active BLE connection")
-                return False
-
-            # Delay if we just sent a command (avoid flooding)
-            if time.time() - self._last_command_time < 0.5:
-                await asyncio.sleep(0.5)
-
-            # Unit toggle command structure based on your Wireshark captures
-            command = bytearray([
-                0xF7,  # Header
-                0x04,  # Unit command
-                0x00, 0x00,  # Padding
-                0x01 if fahrenheit else 0x00,  # Units flag - 1=F, 0=C
-                0x00,  # Padding
-                0x00,  # Padding
-                0x00,  # Padding
-                0x00,  # Padding
-            ])
-
-            _LOGGER.debug(f"Setting temperature unit to {'Fahrenheit' if fahrenheit else 'Celsius'}")
-            _LOGGER.debug(f"Sending command: {command.hex()}")
-
-            await self._client.write_gatt_char(
-                CHAR_WRITE_UUID,
-                command,
-                response=True
-            )
-
-            self._last_command_time = time.time()
-
-            # Update local state
-            self._units = "F" if fahrenheit else "C"
-
-            # Wait for the device to process the command
-            await asyncio.sleep(0.5)
-
-            return True
-        except Exception as err:
-            _LOGGER.error(f"Failed to set temperature unit: {err}")
-            return False
-
-    async def async_set_power(self, power_on: bool):
-        """
-        Turn the kettle on or off with enhanced error handling.
-        """
-        try:
-            # Ensure connection
-            if not await self._ensure_connected():
-                _LOGGER.error("No active BLE connection")
-                return False
-
-            # Delay if we just sent a command (avoid flooding)
-            if time.time() - self._last_command_time < 0.5:
-                await asyncio.sleep(0.5)
-
-            # Power command structure
-            command = bytearray([
-                0xF7,  # Header
-                0x01,  # Power command
-                0x00, 0x00,  # Padding
-                0x01 if power_on else 0x00,  # Power state
-                0x00,  # Additional padding
-                0x00,  # Additional padding
-                0x00,  # Additional padding
-                0x00,  # Additional padding
-            ])
-
-            _LOGGER.debug(f"Setting power {'ON' if power_on else 'OFF'}")
-            _LOGGER.debug(f"Sending command: {command.hex()}")
-
-            # Use the correct write characteristic
-            # This is the one from your logs that worked for writes
-            write_char_uuid = "2291c4b7-5d7f-4477-a88b-b266edb97142"
-
-            success = False
-            try:
-                await self._client.write_gatt_char(
-                    write_char_uuid,
-                    command,
-                    response=True
-                )
-                success = True
-                _LOGGER.debug("Power command sent successfully")
-            except Exception as write_err:
-                _LOGGER.error(f"Failed to write power command: {write_err}")
-
-                # Try an alternative approach - if we have the handles cached
-                try:
-                    _LOGGER.debug("Attempting alternative write method to handle 0x002D")
-                    services = await self._client.get_services()
-                    for service in services:
-                        for char in service.characteristics:
-                            if char.uuid.lower() == write_char_uuid.lower():
-                                # Write to the found characteristic
-                                await self._client.write_gatt_char(
-                                    char,  # Pass the actual characteristic object
-                                    command,
-                                    response=True
-                                )
-                                success = True
-                                _LOGGER.debug("Power command sent successfully using characteristic object")
-                                break
-                        if success:
-                            break
-                except Exception as alt_err:
-                    _LOGGER.error(f"Alternative write method failed: {alt_err}")
-                    return False
-
-            self._last_command_time = time.time()
-
-            # Update local state
-            if success:
-                self._power_state = power_on
-
-                # Wait for the device to process the command
-                await asyncio.sleep(0.5)
-                return True
-            else:
-                return False
-
-        except Exception as err:
-            _LOGGER.error(f"Failed to set power state: {err}")
-            return False
+            _LOGGER.error("Error setting temperature: %s", err)
+            if self._client and self._client.is_connected:
+                await self._client.disconnect()
+            self._client = None
+            raise
 
     async def disconnect(self):
+        """Disconnect from the kettle."""
+        if self._client and self._client.is_connected:
+            await self._client.disconnect()
+        self._client = None
+
+    def parse_notifications(self, notifications):
+        """Parse BLE notification payloads into kettle state.
+
+        Expected frame format comes in two notifications:
+          First notification:
+            - Bytes 0-1: Magic (0xef, 0xdd)
+            - Byte 2: Message type
+          Second notification:
+            - Payload data
+
+        Reverse engineered types:
+          - Type 0: Power (1 = on, 0 = off)
+          - Type 1: Hold (1 = hold, 0 = normal)
+          - Type 2: Target temperature (byte 0: temp, byte 1: unit, 1 = F, else C)
+          - Type 3: Current temperature (byte 0: temp, byte 1: unit, 1 = F, else C)
+          - Type 4: Countdown
+          - Type 8: Kettle position (0 = lifted, 1 = on base)
         """
-        Disconnect from the kettle with comprehensive cleanup.
-        """
-        try:
-            if self._client and self._client.is_connected:
-                # Stop notifications
-                try:
-                    await self._client.stop_notify(CHAR_CONTROL_UUID)
-                except Exception as notify_err:
-                    _LOGGER.warning(f"Error stopping notifications: {notify_err}")
-
-                # Disconnect
-                await self._client.disconnect()
-
-            # Reset state
-            self._client = None
-            self.ble_device = None
-            self._notifications = []
-            self._connected = False
-
-            # Keep the last known values in case we reconnect
-            # but mark as disconnected
-
-        except Exception as err:
-            _LOGGER.error(f"Error during disconnect: {err}")
+        state = {}
+        i = 0
+        while i < len(notifications) - 1:  # Process pairs of notifications
+            header = notifications[i]
+            payload = notifications[i + 1]
+            
+            if len(header) < 3 or header[0] != 0xEF or header[1] != 0xDD:
+                i += 1
+                continue
+                
+            msg_type = header[2]
+            
+            if msg_type == 0:
+                # Power state
+                if len(payload) >= 1:
+                    state["power"] = payload[0] == 1
+            elif msg_type == 1:
+                # Hold state
+                if len(payload) >= 1:
+                    state["hold"] = payload[0] == 1
+            elif msg_type == 2:
+                # Target temperature
+                if len(payload) >= 2:
+                    temp = payload[0]  # Single byte temperature
+                    is_fahrenheit = payload[1] == 1
+                    state["target_temp"] = temp
+                    state["units"] = "F" if is_fahrenheit else "C"
+            elif msg_type == 3:
+                # Current temperature
+                if len(payload) >= 2:
+                    temp = payload[0]  # Single byte temperature
+                    is_fahrenheit = payload[1] == 1
+                    state["current_temp"] = temp
+                    state["units"] = "F" if is_fahrenheit else "C"
+            elif msg_type == 4:
+                # Countdown
+                if len(payload) >= 1:
+                    state["countdown"] = payload[0]
+            elif msg_type == 8:
+                # Kettle position
+                if len(payload) >= 1:
+                    state["lifted"] = payload[0] == 0
+            
+            i += 2  # Move to next pair of notifications
+            
+        return state
