@@ -506,46 +506,93 @@ class KettleBLEClient:
             if time.time() - self._last_command_time < 0.5:
                 await asyncio.sleep(0.5)
 
-            # Simpler power command structure for testing
-            command = bytearray([
-                0xF7,  # Header
-                0x01,  # Power command
-                0x00,  # Padding
-                0x00,  # Padding
-                0x01 if power_on else 0x00,  # Power state
-                0x00,  # Padding
-                0x00,  # Padding
-                0x00,  # Padding
-                0x00   # Padding
-            ])
+            # Try different command structures
+            commands = [
+                # Original 9-byte command
+                bytearray([
+                    0xF7,  # Header
+                    0x01,  # Power command
+                    0x00,  # Padding
+                    0x00,  # Padding
+                    0x01 if power_on else 0x00,  # Power state
+                    0x00,  # Padding
+                    0x00,  # Padding
+                    0x00,  # Padding
+                    0x00   # Padding
+                ]),
+                # Shorter 5-byte command
+                bytearray([
+                    0xF7,  # Header
+                    0x01,  # Power command
+                    0x00,  # Padding
+                    0x00,  # Padding
+                    0x01 if power_on else 0x00  # Power state
+                ]),
+                # Longer 12-byte command
+                bytearray([
+                    0xF7,  # Header
+                    0x01,  # Power command
+                    0x00, 0x00,  # Padding
+                    0x01 if power_on else 0x00,  # Power state
+                    0x00,  # Padding
+                    0x04,  # Additional metadata
+                    0x01,  # Additional metadata
+                    0x16,  # Additional metadata
+                    0x30,  # Additional metadata
+                    0x00,  # Padding
+                    0x20   # Additional metadata
+                ])
+            ]
 
             _LOGGER.debug(
                 f"Setting power {'ON' if power_on else 'OFF'}"
             )
-            _LOGGER.debug(f"Sending command: {command.hex()}")
 
-            # Try writing to both characteristics for testing
-            for char_uuid in [CHAR_WRITE_UUID, CHAR_CONTROL_UUID]:
-                try:
-                    _LOGGER.debug(f"Attempting write to characteristic: {char_uuid}")
-                    await self._client.write_gatt_char(
-                        char_uuid,
-                        command,
-                        response=True
-                    )
-                    _LOGGER.debug(f"Successfully wrote to {char_uuid}")
-                except Exception as write_err:
-                    _LOGGER.debug(f"Failed to write to {char_uuid}: {write_err}")
+            # Try each command structure
+            for i, command in enumerate(commands):
+                _LOGGER.debug(f"Trying command variant {i+1}: {command.hex()}")
+                
+                # Try writing to both characteristics
+                for char_uuid in [CHAR_WRITE_UUID, CHAR_CONTROL_UUID]:
+                    try:
+                        _LOGGER.debug(f"Attempting write to characteristic: {char_uuid}")
+                        
+                        # Try with response first
+                        try:
+                            await self._client.write_gatt_char(
+                                char_uuid,
+                                command,
+                                response=True
+                            )
+                            _LOGGER.debug(f"Successfully wrote to {char_uuid} with response")
+                            self._last_command_time = time.time()
+                            self._power_state = power_on
+                            return True
+                        except Exception as write_err:
+                            _LOGGER.debug(f"Failed to write with response to {char_uuid}: {write_err}")
+                            
+                            # Try without response
+                            try:
+                                await self._client.write_gatt_char(
+                                    char_uuid,
+                                    command,
+                                    response=False
+                                )
+                                _LOGGER.debug(f"Successfully wrote to {char_uuid} without response")
+                                self._last_command_time = time.time()
+                                self._power_state = power_on
+                                return True
+                            except Exception as write_err2:
+                                _LOGGER.debug(f"Failed to write without response to {char_uuid}: {write_err2}")
+                                
+                    except Exception as char_err:
+                        _LOGGER.debug(f"Error with characteristic {char_uuid}: {char_err}")
+                
+                # Small delay between command variants
+                await asyncio.sleep(0.5)
 
-            self._last_command_time = time.time()
-
-            # Update local state
-            self._power_state = power_on
-
-            # Wait for the device to process the command
-            await asyncio.sleep(0.5)
-
-            return True
+            _LOGGER.error("All command variants failed")
+            return False
 
         except Exception as err:
             _LOGGER.error(f"Failed to set power state: {err}")
