@@ -22,13 +22,22 @@ class KettleBLEClient:
         """Ensure BLE connection is established."""
         if self._client is None or not self._client.is_connected:
             _LOGGER.debug("Connecting to kettle at %s", self.address)
+
+            # Log device details for debugging
+            if hasattr(ble_device, 'name'):
+                _LOGGER.debug("Device name: %s", ble_device.name)
+            if hasattr(ble_device, 'address'):
+                _LOGGER.debug("Device address: %s", ble_device.address)
+
             self._client = BleakClient(ble_device, timeout=10.0)
             try:
-                await self._client.connect()
-                _LOGGER.debug("Connected successfully to %s", self.address)
+                _LOGGER.debug("Attempting to connect with BleakClient...")
+                connected = await self._client.connect()
+                _LOGGER.debug("Connected successfully to %s (result: %s)", self.address, connected)
 
                 # Log available services and characteristics for debugging
                 if self._debug_mode:
+                    _LOGGER.debug("Discovering services and characteristics...")
                     for service in self._client.services:
                         _LOGGER.debug(f"Service: {service.uuid}")
                         for char in service.characteristics:
@@ -46,6 +55,11 @@ class KettleBLEClient:
     async def async_poll(self, ble_device):
         """Connect to the kettle and return parsed state."""
         try:
+            if not ble_device:
+                _LOGGER.error("BLE device is None - cannot connect")
+                return {}
+
+            _LOGGER.debug(f"BLE device type: {type(ble_device)}")
             await self._ensure_connected(ble_device)
 
             # Simple state dict to store our findings
@@ -53,7 +67,7 @@ class KettleBLEClient:
 
             # Just try to read the temperature characteristic directly first
             try:
-                _LOGGER.debug("Attempting to read temperature characteristic")
+                _LOGGER.debug("Attempting to read temperature characteristic %s", self.temp_char_uuid)
                 temp_data = await self._client.read_gatt_char(self.temp_char_uuid)
                 _LOGGER.debug(f"Raw temperature data: {temp_data.hex()}")
                 state["raw_temp_data"] = temp_data.hex()
@@ -70,6 +84,7 @@ class KettleBLEClient:
 
             except Exception as err:
                 _LOGGER.warning("Could not read temperature characteristic: %s", err)
+                _LOGGER.debug("Trying notifications approach as a fallback")
 
             # Try notifications approach as a backup
             notifications = []
@@ -111,7 +126,10 @@ class KettleBLEClient:
         except Exception as err:
             _LOGGER.error(f"Error polling kettle: {err}")
             if self._client and self._client.is_connected:
-                await self._client.disconnect()
+                try:
+                    await self._client.disconnect()
+                except Exception as disc_err:
+                    _LOGGER.error(f"Error disconnecting: {disc_err}")
             self._client = None
             return {}
 
