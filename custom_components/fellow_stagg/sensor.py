@@ -109,16 +109,11 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
         self._attr_device_info = coordinator.device_info
 
         # Update unit of measurement based on kettle's current units
-        if description.device_class == SensorDeviceClass.TEMPERATURE and coordinator.data:
+        if description.device_class == SensorDeviceClass.TEMPERATURE:
             is_fahrenheit = coordinator.data.get("units") == "F"
             self._attr_native_unit_of_measurement = (
                 UnitOfTemperature.FAHRENHEIT if is_fahrenheit else UnitOfTemperature.CELSIUS
             )
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.data is not None
 
     @property
     def native_value(self) -> str | None:
