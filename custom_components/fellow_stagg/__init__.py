@@ -3,9 +3,10 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-from bleak import BleakScanner
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
+    async_last_service_info,
+    BluetoothScanningMode,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
@@ -71,29 +72,30 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
     """Fetch data from the kettle."""
     _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
 
-    # First try the standard Home Assistant approach
-    self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
+    # First, check if we have a recent service info via a proxy
+    service_info = async_last_service_info(self.hass, self._address)
+    if service_info:
+        _LOGGER.debug("Found service info via proxy for %s", self._address)
+        # We'll use the proxied connection
+        self.ble_device = service_info.device
+        _LOGGER.debug("Using proxied device: %s", self.ble_device.address)
+    else:
+        # Fall back to direct connection (likely won't work if proxy is connected)
+        _LOGGER.debug("No service info found, trying direct connection")
+        self.ble_device = async_ble_device_from_address(
+            self.hass,
+            self._address,
+            connectable=True,
+            scanning_mode=BluetoothScanningMode.ACTIVE
+        )
 
-    # If that fails, try direct scanning with bleak
     if not self.ble_device:
-        _LOGGER.debug("Device not found via Home Assistant BLE, trying direct scan")
-        try:
-            # Directly scan with BleakScanner
-            device = await BleakScanner.find_device_by_address(
-                self._address, timeout=5.0
-            )
-            if device:
-                _LOGGER.debug("Found device via direct BleakScanner: %s", device.name)
-                self.ble_device = device
-            else:
-                _LOGGER.debug("No device found even with direct scan")
-                return None
-        except Exception as e:
-            _LOGGER.error("Error during direct scan: %s", e)
-            return None
+      _LOGGER.debug("No connectable device found for %s", self._address)
+      return None
 
     try:
-      _LOGGER.debug("Attempting to poll kettle data...")
+      _LOGGER.debug("Attempting to poll kettle data via %s connection",
+                   "PROXY" if service_info else "DIRECT")
       data = await self.kettle.async_poll(self.ble_device)
       _LOGGER.debug(
         "Successfully polled data from kettle %s: %s",
