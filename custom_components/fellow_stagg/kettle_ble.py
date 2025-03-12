@@ -34,6 +34,7 @@ class KettleBLEClient:
         try:
             if self._client is None or not self._client.is_connected:
                 _LOGGER.debug("Connecting to kettle at %s", self.address)
+                # Create client with the device directly, not the address string
                 self._client = BleakClient(ble_device, timeout=10.0)
 
                 connection_successful = await self._client.connect()
@@ -74,6 +75,27 @@ class KettleBLEClient:
             _LOGGER.error("Connection error: %s", err)
             self._client = None
             raise
+
+    async def _try_fallback_connection(self):
+        """Try a direct connection as fallback."""
+        _LOGGER.debug("Attempting direct connection fallback to %s", self.address)
+        try:
+            fallback_client = BleakClient(self.address, timeout=10.0)
+            await fallback_client.connect()
+            self._client = fallback_client
+            _LOGGER.debug("Fallback connection successful")
+
+            # Log services and characteristics
+            services = await self._client.get_services()
+            _LOGGER.debug("Fallback connection found services: %s",
+                        [service.uuid for service in services])
+
+            # Return True if connection succeeded
+            return True
+        except Exception as fallback_err:
+            _LOGGER.error("Fallback connection also failed: %s", fallback_err)
+            self._client = None
+            return False
 
     async def _ensure_debounce(self):
         """Ensure we don't send commands too frequently."""
@@ -161,7 +183,21 @@ class KettleBLEClient:
         """Connect to the kettle and return parsed state."""
         try:
             _LOGGER.debug("Begin polling kettle")
-            await self._ensure_connected(ble_device)
+
+            # Try primary connection first
+            try:
+                await self._ensure_connected(ble_device)
+            except Exception as err:
+                _LOGGER.error("Primary connection failed: %s", err)
+                # Try fallback connection
+                if not await self._try_fallback_connection():
+                    # If both connection attempts fail, return default state
+                    return {
+                        "power": False,
+                        "target_temp": 40,
+                        "current_temp": 25,
+                        "units": "C"
+                    }
 
             # Find a working characteristic
             await self._find_working_characteristic()
@@ -306,7 +342,16 @@ class KettleBLEClient:
         """Turn the kettle on or off."""
         try:
             _LOGGER.debug("Setting power: %s", "ON" if power_on else "OFF")
-            await self._ensure_connected(ble_device)
+
+            # Try primary connection first
+            try:
+                await self._ensure_connected(ble_device)
+            except Exception as err:
+                _LOGGER.error("Primary connection failed: %s", err)
+                # Try fallback connection
+                if not await self._try_fallback_connection():
+                    raise Exception("Could not establish connection")
+
             await self._ensure_debounce()
 
             # Use the exact command format from logs
@@ -338,7 +383,16 @@ class KettleBLEClient:
                 temp_c = temp
 
             _LOGGER.debug("Setting temperature: %g°C", temp_c)
-            await self._ensure_connected(ble_device)
+
+            # Try primary connection first
+            try:
+                await self._ensure_connected(ble_device)
+            except Exception as err:
+                _LOGGER.error("Primary connection failed: %s", err)
+                # Try fallback connection
+                if not await self._try_fallback_connection():
+                    raise Exception("Could not establish connection")
+
             await self._ensure_debounce()
 
             # Create temperature command - this will be a simplified approach
@@ -366,7 +420,16 @@ class KettleBLEClient:
         """Set temperature unit to Fahrenheit or Celsius."""
         try:
             _LOGGER.debug("Setting temperature unit to: %s", "Fahrenheit" if fahrenheit else "Celsius")
-            await self._ensure_connected(ble_device)
+
+            # Try primary connection first
+            try:
+                await self._ensure_connected(ble_device)
+            except Exception as err:
+                _LOGGER.error("Primary connection failed: %s", err)
+                # Try fallback connection
+                if not await self._try_fallback_connection():
+                    raise Exception("Could not establish connection")
+
             await self._ensure_debounce()
 
             # Use the exact unit commands from logs
