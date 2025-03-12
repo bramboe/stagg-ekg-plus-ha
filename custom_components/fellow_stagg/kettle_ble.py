@@ -12,9 +12,7 @@ def _decode_temperature(data: bytes) -> float:
     """
     Decode temperature from kettle data.
 
-    Based on Wireshark analysis:
-    - Current temperature in byte 4
-    - Uses formula: temp_celsius = (value - 0x30) / 2
+    Special case for 100°C showing as 133°C
     """
     if len(data) < 16:
         return 0.0
@@ -22,62 +20,66 @@ def _decode_temperature(data: bytes) -> float:
     # Byte at index 4 contains temperature information
     temp_byte = data[4]
 
-    # Check if kettle appears to be powered off
-    if temp_byte == 0xC0:
-        return 0.0
-
-    # Apply formula discovered in Wireshark analysis
-    celsius = (temp_byte - 0x30) / 2
+    # Significant offset discovered
+    celsius = (temp_byte - 33)  # Adjusting for 100°C → 133°C mapping
 
     return round(max(0, celsius), 1)
 
-def _decode_target_temperature(data: bytes) -> float:
+def _encode_temperature(celsius: float) -> bytes:
     """
-    Decode target temperature from kettle data.
+    Encode temperature for the kettle based on Wireshark analysis.
 
-    Based on Wireshark analysis:
-    - Target temperature in byte 12
-    - Uses formula: target_temp = value - 0x0A
+    Uses formula: temp_byte = 0x30 + (celsius * 2)
     """
-    if len(data) < 16:
-        return 0.0
+    # Validate temperature range
+    if celsius < 40:
+        celsius = 40
+    elif celsius > 100:
+        celsius = 100
 
-    # Byte at index 12 contains target temperature
-    target_byte = data[12]
+    # Formula derived from Wireshark packet analysis
+    temp_byte = int(0x30 + (celsius * 2))
 
-    # Check if kettle appears to be powered off
-    if target_byte < 0x1E or data[9] == 0x00 and data[10] == 0x18:
-        return 40.0  # Default to minimum when off
+    # Command structure matching the exact format seen in successful reads
+    # Raw kettle data observed: f71700005480c080000021140100000034
+    command = bytearray([
+        0xf7, 0x17, 0x00, 0x00,      # Standard header
+        temp_byte,                    # Temperature byte with correct formula
+        0x80, 0xc0, 0x80,            # Fixed padding as seen in reads
+        0x00, 0x00, 0x21, 0x14,      # State flags from working packets
+        0x01, 0x00, 0x00, 0x00       # Fixed ending bytes
+    ])
 
-    # Apply formula discovered in Wireshark analysis
-    target_celsius = target_byte - 0x0A
+    # Add checksum (last byte)
+    checksum = sum(command) & 0xFF
+    command.append(checksum)
 
-    return round(max(40, target_celsius), 1)
+    return bytes(command)
 
-def _is_powered_off(data: bytes) -> bool:
+def _validate_temperature(temp: float, fahrenheit: bool = False) -> float:
     """
-    Determine if the kettle is powered off based on status data.
+    Validate and convert temperature.
 
-    Based on Wireshark analysis:
-    - Power off indicated by specific byte patterns:
-      - Byte 4 = 0xC0 (special non-temperature value)
-      - Bytes 9-10 = 0x0018 (different state flags)
-      - Byte 12 = 0x01 (invalid temperature)
+    Conversion and range checking based on device specifications.
     """
-    if len(data) < 16:
-        return True  # Assume off if data is incomplete
+    if fahrenheit:
+        # Convert Fahrenheit to Celsius
+        temp_c = (temp - 32) * 5 / 9
 
-    # Check for power off indicators
-    if data[4] == 0xC0:  # Temperature byte shows power off
-        return True
+        # Validate Fahrenheit range
+        if temp > 212:
+            temp = 212
+        if temp < 104:
+            temp = 104
+    else:
+        # Validate Celsius range
+        if temp > 100:
+            temp = 100
+        if temp < 40:
+            temp = 40
+        temp_c = temp
 
-    if data[9] == 0x00 and data[10] == 0x18:  # State flags indicate off
-        return True
-
-    if data[12] < 0x1E:  # Temperature set too low (below 40°C)
-        return True
-
-    return False
+    return round(temp_c, 1)
 
 class KettleBLEClient:
     """BLE client for the Fellow Stagg EKG+ kettle."""
@@ -94,7 +96,7 @@ class KettleBLEClient:
             "units": "C",
             "power": False,
             "current_temp": None,
-            "target_temp": 40.0
+            "target_temp": None
         }
 
     async def ensure_connected(self, device: BluetoothScannerDevice | None = None) -> None:
@@ -170,61 +172,32 @@ class KettleBLEClient:
             await asyncio.sleep(0.2)
         self._last_command_time = current_time
 
-    def _create_temperature_command(self, celsius: float) -> bytes:
-        """Create a command to set temperature.
-
-        Format based on raw kettle data observed in logs:
-        f71700005480c080000021140100000034
-        """
-        # Validate temperature range
-        celsius = max(40, min(100, celsius))
-
-        # Apply the correct formula for temperature byte
-        temp_byte = int(0x30 + (celsius * 2))
-
-        # Target temperature byte (although the kettle appears to ignore this)
-        target_byte = int(0x0A + celsius)
-
-        # Use the exact format observed in kettle responses
-        command = bytearray([
-            0xF7, 0x17, 0x00, 0x00,      # Header (4 bytes)
-            temp_byte, 0x80, 0xC0, 0x80, # Temperature and fixed bytes (4 bytes)
-            0x00, 0x00, 0x21, 0x14,      # State flags exactly as seen in working packets (4 bytes)
-            0x01, 0x00, 0x00, 0x00       # Last 4 bytes from observed format
-        ])
-
-        # Calculate checksum (simple sum of all bytes modulo 256)
-        checksum = sum(command) & 0xFF
-        command.append(checksum)
-
-        return bytes(command)
-
-    def _create_power_command(self, power_on: bool) -> bytes:
-        """Create a command to turn the kettle on or off."""
-        # Get next sequence number
+    def _create_command(self, celsius: float = None, power: bool = None) -> bytes:
+        """Create a command packet."""
         seq = (self._sequence + 1) & 0xFF
-
-        # Create command with standard header
         command = bytearray([
-            0xF7, 0x17, 0x00, 0x00,      # Header
+            0xF7,        # Header
+            0x17,        # Command type
+            0x00, 0x00,  # Zero padding
         ])
 
-        # Power command format
+        if celsius is not None:
+            # Add temperature bytes
+            command.extend(_encode_temperature(celsius))
+        else:
+            # Power command
+            command.extend([0xBC, 0x80])  # Default temp bytes
+
         command.extend([
-            0x50, 0x8C, 0x08, 0x00,      # Power command prefix
-            0x00, 0x01, 0x60, 0x40,      # Control bytes
-            0x01                          # Command type byte
+            0xC0, 0x80,  # Static values
+            0x00, 0x00,  # Zero padding
+            seq, 0x00,   # Sequence number
+            0x01,        # Static value
+            0x0F if power else 0x00,  # Power state
+            0x00, 0x00   # Zero padding
         ])
 
-        # Add power state byte - this is the critical part
-        command.append(0x0F if power_on else 0x00)
-
-        # Add trailing zeros
-        command.extend([0x00, 0x00])
-
-        # Update sequence for next command
         self._sequence = seq
-
         return bytes(command)
 
     async def async_poll(self, device: BluetoothScannerDevice | None):
@@ -245,25 +218,17 @@ class KettleBLEClient:
                 # Explicitly use CONTROL_CHAR_UUID for reading
                 _LOGGER.debug(f"Reading characteristic {CONTROL_CHAR_UUID}")
                 value = await self._client.read_gatt_char(CONTROL_CHAR_UUID)
-                _LOGGER.debug(f"Raw kettle data: {value.hex()}")
+                _LOGGER.debug(f"Raw temperature data: {value.hex()}")
 
-                # Parse the data into kettle state
+                # More robust data parsing
                 if len(value) >= 16:
-                    # Check power state first
-                    power_state = not _is_powered_off(value)
-
-                    # Only decode temperatures if powered on
-                    if power_state:
-                        current_temp = _decode_temperature(value)
-                        target_temp = _decode_target_temperature(value)
-                    else:
-                        current_temp = 0.0
-                        target_temp = 40.0  # Default to minimum when off
+                    temp_celsius = _decode_temperature(value)
+                    power_state = bool(value[12] == 0x0F)
 
                     state = {
-                        "current_temp": current_temp,
+                        "current_temp": temp_celsius,
                         "power": power_state,
-                        "target_temp": target_temp,
+                        "target_temp": temp_celsius,  # Placeholder until we can accurately read target temp
                         "units": "C"
                     }
 
@@ -274,7 +239,7 @@ class KettleBLEClient:
                     return self._default_state.copy()
 
             except Exception as read_err:
-                _LOGGER.error(f"Error reading kettle state: {read_err}", exc_info=True)
+                _LOGGER.error(f"Error reading temperature: {read_err}", exc_info=True)
                 return self._default_state.copy()
 
         except Exception as poll_err:
@@ -291,7 +256,7 @@ class KettleBLEClient:
             await self.ensure_connected(device)
             await self._ensure_debounce()
 
-            command = self._create_power_command(power_on)
+            command = self._create_command(power=power_on)
             _LOGGER.debug(f"Writing power command for {self.address}: {command.hex()}")
 
             if self._client and self._client.is_connected:
@@ -305,13 +270,12 @@ class KettleBLEClient:
             _LOGGER.error(f"Error setting power state for {self.address}: {err}", exc_info=True)
             raise
 
-    async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = False):
+    async def async_set_temperature(self, device: BluetoothScannerDevice | None, temp: float, fahrenheit: bool = True):
         """Set target temperature."""
         if not device:
             _LOGGER.warning(f"No device provided for temperature setting for {self.address}")
             return
 
-        # Convert to Celsius if needed
         if fahrenheit:
             if temp > 212: temp = 212
             if temp < 104: temp = 104
@@ -325,7 +289,7 @@ class KettleBLEClient:
             await self.ensure_connected(device)
             await self._ensure_debounce()
 
-            command = self._create_temperature_command(celsius)
+            command = self._create_command(celsius=celsius)
             _LOGGER.debug(f"Writing temperature command for {self.address}: {command.hex()}")
 
             if self._client and self._client.is_connected:
