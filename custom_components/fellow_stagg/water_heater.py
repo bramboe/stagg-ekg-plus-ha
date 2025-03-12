@@ -64,25 +64,16 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     )
 
   @property
-  def available(self) -> bool:
-    """Return if entity is available."""
-    return self.coordinator.last_update_success and self.coordinator.data is not None
-
-  @property
   def current_temperature(self) -> float | None:
     """Return the current temperature."""
-    if not self.coordinator.data:
-      return None
-    value = self.coordinator.data.get("current_temp")
+    value = self.coordinator.data.get("current_temp") if self.coordinator.data else None
     _LOGGER.debug("Water heater current temperature read as: %s°%s", value, self.coordinator.temperature_unit)
     return value
 
   @property
   def target_temperature(self) -> float | None:
     """Return the target temperature."""
-    if not self.coordinator.data:
-      return None
-    value = self.coordinator.data.get("target_temp")
+    value = self.coordinator.data.get("target_temp") if self.coordinator.data else None
     _LOGGER.debug("Water heater target temperature read as: %s°%s", value, self.coordinator.temperature_unit)
     return value
 
@@ -107,42 +98,33 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
       self.coordinator.temperature_unit
     )
 
-    try:
-      await self.coordinator.kettle.async_set_temperature(
-        self.coordinator.ble_device,
-        int(temperature),
-        fahrenheit=self.coordinator.temperature_unit == UnitOfTemperature.FAHRENHEIT
-      )
-      _LOGGER.debug("Target temperature command sent, waiting before refresh")
-      # Give the kettle a moment to update its internal state
-      await asyncio.sleep(0.5)
-      _LOGGER.debug("Requesting refresh after temperature change")
-      await self.coordinator.async_request_refresh()
-    except Exception as err:
-      _LOGGER.error("Failed to set water heater temperature: %s", err)
+    await self.coordinator.kettle.async_set_temperature(
+      self.coordinator.ble_device,
+      int(temperature),
+      fahrenheit=self.coordinator.temperature_unit == UnitOfTemperature.FAHRENHEIT
+    )
+    _LOGGER.debug("Target temperature command sent, waiting before refresh")
+    # Give the kettle a moment to update its internal state
+    await asyncio.sleep(0.5)
+    _LOGGER.debug("Requesting refresh after temperature change")
+    await self.coordinator.async_request_refresh()
 
   async def async_turn_on(self, **kwargs: Any) -> None:
     """Turn the water heater on."""
     _LOGGER.debug("Turning water heater ON")
-    try:
-      await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, True)
-      _LOGGER.debug("Power ON command sent, waiting before refresh")
-      # Give the kettle a moment to update its internal state
-      await asyncio.sleep(0.5)
-      _LOGGER.debug("Requesting refresh after power change")
-      await self.coordinator.async_request_refresh()
-    except Exception as err:
-      _LOGGER.error("Failed to turn on water heater: %s", err)
+    await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, True)
+    _LOGGER.debug("Power ON command sent, waiting before refresh")
+    # Give the kettle a moment to update its internal state
+    await asyncio.sleep(0.5)
+    _LOGGER.debug("Requesting refresh after power change")
+    await self.coordinator.async_request_refresh()
 
   async def async_turn_off(self, **kwargs: Any) -> None:
     """Turn the water heater off."""
     _LOGGER.debug("Turning water heater OFF")
-    try:
-      await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, False)
-      _LOGGER.debug("Power OFF command sent, waiting before refresh")
-      # Give the kettle a moment to update its internal state
-      await asyncio.sleep(0.5)
-      _LOGGER.debug("Requesting refresh after power change")
-      await self.coordinator.async_request_refresh()
-    except Exception as err:
-      _LOGGER.error("Failed to turn off water heater: %s", err)
+    await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, False)
+    _LOGGER.debug("Power OFF command sent, waiting before refresh")
+    # Give the kettle a moment to update its internal state
+    await asyncio.sleep(0.5)
+    _LOGGER.debug("Requesting refresh after power change")
+    await self.coordinator.async_request_refresh() 
