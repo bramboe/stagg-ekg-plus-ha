@@ -10,9 +10,9 @@ _LOGGER = logging.getLogger(__name__)
 
 def _decode_temperature(data: bytes) -> float:
     """
-    Decode temperature from kettle data based on Wireshark analysis.
+    Decode temperature from kettle data.
 
-    Uses formula: temp_celsius = (value - 0x30) / 2
+    Special case for 100°C showing as 133°C
     """
     if len(data) < 16:
         return 0.0
@@ -20,41 +20,16 @@ def _decode_temperature(data: bytes) -> float:
     # Byte at index 4 contains temperature information
     temp_byte = data[4]
 
-    # Skip special case for power off
-    if temp_byte == 0xC0:
-        return 0.0
-
-    # Formula from Wireshark packet analysis
-    celsius = (temp_byte - 0x30) / 2
+    # Significant offset discovered
+    celsius = (temp_byte - 33)  # Adjusting for 100°C → 133°C mapping
 
     return round(max(0, celsius), 1)
 
-def _decode_target_temperature(data: bytes) -> float:
-    """
-    Decode target temperature from kettle data.
-
-    Uses formula: target_temp = value - 0x0A
-    """
-    if len(data) < 16:
-        return 40.0
-
-    # Byte at index 12 contains target temperature
-    target_byte = data[12]
-
-    # If powered off, return minimum
-    if target_byte < 0x1E:
-        return 40.0
-
-    # Formula from packet analysis
-    target_celsius = target_byte - 0x0A
-
-    return round(max(40, target_celsius), 1)
-
 def _encode_temperature(celsius: float) -> bytes:
     """
-    Encode temperature for the kettle based on Wireshark analysis.
+    Encode temperature for the kettle.
 
-    Uses formula: temp_byte = 0x30 + (celsius * 2)
+    Reverse of decoding: add the offset back
     """
     # Validate temperature range
     if celsius < 40:
@@ -62,22 +37,19 @@ def _encode_temperature(celsius: float) -> bytes:
     elif celsius > 100:
         celsius = 100
 
-    # Formula derived from Wireshark packet analysis
-    temp_byte = int(0x30 + (celsius * 2))
+    # Add the offset back to get the correct byte
+    scaled_temp = int(celsius + 33)
 
-    # Create the correctly formatted command - no double headers!
-    command = bytes([
-        0xf7, 0x17, 0x00, 0x00,      # Standard header (only once!)
-        temp_byte, 0x80, 0xc0, 0x80, # Temperature and fixed padding
-        0x00, 0x00, 0x01, 0x15,      # State flags (from your working packet)
-        0x01, 0x00, 0x00, 0x00       # Fixed ending
+    # Maintain the specific command structure
+    command = bytearray([
+        0xf7, 0x17, 0x00, 0x00,  # Standard header
+        scaled_temp,              # Offset-adjusted temperature
+        0x80, 0xc0, 0x80, 0x00, 0x00,  # Consistent padding
+        0x03, 0x10, 0x01, 0x1e,  # Additional consistent bytes
+        0x00, 0x00               # Trailing bytes
     ])
 
-    # Add checksum (sum of all bytes modulo 256)
-    checksum = sum(command) & 0xFF
-    command_with_checksum = command + bytes([checksum])
-
-    return command_with_checksum
+    return bytes(command)
 
 def _validate_temperature(temp: float, fahrenheit: bool = False) -> float:
     """
@@ -246,13 +218,12 @@ class KettleBLEClient:
                 # More robust data parsing
                 if len(value) >= 16:
                     temp_celsius = _decode_temperature(value)
-                    target_temp = _decode_target_temperature(value)
                     power_state = bool(value[12] == 0x0F)
 
                     state = {
                         "current_temp": temp_celsius,
                         "power": power_state,
-                        "target_temp": target_temp,  # Use the target temp decoder
+                        "target_temp": temp_celsius,  # Placeholder until we can accurately read target temp
                         "units": "C"
                     }
 
