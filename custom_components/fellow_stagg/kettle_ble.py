@@ -34,73 +34,40 @@ class KettleBLEClient:
         _LOGGER.debug("KettleBLEClient initialized with address: %s", address)
 
     async def _ensure_connected(self, ble_device):
-        """Ensure BLE connection is established, with error handling and retries."""
-        retry_count = 0
-        max_retries = 3
+        """Ensure BLE connection is established."""
+        try:
+            if self._client is None or not self._client.is_connected:
+                _LOGGER.debug("Connecting to kettle at %s", self.address)
+                self._client = BleakClient(ble_device, timeout=10.0)
 
-        while retry_count < max_retries:
-            try:
-                if self._client is None or not self._client.is_connected:
-                    _LOGGER.debug("Connecting to kettle at %s (attempt %d)",
-                                self.address, retry_count + 1)
+                connection_successful = await self._client.connect()
+                if connection_successful:
+                    _LOGGER.debug("Successfully connected to kettle")
 
-                    # Create a new client with a longer timeout
-                    self._client = BleakClient(ble_device, timeout=15.0)
+                    # Don't try to send any init sequence - just verify the connection
+                    services = await self._client.get_services()
+                    _LOGGER.debug("Found services: %s",
+                                 [service.uuid for service in services])
 
-                    # Connect with retry
-                    connection_successful = await self._client.connect()
+                    # Find target service
+                    target_service = None
+                    for service in services:
+                        if service.uuid.lower() == self.service_uuid.lower():
+                            target_service = service
+                            _LOGGER.debug("Found main service %s", self.service_uuid)
+                            break
 
-                    if connection_successful:
-                        _LOGGER.debug("Successfully connected to kettle")
-
-                        # Log all available services and characteristics
-                        services = await self._client.get_services()
-                        _LOGGER.debug("Found services: %s",
-                                    [service.uuid for service in services])
-
-                        # Find the target service
-                        target_service = None
-                        for service in services:
-                            if service.uuid.lower() == self.service_uuid.lower():
-                                target_service = service
-                                _LOGGER.debug("Found main service %s", self.service_uuid)
-                                break
-
-                        if target_service:
-                            # Log all characteristics for debugging
-                            for char in target_service.characteristics:
-                                _LOGGER.debug("Characteristic: %s, Properties: %s",
-                                           char.uuid, char.properties)
-
-                            # No initialization sequence - skip this step
-                            return True
-                        else:
-                            _LOGGER.warning("Target service not found")
-                            await self._client.disconnect()
-                            self._client = None
-                    else:
-                        _LOGGER.error("Failed to connect to kettle")
-                        self._client = None
+                    if not target_service:
+                        _LOGGER.warning("Target service not found")
                 else:
-                    _LOGGER.debug("Already connected to kettle")
-                    return True
-
-            except Exception as err:
-                _LOGGER.error("Connection error (attempt %d): %s",
-                            retry_count + 1, err)
-                if self._client:
-                    try:
-                        await self._client.disconnect()
-                    except:
-                        pass
-                self._client = None
-
-            # Increment retry count and wait before retrying
-            retry_count += 1
-            if retry_count < max_retries:
-                await asyncio.sleep(1.0)  # Wait before retry
-
-        raise Exception(f"Failed to connect after {max_retries} attempts")
+                    _LOGGER.error("Failed to connect to kettle")
+                    raise Exception("Connection failed")
+            else:
+                _LOGGER.debug("Already connected to kettle")
+        except Exception as err:
+            _LOGGER.error("Connection error: %s", err)
+            self._client = None
+            raise
 
     async def _ensure_debounce(self):
         """Ensure we don't send commands too frequently."""
@@ -283,21 +250,13 @@ class KettleBLEClient:
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
 
-            # Find a working characteristic
-            char_uuid = await self._find_working_characteristic()
-
-            # Use the correct power command
+            # Use the exact command format from Wireshark
             command = POWER_ON_CMD if power_on else POWER_OFF_CMD
 
-            _LOGGER.debug("Sending power command to %s: %s",
-                        char_uuid, " ".join(f"{b:02x}" for b in command))
-
-            await self._client.write_gatt_char(char_uuid, command)
+            _LOGGER.debug("Sending power command: %s", " ".join(f"{b:02x}" for b in command))
+            # Note: Don't modify the command at all - send exactly as is
+            await self._client.write_gatt_char(self.char_uuid, command)
             _LOGGER.debug("Power command sent successfully")
-
-            # Short delay to allow the kettle to update its state
-            await asyncio.sleep(0.5)
-
         except Exception as err:
             _LOGGER.error("Error setting power state: %s", err)
             if self._client and self._client.is_connected:
@@ -309,39 +268,36 @@ class KettleBLEClient:
             raise
 
     async def async_set_temperature(self, ble_device, temp: float, fahrenheit: bool = False):
-        """Set target temperature with improved command formatting."""
+        """Set target temperature."""
         try:
-            # Validate and adjust temperature
+            # Convert to Celsius if needed
             if fahrenheit:
-                if temp > 212:
-                    temp = 212
-                if temp < 104:
-                    temp = 104
+                temp_c = (temp - 32) * 5 / 9
             else:
-                if temp > 100:
-                    temp = 100
-                if temp < 40:
-                    temp = 40
+                temp_c = temp
 
-            _LOGGER.debug("Setting temperature: %g°%s", temp, "F" if fahrenheit else "C")
+            # Validate temperature is in range
+            if temp_c < 40:
+                temp_c = 40
+            if temp_c > 100:
+                temp_c = 100
+
+            _LOGGER.debug("Setting temperature: %g°C", temp_c)
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
 
-            # Find a working characteristic
-            char_uuid = await self._find_working_characteristic()
+            # Choose appropriate command based on temperature
+            # Use exact command bytes - don't try to calculate or modify them
+            if temp_c <= 40:
+                command = TEMP_40C_CMD
+            elif temp_c <= 44:
+                command = TEMP_44C_CMD
+            else:
+                command = TEMP_485C_CMD
 
-            # Create the temperature command with the format derived from Wireshark
-            command = self._create_temperature_command(temp, fahrenheit)
-
-            _LOGGER.debug("Sending temperature command to %s: %s",
-                        char_uuid, " ".join(f"{b:02x}" for b in command))
-
-            await self._client.write_gatt_char(char_uuid, command)
+            _LOGGER.debug("Sending temperature command: %s", " ".join(f"{b:02x}" for b in command))
+            await self._client.write_gatt_char(self.char_uuid, command)
             _LOGGER.debug("Temperature command sent successfully")
-
-            # Short delay to allow the kettle to update its state
-            await asyncio.sleep(0.5)
-
         except Exception as err:
             _LOGGER.error("Error setting temperature: %s", err)
             if self._client and self._client.is_connected:
@@ -359,21 +315,12 @@ class KettleBLEClient:
             await self._ensure_connected(ble_device)
             await self._ensure_debounce()
 
-            # Find a working characteristic
-            char_uuid = await self._find_working_characteristic()
-
-            # Use the correct unit command
+            # Use the exact unit commands from Wireshark captures
             command = UNIT_FAHRENHEIT_CMD if fahrenheit else UNIT_CELSIUS_CMD
 
-            _LOGGER.debug("Sending unit command to %s: %s",
-                        char_uuid, " ".join(f"{b:02x}" for b in command))
-
-            await self._client.write_gatt_char(char_uuid, command)
+            _LOGGER.debug("Sending unit command: %s", " ".join(f"{b:02x}" for b in command))
+            await self._client.write_gatt_char(self.char_uuid, command)
             _LOGGER.debug("Unit command sent successfully")
-
-            # Short delay to allow the kettle to update its state
-            await asyncio.sleep(0.5)
-
         except Exception as err:
             _LOGGER.error("Error setting temperature unit: %s", err)
             if self._client and self._client.is_connected:
