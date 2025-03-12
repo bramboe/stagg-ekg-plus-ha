@@ -30,6 +30,9 @@ MIN_TEMP_C = 40
 MAX_TEMP_C = 100
 
 
+"""
+Updated coordinator class to properly handle Bluetooth connectivity issues
+"""
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
   """Class to manage fetching Fellow Stagg data."""
 
@@ -44,6 +47,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
     self.kettle = KettleBLEClient(address)
     self.ble_device = None
     self._address = address
+    self._prev_connection_state = False
+    self._consecutive_failures = 0
 
     self.device_info = DeviceInfo(
       identifiers={(DOMAIN, address)},
@@ -73,14 +78,17 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
 
     # First, check if we have a recent service info via a proxy
     service_info = async_last_service_info(self.hass, self._address)
+
+    # Check if the device is advertised and in range
     if service_info:
         _LOGGER.debug("Found service info via proxy for %s", self._address)
-        # We'll use the proxied connection
+        # We'll use the proxied connection information
         self.ble_device = service_info.device
         _LOGGER.debug("Using proxied device: %s", self.ble_device.address)
+        _LOGGER.debug("RSSI: %d dBm", service_info.advertisement.rssi)
     else:
-        # Fall back to direct connection (likely won't work if proxy is connected)
-        _LOGGER.debug("No service info found, trying direct connection")
+        # If we can't find service info via proxy, likely the device is out of range
+        _LOGGER.debug("No service info found for %s, trying direct connection", self._address)
         self.ble_device = async_ble_device_from_address(
             self.hass,
             self._address,
@@ -89,12 +97,28 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
 
     if not self.ble_device:
       _LOGGER.debug("No connectable device found for %s", self._address)
-      return None
+      self._consecutive_failures += 1
+      if self._consecutive_failures > 3:
+        _LOGGER.warning(
+            "Failed to find kettle %s for %d consecutive polls. Device might be out of range.",
+            self._address,
+            self._consecutive_failures
+        )
+      return self.data  # Return last known state if device not found
 
     try:
       _LOGGER.debug("Attempting to poll kettle data via %s connection",
                    "PROXY" if service_info else "DIRECT")
       data = await self.kettle.async_poll(self.ble_device)
+
+      # Reset consecutive failures counter on success
+      self._consecutive_failures = 0
+
+      # Report if the connection has recovered after previous failures
+      if not self._prev_connection_state:
+        _LOGGER.info("Connection to kettle %s restored", self._address)
+      self._prev_connection_state = True
+
       _LOGGER.debug(
         "Successfully polled data from kettle %s: %s",
         self._address,
@@ -113,12 +137,23 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
 
       return data
     except Exception as e:
+      # Track connection state
+      if self._prev_connection_state:
+        _LOGGER.warning("Lost connection to kettle %s", self._address)
+      self._prev_connection_state = False
+
+      # Count consecutive failures
+      self._consecutive_failures += 1
+
       _LOGGER.error(
-        "Error polling Fellow Stagg kettle %s: %s",
+        "Error polling Fellow Stagg kettle %s: %s (Failure #%d)",
         self._address,
         str(e),
+        self._consecutive_failures
       )
-      return None
+
+      # Return previous data if we had any
+      return self.data
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
