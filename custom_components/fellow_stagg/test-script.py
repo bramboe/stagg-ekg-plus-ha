@@ -1,3 +1,6 @@
+"""
+Simple test script for Fellow Stagg EKG+ kettle.
+"""
 import asyncio
 import logging
 from bleak import BleakClient, BleakScanner
@@ -9,61 +12,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger("kettle-test")
 
-# Kettle MAC address
+# Kettle MAC address - UPDATE THIS TO YOUR KETTLE'S ADDRESS
 KETTLE_ADDRESS = "24:DC:C3:2D:25:B2"
 
 # UUIDs
 SERVICE_UUID = "021A9004-0382-4AEA-BFF4-6B3F1C5ADFB4"
-CHAR_UUID = "021AFF50-0382-4AEA-BFF4-6B3F1C5ADFB4"
+CHAR_UUIDS = [
+    "021AFF50-0382-4AEA-BFF4-6B3F1C5ADFB4",
+    "021AFF51-0382-4AEA-BFF4-6B3F1C5ADFB4",
+    "021AFF52-0382-4AEA-BFF4-6B3F1C5ADFB4", 
+    "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4",
+    "021AFF54-0382-4AEA-BFF4-6B3F1C5ADFB4"
+]
 
-# Proper command formats based on Wireshark captures
-INIT_SEQUENCE = bytes.fromhex("f717000050 8c 080000 0160 4000 00 0000")
-READ_TEMP_CMD = bytes.fromhex("f717000050 8c 080000 0160 4003 00 0000")
-
-# For status reporting
-notifications = []
-
-def notification_handler(sender, data):
-    """Handle incoming notifications."""
-    logger.info(f"Notification from {sender}: {data.hex(' ')}")
-    notifications.append(data)
-    
-    # Try to parse the notification
-    try:
-        if len(data) >= 12 and data[0] == 0xf7 and data[1] == 0x17:
-            # This matches the command format we observed
-            command_category = data[10]
-            command_type = data[12]
-            value_byte = data[13] if len(data) > 13 else 0
-            
-            logger.info(f"Command category: {command_category:02x}, type: {command_type:02x}, value: {value_byte:02x}")
-            
-            if command_type == 0x01:  # Power state
-                logger.info(f"Power state: {'ON' if value_byte == 1 else 'OFF'}")
-            elif command_type == 0x02:  # Temperature setting
-                logger.info(f"Target temperature: {value_byte}°")
-            elif command_type == 0x03:  # Current temperature
-                logger.info(f"Current temperature: {value_byte}°")
-            elif command_type in (0x10, 0x11, 0x12, 0x13):  # Hold times
-                hold_times = {0x10: 15, 0x11: 30, 0x12: 45, 0x13: 60}
-                if value_byte == 0:
-                    logger.info("Hold: OFF")
-                else:
-                    logger.info(f"Hold: ON, {hold_times.get(command_type, 0)} minutes")
-        
-        # Also try the alternate format
-        elif len(data) >= 3 and data[0] == 0xEF and data[1] == 0xDD:
-            msg_type = data[2]
-            logger.info(f"EF DD format - message type: {msg_type}")
-            
-            if msg_type == 0 and len(data) >= 4:
-                logger.info(f"Power state: {'ON' if data[3] == 1 else 'OFF'}")
-            elif msg_type == 2 and len(data) >= 5:
-                logger.info(f"Target temperature: {data[3]}°{'F' if data[4] == 1 else 'C'}")
-            elif msg_type == 3 and len(data) >= 5:
-                logger.info(f"Current temperature: {data[3]}°{'F' if data[4] == 1 else 'C'}")
-    except Exception as e:
-        logger.error(f"Error parsing notification: {e}")
+# Test commands
+READ_TEMP_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 03 00 00 00")
+POWER_ON_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 01 01 00 00")
+POWER_OFF_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 01 00 00 00")
 
 async def main():
     # Find the device
@@ -76,20 +41,31 @@ async def main():
     
     logger.info(f"Found kettle: {device.name}, connecting...")
     
+    # Create notification collector
+    notifications = []
+    
+    def notification_handler(sender, data):
+        """Handle incoming notifications from the kettle."""
+        logger.info(f"Received notification from {sender}: {data.hex(' ')}")
+        notifications.append((sender, data))
+    
     try:
-        # Connect to the device
-        async with BleakClient(device) as client:
+        # Connect to the device with longer timeout
+        async with BleakClient(device, timeout=15.0) as client:
             logger.info("Connected to kettle")
             
             # Discover services
+            logger.info("Discovering services...")
             services = await client.get_services()
+            
             logger.info("Services discovered:")
             for service in services:
                 logger.info(f"Service: {service.uuid}")
                 for char in service.characteristics:
-                    logger.info(f"  Characteristic: {char.uuid}, Properties: {char.properties}")
+                    props = ", ".join(char.properties)
+                    logger.info(f"  Characteristic: {char.uuid}, Properties: {props}")
             
-            # Find our target service and characteristic
+            # Find our target service
             target_service = None
             for service in services:
                 if service.uuid.lower() == SERVICE_UUID.lower():
@@ -101,50 +77,94 @@ async def main():
                 logger.error(f"Target service {SERVICE_UUID} not found")
                 return
             
-            # Setup notifications
-            logger.info("Setting up notifications...")
-            await client.start_notify(CHAR_UUID, notification_handler)
+            # Try enabling notifications on notifiable characteristics
+            notifiable_chars = []
+            for char in target_service.characteristics:
+                if "notify" in char.properties:
+                    try:
+                        logger.info(f"Enabling notifications on {char.uuid}")
+                        await client.start_notify(char.uuid, notification_handler)
+                        notifiable_chars.append(char.uuid)
+                    except Exception as e:
+                        logger.error(f"Failed to enable notifications on {char.uuid}: {e}")
             
-            # Try reading the current state
-            try:
-                logger.info(f"Reading from characteristic {CHAR_UUID}...")
-                value = await client.read_gatt_char(CHAR_UUID)
-                logger.info(f"Read value: {value.hex(' ')}")
-            except Exception as e:
-                logger.warning(f"Could not read from characteristic: {e}")
+            # Try reading from characteristics
+            logger.info("Testing reads from characteristics:")
+            for char_uuid in CHAR_UUIDS:
+                try:
+                    char = target_service.get_characteristic(char_uuid)
+                    if char and "read" in char.properties:
+                        logger.info(f"Reading from {char_uuid}...")
+                        value = await client.read_gatt_char(char_uuid)
+                        logger.info(f"Read successful: {value.hex(' ')}")
+                    else:
+                        if not char:
+                            logger.warning(f"Characteristic {char_uuid} not found")
+                        else:
+                            logger.warning(f"Characteristic {char_uuid} is not readable")
+                except Exception as e:
+                    logger.error(f"Error reading from {char_uuid}: {e}")
             
-            # Send the initialization sequence
-            logger.info(f"Sending initialization sequence: {INIT_SEQUENCE.hex(' ')}")
-            await client.write_gatt_char(CHAR_UUID, INIT_SEQUENCE)
+            # Try sending a command
+            logger.info("\nTesting commands:")
+            print("What would you like to do?")
+            print("1. Read temperature")
+            print("2. Turn power ON")
+            print("3. Turn power OFF")
+            choice = input("Enter choice (1-3): ")
             
-            # Wait a bit
-            logger.info("Waiting for 2 seconds...")
-            await asyncio.sleep(2)
+            command = None
+            if choice == "1":
+                command = READ_TEMP_CMD
+                logger.info("Sending read temperature command...")
+            elif choice == "2":
+                command = POWER_ON_CMD
+                logger.info("Sending power ON command...")
+            elif choice == "3":
+                command = POWER_OFF_CMD
+                logger.info("Sending power OFF command...")
+            else:
+                logger.info("Invalid choice, skipping command test")
             
-            # Try to request current temperature
-            logger.info(f"Sending temperature read command: {READ_TEMP_CMD.hex(' ')}")
-            await client.write_gatt_char(CHAR_UUID, READ_TEMP_CMD)
+            # Find a writable characteristic
+            if command:
+                success = False
+                for char_uuid in CHAR_UUIDS:
+                    char = target_service.get_characteristic(char_uuid)
+                    if char and "write" in char.properties:
+                        try:
+                            logger.info(f"Sending command to {char_uuid}...")
+                            await client.write_gatt_char(char_uuid, command)
+                            logger.info("Command sent successfully")
+                            success = True
+                            break
+                        except Exception as e:
+                            logger.error(f"Failed to send command to {char_uuid}: {e}")
+                
+                if not success:
+                    logger.error("Could not find a working characteristic to send command")
             
-            # Wait to collect responses
-            logger.info("Waiting for notifications...")
+            # Wait a bit for notifications to come in
+            logger.info("Waiting for notifications (3 seconds)...")
             await asyncio.sleep(3)
             
-            # Try all other characteristics
-            for i in range(1, 5):
-                other_char = CHAR_UUID.replace("FF50", f"FF5{i}")
-                try:
-                    logger.info(f"Reading from characteristic {other_char}...")
-                    value = await client.read_gatt_char(other_char)
-                    logger.info(f"Read value: {value.hex(' ')}")
-                except Exception as e:
-                    logger.warning(f"Could not read from {other_char}: {e}")
+            # Check if we got any notifications
+            if notifications:
+                logger.info(f"Received {len(notifications)} notifications")
+                for i, (sender, data) in enumerate(notifications):
+                    logger.info(f"Notification {i+1} from {sender}: {data.hex(' ')}")
+            else:
+                logger.warning("No notifications received")
             
-            # Stop notifications and disconnect
-            await client.stop_notify(CHAR_UUID)
-            logger.info("Disconnected from kettle")
-    
+            # Stop notifications
+            for char_uuid in notifiable_chars:
+                try:
+                    await client.stop_notify(char_uuid)
+                except Exception as e:
+                    logger.error(f"Error stopping notifications on {char_uuid}: {e}")
+            
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"Error in test: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())
