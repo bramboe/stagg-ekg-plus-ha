@@ -7,11 +7,11 @@ DOMAIN = "fellow_stagg"
 
 # BLE UUIDs for the Fellow Stagg EKG kettle
 SERVICE_UUID = "021A9004-0382-4AEA-BFF4-6B3F1C5ADFB4"
-CHAR_UUID = "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4"  # Primary characteristic
+CHAR_UUID = "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4"
 
 # List of all known characteristic UUIDs to try
 ALL_CHAR_UUIDS = [
-    "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4",  # Prioritize the known working one
+    "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4",  # Primary characteristic
     "021AFF50-0382-4AEA-BFF4-6B3F1C5ADFB4",
     "021AFF51-0382-4AEA-BFF4-6B3F1C5ADFB4",
     "021AFF52-0382-4AEA-BFF4-6B3F1C5ADFB4",
@@ -25,7 +25,7 @@ MIN_TEMP_C = 40
 MAX_TEMP_C = 100
 
 # New initialization sequence based on observed BLE communication
-INIT_SEQUENCE = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 00 00 00 00")
+INIT_SEQUENCE = bytes.fromhex("efdd0b3031323334353637383930313233349a6d")
 
 # Power commands
 POWER_ON_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 01 01 00 00")
@@ -53,19 +53,7 @@ READ_TEMP_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 03 00 00 00")
 WIFI_COMMANDS = {
     "STATUS": '{"cmd":"status"}',
     "INFO": '{"cmd":"info"}',
-    "VERSION": '{"cmd":"version"}',
-    "FIRMWARE_VERSION": '{"cmd":"firmware_version"}',
-    "WIFI_SCAN": '{"cmd":"wifi_scan"}',
-    "GET_WIFI_SCAN_RESULTS": '{"cmd":"get_wifi_scan_results"}',
-    "WIFI_STATUS": '{"cmd":"wifi_status"}',
-    "GET_WIFI_CONFIG": '{"cmd":"get_wifi_config"}',
-    "GET_NETWORKS": '{"method":"get_networks"}',
-    "SYSTEM_INFO": '{"system":"info"}',
-    "DEVICE_INFO": '{"device":"info"}',
-    "GET_TEMP": '{"cmd":"get_temp"}',
-    "GET_SETTINGS": '{"cmd":"get_settings"}',
-    "START_PROVISIONING": '{"wifi_prov":"start"}',
-    "PROVISIONING_STATUS": '{"wifi_prov":"status"}'
+    "WIFI_SCAN": '{"cmd":"wifi_scan"}'
 }
 
 # # Provisioning-related constants
