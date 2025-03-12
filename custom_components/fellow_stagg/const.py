@@ -1,45 +1,41 @@
+"""Constants for Fellow Stagg EKG+ integration."""
+
 DOMAIN = "fellow_stagg"
 
-# BLE UUIDs for the Fellow Stagg EKG kettle based on logs
+# BLE UUIDs for the Fellow Stagg EKG kettle
 SERVICE_UUID = "021A9004-0382-4AEA-BFF4-6B3F1C5ADFB4"
 CHAR_UUID = "021AFF50-0382-4AEA-BFF4-6B3F1C5ADFB4"
 
-# Command structure based on Wireshark captures
-# Hold command format:
-# f7 17 00 00 50 8c 08 00 00 01 XX 40 YY ZZ 00 00 CC
-# - f7 17 00 00 50: Fixed header
-# - 8c: Device ID
-# - 08 00 00: Fixed padding
-# - 01 XX: Command category (XX = 70/80/60)
-# - 40 YY: Command type (YY = 10/11/12/13)
-# - ZZ: Parameter value
-# - 00 00 CC: Checksum/terminator
+# List of all characteristic UUIDs to try if primary fails
+ALL_CHAR_UUIDS = [
+    "021AFF50-0382-4AEA-BFF4-6B3F1C5ADFB4",
+    "021AFF51-0382-4AEA-BFF4-6B3F1C5ADFB4",
+    "021AFF52-0382-4AEA-BFF4-6B3F1C5ADFB4",
+    "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4",
+    "021AFF54-0382-4AEA-BFF4-6B3F1C5ADFB4"
+]
 
-# Unit command format (slightly different):
-# f7 17 00 00 c1 00 c0 80 00 00 13 04 01 1e 00 00 0b 36
-# f7 15 00 00 c1 00 cd 00 00 00 12 04 01 1e 00 00 0a 96
+# Empty initialization sequence to avoid PDU errors
+# Use polling instead of notifications
+INIT_SEQUENCE = bytes([])
 
-# New initialization sequence (minimal "ping" command based on observed format)
-INIT_SEQUENCE = bytes.fromhex("f717000050 8c 080000 0160 4000 00 0000")
+# Temperature ranges for the kettle
+MIN_TEMP_F = 104
+MAX_TEMP_F = 212
+MIN_TEMP_C = 40
+MAX_TEMP_C = 100
 
-# Power commands
-POWER_ON_CMD = bytes.fromhex("f717000050 8c 080000 0160 4001 01 0000")
-POWER_OFF_CMD = bytes.fromhex("f717000050 8c 080000 0160 4001 00 0000")
+# Temperature Command Templates
+# These will be used by the _create_temperature_command function
+# which dynamically calculates the correct values based on temperature
+TEMP_COMMAND_PREFIX = bytes.fromhex("f717000050")
+TEMP_COMMAND_MIDDLE = bytes.fromhex("80c08000")
+TEMP_COMMAND_SUFFIX = bytes.fromhex("040400000000")
 
-# Temperature commands - require temperature value insertion
-TEMP_CMD_PREFIX = bytes.fromhex("f717000050 8c 080000 0160 4002")
-TEMP_CMD_SUFFIX = bytes.fromhex("00 0000")
+# Power commands (simplified based on protocol analysis)
+POWER_ON_CMD = bytes.fromhex("f7170000508c0800000160400101")
+POWER_OFF_CMD = bytes.fromhex("f7170000508c0800000160400100")
 
-# Hold time commands
-HOLD_OFF_CMD = bytes.fromhex("f717000050 8c 080000 0160 4010 00 00b2")
-HOLD_15MIN_CMD = bytes.fromhex("f717000050 8c 080000 0170 4010 f0 002c")
-HOLD_30MIN_CMD = bytes.fromhex("f717000050 8c 080000 0170 4011 e0 002d")
-HOLD_45MIN_CMD = bytes.fromhex("f717000050 8c 080000 0180 4012 d0 002e")
-HOLD_60MIN_CMD = bytes.fromhex("f717000050 8c 080000 0180 4013 c0 002f")
-
-# Unit type commands (from new captures)
+# Unit type commands (directly from Wireshark captures)
 UNIT_FAHRENHEIT_CMD = bytes.fromhex("f7170000c100c08000001304011e00000b36")
 UNIT_CELSIUS_CMD = bytes.fromhex("f7150000c100cd0000001204011e00000a96")
-
-# Read commands - to request current status
-READ_TEMP_CMD = bytes.fromhex("f717000050 8c 080000 0160 4003 00 0000")
