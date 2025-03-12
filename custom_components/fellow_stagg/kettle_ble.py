@@ -65,21 +65,19 @@ def _encode_temperature(celsius: float) -> bytes:
     # Formula derived from Wireshark packet analysis
     temp_byte = int(0x30 + (celsius * 2))
 
-    # Command structure matching the exact format seen in successful reads
-    # Raw kettle data observed: f71700005480c080000021140100000034
-    command = bytearray([
-        0xf7, 0x17, 0x00, 0x00,      # Standard header
-        temp_byte,                    # Temperature byte with correct formula
-        0x80, 0xc0, 0x80,            # Fixed padding as seen in reads
-        0x00, 0x00, 0x21, 0x14,      # State flags from working packets
-        0x01, 0x00, 0x00, 0x00       # Fixed ending bytes
+    # Create the correctly formatted command - no double headers!
+    command = bytes([
+        0xf7, 0x17, 0x00, 0x00,      # Standard header (only once!)
+        temp_byte, 0x80, 0xc0, 0x80, # Temperature and fixed padding
+        0x00, 0x00, 0x01, 0x15,      # State flags (from your working packet)
+        0x01, 0x00, 0x00, 0x00       # Fixed ending
     ])
 
-    # Add checksum (last byte)
+    # Add checksum (sum of all bytes modulo 256)
     checksum = sum(command) & 0xFF
-    command.append(checksum)
+    command_with_checksum = command + bytes([checksum])
 
-    return bytes(command)
+    return command_with_checksum
 
 def _validate_temperature(temp: float, fahrenheit: bool = False) -> float:
     """
