@@ -1,19 +1,15 @@
 """
-Update this file to implement alternative commands for your WiFi-enabled kettle.
-
-Since your kettle appears to be a WiFi-enabled model (based on the JSON response),
-the command structure might be different from the Bluetooth-only models.
-
-Replace the constants.py content with this updated version that includes WiFi model commands.
+Comprehensive constants for Fellow Stagg EKG+ kettle integration.
+Includes BLE command sequences, UUIDs, and device-specific parameters.
 """
 
 DOMAIN = "fellow_stagg"
 
 # BLE UUIDs for the Fellow Stagg EKG kettle
 SERVICE_UUID = "021A9004-0382-4AEA-BFF4-6B3F1C5ADFB4"
-CHAR_UUID = "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4"  # Updated to the working characteristic
+CHAR_UUID = "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4"  # Primary characteristic
 
-# List of all characteristic UUIDs to try
+# List of all known characteristic UUIDs to try
 ALL_CHAR_UUIDS = [
     "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4",  # Prioritize the known working one
     "021AFF50-0382-4AEA-BFF4-6B3F1C5ADFB4",
@@ -28,19 +24,9 @@ MAX_TEMP_F = 212
 MIN_TEMP_C = 40
 MAX_TEMP_C = 100
 
-# WiFi Model Commands - Based on analysis of the connection logs
-# These are experimental and might need adjustment
+# New initialization sequence based on observed BLE communication
+INIT_SEQUENCE = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 00 00 00 00")
 
-# WiFi model might use JSON-based commands instead of hex commands
-# Example JSON command structure (placeholder - adjust based on your specific model)
-WIFI_JSON_TEMPLATE = '{{"cmd": "{cmd}", "params": {params}}}'
-
-# Read command - formatted as JSON for WiFi models
-WIFI_READ_STATE_CMD = '{"cmd": "get_state"}'
-WIFI_SET_POWER_TEMPLATE = '{"cmd": "set_power", "params": {"power": {power}}}'
-WIFI_SET_TEMP_TEMPLATE = '{"cmd": "set_temp", "params": {"temp": {temp}, "scale": "{scale}"}}'
-
-# Legacy commands for standard BLE models
 # Power commands
 POWER_ON_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 01 01 00 00")
 POWER_OFF_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 01 00 00 00")
@@ -49,14 +35,42 @@ POWER_OFF_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 01 00 00 00")
 TEMP_CMD_PREFIX = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 02")
 TEMP_CMD_SUFFIX = bytes.fromhex("00 00 00")
 
+# Hold time commands
+HOLD_OFF_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 10 00 00 b2")
+HOLD_15MIN_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 70 40 10 f0 00 2c")
+HOLD_30MIN_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 70 40 11 e0 00 2d")
+HOLD_45MIN_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 80 40 12 d0 00 2e")
+HOLD_60MIN_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 80 40 13 c0 00 2f")
+
 # Unit type commands
 UNIT_FAHRENHEIT_CMD = bytes.fromhex("f7 17 00 00 c1 00 c0 80 00 00 13 04 01 1e 00 00 0b 36")
 UNIT_CELSIUS_CMD = bytes.fromhex("f7 15 00 00 c1 00 cd 00 00 00 12 04 01 1e 00 00 0a 96")
 
-# Read command
+# Read commands - to request current status
 READ_TEMP_CMD = bytes.fromhex("f7 17 00 00 50 8c 08 00 00 01 60 40 03 00 00 00")
 
-# You can use alternative commands for the WiFi model:
-# - Try structured JSON commands
-# - Check if there are special BLE commands for your model
-# - Consider observing communication with the official app to determine the correct protocol
+# WiFi and Provisioning Related Commands
+WIFI_COMMANDS = {
+    "STATUS": '{"cmd":"status"}',
+    "INFO": '{"cmd":"info"}',
+    "VERSION": '{"cmd":"version"}',
+    "FIRMWARE_VERSION": '{"cmd":"firmware_version"}',
+    "WIFI_SCAN": '{"cmd":"wifi_scan"}',
+    "GET_WIFI_SCAN_RESULTS": '{"cmd":"get_wifi_scan_results"}',
+    "WIFI_STATUS": '{"cmd":"wifi_status"}',
+    "GET_WIFI_CONFIG": '{"cmd":"get_wifi_config"}',
+    "GET_NETWORKS": '{"method":"get_networks"}',
+    "SYSTEM_INFO": '{"system":"info"}',
+    "DEVICE_INFO": '{"device":"info"}',
+    "GET_TEMP": '{"cmd":"get_temp"}',
+    "GET_SETTINGS": '{"cmd":"get_settings"}',
+    "START_PROVISIONING": '{"wifi_prov":"start"}',
+    "PROVISIONING_STATUS": '{"wifi_prov":"status"}'
+}
+
+# # Provisioning-related constants
+# PROVISIONING_INFO = {
+#     "v1.1": {
+#         "capabilities": ["wifi_scan"]
+#     }
+# }
