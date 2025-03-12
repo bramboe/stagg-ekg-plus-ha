@@ -10,9 +10,9 @@ _LOGGER = logging.getLogger(__name__)
 
 def _decode_temperature(data: bytes) -> float:
     """
-    Decode temperature from kettle data.
+    Decode temperature from kettle data based on Wireshark analysis.
 
-    Special case for 100°C showing as 133°C
+    Uses formula: temp_celsius = (value - 0x30) / 2
     """
     if len(data) < 16:
         return 0.0
@@ -20,10 +20,35 @@ def _decode_temperature(data: bytes) -> float:
     # Byte at index 4 contains temperature information
     temp_byte = data[4]
 
-    # Significant offset discovered
-    celsius = (temp_byte - 33)  # Adjusting for 100°C → 133°C mapping
+    # Skip special case for power off
+    if temp_byte == 0xC0:
+        return 0.0
+
+    # Formula from Wireshark packet analysis
+    celsius = (temp_byte - 0x30) / 2
 
     return round(max(0, celsius), 1)
+
+def _decode_target_temperature(data: bytes) -> float:
+    """
+    Decode target temperature from kettle data.
+
+    Uses formula: target_temp = value - 0x0A
+    """
+    if len(data) < 16:
+        return 40.0
+
+    # Byte at index 12 contains target temperature
+    target_byte = data[12]
+
+    # If powered off, return minimum
+    if target_byte < 0x1E:
+        return 40.0
+
+    # Formula from packet analysis
+    target_celsius = target_byte - 0x0A
+
+    return round(max(40, target_celsius), 1)
 
 def _encode_temperature(celsius: float) -> bytes:
     """
@@ -223,12 +248,13 @@ class KettleBLEClient:
                 # More robust data parsing
                 if len(value) >= 16:
                     temp_celsius = _decode_temperature(value)
+                    target_temp = _decode_target_temperature(value)
                     power_state = bool(value[12] == 0x0F)
 
                     state = {
                         "current_temp": temp_celsius,
                         "power": power_state,
-                        "target_temp": temp_celsius,  # Placeholder until we can accurately read target temp
+                        "target_temp": target_temp,  # Use the target temp decoder
                         "units": "C"
                     }
 
