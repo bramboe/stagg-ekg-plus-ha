@@ -59,16 +59,8 @@ class FellowStaggTargetTemperature(NumberEntity):
     )
 
   @property
-  def available(self) -> bool:
-    """Return if entity is available."""
-    return self.coordinator.last_update_success and self.coordinator.data is not None
-
-  @property
   def native_value(self) -> float | None:
     """Return the current target temperature."""
-    if self.coordinator.data is None:
-      _LOGGER.debug("No data available for target temperature")
-      return None
     value = self.coordinator.data.get("target_temp")
     _LOGGER.debug("Target temperature read as: %s°%s", value, self.coordinator.temperature_unit)
     return value
@@ -81,16 +73,13 @@ class FellowStaggTargetTemperature(NumberEntity):
       self.coordinator.temperature_unit
     )
 
-    try:
-      await self.coordinator.kettle.async_set_temperature(
-        self.coordinator.ble_device,
-        int(value),
-        fahrenheit=self.coordinator.temperature_unit == UnitOfTemperature.FAHRENHEIT
-      )
-      _LOGGER.debug("Target temperature command sent, waiting before refresh")
-      # Give the kettle a moment to update its internal state
-      await asyncio.sleep(0.5)
-      _LOGGER.debug("Requesting refresh after temperature change")
-      await self.coordinator.async_request_refresh()
-    except Exception as err:
-      _LOGGER.error("Failed to set target temperature: %s", err)
+    await self.coordinator.kettle.async_set_temperature(
+      self.coordinator.ble_device,
+      int(value),
+      fahrenheit=self.coordinator.temperature_unit == UnitOfTemperature.FAHRENHEIT
+    )
+    _LOGGER.debug("Target temperature command sent, waiting before refresh")
+    # Give the kettle a moment to update its internal state
+    await asyncio.sleep(0.5)
+    _LOGGER.debug("Requesting refresh after temperature change")
+    await self.coordinator.async_request_refresh() 
