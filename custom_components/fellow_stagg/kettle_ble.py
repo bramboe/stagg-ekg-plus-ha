@@ -9,33 +9,74 @@ from .const import CONTROL_CHAR_UUID
 _LOGGER = logging.getLogger(__name__)
 
 def _decode_temperature(data: bytes) -> float:
-    """Decode temperature from kettle data."""
-    if len(data) < 6:
-        return 0
+    """
+    Decode temperature from kettle data with offset correction.
 
-    # Extract 16-bit temperature value
-    temp_hex = (data[4] << 8) | data[5]  # Bytes 4-5 contain the temperature
+    When kettle is set to 40°C, log shows 107°C
+    This suggests a significant offset/scaling issue
+    """
+    if len(data) < 16:
+        return 0.0
 
-    # Approximate conversion back to Celsius
-    if temp_hex > 46208:  # Above 90°C
-        celsius = 90 + ((46208 - temp_hex) / 512)
-    else:  # Below 90°C
-        celsius = 73.5 + ((37760 - temp_hex) / 512)
+    # Byte at index 4 appears to contain temperature information
+    temp_byte = data[4]
 
-    return round(celsius, 1)
+    # Reverse engineer the offset
+    # 40°C reported as 107°C suggests a complex transformation
+    celsius = (temp_byte - 67)  # Initial guess based on 40 → 107 mapping
+
+    return round(max(0, celsius), 1)
 
 def _encode_temperature(celsius: float) -> bytes:
-    """Encode temperature to kettle format."""
-    if celsius >= 90:
-        temp_hex = int(46208 - ((celsius - 90) * 512))
-    else:
-        temp_hex = int(37760 - ((celsius - 73.5) * 512))
+    """
+    Encode temperature for the kettle, accounting for the offset.
 
-    return bytes([
-        (temp_hex >> 8) & 0xFF,  # High byte
-        temp_hex & 0xFF          # Low byte
+    When setting 40°C, we need to generate a byte that results in 40°C display
+    """
+    # Validate temperature range
+    if celsius < 40:
+        celsius = 40
+    elif celsius > 100:
+        celsius = 100
+
+    # Reverse the offset calculation
+    scaled_temp = int(celsius + 67)  # Reverse of the decoding offset
+
+    # Create a command that matches the observed pattern
+    command = bytearray([
+        0xf7, 0x17, 0x00, 0x00,  # Standard header
+        scaled_temp,              # Offset-adjusted temperature
+        0x80, 0xc0, 0x80, 0x00, 0x00,  # Consistent padding
+        0x03, 0x10, 0x01, 0x1e,  # Additional consistent bytes
+        0x00, 0x00               # Trailing bytes
     ])
 
+    return bytes(command)
+def _validate_temperature(temp: float, fahrenheit: bool = False) -> float:
+    """
+    Validate and convert temperature.
+
+    Conversion and range checking based on device specifications.
+    """
+    if fahrenheit:
+        # Convert Fahrenheit to Celsius
+        temp_c = (temp - 32) * 5 / 9
+
+        # Validate Fahrenheit range
+        if temp > 212:
+            temp = 212
+        if temp < 104:
+            temp = 104
+    else:
+        # Validate Celsius range
+        if temp > 100:
+            temp = 100
+        if temp < 40:
+            temp = 40
+        temp_c = temp
+
+    return round(temp_c, 1)
+    
 class KettleBLEClient:
     """BLE client for the Fellow Stagg EKG+ kettle."""
 
