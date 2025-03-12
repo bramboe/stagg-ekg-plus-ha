@@ -6,7 +6,6 @@ from typing import Any
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
     async_last_service_info,
-    BluetoothScanningMode,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
@@ -85,8 +84,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
         self.ble_device = async_ble_device_from_address(
             self.hass,
             self._address,
-            connectable=True,
-            scanning_mode=BluetoothScanningMode.ACTIVE
+            True  # connectable=True
         )
 
     if not self.ble_device:
