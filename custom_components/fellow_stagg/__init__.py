@@ -110,24 +110,94 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-  """Set up Fellow Stagg integration from a config entry."""
-  address = entry.unique_id
-  if address is None:
-    _LOGGER.error("No unique ID provided in config entry")
-    return False
+    """Set up Fellow Stagg integration from a config entry."""
+    import logging
+    from homeassistant.components.bluetooth import (
+        async_get_scanner,
+        async_discovered_service_info,
+        async_scanner_by_source,
+        async_ble_device_from_address,
+        BluetoothServiceInfoBleak,
+    )
 
-  _LOGGER.debug("Setting up Fellow Stagg integration for device: %s", address)
-  coordinator = FellowStaggDataUpdateCoordinator(hass, address)
+    _LOGGER = logging.getLogger(__name__)
 
-  # Do first update
-  await coordinator.async_config_entry_first_refresh()
+    address = entry.unique_id
+    if address is None:
+        _LOGGER.error("No unique ID provided in config entry")
+        return False
 
-  hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    _LOGGER.debug("Setting up Fellow Stagg integration for device: %s", address)
 
-  await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Comprehensive Bluetooth discovery debugging
+    # First log all available Bluetooth adapters/sources
+    _LOGGER.debug("Available Bluetooth sources:")
+    scanners = await async_get_scanner(hass)
+    for source, scanner in async_scanner_by_source.items():
+        _LOGGER.debug("  Scanner source: %s", source)
+        for device in scanner.discovered_devices:
+            _LOGGER.debug("    Device: %s (%s)", device.address, device.name)
 
-  _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
-  return True
+    # Check all discovered service info for our device
+    _LOGGER.debug("Checking all discovered Bluetooth devices:")
+    device_found = False
+    for discovery_info in async_discovered_service_info(hass):
+        _LOGGER.debug("  Device: %s (%s), RSSI: %d",
+            discovery_info.address, discovery_info.name, discovery_info.rssi)
+
+        # Check if this is our device
+        if discovery_info.address.lower() == address.lower():
+            _LOGGER.debug("  Found our kettle! Services: %s",
+                discovery_info.service_uuids)
+            device_found = True
+
+    if not device_found:
+        _LOGGER.warning("Kettle not found in Bluetooth discovery! "
+            "Check if the device is powered on and in range.")
+
+    # Try to get the device directly, using different connection methods
+    ble_device = None
+
+    # Try with direct connection first
+    try:
+        _LOGGER.debug("Attempting direct device connection...")
+        ble_device = async_ble_device_from_address(hass, address, True)
+        if ble_device:
+            _LOGGER.debug("  Direct connection successful!")
+        else:
+            _LOGGER.debug("  Direct connection failed, device not found")
+    except Exception as err:
+        _LOGGER.debug("  Error in direct connection: %s", err)
+
+    # Try with non-connectable option if direct failed
+    if not ble_device:
+        try:
+            _LOGGER.debug("Attempting non-connectable device lookup...")
+            ble_device = async_ble_device_from_address(hass, address, False)
+            if ble_device:
+                _LOGGER.debug("  Found device (non-connectable)")
+            else:
+                _LOGGER.debug("  Device not found (non-connectable)")
+        except Exception as err:
+            _LOGGER.debug("  Error in non-connectable lookup: %s", err)
+
+    if not ble_device:
+        _LOGGER.warning("Couldn't obtain BLE device for address %s. "
+            "Integration will use default values.", address)
+
+    # Initialize the coordinator
+    coordinator = FellowStaggDataUpdateCoordinator(hass, address)
+    coordinator.ble_device = ble_device
+
+    # Do first update
+    await coordinator.async_config_entry_first_refresh()
+
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
+    return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
