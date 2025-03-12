@@ -3,6 +3,7 @@ import logging
 from datetime import timedelta
 from typing import Any
 
+from bleak import BleakScanner
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
 )
@@ -70,10 +71,26 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
     """Fetch data from the kettle."""
     _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
 
+    # First try the standard Home Assistant approach
     self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
+
+    # If that fails, try direct scanning with bleak
     if not self.ble_device:
-      _LOGGER.debug("No connectable device found")
-      return None
+        _LOGGER.debug("Device not found via Home Assistant BLE, trying direct scan")
+        try:
+            # Directly scan with BleakScanner
+            device = await BleakScanner.find_device_by_address(
+                self._address, timeout=5.0
+            )
+            if device:
+                _LOGGER.debug("Found device via direct BleakScanner: %s", device.name)
+                self.ble_device = device
+            else:
+                _LOGGER.debug("No device found even with direct scan")
+                return None
+        except Exception as e:
+            _LOGGER.error("Error during direct scan: %s", e)
+            return None
 
     try:
       _LOGGER.debug("Attempting to poll kettle data...")
