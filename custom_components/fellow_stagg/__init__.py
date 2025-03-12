@@ -1,11 +1,13 @@
 """Support for Fellow Stagg EKG+ kettles."""
 import logging
+import asyncio
 from datetime import timedelta
-from typing import Any
+from typing import Any, Dict, Optional
 
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
-    async_last_service_info,
+    async_discovered_service_info,
+    BluetoothScannerDevice,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
@@ -15,181 +17,202 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN
+from .const import DOMAIN, SERVICE_UUID
 from .kettle_ble import KettleBLEClient
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.WATER_HEATER]
-POLLING_INTERVAL = timedelta(seconds=5)  # Poll every 5 seconds (minimum allowed)
+PLATFORMS: list[Platform] = [
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.SWITCH,
+    Platform.NUMBER,
+    Platform.WATER_HEATER
+]
+POLLING_INTERVAL = timedelta(seconds=5)
 
-# Temperature ranges for the kettle
-MIN_TEMP_F = 104
-MAX_TEMP_F = 212
-MIN_TEMP_C = 40
-MAX_TEMP_C = 100
+DEFAULT_DATA = {
+    "units": "C",
+    "power": False,
+    "current_temp": None,
+    "target_temp": None
+}
 
+class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
+    def __init__(self, hass: HomeAssistant, address: str) -> None:
+        self._address = address
+        self._hass = hass
+        self._failed_update_count = 0
+        self.ble_device: Optional[BluetoothScannerDevice] = None
 
-"""
-Updated coordinator class to properly handle Bluetooth connectivity issues
-"""
-class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
-  """Class to manage fetching Fellow Stagg data."""
+        # Define update method
+        async def _async_update_wrapper():
+            try:
+                # Attempt to find device before updating
+                await self._find_bluetooth_device()
 
-  def __init__(self, hass: HomeAssistant, address: str) -> None:
-    """Initialize the coordinator."""
-    super().__init__(
-      hass,
-      _LOGGER,
-      name=f"Fellow Stagg {address}",
-      update_interval=POLLING_INTERVAL,
-    )
-    self.kettle = KettleBLEClient(address)
-    self.ble_device = None
-    self._address = address
-    self._prev_connection_state = False
-    self._consecutive_failures = 0
+                updated_data = await self._async_update_data()
+                self._failed_update_count = 0  # Reset on successful update
+                return updated_data
+            except Exception as err:
+                self._failed_update_count += 1
+                _LOGGER.error(
+                    "Failed to update Fellow Stagg kettle %s (attempt %d): %s",
+                    self._address,
+                    self._failed_update_count,
+                    str(err),
+                    exc_info=True
+                )
 
-    self.device_info = DeviceInfo(
-      identifiers={(DOMAIN, address)},
-      name=f"Fellow Stagg EKG+ {address}",
-      manufacturer="Fellow",
-      model="Stagg EKG+",
-    )
+                # Optional: Log a more serious error after multiple failed attempts
+                if self._failed_update_count > 3:
+                    _LOGGER.error(
+                        "Persistent update failures for Fellow Stagg kettle %s. Bluetooth proxy issues suspected.",
+                        self._address
+                    )
 
-  @property
-  def temperature_unit(self) -> str:
-    """Get the current temperature unit."""
-    return UnitOfTemperature.FAHRENHEIT if self.data and self.data.get("units") == "F" else UnitOfTemperature.CELSIUS
+                return DEFAULT_DATA.copy()
 
-  @property
-  def min_temp(self) -> float:
-    """Get the minimum temperature based on current units."""
-    return MIN_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MIN_TEMP_C
-
-  @property
-  def max_temp(self) -> float:
-    """Get the maximum temperature based on current units."""
-    return MAX_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MAX_TEMP_C
-
-  async def _async_update_data(self) -> dict[str, Any] | None:
-    """Fetch data from the kettle."""
-    _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
-
-    # First, check if we have a recent service info via a proxy
-    service_info = async_last_service_info(self.hass, self._address)
-
-    # Check if the device is advertised and in range
-    if service_info:
-        _LOGGER.debug("Found service info via proxy for %s", self._address)
-        # We'll use the proxied connection information
-        self.ble_device = service_info.device
-        _LOGGER.debug("Using proxied device: %s", self.ble_device.address)
-        _LOGGER.debug("RSSI: %d dBm", service_info.advertisement.rssi)
-    else:
-        # If we can't find service info via proxy, likely the device is out of range
-        _LOGGER.debug("No service info found for %s, trying direct connection", self._address)
-        self.ble_device = async_ble_device_from_address(
-            self.hass,
-            self._address,
-            True  # connectable=True
+        # Initialize the coordinator with the wrapper method
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=f"Fellow Stagg {address}",
+            update_method=_async_update_wrapper,
+            update_interval=POLLING_INTERVAL,
         )
 
-    if not self.ble_device:
-      _LOGGER.debug("No connectable device found for %s", self._address)
-      self._consecutive_failures += 1
-      if self._consecutive_failures > 3:
-        _LOGGER.warning(
-            "Failed to find kettle %s for %d consecutive polls. Device might be out of range.",
-            self._address,
-            self._consecutive_failures
+        # Additional initialization
+        self.last_update_success = False
+        self.kettle = KettleBLEClient(address)
+
+        # Set initial data
+        self.data = DEFAULT_DATA.copy()
+
+        self.device_info = DeviceInfo(
+            identifiers={(DOMAIN, address)},
+            name=f"Fellow Stagg EKG+ {address}",
+            manufacturer="Fellow",
+            model="Stagg EKG+",
         )
-      return self.data  # Return last known state if device not found
 
-    try:
-      _LOGGER.debug("Attempting to poll kettle data via %s connection",
-                   "PROXY" if service_info else "DIRECT")
-      data = await self.kettle.async_poll(self.ble_device)
+    async def _find_bluetooth_device(self) -> None:
+        """Attempt to find the Bluetooth device through multiple methods."""
+        _LOGGER.debug(f"Attempting to find Bluetooth device for {self._address}")
 
-      # Reset consecutive failures counter on success
-      self._consecutive_failures = 0
+        # Method 1: Discover devices with the specific service UUID
+        discovered_devices = async_discovered_service_info(self._hass)
+        for discovered_device in discovered_devices:
+            if (discovered_device.address == self._address and
+                SERVICE_UUID in discovered_device.service_uuids):
+                self.ble_device = discovered_device
+                _LOGGER.debug(f"Successfully found device for {self._address} via service UUID")
+                return
 
-      # Report if the connection has recovered after previous failures
-      if not self._prev_connection_state:
-        _LOGGER.info("Connection to kettle %s restored", self._address)
-      self._prev_connection_state = True
+        # Method 2: Direct address lookup
+        device = async_ble_device_from_address(self._hass, self._address)
+        if device:
+            self.ble_device = device
+            _LOGGER.debug(f"Successfully found device for {self._address} via direct lookup")
+            return
 
-      _LOGGER.debug(
-        "Successfully polled data from kettle %s: %s",
-        self._address,
-        data,
-      )
+        # Method 3: Broad device discovery
+        if not self.ble_device:
+            for discovered_device in discovered_devices:
+                if discovered_device.address == self._address:
+                    self.ble_device = discovered_device
+                    _LOGGER.debug(f"Found device for {self._address} via broad discovery")
+                    return
 
-      # Log any changes in data compared to previous state
-      if self.data is not None:
-        changes = {
-          k: (self.data.get(k), v)
-          for k, v in data.items()
-          if k in self.data and self.data.get(k) != v
-        }
-        if changes:
-          _LOGGER.debug("Data changes detected: %s", changes)
+        _LOGGER.warning(f"Could not find Bluetooth device for {self._address}")
 
-      return data
-    except Exception as e:
-      # Track connection state
-      if self._prev_connection_state:
-        _LOGGER.warning("Lost connection to kettle %s", self._address)
-      self._prev_connection_state = False
+    @property
+    def temperature_unit(self) -> str:
+        """Get the current temperature unit."""
+        if not self.data:
+            return UnitOfTemperature.CELSIUS
+        return UnitOfTemperature.FAHRENHEIT if self.data.get("units") == "F" else UnitOfTemperature.CELSIUS
 
-      # Count consecutive failures
-      self._consecutive_failures += 1
+    @property
+    def min_temp(self) -> float:
+        """Get the minimum temperature based on current units."""
+        return 104 if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else 40
 
-      _LOGGER.error(
-        "Error polling Fellow Stagg kettle %s: %s (Failure #%d)",
-        self._address,
-        str(e),
-        self._consecutive_failures
-      )
+    @property
+    def max_temp(self) -> float:
+        """Get the maximum temperature based on current units."""
+        return 212 if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else 100
 
-      # Return previous data if we had any
-      return self.data
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Fetch data from the kettle."""
+        _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
 
+        try:
+            # Ensure we have a device
+            if not self.ble_device:
+                await self._find_bluetooth_device()
+
+            if not self.ble_device:
+                _LOGGER.warning(f"No Bluetooth device found for address {self._address}")
+                self.last_update_success = False
+                return DEFAULT_DATA.copy()
+
+            new_data = await self.kettle.async_poll(self.ble_device)
+
+            if new_data:
+                self.last_update_success = True
+                _LOGGER.debug("Successfully polled kettle data: %s", new_data)
+                return new_data
+
+            self.last_update_success = False
+            return DEFAULT_DATA.copy()
+
+        except Exception as e:
+            _LOGGER.error(
+                "Error polling Fellow Stagg kettle %s: %s",
+                self._address,
+                str(e),
+                exc_info=True
+            )
+            self.last_update_success = False
+            return DEFAULT_DATA.copy()
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
-  """Set up the Fellow Stagg integration."""
-  return True
-
+    """Set up the Fellow Stagg integration."""
+    return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-  """Set up Fellow Stagg integration from a config entry."""
-  address = entry.unique_id
-  if address is None:
-    _LOGGER.error("No unique ID provided in config entry")
-    return False
+    """Set up Fellow Stagg integration from a config entry."""
+    from homeassistant.components.bluetooth import async_scanner_count
 
-  _LOGGER.debug("Setting up Fellow Stagg integration for device: %s", address)
-  coordinator = FellowStaggDataUpdateCoordinator(hass, address)
+    # Check if Bluetooth adapters are available
+    if async_scanner_count(hass) == 0:
+        _LOGGER.error("No Bluetooth adapters available")
+        return False
 
-  # Do first update
-  await coordinator.async_config_entry_first_refresh()
+    address = entry.unique_id
+    if address is None:
+        _LOGGER.error("No unique ID provided in config entry")
+        return False
 
-  hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    _LOGGER.debug("Setting up Fellow Stagg integration for device: %s", address)
+    coordinator = FellowStaggDataUpdateCoordinator(hass, address)
 
-  await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Do first update
+    await coordinator.async_config_entry_first_refresh()
 
-  _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
-  return True
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-  """Unload a config entry."""
-  _LOGGER.debug("Unloading Fellow Stagg integration for entry: %s", entry.entry_id)
-  if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-    hass.data[DOMAIN].pop(entry.entry_id)
-  return unload_ok
+    _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
+    return True
 
-
-async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
-  """Migrate old entry."""
-  return True
+async def print_bluetooth_details(self) -> None:
+    """Print detailed Bluetooth service and characteristic information."""
+    discovered_devices = async_discovered_service_info(self._hass)
+    for device in discovered_devices:
+        if device.address == self._address:
+            _LOGGER.info(f"Matched Device: {device}")
+            _LOGGER.info(f"Services: {device.service_uuids}")
+            _LOGGER.info(f"Manufacturer Data: {device.manufacturer_data}")
