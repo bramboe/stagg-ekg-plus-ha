@@ -8,14 +8,13 @@ from .const import (
     SERVICE_UUID,
     CHAR_UUID,
     ALL_CHAR_UUIDS,
-    INIT_SEQUENCE,
     POWER_ON_CMD,
     POWER_OFF_CMD,
-    TEMP_COMMAND_PREFIX,
-    TEMP_COMMAND_MIDDLE,
-    TEMP_COMMAND_SUFFIX,
     UNIT_FAHRENHEIT_CMD,
     UNIT_CELSIUS_CMD,
+    TEMP_40C_CMD,
+    TEMP_44C_CMD,
+    TEMP_485C_CMD,
 )
 
 _LOGGER = logging.getLogger(__name__)
