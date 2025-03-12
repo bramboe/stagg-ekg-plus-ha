@@ -33,7 +33,7 @@ class KettleBLEClient:
         self.char_uuid = CHAR_UUID
         self._client = None
         self._last_command_time = 0  # For debouncing commands
-        self._current_characteristic = CHAR_UUID  # Track which characteristic works
+        self._current_characteristic = "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4"  # Default to the characteristic that works best
         self._connection_lock = asyncio.Lock()  # Lock to prevent concurrent connections
         _LOGGER.debug("KettleBLEClient initialized with address: %s", address)
 
@@ -131,10 +131,16 @@ class KettleBLEClient:
         """Try different characteristics to find one that works for writing."""
         if not self._client or not self._client.is_connected:
             _LOGGER.debug("Cannot find working characteristic, not connected")
-            return self.char_uuid
+            return self._current_characteristic
+
+        # Prioritize checking 021AFF53 first as it's known to work
+        target_characteristic = "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4"
+        preferred_chars = [target_characteristic] + [c for c in ALL_CHAR_UUIDS if c != target_characteristic]
 
         working_chars = []
-        for char_uuid in ALL_CHAR_UUIDS:
+        json_data = None
+
+        for char_uuid in preferred_chars:
             try:
                 # Try to get the characteristic and check its properties
                 service = self._client.services.get_service(SERVICE_UUID)
@@ -156,21 +162,48 @@ class KettleBLEClient:
                 if "read" in char.properties:
                     _LOGGER.debug("Attempting to read from %s", char_uuid)
                     value = await self._client.read_gatt_char(char_uuid)
-                    _LOGGER.debug("Successfully read from %s: %s",
-                                char_uuid, " ".join(f"{b:02x}" for b in value))
+                    if value:
+                        _LOGGER.debug("Successfully read from %s: %s",
+                                    char_uuid, " ".join(f"{b:02x}" for b in value))
+
+                        # Try to parse JSON data if it appears to be JSON
+                        if value and len(value) > 0 and value[0] == 0x7b:  # '{' character
+                            try:
+                                text = value.decode('utf-8')
+                                if '{' in text and '}' in text:
+                                    _LOGGER.debug("Found JSON data in characteristic %s: %s", char_uuid, text)
+                                    json_data = text
+                            except:
+                                pass
+                    else:
+                        _LOGGER.debug("Read from %s: empty response", char_uuid)
 
             except Exception as e:
                 _LOGGER.debug("Error with characteristic %s: %s", char_uuid, e)
 
-        # Prioritize the first working characteristic or fall back to default
-        if working_chars:
-            self._current_characteristic = working_chars[0]
-            _LOGGER.debug("Using characteristic: %s", self._current_characteristic)
+        # If we found characteristic 021AFF53, use it as it's known to work well
+        if target_characteristic in working_chars:
+            self._current_characteristic = target_characteristic
+            _LOGGER.debug("Using known working characteristic: %s", self._current_characteristic)
             return self._current_characteristic
 
-        # If none worked, use the default one
-        _LOGGER.debug("No working characteristic found, using default: %s", CHAR_UUID)
-        return CHAR_UUID
+        # Otherwise prioritize any characteristic that returned JSON data
+        if json_data and working_chars:
+            # Use the first characteristic that had JSON data
+            for char_uuid in working_chars:
+                self._current_characteristic = char_uuid
+                _LOGGER.debug("Using JSON-capable characteristic: %s", self._current_characteristic)
+                return self._current_characteristic
+
+        # If we have any working characteristics, use the first one
+        if working_chars:
+            self._current_characteristic = working_chars[0]
+            _LOGGER.debug("Using first working characteristic: %s", self._current_characteristic)
+            return self._current_characteristic
+
+        # If none worked, keep the current characteristic
+        _LOGGER.debug("No working characteristic found, keeping current: %s", self._current_characteristic)
+        return self._current_characteristic
 
     async def _send_command(self, command):
         """Send a command to the kettle and log the result."""
@@ -327,8 +360,23 @@ class KettleBLEClient:
 
         state = {}
         try:
-            # Based on logs, look for specific formats
-            if data[0] == 0xf7:
+            # First check if this is JSON data (common in WiFi models)
+            if data[0] == 0x7b:  # '{' character
+                try:
+                    text = data.decode('utf-8')
+                    _LOGGER.debug("Attempting to parse JSON data: %s", text)
+
+                    # Currently we know this returns provisioning info, but in the future
+                    # we might be able to extract state information from JSON responses
+                    if '"prov"' in text:
+                        _LOGGER.debug("Found provisioning data in JSON")
+                        # This is just provisioning data, not state data
+                        pass
+                except Exception as json_err:
+                    _LOGGER.debug("Failed to parse JSON: %s", json_err)
+
+            # Based on logs, look for specific formats from Bluetooth models
+            elif data[0] == 0xf7:
                 # Command response format
                 if len(data) >= 14:
                     # Extract basic state data
@@ -361,6 +409,7 @@ class KettleBLEClient:
                 elif msg_type == 3 and len(data) >= 5:  # Current temp
                     state["current_temp"] = data[3]
                     state["units"] = "F" if data[4] == 1 else "C"
+
         except Exception as e:
             _LOGGER.debug("Error parsing data: %s", e)
             return None
