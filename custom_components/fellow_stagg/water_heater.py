@@ -50,11 +50,11 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     self._attr_device_info = coordinator.device_info
 
     _LOGGER.debug("Initializing water heater with units: %s", coordinator.temperature_unit)
-
+    
     self._attr_min_temp = coordinator.min_temp
     self._attr_max_temp = coordinator.max_temp
     self._attr_temperature_unit = coordinator.temperature_unit
-
+    
     _LOGGER.debug(
       "Water heater temperature range set to: %s°%s - %s°%s",
       self._attr_min_temp,
@@ -97,7 +97,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
       temperature,
       self.coordinator.temperature_unit
     )
-
+    
     await self.coordinator.kettle.async_set_temperature(
       self.coordinator.ble_device,
       int(temperature),
