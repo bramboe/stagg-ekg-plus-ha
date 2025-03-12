@@ -1,20 +1,13 @@
-"""BLE client for the Fellow Stagg kettle."""
+"""
+Updated kettle_ble.py with corrected temperature parsing based on Wireshark captures.
+This implementation uses the correct scaling factor for temperatures.
+"""
+
 import asyncio
 import logging
 import time
 from bleak import BleakClient
 from bleak.exc import BleakError
-
-from .const import (
-    SERVICE_UUID,
-    CHAR_UUID,
-    ALL_CHAR_UUIDS,
-    POWER_ON_CMD,
-    POWER_OFF_CMD,
-    UNIT_FAHRENHEIT_CMD,
-    UNIT_CELSIUS_CMD,
-    READ_TEMP_CMD,
-)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,6 +16,18 @@ MAX_CONNECTION_ATTEMPTS = 3
 # Delay between connection attempts in seconds
 CONNECTION_RETRY_DELAY = 1.0
 
+# Service and characteristic UUIDs
+SERVICE_UUID = "021A9004-0382-4AEA-BFF4-6B3F1C5ADFB4"
+CHAR_UUID = "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4"  # Primary working characteristic
+
+# All known characteristics to try
+ALL_CHAR_UUIDS = [
+    "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4",  # Known working characteristic
+    "021AFF50-0382-4AEA-BFF4-6B3F1C5ADFB4",
+    "021AFF51-0382-4AEA-BFF4-6B3F1C5ADFB4",
+    "021AFF52-0382-4AEA-BFF4-6B3F1C5ADFB4",
+    "021AFF54-0382-4AEA-BFF4-6B3F1C5ADFB4"
+]
 
 class KettleBLEClient:
     """BLE client for the Fellow Stagg kettle."""
@@ -33,7 +38,7 @@ class KettleBLEClient:
         self.char_uuid = CHAR_UUID
         self._client = None
         self._last_command_time = 0  # For debouncing commands
-        self._current_characteristic = "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4"  # Default to the characteristic that works best
+        self._current_characteristic = CHAR_UUID  # Start with the known working characteristic
         self._connection_lock = asyncio.Lock()  # Lock to prevent concurrent connections
         _LOGGER.debug("KettleBLEClient initialized with address: %s", address)
 
@@ -131,15 +136,12 @@ class KettleBLEClient:
         """Try different characteristics to find one that works for writing."""
         if not self._client or not self._client.is_connected:
             _LOGGER.debug("Cannot find working characteristic, not connected")
-            return self._current_characteristic
+            return self.char_uuid
 
         # Prioritize checking 021AFF53 first as it's known to work
-        target_characteristic = "021AFF53-0382-4AEA-BFF4-6B3F1C5ADFB4"
-        preferred_chars = [target_characteristic] + [c for c in ALL_CHAR_UUIDS if c != target_characteristic]
+        preferred_chars = [CHAR_UUID] + [c for c in ALL_CHAR_UUIDS if c != CHAR_UUID]
 
         working_chars = []
-        json_data = None
-
         for char_uuid in preferred_chars:
             try:
                 # Try to get the characteristic and check its properties
@@ -165,44 +167,26 @@ class KettleBLEClient:
                     if value:
                         _LOGGER.debug("Successfully read from %s: %s",
                                     char_uuid, " ".join(f"{b:02x}" for b in value))
-
-                        # Try to parse JSON data if it appears to be JSON
-                        if value and len(value) > 0 and value[0] == 0x7b:  # '{' character
-                            try:
-                                text = value.decode('utf-8')
-                                if '{' in text and '}' in text:
-                                    _LOGGER.debug("Found JSON data in characteristic %s: %s", char_uuid, text)
-                                    json_data = text
-                            except:
-                                pass
                     else:
                         _LOGGER.debug("Read from %s: empty response", char_uuid)
 
             except Exception as e:
                 _LOGGER.debug("Error with characteristic %s: %s", char_uuid, e)
 
-        # If we found characteristic 021AFF53, use it as it's known to work well
-        if target_characteristic in working_chars:
-            self._current_characteristic = target_characteristic
+        # If we found our known working characteristic, use it
+        if CHAR_UUID in working_chars:
+            self._current_characteristic = CHAR_UUID
             _LOGGER.debug("Using known working characteristic: %s", self._current_characteristic)
             return self._current_characteristic
 
-        # Otherwise prioritize any characteristic that returned JSON data
-        if json_data and working_chars:
-            # Use the first characteristic that had JSON data
-            for char_uuid in working_chars:
-                self._current_characteristic = char_uuid
-                _LOGGER.debug("Using JSON-capable characteristic: %s", self._current_characteristic)
-                return self._current_characteristic
-
-        # If we have any working characteristics, use the first one
+        # Otherwise use any working characteristic
         if working_chars:
             self._current_characteristic = working_chars[0]
             _LOGGER.debug("Using first working characteristic: %s", self._current_characteristic)
             return self._current_characteristic
 
-        # If none worked, keep the current characteristic
-        _LOGGER.debug("No working characteristic found, keeping current: %s", self._current_characteristic)
+        # If none worked, keep the current one
+        _LOGGER.debug("No working characteristic found, using current: %s", self._current_characteristic)
         return self._current_characteristic
 
     async def _send_command(self, command):
@@ -211,12 +195,12 @@ class KettleBLEClient:
             _LOGGER.debug("Cannot send command, not connected")
             return False
 
+        _LOGGER.debug("Sending command to %s: %s",
+                     self._current_characteristic,
+                     " ".join(f"{b:02x}" for b in command))
+
         try:
             # Try using the current characteristic first
-            _LOGGER.debug("Sending command to %s: %s",
-                         self._current_characteristic,
-                         " ".join(f"{b:02x}" for b in command))
-
             await self._client.write_gatt_char(self._current_characteristic, command)
             _LOGGER.debug("Command sent successfully")
             return True
@@ -240,6 +224,40 @@ class KettleBLEClient:
 
             _LOGGER.error("Failed to send command on any characteristic")
             return False
+
+    def _parse_data(self, data):
+        """
+        Parse raw data into kettle state using the correct scaling factor.
+        Temperature in Celsius = Hex value ÷ 2
+        """
+        if not data or len(data) < 5:
+            return None
+
+        state = {}
+        try:
+            # Check for the expected header pattern
+            if data[0] == 0xf7 and data[1] == 0x17 and data[2] == 0x00 and data[3] == 0x00:
+                # Byte at index 4 contains the temperature in Celsius × 2
+                scaled_temp = data[4]
+                actual_temp = scaled_temp / 2.0
+
+                state["current_temp"] = actual_temp
+                state["target_temp"] = actual_temp  # Assume current = target unless we get other data
+                state["units"] = "C"
+
+                # Power state is likely on if we're receiving temperature readings
+                state["power"] = True
+
+                return state
+
+            # Also check for other known response formats
+            # This would be extended based on more captures
+
+        except Exception as e:
+            _LOGGER.debug("Error parsing data: %s", e)
+            return None
+
+        return state if state else None
 
     async def async_poll(self, ble_device):
         """Connect to the kettle and return parsed state."""
@@ -285,10 +303,11 @@ class KettleBLEClient:
                             _LOGGER.debug("Failed to subscribe to %s: %s", char.uuid, e)
 
             # Send a read command to try to get state
+            read_command = self._create_read_command()
             if self._current_characteristic:
                 try:
                     _LOGGER.debug("Sending read command to get current state")
-                    await self._send_command(READ_TEMP_CMD)
+                    await self._send_command(read_command)
                     # Wait for notifications
                     await asyncio.sleep(1.0)
                 except Exception as e:
@@ -306,13 +325,16 @@ class KettleBLEClient:
             for char_uuid in ALL_CHAR_UUIDS:
                 try:
                     value = await self._client.read_gatt_char(char_uuid)
-                    _LOGGER.debug("Read from %s: %s",
-                                char_uuid, " ".join(f"{b:02x}" for b in value))
+                    if value and len(value) > 0:
+                        _LOGGER.debug("Read from %s: %s",
+                                    char_uuid, " ".join(f"{b:02x}" for b in value))
 
-                    # Try to parse this data
-                    parsed = self._parse_data(value)
-                    if parsed:
-                        state.update(parsed)
+                        # Try to parse this data
+                        parsed = self._parse_data(value)
+                        if parsed:
+                            state.update(parsed)
+                    else:
+                        _LOGGER.debug("Read from %s: empty response", char_uuid)
                 except Exception as e:
                     _LOGGER.debug("Could not read from %s: %s", char_uuid, e)
 
@@ -353,68 +375,58 @@ class KettleBLEClient:
                 "units": "C"
             }
 
-    def _parse_data(self, data):
-        """Parse raw data into kettle state."""
-        if not data or len(data) < 2:
-            return None
+    def _create_read_command(self):
+        """Create a command to read the current state of the kettle."""
+        return bytes([
+            0xf7, 0x17, 0x00, 0x00,         # Header
+            0x50,                           # Base temperature (40°C)
+            0x8c, 0x08, 0x00, 0x00,         # Standard values
+            0x01, 0x60, 0x40, 0x03, 0x00,   # Read command (03)
+            0x00, 0x00                      # Trailing bytes
+        ])
 
-        state = {}
-        try:
-            # First check if this is JSON data (common in WiFi models)
-            if data[0] == 0x7b:  # '{' character
-                try:
-                    text = data.decode('utf-8')
-                    _LOGGER.debug("Attempting to parse JSON data: %s", text)
+    def _create_temperature_command(self, temp_celsius):
+        """Create a command to set temperature with proper scaling factor."""
+        # Validate temperature range
+        if temp_celsius < 40:
+            temp_celsius = 40  # Minimum temperature
+        elif temp_celsius > 100:
+            temp_celsius = 100  # Maximum temperature
 
-                    # Currently we know this returns provisioning info, but in the future
-                    # we might be able to extract state information from JSON responses
-                    if '"prov"' in text:
-                        _LOGGER.debug("Found provisioning data in JSON")
-                        # This is just provisioning data, not state data
-                        pass
-                except Exception as json_err:
-                    _LOGGER.debug("Failed to parse JSON: %s", json_err)
+        # Scale the temperature (multiply by 2 to handle 0.5 increments)
+        scaled_temp = int(temp_celsius * 2)
 
-            # Based on logs, look for specific formats from Bluetooth models
-            elif data[0] == 0xf7:
-                # Command response format
-                if len(data) >= 14:
-                    # Extract basic state data
-                    command_type = data[12] if len(data) > 12 else 0
-                    value = data[13] if len(data) > 13 else 0
+        # Create the command with the temperature byte
+        command = bytearray([
+            0xf7, 0x17, 0x00, 0x00,  # Header
+            scaled_temp,              # Temperature value (scaled)
+            0x80, 0xc0, 0x80, 0x00, 0x00,  # Common pattern seen in commands
+            0x04, 0x04, 0x01, 0x1e,        # Additional data
+            0x00, 0x00                     # Trailing bytes
+        ])
 
-                    if command_type == 0x01:  # Power
-                        state["power"] = value == 1
-                    elif command_type == 0x02:  # Temperature setting
-                        state["target_temp"] = value
-                    elif command_type == 0x03:  # Current temperature
-                        state["current_temp"] = value
+        return bytes(command)
 
-                    # Units might be in the header bytes (based on logs)
-                    if len(data) > 5 and data[4] == 0xc1:
-                        # This might be a units response
-                        if data[5] == 0xc0:
-                            state["units"] = "F"
-                        elif data[5] == 0xcd:
-                            state["units"] = "C"
-
-            # Alternative format seen in logs
-            elif data[0] == 0xEF and data[1] == 0xDD and len(data) >= 4:
-                msg_type = data[2]
-                if msg_type == 0:  # Power state
-                    state["power"] = data[3] == 1
-                elif msg_type == 2 and len(data) >= 5:  # Target temp
-                    state["target_temp"] = data[3]
-                    state["units"] = "F" if data[4] == 1 else "C"
-                elif msg_type == 3 and len(data) >= 5:  # Current temp
-                    state["current_temp"] = data[3]
-                    state["units"] = "F" if data[4] == 1 else "C"
-
-        except Exception as e:
-            _LOGGER.debug("Error parsing data: %s", e)
-            return None
-
-        return state if state else None
+    def _create_power_command(self, power_on):
+        """Create a command to turn the kettle on or off."""
+        if power_on:
+            # Power ON command
+            return bytes([
+                0xf7, 0x17, 0x00, 0x00,         # Header
+                0x50,                           # Base temperature (40°C)
+                0x8c, 0x08, 0x00, 0x00,         # Standard values
+                0x01, 0x60, 0x40, 0x01, 0x01,   # Power ON (01 at the end)
+                0x00, 0x00                      # Trailing bytes
+            ])
+        else:
+            # Power OFF command
+            return bytes([
+                0xf7, 0x17, 0x00, 0x00,         # Header
+                0x50,                           # Base temperature
+                0x8c, 0x08, 0x00, 0x00,         # Standard values
+                0x01, 0x60, 0x40, 0x01, 0x00,   # Power OFF (00 at the end)
+                0x00, 0x00                      # Trailing bytes
+            ])
 
     async def async_set_power(self, ble_device, power_on: bool):
         """Turn the kettle on or off."""
@@ -429,8 +441,8 @@ class KettleBLEClient:
         try:
             await self._ensure_debounce()
 
-            # Use the exact command format from logs
-            command = POWER_ON_CMD if power_on else POWER_OFF_CMD
+            # Use the correctly formatted power command
+            command = self._create_power_command(power_on)
 
             success = await self._send_command(command)
             if not success:
@@ -455,7 +467,7 @@ class KettleBLEClient:
             raise Exception("Failed to connect to kettle")
 
         try:
-            # Create the appropriate temperature command based on the temperature
+            # Convert from Fahrenheit if needed
             if fahrenheit:
                 temp_c = (temp - 32) * 5 / 9
             else:
@@ -464,47 +476,15 @@ class KettleBLEClient:
             _LOGGER.debug("Setting temperature: %g°C", temp_c)
             await self._ensure_debounce()
 
-            # Create temperature command
-            command = bytearray(POWER_ON_CMD)  # Start with power on command as template
-            if len(command) > 12:
-                command[12] = 0x02  # Change to temperature command
-                command[13] = int(temp_c)  # Use the temperature value directly
+            # Create temperature command with proper scaling
+            command = self._create_temperature_command(temp_c)
 
-            success = await self._send_command(bytes(command))
+            success = await self._send_command(command)
             if not success:
                 raise Exception("Failed to send temperature command")
 
         except Exception as err:
             _LOGGER.error("Error setting temperature: %s", err)
-            if self._client and self._client.is_connected:
-                try:
-                    await self._client.disconnect()
-                except Exception as disconnect_err:
-                    _LOGGER.debug("Error disconnecting: %s", disconnect_err)
-            self._client = None
-            raise
-
-    async def async_set_temperature_unit(self, ble_device, fahrenheit: bool):
-        """Set temperature unit to Fahrenheit or Celsius."""
-        # First try to properly connect
-        connected = await self._ensure_connected(ble_device)
-        if not connected:
-            _LOGGER.error("Could not connect to kettle to set temperature unit")
-            raise Exception("Failed to connect to kettle")
-
-        try:
-            _LOGGER.debug("Setting temperature unit to: %s", "Fahrenheit" if fahrenheit else "Celsius")
-            await self._ensure_debounce()
-
-            # Use the exact unit commands from logs
-            command = UNIT_FAHRENHEIT_CMD if fahrenheit else UNIT_CELSIUS_CMD
-
-            success = await self._send_command(command)
-            if not success:
-                raise Exception("Failed to send unit command")
-
-        except Exception as err:
-            _LOGGER.error("Error setting temperature unit: %s", err)
             if self._client and self._client.is_connected:
                 try:
                     await self._client.disconnect()
