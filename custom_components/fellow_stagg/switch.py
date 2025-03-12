@@ -40,16 +40,8 @@ class FellowStaggPowerSwitch(SwitchEntity):
     _LOGGER.debug("Initialized power switch for %s", coordinator._address)
 
   @property
-  def available(self) -> bool:
-    """Return if entity is available."""
-    return self.coordinator.last_update_success and self.coordinator.data is not None
-
-  @property
   def is_on(self) -> bool | None:
     """Return true if the switch is on."""
-    if self.coordinator.data is None:
-      _LOGGER.debug("No data available for power switch state")
-      return None
     value = self.coordinator.data.get("power")
     _LOGGER.debug("Power switch state read as: %s", value)
     return value
@@ -57,25 +49,19 @@ class FellowStaggPowerSwitch(SwitchEntity):
   async def async_turn_on(self, **kwargs: Any) -> None:
     """Turn the switch on."""
     _LOGGER.debug("Turning power switch ON")
-    try:
-      await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, True)
-      _LOGGER.debug("Power ON command sent, waiting before refresh")
-      # Give the kettle a moment to update its internal state
-      await asyncio.sleep(0.5)
-      _LOGGER.debug("Requesting refresh after power change")
-      await self.coordinator.async_request_refresh()
-    except Exception as err:
-      _LOGGER.error("Failed to turn on kettle: %s", err)
+    await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, True)
+    _LOGGER.debug("Power ON command sent, waiting before refresh")
+    # Give the kettle a moment to update its internal state
+    await asyncio.sleep(0.5)
+    _LOGGER.debug("Requesting refresh after power change")
+    await self.coordinator.async_request_refresh()
 
   async def async_turn_off(self, **kwargs: Any) -> None:
     """Turn the switch off."""
     _LOGGER.debug("Turning power switch OFF")
-    try:
-      await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, False)
-      _LOGGER.debug("Power OFF command sent, waiting before refresh")
-      # Give the kettle a moment to update its internal state
-      await asyncio.sleep(0.5)
-      _LOGGER.debug("Requesting refresh after power change")
-      await self.coordinator.async_request_refresh()
-    except Exception as err:
-      _LOGGER.error("Failed to turn off kettle: %s", err)
+    await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, False)
+    _LOGGER.debug("Power OFF command sent, waiting before refresh")
+    # Give the kettle a moment to update its internal state
+    await asyncio.sleep(0.5)
+    _LOGGER.debug("Requesting refresh after power change")
+    await self.coordinator.async_request_refresh() 
