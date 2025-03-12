@@ -3,6 +3,8 @@ import asyncio
 import logging
 import time
 from bleak import BleakClient
+from bleak.exc import BleakError
+
 from .const import (
     SERVICE_UUID,
     CHAR_UUID,
@@ -16,6 +18,11 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Maximum connection attempts
+MAX_CONNECTION_ATTEMPTS = 3
+# Delay between connection attempts in seconds
+CONNECTION_RETRY_DELAY = 1.0
+
 
 class KettleBLEClient:
     """BLE client for the Fellow Stagg kettle."""
@@ -27,73 +34,87 @@ class KettleBLEClient:
         self._client = None
         self._last_command_time = 0  # For debouncing commands
         self._current_characteristic = CHAR_UUID  # Track which characteristic works
+        self._connection_lock = asyncio.Lock()  # Lock to prevent concurrent connections
         _LOGGER.debug("KettleBLEClient initialized with address: %s", address)
 
     async def _ensure_connected(self, ble_device):
-        """Ensure BLE connection is established."""
-        try:
-            if self._client is None or not self._client.is_connected:
-                _LOGGER.debug("Connecting to kettle at %s", self.address)
-                # Create client with the device directly, not the address string
-                self._client = BleakClient(ble_device, timeout=10.0)
-
-                connection_successful = await self._client.connect()
-                if connection_successful:
-                    _LOGGER.debug("Successfully connected to kettle")
-
-                    # Log all available services and characteristics
-                    services = await self._client.get_services()
-                    _LOGGER.debug("Found services: %s",
-                                 [service.uuid for service in services])
-
-                    # Find target service
-                    target_service = None
-                    for service in services:
-                        if service.uuid.lower() == self.service_uuid.lower():
-                            target_service = service
-                            _LOGGER.debug("Found main service %s", self.service_uuid)
-
-                            # Log characteristics within that service
-                            char_uuids = [char.uuid for char in target_service.characteristics]
-                            _LOGGER.debug("Found characteristics: %s", char_uuids)
-
-                            # Log properties for each characteristic
-                            for char in target_service.characteristics:
-                                _LOGGER.debug("Characteristic %s properties: %s",
-                                           char.uuid, char.properties)
-                            break
-
-                    if not target_service:
-                        _LOGGER.warning("Target service not found")
-                        raise Exception("Target service not found")
-                else:
-                    _LOGGER.error("Failed to connect to kettle")
-                    raise Exception("Connection failed")
-            else:
+        """Ensure BLE connection is established with retry mechanism."""
+        # Use lock to prevent multiple connection attempts at the same time
+        async with self._connection_lock:
+            if self._client and self._client.is_connected:
                 _LOGGER.debug("Already connected to kettle")
-        except Exception as err:
-            _LOGGER.error("Connection error: %s", err)
-            self._client = None
-            raise
+                return True
 
-    async def _try_fallback_connection(self):
-        """Try a direct connection as fallback."""
-        _LOGGER.debug("Attempting direct connection fallback to %s", self.address)
-        try:
-            fallback_client = BleakClient(self.address, timeout=10.0)
-            await fallback_client.connect()
-            self._client = fallback_client
-            _LOGGER.debug("Fallback connection successful")
+            _LOGGER.debug("Connecting to kettle at %s", self.address)
 
-            # Log services and characteristics
-            services = await self._client.get_services()
-            _LOGGER.debug("Fallback connection found services: %s",
-                        [service.uuid for service in services])
+            # Try multiple connection attempts
+            for attempt in range(1, MAX_CONNECTION_ATTEMPTS + 1):
+                try:
+                    # Ensure old client is cleaned up
+                    if self._client:
+                        try:
+                            if self._client.is_connected:
+                                await self._client.disconnect()
+                        except Exception as e:
+                            _LOGGER.debug("Error cleaning up existing connection: %s", e)
+                        self._client = None
 
-            # Return True if connection succeeded
-            return True
-        except Exception as fallback_err:
-            _LOGGER.error("Fallback connection also failed: %s", fallback_err)
+                    # Create new client with increased timeout
+                    _LOGGER.debug("Connection attempt %d/%d", attempt, MAX_CONNECTION_ATTEMPTS)
+                    self._client = BleakClient(ble_device, timeout=15.0)
+
+                    # Attempt connection
+                    connection_successful = await self._client.connect()
+
+                    if connection_successful:
+                        _LOGGER.debug("Successfully connected to kettle")
+
+                        # Log available services
+                        services = await self._client.get_services()
+                        _LOGGER.debug("Found services: %s",
+                                     [service.uuid for service in services])
+
+                        # Find target service
+                        target_service = None
+                        for service in services:
+                            if service.uuid.lower() == self.service_uuid.lower():
+                                target_service = service
+                                _LOGGER.debug("Found main service %s", self.service_uuid)
+
+                                # Log characteristics
+                                char_uuids = [char.uuid for char in target_service.characteristics]
+                                _LOGGER.debug("Found characteristics: %s", char_uuids)
+
+                                # Log properties
+                                for char in target_service.characteristics:
+                                    _LOGGER.debug("Characteristic %s properties: %s",
+                                               char.uuid, char.properties)
+                                break
+
+                        if not target_service:
+                            _LOGGER.warning("Target service not found")
+                            await self._client.disconnect()
+                            self._client = None
+                            continue
+
+                        return True
+                    else:
+                        _LOGGER.warning("Connection failed on attempt %d", attempt)
+                        self._client = None
+
+                except BleakError as err:
+                    _LOGGER.warning("BleakError during connection attempt %d: %s", attempt, err)
+                    self._client = None
+                except Exception as err:
+                    _LOGGER.warning("Unexpected error during connection attempt %d: %s", attempt, err)
+                    self._client = None
+
+                # Wait before retrying, if this isn't the last attempt
+                if attempt < MAX_CONNECTION_ATTEMPTS:
+                    await asyncio.sleep(CONNECTION_RETRY_DELAY)
+
+            # If we got here, all connection attempts failed
+            _LOGGER.error("Failed to connect to kettle after %d attempts", MAX_CONNECTION_ATTEMPTS)
             self._client = None
             return False
 
@@ -108,6 +129,10 @@ class KettleBLEClient:
 
     async def _find_working_characteristic(self):
         """Try different characteristics to find one that works for writing."""
+        if not self._client or not self._client.is_connected:
+            _LOGGER.debug("Cannot find working characteristic, not connected")
+            return self.char_uuid
+
         working_chars = []
         for char_uuid in ALL_CHAR_UUIDS:
             try:
@@ -149,6 +174,10 @@ class KettleBLEClient:
 
     async def _send_command(self, command):
         """Send a command to the kettle and log the result."""
+        if not self._client or not self._client.is_connected:
+            _LOGGER.debug("Cannot send command, not connected")
+            return False
+
         try:
             # Try using the current characteristic first
             _LOGGER.debug("Sending command to %s: %s",
@@ -181,24 +210,21 @@ class KettleBLEClient:
 
     async def async_poll(self, ble_device):
         """Connect to the kettle and return parsed state."""
+        _LOGGER.debug("Begin polling kettle")
+
+        # First try to properly connect
+        connected = await self._ensure_connected(ble_device)
+        if not connected:
+            _LOGGER.error("Could not connect to kettle for polling")
+            # Return default state when connection fails
+            return {
+                "power": False,
+                "target_temp": 40,
+                "current_temp": 25,
+                "units": "C"
+            }
+
         try:
-            _LOGGER.debug("Begin polling kettle")
-
-            # Try primary connection first
-            try:
-                await self._ensure_connected(ble_device)
-            except Exception as err:
-                _LOGGER.error("Primary connection failed: %s", err)
-                # Try fallback connection
-                if not await self._try_fallback_connection():
-                    # If both connection attempts fail, return default state
-                    return {
-                        "power": False,
-                        "target_temp": 40,
-                        "current_temp": 25,
-                        "units": "C"
-                    }
-
             # Find a working characteristic
             await self._find_working_characteristic()
 
@@ -277,13 +303,16 @@ class KettleBLEClient:
             return state
 
         except Exception as err:
-            _LOGGER.error("Error polling kettle: %s", err)
+            _LOGGER.error("Error during kettle polling: %s", err)
+            # Clean up connection on error
             if self._client and self._client.is_connected:
                 try:
                     await self._client.disconnect()
-                except:
-                    pass
+                except Exception as disconnect_err:
+                    _LOGGER.debug("Error disconnecting: %s", disconnect_err)
             self._client = None
+
+            # Return default state on error
             return {
                 "power": False,
                 "target_temp": 40,
@@ -340,18 +369,15 @@ class KettleBLEClient:
 
     async def async_set_power(self, ble_device, power_on: bool):
         """Turn the kettle on or off."""
+        _LOGGER.debug("Setting power: %s", "ON" if power_on else "OFF")
+
+        # First try to properly connect
+        connected = await self._ensure_connected(ble_device)
+        if not connected:
+            _LOGGER.error("Could not connect to kettle to set power")
+            raise Exception("Failed to connect to kettle")
+
         try:
-            _LOGGER.debug("Setting power: %s", "ON" if power_on else "OFF")
-
-            # Try primary connection first
-            try:
-                await self._ensure_connected(ble_device)
-            except Exception as err:
-                _LOGGER.error("Primary connection failed: %s", err)
-                # Try fallback connection
-                if not await self._try_fallback_connection():
-                    raise Exception("Could not establish connection")
-
             await self._ensure_debounce()
 
             # Use the exact command format from logs
@@ -366,37 +392,30 @@ class KettleBLEClient:
             if self._client and self._client.is_connected:
                 try:
                     await self._client.disconnect()
-                except:
-                    pass
+                except Exception as disconnect_err:
+                    _LOGGER.debug("Error disconnecting: %s", disconnect_err)
             self._client = None
             raise
 
     async def async_set_temperature(self, ble_device, temp: float, fahrenheit: bool = False):
         """Set target temperature."""
+        # First try to properly connect
+        connected = await self._ensure_connected(ble_device)
+        if not connected:
+            _LOGGER.error("Could not connect to kettle to set temperature")
+            raise Exception("Failed to connect to kettle")
+
         try:
             # Create the appropriate temperature command based on the temperature
-            # For now we'll use one of the 3 predefined commands as a starting point
-            # You'll need to expand this with proper temperature command generation
             if fahrenheit:
                 temp_c = (temp - 32) * 5 / 9
             else:
                 temp_c = temp
 
             _LOGGER.debug("Setting temperature: %g°C", temp_c)
-
-            # Try primary connection first
-            try:
-                await self._ensure_connected(ble_device)
-            except Exception as err:
-                _LOGGER.error("Primary connection failed: %s", err)
-                # Try fallback connection
-                if not await self._try_fallback_connection():
-                    raise Exception("Could not establish connection")
-
             await self._ensure_debounce()
 
-            # Create temperature command - this will be a simplified approach
-            # Just using the temp value as a byte in the command
+            # Create temperature command
             command = bytearray(POWER_ON_CMD)  # Start with power on command as template
             if len(command) > 12:
                 command[12] = 0x02  # Change to temperature command
@@ -411,25 +430,21 @@ class KettleBLEClient:
             if self._client and self._client.is_connected:
                 try:
                     await self._client.disconnect()
-                except:
-                    pass
+                except Exception as disconnect_err:
+                    _LOGGER.debug("Error disconnecting: %s", disconnect_err)
             self._client = None
             raise
 
     async def async_set_temperature_unit(self, ble_device, fahrenheit: bool):
         """Set temperature unit to Fahrenheit or Celsius."""
+        # First try to properly connect
+        connected = await self._ensure_connected(ble_device)
+        if not connected:
+            _LOGGER.error("Could not connect to kettle to set temperature unit")
+            raise Exception("Failed to connect to kettle")
+
         try:
             _LOGGER.debug("Setting temperature unit to: %s", "Fahrenheit" if fahrenheit else "Celsius")
-
-            # Try primary connection first
-            try:
-                await self._ensure_connected(ble_device)
-            except Exception as err:
-                _LOGGER.error("Primary connection failed: %s", err)
-                # Try fallback connection
-                if not await self._try_fallback_connection():
-                    raise Exception("Could not establish connection")
-
             await self._ensure_debounce()
 
             # Use the exact unit commands from logs
@@ -444,8 +459,8 @@ class KettleBLEClient:
             if self._client and self._client.is_connected:
                 try:
                     await self._client.disconnect()
-                except:
-                    pass
+                except Exception as disconnect_err:
+                    _LOGGER.debug("Error disconnecting: %s", disconnect_err)
             self._client = None
             raise
 
