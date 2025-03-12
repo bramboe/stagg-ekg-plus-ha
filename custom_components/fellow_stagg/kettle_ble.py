@@ -10,28 +10,26 @@ _LOGGER = logging.getLogger(__name__)
 
 def _decode_temperature(data: bytes) -> float:
     """
-    Decode temperature from kettle data with offset correction.
+    Decode temperature from kettle data.
 
-    When kettle is set to 40°C, log shows 107°C
-    This suggests a significant offset/scaling issue
+    Special case for 100°C showing as 133°C
     """
     if len(data) < 16:
         return 0.0
 
-    # Byte at index 4 appears to contain temperature information
+    # Byte at index 4 contains temperature information
     temp_byte = data[4]
 
-    # Reverse engineer the offset
-    # 40°C reported as 107°C suggests a complex transformation
-    celsius = (temp_byte - 67)  # Initial guess based on 40 → 107 mapping
+    # Significant offset discovered
+    celsius = (temp_byte - 33)  # Adjusting for 100°C → 133°C mapping
 
     return round(max(0, celsius), 1)
 
 def _encode_temperature(celsius: float) -> bytes:
     """
-    Encode temperature for the kettle, accounting for the offset.
+    Encode temperature for the kettle.
 
-    When setting 40°C, we need to generate a byte that results in 40°C display
+    Reverse of decoding: add the offset back
     """
     # Validate temperature range
     if celsius < 40:
@@ -39,10 +37,10 @@ def _encode_temperature(celsius: float) -> bytes:
     elif celsius > 100:
         celsius = 100
 
-    # Reverse the offset calculation
-    scaled_temp = int(celsius + 67)  # Reverse of the decoding offset
+    # Add the offset back to get the correct byte
+    scaled_temp = int(celsius + 33)
 
-    # Create a command that matches the observed pattern
+    # Maintain the specific command structure
     command = bytearray([
         0xf7, 0x17, 0x00, 0x00,  # Standard header
         scaled_temp,              # Offset-adjusted temperature
@@ -52,6 +50,7 @@ def _encode_temperature(celsius: float) -> bytes:
     ])
 
     return bytes(command)
+    
 def _validate_temperature(temp: float, fahrenheit: bool = False) -> float:
     """
     Validate and convert temperature.
@@ -76,7 +75,7 @@ def _validate_temperature(temp: float, fahrenheit: bool = False) -> float:
         temp_c = temp
 
     return round(temp_c, 1)
-    
+
 class KettleBLEClient:
     """BLE client for the Fellow Stagg EKG+ kettle."""
 
