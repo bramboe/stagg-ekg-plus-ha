@@ -171,28 +171,29 @@ class KettleBLEClient:
         self._last_command_time = current_time
 
     def _create_temperature_command(self, celsius: float) -> bytes:
-        """Create a command to set temperature."""
-        # Validate temperature range
-        if celsius < 40:
-            celsius = 40
-        elif celsius > 100:
-            celsius = 100
+        """Create a command to set temperature.
 
-        # Apply the correct formula for temperature byte (from Wireshark analysis)
+        Format based on raw kettle data observed in logs:
+        f71700005480c080000021140100000034
+        """
+        # Validate temperature range
+        celsius = max(40, min(100, celsius))
+
+        # Apply the correct formula for temperature byte
         temp_byte = int(0x30 + (celsius * 2))
 
-        # Target temperature byte
+        # Target temperature byte (although the kettle appears to ignore this)
         target_byte = int(0x0A + celsius)
 
-        # Create command based on observed protocol structure
+        # Use the exact format observed in kettle responses
         command = bytearray([
             0xF7, 0x17, 0x00, 0x00,      # Header (4 bytes)
-            temp_byte, 0x80, 0x80, 0x00, # Temperature and padding (4 bytes)
-            0x00, 0x02, 0x00,            # State flags (3 bytes)
-            target_byte, 0x00, 0x00      # Target temp and padding (3 bytes)
+            temp_byte, 0x80, 0xC0, 0x80, # Temperature and fixed bytes (4 bytes)
+            0x00, 0x00, 0x21, 0x14,      # State flags exactly as seen in working packets (4 bytes)
+            0x01, 0x00, 0x00, 0x00       # Last 4 bytes from observed format
         ])
 
-        # Add simple checksum (last byte increments with temperature)
+        # Calculate checksum (simple sum of all bytes modulo 256)
         checksum = sum(command) & 0xFF
         command.append(checksum)
 
@@ -200,27 +201,30 @@ class KettleBLEClient:
 
     def _create_power_command(self, power_on: bool) -> bytes:
         """Create a command to turn the kettle on or off."""
-        # Sequence number
+        # Get next sequence number
         seq = (self._sequence + 1) & 0xFF
 
-        if power_on:
-            # Power ON command based on source code and expected structure
-            command = bytearray([
-                0xF7, 0x17, 0x00, 0x00,   # Header
-                0x50, 0x8C, 0x08, 0x00,   # Power on sequence
-                0x00, 0x01, 0x60, 0x40,   # Control bytes
-                0x01, 0x0F, 0x00, 0x00    # Power state (0x0F = ON)
-            ])
-        else:
-            # Power OFF command
-            command = bytearray([
-                0xF7, 0x17, 0x00, 0x00,   # Header
-                0x50, 0x8C, 0x08, 0x00,   # Same as power on
-                0x00, 0x01, 0x60, 0x40,   # Control bytes
-                0x01, 0x00, 0x00, 0x00    # Power state (0x00 = OFF)
-            ])
+        # Create command with standard header
+        command = bytearray([
+            0xF7, 0x17, 0x00, 0x00,      # Header
+        ])
 
+        # Power command format
+        command.extend([
+            0x50, 0x8C, 0x08, 0x00,      # Power command prefix
+            0x00, 0x01, 0x60, 0x40,      # Control bytes
+            0x01                          # Command type byte
+        ])
+
+        # Add power state byte - this is the critical part
+        command.append(0x0F if power_on else 0x00)
+
+        # Add trailing zeros
+        command.extend([0x00, 0x00])
+
+        # Update sequence for next command
         self._sequence = seq
+
         return bytes(command)
 
     async def async_poll(self, device: BluetoothScannerDevice | None):
