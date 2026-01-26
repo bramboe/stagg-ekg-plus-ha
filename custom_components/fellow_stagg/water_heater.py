@@ -1,4 +1,4 @@
-"""Water heater platform for Fellow Stagg EKG+ kettle."""
+"""Water heater platform for Fellow Stagg EKG Pro over HTTP CLI."""
 from __future__ import annotations
 
 import asyncio
@@ -10,10 +10,7 @@ from homeassistant.components.water_heater import (
   WaterHeaterEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-  ATTR_TEMPERATURE,
-  UnitOfTemperature,
-)
+from homeassistant.const import ATTR_TEMPERATURE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -46,7 +43,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     """Initialize the water heater."""
     super().__init__()
     self.coordinator = coordinator
-    self._attr_unique_id = f"{coordinator._address}_water_heater"
+    self._attr_unique_id = f"{coordinator.base_url}_water_heater"
     self._attr_device_info = coordinator.device_info
 
     _LOGGER.debug("Initializing water heater with units: %s", coordinator.temperature_unit)
@@ -99,9 +96,8 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     )
     
     await self.coordinator.kettle.async_set_temperature(
-      self.coordinator.ble_device,
+      self.coordinator.session,
       int(temperature),
-      fahrenheit=self.coordinator.temperature_unit == UnitOfTemperature.FAHRENHEIT
     )
     _LOGGER.debug("Target temperature command sent, waiting before refresh")
     # Give the kettle a moment to update its internal state
@@ -112,7 +108,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
   async def async_turn_on(self, **kwargs: Any) -> None:
     """Turn the water heater on."""
     _LOGGER.debug("Turning water heater ON")
-    await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, True)
+    await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
     _LOGGER.debug("Power ON command sent, waiting before refresh")
     # Give the kettle a moment to update its internal state
     await asyncio.sleep(0.5)
@@ -122,7 +118,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
   async def async_turn_off(self, **kwargs: Any) -> None:
     """Turn the water heater off."""
     _LOGGER.debug("Turning water heater OFF")
-    await self.coordinator.kettle.async_set_power(self.coordinator.ble_device, False)
+    await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
     _LOGGER.debug("Power OFF command sent, waiting before refresh")
     # Give the kettle a moment to update its internal state
     await asyncio.sleep(0.5)
