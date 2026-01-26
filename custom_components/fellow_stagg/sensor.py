@@ -105,15 +105,8 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_unique_id = f"{coordinator._address}_{description.key}"
+        self._attr_unique_id = f"{coordinator.base_url}_{description.key}"
         self._attr_device_info = coordinator.device_info
-
-        # Update unit of measurement based on kettle's current units
-        if description.device_class == SensorDeviceClass.TEMPERATURE:
-            is_fahrenheit = coordinator.data.get("units") == "F"
-            self._attr_native_unit_of_measurement = (
-                UnitOfTemperature.FAHRENHEIT if is_fahrenheit else UnitOfTemperature.CELSIUS
-            )
 
     @property
     def native_value(self) -> str | None:
@@ -121,3 +114,12 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
         if self.coordinator.data is None:
             return None
         return VALUE_FUNCTIONS[self.entity_description.key](self.coordinator.data)
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the unit for temperature sensors based on kettle units."""
+        if self.entity_description.device_class == SensorDeviceClass.TEMPERATURE:
+            if self.coordinator.data and self.coordinator.data.get("units") == "F":
+                return UnitOfTemperature.FAHRENHEIT
+            return UnitOfTemperature.CELSIUS
+        return super().native_unit_of_measurement
