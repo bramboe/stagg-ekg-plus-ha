@@ -2,7 +2,7 @@
   "name": "Fellow Stagg EKG Pro (HTTP CLI)",
   "domain": "fellow_stagg",
   "country": "US",
-  "homeassistant": "2023.9.0",
+  "homeassistant": "2023.5.0",
   "render_readme": true
 }
 {
