@@ -1,3 +1,23 @@
+# Fellow Stagg EKG Pro (HTTP CLI) – Home Assistant Custom Integration
+
+Home Assistant integration for the Fellow Stagg EKG Pro using the kettle’s HTTP CLI API (no BLE). It mirrors the `ekg-pro-cli` Homebridge fork’s behavior (`/cli?cmd=setstate`, `/cli?cmd=setsetting settempr`, etc.).
+
+## Install via HACS (Custom Repository)
+1) In Home Assistant: HACS → Integrations → three-dots menu → Custom repositories.  
+2) Add this repo URL as **Category: Integration**.  
+3) Open HACS → Integrations → “Explore & download repositories”, search for **Fellow Stagg EKG Pro (HTTP CLI)**, install.  
+4) Restart Home Assistant.
+
+## Add the integration
+1) Settings → Devices & Services → Add Integration → search “Fellow Stagg EKG Pro (HTTP CLI)”.  
+2) Enter your kettle’s base URL, e.g. `http://192.168.1.32` (the `/cli` suffix is appended automatically).  
+3) Save.
+
+## Notes
+- Kettle firmware must support the HTTP CLI (`setstate`, `setsetting settempr`).  
+- Polling interval defaults to 5s.  
+- Entities: power switch, target temp number, water heater, and sensors for power/hold/current/target temperature.  
+- Units are inferred from the CLI output (`tempr`, `temprT`, `S_Heat/S_Hold/S_Off`).
 # Stagg EKG+ Home Assistant Integration
 
 A Home Assistant integration for the Fellow Stagg EKG+ electric kettle. Control and monitor your kettle directly from Home Assistant.
