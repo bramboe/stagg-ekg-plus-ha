@@ -52,8 +52,17 @@ class KettleHttpClient:
     state = "S_Heat" if power_on else "S_Off"
     await self._cli_command(session, f"setstate {state}")
 
-  async def async_set_temperature(self, session: ClientSession, temp_c: int) -> None:
-    """Set kettle target temperature (input in Celsius) without changing power."""
+  async def async_set_temperature(
+    self,
+    session: ClientSession,
+    temp_c: int,
+    power_on: bool | None = None,
+    **_: Any,
+  ) -> None:
+    """Set kettle target temperature (input in Celsius) without changing power.
+
+    power_on is accepted for backward compatibility but ignored here.
+    """
     temp_f = round(self._c_to_f(temp_c))
     await self._cli_command(session, f"setsetting settempr {temp_f}")
 
