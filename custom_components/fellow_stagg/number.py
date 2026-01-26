@@ -1,4 +1,4 @@
-"""Number platform for Fellow Stagg EKG+ kettle."""
+"""Number platform for Fellow Stagg EKG Pro over HTTP CLI."""
 from __future__ import annotations
 
 import asyncio
@@ -10,10 +10,8 @@ from homeassistant.components.number import (
   NumberMode,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import EntityCategory
 
 from . import FellowStaggDataUpdateCoordinator
 from .const import DOMAIN
@@ -41,7 +39,7 @@ class FellowStaggTargetTemperature(NumberEntity):
     """Initialize the number."""
     super().__init__()
     self.coordinator = coordinator
-    self._attr_unique_id = f"{coordinator._address}_target_temp"
+    self._attr_unique_id = f"{coordinator.base_url}_target_temp"
     self._attr_device_info = coordinator.device_info
     
     _LOGGER.debug("Initializing target temp with units: %s", coordinator.temperature_unit)
@@ -74,9 +72,8 @@ class FellowStaggTargetTemperature(NumberEntity):
     )
     
     await self.coordinator.kettle.async_set_temperature(
-      self.coordinator.ble_device,
+      self.coordinator.session,
       int(value),
-      fahrenheit=self.coordinator.temperature_unit == UnitOfTemperature.FAHRENHEIT
     )
     _LOGGER.debug("Target temperature command sent, waiting before refresh")
     # Give the kettle a moment to update its internal state
