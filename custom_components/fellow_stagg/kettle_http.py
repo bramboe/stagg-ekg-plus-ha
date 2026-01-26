@@ -42,6 +42,7 @@ class KettleHttpClient:
       "current_temp": current_temp,
       "target_temp": target_temp,
       "units": units,
+      "lifted": self._parse_lifted(body),
     }
 
     return data
@@ -159,6 +160,15 @@ class KettleHttpClient:
     if unit == "F":
       return self._f_to_c(value), "F"
     return value, unit
+
+  @staticmethod
+  def _parse_lifted(body: str) -> bool | None:
+    """Parse kettle position (on/off base) from ipb flag."""
+    match = re.search(r"\bipb\b\s*=?\s*(\d+)", body or "", re.IGNORECASE)
+    if not match:
+      return None
+    # Empirically, ipb appears to be 0 when on base; 1 when lifted.
+    return match.group(1) == "1"
 
   @staticmethod
   def _parse_first_number(body: str) -> float | None:
