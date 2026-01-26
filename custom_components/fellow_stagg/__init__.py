@@ -1,106 +1,89 @@
-"""Support for Fellow Stagg EKG+ kettles."""
+"""Support for Fellow Stagg EKG Pro kettles over the HTTP CLI API."""
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
 from typing import Any
 
-from homeassistant.components.bluetooth import (
-    async_ble_device_from_address,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-)
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import DOMAIN
-from .kettle_ble import KettleBLEClient
+from .const import (
+  CLI_PATH,
+  DOMAIN,
+  MAX_TEMP_C,
+  MAX_TEMP_F,
+  MIN_TEMP_C,
+  MIN_TEMP_F,
+  POLLING_INTERVAL_SECONDS,
+)
+from .kettle_http import KettleHttpClient
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.WATER_HEATER]
-POLLING_INTERVAL = timedelta(seconds=5)  # Poll every 5 seconds (minimum allowed)
-
-# Temperature ranges for the kettle
-MIN_TEMP_F = 104
-MAX_TEMP_F = 212
-MIN_TEMP_C = 40
-MAX_TEMP_C = 100
+PLATFORMS: list[Platform] = [
+  Platform.SENSOR,
+  Platform.SWITCH,
+  Platform.NUMBER,
+  Platform.WATER_HEATER,
+]
 
 
-class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator):
-  """Class to manage fetching Fellow Stagg data."""
+class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
+  """Manage fetching Fellow Stagg data via the HTTP CLI API."""
 
-  def __init__(self, hass: HomeAssistant, address: str) -> None:
+  def __init__(self, hass: HomeAssistant, base_url: str) -> None:
     """Initialize the coordinator."""
     super().__init__(
       hass,
       _LOGGER,
-      name=f"Fellow Stagg {address}",
-      update_interval=POLLING_INTERVAL,
+      name=f"Fellow Stagg {base_url}",
+      update_interval=timedelta(seconds=POLLING_INTERVAL_SECONDS),
     )
-    self.kettle = KettleBLEClient(address)
-    self.ble_device = None
-    self._address = address
+    self.session = async_get_clientsession(hass)
+    self.kettle = KettleHttpClient(base_url, CLI_PATH)
+    self._base_url = base_url
+    self.base_url = base_url
 
     self.device_info = DeviceInfo(
-      identifiers={(DOMAIN, address)},
-      name=f"Fellow Stagg EKG+ {address}",
+      identifiers={(DOMAIN, base_url)},
+      name=f"Fellow Stagg EKG Pro ({base_url})",
       manufacturer="Fellow",
-      model="Stagg EKG+",
+      model="Stagg EKG Pro (HTTP CLI)",
     )
 
   @property
   def temperature_unit(self) -> str:
-    """Get the current temperature unit."""
-    return UnitOfTemperature.FAHRENHEIT if self.data and self.data.get("units") == "F" else UnitOfTemperature.CELSIUS
+    """Return the current temperature unit from the kettle data."""
+    return (
+      UnitOfTemperature.FAHRENHEIT
+      if self.data and self.data.get("units") == "F"
+      else UnitOfTemperature.CELSIUS
+    )
 
   @property
   def min_temp(self) -> float:
-    """Get the minimum temperature based on current units."""
+    """Return minimum temperature based on current units."""
     return MIN_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MIN_TEMP_C
 
   @property
   def max_temp(self) -> float:
-    """Get the maximum temperature based on current units."""
+    """Return maximum temperature based on current units."""
     return MAX_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MAX_TEMP_C
 
   async def _async_update_data(self) -> dict[str, Any] | None:
     """Fetch data from the kettle."""
-    _LOGGER.debug("Starting poll for Fellow Stagg kettle %s", self._address)
-    
-    self.ble_device = async_ble_device_from_address(self.hass, self._address, True)
-    if not self.ble_device:
-      _LOGGER.debug("No connectable device found")
-      return None
-        
+    _LOGGER.debug("Polling Fellow Stagg kettle at %s", self._base_url)
     try:
-      _LOGGER.debug("Attempting to poll kettle data...")
-      data = await self.kettle.async_poll(self.ble_device)
-      _LOGGER.debug(
-        "Successfully polled data from kettle %s: %s",
-        self._address,
-        data,
-      )
-      
-      # Log any changes in data compared to previous state
-      if self.data is not None:
-        changes = {
-          k: (self.data.get(k), v) 
-          for k, v in data.items() 
-          if k in self.data and self.data.get(k) != v
-        }
-        if changes:
-          _LOGGER.debug("Data changes detected: %s", changes)
-      
+      data = await self.kettle.async_poll(self.session)
+      _LOGGER.debug("Fetched data: %s", data)
       return data
-    except Exception as e:
-      _LOGGER.error(
-        "Error polling Fellow Stagg kettle %s: %s",
-        self._address,
-        str(e),
-      )
+    except Exception as err:  # noqa: BLE001
+      _LOGGER.error("Error polling Fellow Stagg kettle at %s: %s", self._base_url, err)
       return None
 
 
@@ -111,22 +94,18 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
   """Set up Fellow Stagg integration from a config entry."""
-  address = entry.unique_id
-  if address is None:
-    _LOGGER.error("No unique ID provided in config entry")
+  base_url: str | None = entry.data.get("base_url")
+  if base_url is None:
+    _LOGGER.error("No base URL provided in config entry")
     return False
 
-  _LOGGER.debug("Setting up Fellow Stagg integration for device: %s", address)
-  coordinator = FellowStaggDataUpdateCoordinator(hass, address)
-
-  # Do first update
+  _LOGGER.debug("Setting up Fellow Stagg integration for %s", base_url)
+  coordinator = FellowStaggDataUpdateCoordinator(hass, base_url)
   await coordinator.async_config_entry_first_refresh()
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-  
-  _LOGGER.debug("Setup complete for Fellow Stagg device: %s", address)
+  _LOGGER.debug("Setup complete for Fellow Stagg device: %s", base_url)
   return True
 
 
