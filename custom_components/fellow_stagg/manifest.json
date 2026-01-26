@@ -1,12 +1,12 @@
 {
   "domain": "fellow_stagg",
-  "name": "Fellow Stagg EKG+",
+  "name": "Fellow Stagg EKG Pro (HTTP CLI)",
   "codeowners": ["@levi"],
   "config_flow": true,
-  "dependencies": ["bluetooth_adapters", "bluetooth"],
+  "dependencies": [],
   "documentation": "https://github.com/levi/stagg-ekg-plus",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/levi/stagg-ekg-plus/issues",
-  "requirements": ["bleak"],
-  "version": "0.2"
+  "requirements": [],
+  "version": "0.3"
 }
