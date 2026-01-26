@@ -1,10 +1,13 @@
 DOMAIN = "fellow_stagg"
 
-# BLE UUIDs for the Fellow Stagg kettle’s “Serial Port Service”
-SERVICE_UUID = "021A9004-0382-4AEA-BFF4-6B3F1C5ADFB4"  # Main control service
-CHAR_UUID = "021AFF50-0382-4AEA-BFF4-6B3F1C5ADFB4"    # Primary characteristic for control
+# Default temperature limits (C / F) for the EKG Pro Wi‑Fi CLI API
+MIN_TEMP_F = 104
+MAX_TEMP_F = 212
+MIN_TEMP_C = 40
+MAX_TEMP_C = 100
 
-# The magic init sequence (in hex) used to authenticate with the kettle:
-# ef dd 0b 30 31 32 33 34 35 36 37 38 39 30 31 32 33 34 9a 6d
-# INIT_SEQUENCE = bytes.fromhex("455350100125A2012220889794D1273C492FD635D0DD20AD3F972C0CE3B95D4FB4B5B24D2EAD51DD4EABE3ED637744")
-INIT_SEQUENCE = bytes.fromhex("efdd0b3031323334353637383930313233349a6d")
+# Polling interval (in seconds) the coordinator will use
+POLLING_INTERVAL_SECONDS = 5
+
+# Default path for the kettle HTTP CLI endpoint
+CLI_PATH = "/cli"
