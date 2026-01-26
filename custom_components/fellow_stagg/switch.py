@@ -9,6 +9,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
 from .const import DOMAIN
@@ -24,15 +25,16 @@ async def async_setup_entry(
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
   async_add_entities([FellowStaggPowerSwitch(coordinator)])
 
-class FellowStaggPowerSwitch(SwitchEntity):
+class FellowStaggPowerSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SwitchEntity):
   """Switch class for Fellow Stagg kettle power control."""
 
   _attr_has_entity_name = True
   _attr_name = "Power"
+  _attr_should_poll = False
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     """Initialize the switch."""
-    super().__init__()
+    super().__init__(coordinator)
     self.coordinator = coordinator
     self._attr_unique_id = f"{coordinator.base_url}_power"
     self._attr_device_info = coordinator.device_info
@@ -41,6 +43,8 @@ class FellowStaggPowerSwitch(SwitchEntity):
   @property
   def is_on(self) -> bool | None:
     """Return true if the switch is on."""
+    if self.coordinator.data is None:
+      return None
     value = self.coordinator.data.get("power")
     _LOGGER.debug("Power switch state read as: %s", value)
     return value
