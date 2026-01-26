@@ -31,9 +31,12 @@ class KettleHttpClient:
     target_temp, target_units = self._parse_target_temp(body)
     mode = self._parse_mode(body)
 
-    # Prefer explicit units found with temps; otherwise default to C unless the
-    # kettle reports units=1 (F).
-    units = (temp_units or target_units or self._parse_units_flag(body) or "C").upper()
+    # Prefer explicit units from parsed temps; only fall back to the kettle
+    # units flag when no temp labels provided.
+    units = (temp_units or target_units)
+    if not units:
+      units = self._parse_units_flag(body) or "C"
+    units = units.upper()
 
     data: dict[str, Any] = {
       "raw": body,
