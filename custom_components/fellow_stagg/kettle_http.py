@@ -34,6 +34,8 @@ class KettleHttpClient:
     sched_time = self._parse_schedule_time(body)
     sched_temp_c = self._parse_schedule_temp(body)
     sched_enabled = self._parse_schedule_enabled(body)
+    sched_repeat = self._parse_schedule_repeat(body)
+    sched_mode = self._derive_schedule_mode(sched_enabled, sched_repeat)
 
     # Prefer explicit units from parsed temps; only fall back to the kettle
     # units flag when no temp labels provided.
@@ -54,6 +56,8 @@ class KettleHttpClient:
       "schedule_time": sched_time,
       "schedule_temp_c": sched_temp_c,
       "schedule_enabled": sched_enabled,
+      "schedule_repeat": sched_repeat,
+      "schedule_mode": sched_mode,
     }
 
     return data
@@ -92,6 +96,24 @@ class KettleHttpClient:
   async def async_set_schedule_enabled(self, session: ClientSession, enabled: bool) -> None:
     """Enable or disable schedule."""
     await self._cli_command(session, f"setsetting schedon {1 if enabled else 0}")
+
+  async def async_set_schedule_mode(self, session: ClientSession, mode: str) -> None:
+    """Set schedule mode: off/once/daily."""
+    mode = mode.lower()
+    if mode == "off":
+      schedon = 0
+      repeat = 0
+    elif mode == "once":
+      schedon = 1
+      repeat = 0
+    elif mode == "daily":
+      schedon = 2
+      repeat = 1
+    else:
+      raise ValueError("mode must be one of: off, once, daily")
+
+    await self._cli_command(session, f"setsetting Repeat_sched {repeat}")
+    await self._cli_command(session, f"setsetting schedon {schedon}")
 
   async def _cli_command(self, session: ClientSession, command: str) -> str:
     """Send a CLI command over HTTP."""
@@ -242,6 +264,29 @@ class KettleHttpClient:
     if not match:
       return None
     return match.group(1) == "1"
+
+  @staticmethod
+  def _parse_schedule_repeat(body: str) -> int | None:
+    """Parse Repeat_sched value."""
+    match = re.search(r"\bRepeat_sched\s*=\s*(\d+)", body or "", re.IGNORECASE)
+    if not match:
+      return None
+    return int(match.group(1))
+
+  @staticmethod
+  def _derive_schedule_mode(sched_enabled: bool | None, repeat: int | None) -> str | None:
+    if sched_enabled is None and repeat is None:
+      return None
+    # schedon semantics:
+    # 0 -> off, 1 -> once, 2 -> daily
+    # repeat_sched 0 for once, 1 for daily
+    if sched_enabled is False:
+      return "off"
+    if sched_enabled is True:
+      if repeat == 1:
+        return "daily"
+      return "once"
+    return None
 
   @staticmethod
   def _parse_first_number(body: str) -> float | None:
