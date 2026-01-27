@@ -28,3 +28,11 @@ disable_schedule:
     entry_id:
       description: Optional config entry id (needed if multiple kettles)
       example: 1234567890abcdef
+
+update_schedule:
+  name: Update schedule
+  description: Apply the current schedule time/temp/mode from entities to the kettle.
+  fields:
+    entry_id:
+      description: Optional config entry id (needed if multiple kettles)
+      example: 1234567890abcdef
