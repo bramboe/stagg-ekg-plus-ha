@@ -24,41 +24,39 @@ async def async_setup_entry(
   """Set up Fellow Stagg switches based on a config entry."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
   async_add_entities([
-    FellowStaggScheduleSwitch(coordinator),
+    FellowStaggPowerSwitch(coordinator),
   ])
 
 
-class FellowStaggScheduleSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SwitchEntity):
-  """Switch to enable/disable kettle schedule (schedon)."""
+class FellowStaggPowerSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SwitchEntity):
+  """Switch to turn kettle power on/off."""
 
   _attr_has_entity_name = True
-  _attr_name = "Schedule"
+  _attr_name = "Power"
   _attr_should_poll = False
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
-    self._attr_unique_id = f"{coordinator.base_url}_schedule_switch"
+    self._attr_unique_id = f"{coordinator.base_url}_power_switch"
     self._attr_device_info = coordinator.device_info
-    _LOGGER.debug("Initialized schedule switch for %s", coordinator.base_url)
+    _LOGGER.debug("Initialized power switch for %s", coordinator.base_url)
 
   @property
   def is_on(self) -> bool | None:
     if self.coordinator.data is None:
       return None
-    return bool(self.coordinator.data.get("schedule_enabled"))
+    return bool(self.coordinator.data.get("power"))
 
   async def async_turn_on(self, **kwargs: Any) -> None:
-    await self._set_schedule_enabled(True)
+    _LOGGER.debug("Turning kettle power ON")
+    await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
+    if self.coordinator.data is not None:
+      self.coordinator.data["power"] = True
+    await self.coordinator.async_request_refresh()
 
   async def async_turn_off(self, **kwargs: Any) -> None:
-    await self._set_schedule_enabled(False)
-
-  async def _set_schedule_enabled(self, enabled: bool) -> None:
-    _LOGGER.debug("Setting schedule enabled=%s", enabled)
-    await self.coordinator.kettle.async_set_schedule_enabled(
-      self.coordinator.session,
-      enabled,
-    )
+    _LOGGER.debug("Turning kettle power OFF")
+    await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
     if self.coordinator.data is not None:
-      self.coordinator.data["schedule_enabled"] = enabled
+      self.coordinator.data["power"] = False
     await self.coordinator.async_request_refresh()
