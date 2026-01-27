@@ -1,7 +1,6 @@
-"""Switch platform for Fellow Stagg EKG Pro over HTTP CLI."""
+"""Switches for Fellow Stagg EKG Pro over HTTP CLI."""
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -16,55 +15,50 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(
   hass: HomeAssistant,
   entry: ConfigEntry,
   async_add_entities: AddEntitiesCallback,
 ) -> None:
-  """Set up Fellow Stagg switch based on a config entry."""
+  """Set up Fellow Stagg switches based on a config entry."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-  async_add_entities([FellowStaggPowerSwitch(coordinator)])
+  async_add_entities([
+    FellowStaggScheduleSwitch(coordinator),
+  ])
 
-class FellowStaggPowerSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SwitchEntity):
-  """Switch class for Fellow Stagg kettle power control."""
+
+class FellowStaggScheduleSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SwitchEntity):
+  """Switch to enable/disable kettle schedule (schedon)."""
 
   _attr_has_entity_name = True
-  _attr_name = "Power"
+  _attr_name = "Schedule"
   _attr_should_poll = False
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
-    """Initialize the switch."""
     super().__init__(coordinator)
-    self.coordinator = coordinator
-    self._attr_unique_id = f"{coordinator.base_url}_power"
+    self._attr_unique_id = f"{coordinator.base_url}_schedule_switch"
     self._attr_device_info = coordinator.device_info
-    _LOGGER.debug("Initialized power switch for %s", coordinator.base_url)
+    _LOGGER.debug("Initialized schedule switch for %s", coordinator.base_url)
 
   @property
   def is_on(self) -> bool | None:
-    """Return true if the switch is on."""
     if self.coordinator.data is None:
       return None
-    value = self.coordinator.data.get("power")
-    _LOGGER.debug("Power switch state read as: %s", value)
-    return value
+    return bool(self.coordinator.data.get("schedule_enabled"))
 
   async def async_turn_on(self, **kwargs: Any) -> None:
-    """Turn the switch on."""
-    _LOGGER.debug("Turning power switch ON")
-    await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
-    _LOGGER.debug("Power ON command sent, waiting before refresh")
-    # Give the kettle a moment to update its internal state
-    await asyncio.sleep(0.5)
-    _LOGGER.debug("Requesting refresh after power change")
-    await self.coordinator.async_request_refresh()
+    await self._set_schedule_enabled(True)
 
   async def async_turn_off(self, **kwargs: Any) -> None:
-    """Turn the switch off."""
-    _LOGGER.debug("Turning power switch OFF")
-    await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
-    _LOGGER.debug("Power OFF command sent, waiting before refresh")
-    # Give the kettle a moment to update its internal state
-    await asyncio.sleep(0.5)
-    _LOGGER.debug("Requesting refresh after power change")
-    await self.coordinator.async_request_refresh() 
+    await self._set_schedule_enabled(False)
+
+  async def _set_schedule_enabled(self, enabled: bool) -> None:
+    _LOGGER.debug("Setting schedule enabled=%s", enabled)
+    await self.coordinator.kettle.async_set_schedule_enabled(
+      self.coordinator.session,
+      enabled,
+    )
+    if self.coordinator.data is not None:
+      self.coordinator.data["schedule_enabled"] = enabled
+    await self.coordinator.async_request_refresh()
