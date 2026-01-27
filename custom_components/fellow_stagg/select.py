@@ -18,6 +18,15 @@ _LOGGER = logging.getLogger(__name__)
 HOUR_OPTIONS = [f"{h:02d}" for h in range(24)]
 MINUTE_OPTIONS = [f"{m:02d}" for m in range(60)]
 
+def _get_schedule_temp_c(coordinator: FellowStaggDataUpdateCoordinator) -> int | None:
+  """Return a schedule temperature in C if known (fallback to target temp)."""
+  temp_c = None
+  if coordinator.data:
+    temp_c = coordinator.data.get("schedule_temp_c")
+    if temp_c is None:
+      temp_c = coordinator.data.get("target_temp")
+  return int(temp_c) if temp_c is not None else None
+
 
 async def async_setup_entry(
   hass: HomeAssistant,
@@ -57,7 +66,15 @@ class FellowStaggScheduleHourSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
     if self.coordinator.data and self.coordinator.data.get("schedule_time"):
       minute = int(self.coordinator.data["schedule_time"].get("minute", 0))
     _LOGGER.debug("Setting schedule hour=%s minute=%s", hour, minute)
-    await self._maybe_set_schedule_temp()
+    temp_c = _get_schedule_temp_c(self.coordinator)
+    if temp_c is not None:
+      try:
+        await self.coordinator.kettle.async_set_schedule_temperature(
+          self.coordinator.session,
+          temp_c,
+        )
+      except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Failed to set schedule temp before time: %s", err)
     await self.coordinator.kettle.async_set_schedule_time(self.coordinator.session, hour, minute)
     await self.coordinator.kettle.async_set_schedule_enabled(self.coordinator.session, True)
     if self.coordinator.data is not None:
@@ -91,27 +108,18 @@ class FellowStaggScheduleMinuteSelect(CoordinatorEntity[FellowStaggDataUpdateCoo
     if self.coordinator.data and self.coordinator.data.get("schedule_time"):
       hour = int(self.coordinator.data["schedule_time"].get("hour", 0))
     _LOGGER.debug("Setting schedule hour=%s minute=%s", hour, minute)
-    await self._maybe_set_schedule_temp()
+    temp_c = _get_schedule_temp_c(self.coordinator)
+    if temp_c is not None:
+      try:
+        await self.coordinator.kettle.async_set_schedule_temperature(
+          self.coordinator.session,
+          temp_c,
+        )
+      except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Failed to set schedule temp before time: %s", err)
     await self.coordinator.kettle.async_set_schedule_time(self.coordinator.session, hour, minute)
     await self.coordinator.kettle.async_set_schedule_enabled(self.coordinator.session, True)
     if self.coordinator.data is not None:
       self.coordinator.data["schedule_time"] = {"hour": hour, "minute": minute}
       self.coordinator.data["schedule_enabled"] = True
     await self.coordinator.async_request_refresh()
-
-  async def _maybe_set_schedule_temp(self) -> None:
-    """Ensure schedule temp is set before enabling schedule."""
-    temp_c = None
-    if self.coordinator.data:
-      temp_c = self.coordinator.data.get("schedule_temp_c")
-      if temp_c is None:
-        temp_c = self.coordinator.data.get("target_temp")
-    if temp_c is None:
-      return
-    try:
-      await self.coordinator.kettle.async_set_schedule_temperature(
-        self.coordinator.session,
-        int(temp_c),
-      )
-    except Exception as err:  # noqa: BLE001
-      _LOGGER.warning("Failed to set schedule temperature before time: %s", err)
