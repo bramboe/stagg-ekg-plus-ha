@@ -126,7 +126,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
       coord = await async_resolve_coordinator(call.data)
       hour = call.data["hour"]
       minute = call.data["minute"]
-      temp_c = call.data["temperature_c"]
+      temp_c = call.data.get("temperature_c")
+      temp_f = call.data.get("temperature_f")
+      if temp_c is None and temp_f is None:
+        raise ValueError("Provide temperature_c or temperature_f")
+      if temp_c is None and temp_f is not None:
+        temp_c = int(round((float(temp_f) - 32.0) / 1.8))
+      temp_c = int(temp_c)
       enable = call.data.get("enable", True)
       await coord.kettle.async_set_schedule_temperature(coord.session, temp_c)
       await coord.kettle.async_set_schedule_time(coord.session, hour, minute)
@@ -146,7 +152,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         {
           vol.Required("hour"): vol.All(int, vol.Range(min=0, max=23)),
           vol.Required("minute"): vol.All(int, vol.Range(min=0, max=59)),
-          vol.Required("temperature_c"): vol.All(int, vol.Range(min=0, max=125)),
+          vol.Optional("temperature_c"): vol.All(int, vol.Range(min=0, max=300)),
+          vol.Optional("temperature_f"): vol.All(int, vol.Range(min=30, max=500)),
           vol.Optional("enable", default=True): bool,
           vol.Optional("entry_id"): str,
         }
