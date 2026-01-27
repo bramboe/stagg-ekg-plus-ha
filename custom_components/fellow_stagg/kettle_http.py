@@ -115,6 +115,12 @@ class KettleHttpClient:
     await self._cli_command(session, f"setsetting Repeat_sched {repeat}")
     await self._cli_command(session, f"setsetting schedon {schedon}")
 
+  async def async_set_clock(self, session: ClientSession, hour: int, minute: int, second: int = 0) -> None:
+    """Set kettle clock (24h)."""
+    if hour < 0 or hour > 23 or minute < 0 or minute > 59 or second < 0 or second > 59:
+      raise ValueError("Invalid time for setclock")
+    await self._cli_command(session, f"setclock {hour} {minute} {second}")
+
   async def _cli_command(self, session: ClientSession, command: str) -> str:
     """Send a CLI command over HTTP."""
     encoded = self._encode_cli_command(command)
