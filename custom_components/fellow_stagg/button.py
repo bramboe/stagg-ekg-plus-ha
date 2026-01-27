@@ -41,13 +41,15 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     if not self.coordinator.data:
       raise ValueError("No coordinator data available to update schedule")
 
-    sched = self.coordinator.data.get("schedule_time") or {}
+    sched = self.coordinator.data.get("schedule_time") or self.coordinator.last_schedule_time or {}
     hour = int(sched.get("hour", 0))
     minute = int(sched.get("minute", 0))
 
     temp_c = self.coordinator.data.get("schedule_temp_c")
     if temp_c is None:
       temp_c = self.coordinator.data.get("target_temp")
+    if temp_c is None:
+      temp_c = self.coordinator.last_schedule_temp_c
 
     mode = self.coordinator.data.get("schedule_mode") or ("daily" if self.coordinator.data.get("schedule_enabled") else "off")
 
