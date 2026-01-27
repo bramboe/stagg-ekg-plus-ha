@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+import voluptuous as vol
 
 from .const import (
   CLI_PATH,
@@ -101,6 +102,65 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
   _LOGGER.debug("Setting up Fellow Stagg integration for %s", base_url)
   coordinator = FellowStaggDataUpdateCoordinator(hass, base_url)
   await coordinator.async_config_entry_first_refresh()
+
+  # Register services once
+  if DOMAIN not in hass.data:
+    hass.data[DOMAIN] = {}
+
+  if not hass.data[DOMAIN].get("services_registered"):
+    async def async_resolve_coordinator(call_data: dict[str, Any]) -> FellowStaggDataUpdateCoordinator:
+      entry_id: str | None = call_data.get("entry_id")
+      if entry_id:
+        coord = hass.data[DOMAIN].get(entry_id)
+        if not coord:
+          raise ValueError(f"No Fellow Stagg entry for entry_id={entry_id}")
+        return coord
+      if len([k for k in hass.data[DOMAIN].keys() if k != "services_registered"]) == 1:
+        # Return the only coordinator present
+        for key, value in hass.data[DOMAIN].items():
+          if key != "services_registered":
+            return value
+      raise ValueError("Multiple kettles configured; please provide entry_id")
+
+    async def async_handle_set_schedule(call) -> None:
+      coord = await async_resolve_coordinator(call.data)
+      hour = call.data["hour"]
+      minute = call.data["minute"]
+      temp_c = call.data["temperature_c"]
+      enable = call.data.get("enable", True)
+      await coord.kettle.async_set_schedule_temperature(coord.session, temp_c)
+      await coord.kettle.async_set_schedule_time(coord.session, hour, minute)
+      await coord.kettle.async_set_schedule_enabled(coord.session, enable)
+      await coord.async_request_refresh()
+
+    async def async_handle_disable_schedule(call) -> None:
+      coord = await async_resolve_coordinator(call.data)
+      await coord.kettle.async_set_schedule_enabled(coord.session, False)
+      await coord.async_request_refresh()
+
+    hass.services.async_register(
+      DOMAIN,
+      "set_schedule",
+      async_handle_set_schedule,
+      schema=vol.Schema(
+        {
+          vol.Required("hour"): vol.All(int, vol.Range(min=0, max=23)),
+          vol.Required("minute"): vol.All(int, vol.Range(min=0, max=59)),
+          vol.Required("temperature_c"): vol.All(int, vol.Range(min=0, max=125)),
+          vol.Optional("enable", default=True): bool,
+          vol.Optional("entry_id"): str,
+        }
+      ),
+    )
+
+    hass.services.async_register(
+      DOMAIN,
+      "disable_schedule",
+      async_handle_disable_schedule,
+      schema=vol.Schema({vol.Optional("entry_id"): str}),
+    )
+
+    hass.data[DOMAIN]["services_registered"] = True
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
