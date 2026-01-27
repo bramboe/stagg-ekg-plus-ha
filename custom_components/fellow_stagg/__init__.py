@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from datetime import datetime
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -58,6 +59,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       manufacturer="Fellow",
       model="Stagg EKG Pro (HTTP CLI)",
     )
+    self.sync_clock_enabled = False
+    self._last_clock_sync: datetime | None = None
 
   @property
   def temperature_unit(self) -> str:
@@ -84,10 +87,38 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     try:
       data = await self.kettle.async_poll(self.session)
       _LOGGER.debug("Fetched data: %s", data)
+      await self._maybe_sync_clock(data)
       return data
     except Exception as err:  # noqa: BLE001
       _LOGGER.error("Error polling Fellow Stagg kettle at %s: %s", self._base_url, err)
       return None
+
+  async def _maybe_sync_clock(self, data: dict[str, Any]) -> None:
+    """If sync enabled, align kettle clock to current time when drift is large."""
+    if not self.sync_clock_enabled:
+      return
+    clock = data.get("clock")
+    if not clock:
+      return
+    now = datetime.now()
+    try:
+      hour = int(clock.split(":")[0])
+      minute = int(clock.split(":")[1])
+    except Exception:
+      return
+
+    # Prevent excessive writes: at most once every 6 hours
+    if self._last_clock_sync and (now - self._last_clock_sync).total_seconds() < 6 * 3600:
+      return
+
+    drift_minutes = abs((hour * 60 + minute) - (now.hour * 60 + now.minute))
+    if drift_minutes >= 2:
+      try:
+        await self.kettle.async_set_clock(self.session, now.hour, now.minute, now.second)
+        self._last_clock_sync = now
+        _LOGGER.debug("Synced kettle clock to %02d:%02d", now.hour, now.minute)
+      except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Failed to sync kettle clock: %s", err)
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
