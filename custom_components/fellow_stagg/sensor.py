@@ -31,6 +31,7 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "lifted": lambda data: "Lifted" if data and data.get("lifted") else "On Base",
     "countdown": lambda data: data.get("countdown") if data else None,
     "clock": lambda data: data.get("clock") if data else None,
+    "schedule_mode": lambda data: data.get("schedule_mode") if data else None,
 }
 
 
@@ -75,6 +76,11 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
             key="clock",
             name="Clock",
             icon="mdi:clock-outline",
+        ),
+        FellowStaggSensorEntityDescription(
+            key="schedule_mode",
+            name="Schedule Mode",
+            icon="mdi:calendar-clock",
         ),
     ]
 
