@@ -56,6 +56,8 @@ class FellowStaggScheduleHourSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
     minute = 0
     if self.coordinator.data and self.coordinator.data.get("schedule_time"):
       minute = int(self.coordinator.data["schedule_time"].get("minute", 0))
+    _LOGGER.debug("Setting schedule hour=%s minute=%s", hour, minute)
+    await self._maybe_set_schedule_temp()
     await self.coordinator.kettle.async_set_schedule_time(self.coordinator.session, hour, minute)
     await self.coordinator.kettle.async_set_schedule_enabled(self.coordinator.session, True)
     if self.coordinator.data is not None:
@@ -88,9 +90,28 @@ class FellowStaggScheduleMinuteSelect(CoordinatorEntity[FellowStaggDataUpdateCoo
     hour = 0
     if self.coordinator.data and self.coordinator.data.get("schedule_time"):
       hour = int(self.coordinator.data["schedule_time"].get("hour", 0))
+    _LOGGER.debug("Setting schedule hour=%s minute=%s", hour, minute)
+    await self._maybe_set_schedule_temp()
     await self.coordinator.kettle.async_set_schedule_time(self.coordinator.session, hour, minute)
     await self.coordinator.kettle.async_set_schedule_enabled(self.coordinator.session, True)
     if self.coordinator.data is not None:
       self.coordinator.data["schedule_time"] = {"hour": hour, "minute": minute}
       self.coordinator.data["schedule_enabled"] = True
     await self.coordinator.async_request_refresh()
+
+  async def _maybe_set_schedule_temp(self) -> None:
+    """Ensure schedule temp is set before enabling schedule."""
+    temp_c = None
+    if self.coordinator.data:
+      temp_c = self.coordinator.data.get("schedule_temp_c")
+      if temp_c is None:
+        temp_c = self.coordinator.data.get("target_temp")
+    if temp_c is None:
+      return
+    try:
+      await self.coordinator.kettle.async_set_schedule_temperature(
+        self.coordinator.session,
+        int(temp_c),
+      )
+    except Exception as err:  # noqa: BLE001
+      _LOGGER.warning("Failed to set schedule temperature before time: %s", err)
