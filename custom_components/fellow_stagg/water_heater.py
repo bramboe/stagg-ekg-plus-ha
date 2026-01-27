@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 from homeassistant.components.water_heater import (
-  STATE_OFF,
   WaterHeaterEntity,
   WaterHeaterEntityFeature,
 )
@@ -36,10 +35,9 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
   _attr_name = "Water Heater"
   _attr_supported_features = (
     WaterHeaterEntityFeature.TARGET_TEMPERATURE |
-    WaterHeaterEntityFeature.ON_OFF |
-    WaterHeaterEntityFeature.OPERATION_MODE
+    WaterHeaterEntityFeature.ON_OFF
   )
-  _attr_operation_list = [STATE_OFF, "heat"]
+  _attr_operation_list = ["off", "on"]
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     """Initialize the water heater."""
@@ -81,24 +79,9 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     """Return current operation."""
     if not self.coordinator.data:
       return None
-    value = "heat" if self.coordinator.data.get("power") else STATE_OFF
+    value = "on" if self.coordinator.data.get("power") else "off"
     _LOGGER.debug("Water heater operation state read as: %s", value)
     return value
-
-  async def async_set_operation_mode(self, operation_mode: str) -> None:
-    """Set operation mode (heat/off)."""
-    _LOGGER.debug("Setting operation mode to %s", operation_mode)
-    if operation_mode == "heat":
-      await self.async_turn_on()
-    elif operation_mode == STATE_OFF:
-      await self.async_turn_off()
-
-  @property
-  def is_on(self) -> bool | None:
-    """Return True if the kettle is on."""
-    if self.coordinator.data is None:
-      return None
-    return bool(self.coordinator.data.get("power"))
 
   async def async_set_temperature(self, **kwargs: Any) -> None:
     """Set new target temperature."""
