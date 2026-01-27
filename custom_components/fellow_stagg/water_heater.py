@@ -84,6 +84,15 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     _LOGGER.debug("Water heater operation state read as: %s", value)
     return value
 
+  async def async_set_operation_mode(self, operation_mode: str) -> None:
+    """Set operation mode (off/heat)."""
+    if operation_mode == "heat":
+      await self.async_turn_on()
+    elif operation_mode == "off":
+      await self.async_turn_off()
+    else:
+      _LOGGER.debug("Unsupported operation_mode requested: %s", operation_mode)
+
   async def async_set_temperature(self, **kwargs: Any) -> None:
     """Set new target temperature."""
     temperature = kwargs.get(ATTR_TEMPERATURE)
