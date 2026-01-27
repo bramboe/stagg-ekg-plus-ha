@@ -61,6 +61,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     )
     self.sync_clock_enabled = False
     self._last_clock_sync: datetime | None = None
+    self.last_schedule_time: dict[str, int] | None = None
+    self.last_schedule_temp_c: float | None = None
 
   @property
   def temperature_unit(self) -> str:
@@ -87,6 +89,17 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     try:
       data = await self.kettle.async_poll(self.session)
       _LOGGER.debug("Fetched data: %s", data)
+      # Persist schedule time/temp locally if device does not report them consistently
+      if data.get("schedule_time"):
+        self.last_schedule_time = data.get("schedule_time")
+      elif self.last_schedule_time:
+        data["schedule_time"] = self.last_schedule_time
+
+      if data.get("schedule_temp_c") is not None:
+        self.last_schedule_temp_c = data.get("schedule_temp_c")
+      elif self.last_schedule_temp_c is not None:
+        data["schedule_temp_c"] = self.last_schedule_temp_c
+
       await self._maybe_sync_clock(data)
       return data
     except Exception as err:  # noqa: BLE001
