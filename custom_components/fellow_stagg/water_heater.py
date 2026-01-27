@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 from homeassistant.components.water_heater import (
-  STATE_ELECTRIC,
   STATE_OFF,
   WaterHeaterEntity,
   WaterHeaterEntityFeature,
@@ -40,7 +39,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     WaterHeaterEntityFeature.ON_OFF |
     WaterHeaterEntityFeature.OPERATION_MODE
   )
-  _attr_operation_list = [STATE_OFF, STATE_ELECTRIC]
+  _attr_operation_list = [STATE_OFF, "heat"]
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     """Initialize the water heater."""
@@ -82,14 +81,14 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     """Return current operation."""
     if not self.coordinator.data:
       return None
-    value = STATE_ELECTRIC if self.coordinator.data.get("power") else STATE_OFF
+    value = "heat" if self.coordinator.data.get("power") else STATE_OFF
     _LOGGER.debug("Water heater operation state read as: %s", value)
     return value
 
   async def async_set_operation_mode(self, operation_mode: str) -> None:
     """Set operation mode (heat/off)."""
     _LOGGER.debug("Setting operation mode to %s", operation_mode)
-    if operation_mode == STATE_ELECTRIC:
+    if operation_mode == "heat":
       await self.async_turn_on()
     elif operation_mode == STATE_OFF:
       await self.async_turn_off()
