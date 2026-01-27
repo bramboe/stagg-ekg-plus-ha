@@ -205,7 +205,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN]["services_registered"] = True
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-  await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+  await hass.config_entries.async_setup_platforms(entry, PLATFORMS)
   _LOGGER.debug("Setup complete for Fellow Stagg device: %s", base_url)
   return True
 
