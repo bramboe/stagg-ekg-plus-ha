@@ -157,6 +157,8 @@ class FellowStaggScheduleTemperature(NumberEntity):
     sched = self.coordinator.data.get("schedule_temp_c")
     if sched is not None:
       return float(sched)
+    if self.coordinator.last_schedule_temp_c is not None:
+      return float(self.coordinator.last_schedule_temp_c)
     # Fallback: mirror current target temp if schedule temp is unknown
     current_target = self.coordinator.data.get("target_temp")
     return float(current_target) if current_target is not None else None
@@ -168,4 +170,5 @@ class FellowStaggScheduleTemperature(NumberEntity):
     )
     if self.coordinator.data is not None:
       self.coordinator.data["schedule_temp_c"] = float(value)
+    self.coordinator.last_schedule_temp_c = float(value)
     await self.coordinator.async_request_refresh()
