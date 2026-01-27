@@ -29,8 +29,7 @@ async def async_setup_entry(
   async_add_entities([
     FellowStaggTargetTemperature(coordinator),
     FellowStaggScheduleTemperature(coordinator),
-    FellowStaggScheduleHour(coordinator),
-    FellowStaggScheduleMinute(coordinator),
+    FellowStaggScheduleTime(coordinator),
   ])
 
 class FellowStaggTargetTemperature(NumberEntity):
@@ -122,19 +121,19 @@ class FellowStaggScheduleTemperature(NumberEntity):
 
 
 class FellowStaggScheduleHour(NumberEntity):
-  """Number to set scheduled hour (0-23)."""
+  """Number to set scheduled time as HHMM (e.g., 730 for 07:30)."""
 
   _attr_has_entity_name = True
-  _attr_name = "Schedule Hour"
+  _attr_name = "Schedule Time"
   _attr_mode = NumberMode.BOX
   _attr_native_step = 1.0
   _attr_native_min_value = 0
-  _attr_native_max_value = 23
+  _attr_native_max_value = 2359
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__()
     self.coordinator = coordinator
-    self._attr_unique_id = f"{coordinator.base_url}_schedule_hour"
+    self._attr_unique_id = f"{coordinator.base_url}_schedule_time"
     self._attr_device_info = coordinator.device_info
 
   @property
@@ -142,54 +141,21 @@ class FellowStaggScheduleHour(NumberEntity):
     if self.coordinator.data is None:
       return None
     sched = self.coordinator.data.get("schedule_time")
-    return float(sched["hour"]) if sched and "hour" in sched else None
-
-  async def async_set_native_value(self, value: float) -> None:
-    minute = 0
-    if self.coordinator.data and self.coordinator.data.get("schedule_time"):
-      minute = int(self.coordinator.data["schedule_time"].get("minute", 0))
-    await self.coordinator.kettle.async_set_schedule_time(
-      self.coordinator.session,
-      int(value),
-      minute,
-    )
-    if self.coordinator.data is not None:
-      self.coordinator.data["schedule_time"] = {"hour": int(value), "minute": minute}
-    await self.coordinator.async_request_refresh()
-
-
-class FellowStaggScheduleMinute(NumberEntity):
-  """Number to set scheduled minute (0-59)."""
-
-  _attr_has_entity_name = True
-  _attr_name = "Schedule Minute"
-  _attr_mode = NumberMode.BOX
-  _attr_native_step = 1.0
-  _attr_native_min_value = 0
-  _attr_native_max_value = 59
-
-  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
-    super().__init__()
-    self.coordinator = coordinator
-    self._attr_unique_id = f"{coordinator.base_url}_schedule_minute"
-    self._attr_device_info = coordinator.device_info
-
-  @property
-  def native_value(self) -> float | None:
-    if self.coordinator.data is None:
+    if not sched or "hour" not in sched or "minute" not in sched:
       return None
-    sched = self.coordinator.data.get("schedule_time")
-    return float(sched["minute"]) if sched and "minute" in sched else None
+    return float(sched["hour"] * 100 + sched["minute"])
 
   async def async_set_native_value(self, value: float) -> None:
-    hour = 0
-    if self.coordinator.data and self.coordinator.data.get("schedule_time"):
-      hour = int(self.coordinator.data["schedule_time"].get("hour", 0))
+    hhmm = int(value)
+    hour = hhmm // 100
+    minute = hhmm % 100
+    if hour < 0 or hour > 23 or minute < 0 or minute > 59:
+      raise ValueError("Provide time as HHMM, e.g. 730 for 07:30")
     await self.coordinator.kettle.async_set_schedule_time(
       self.coordinator.session,
       hour,
-      int(value),
+      minute,
     )
     if self.coordinator.data is not None:
-      self.coordinator.data["schedule_time"] = {"hour": hour, "minute": int(value)}
+      self.coordinator.data["schedule_time"] = {"hour": hour, "minute": minute}
     await self.coordinator.async_request_refresh()
