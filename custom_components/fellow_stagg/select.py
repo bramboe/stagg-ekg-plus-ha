@@ -44,11 +44,11 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
   @property
   def current_option(self) -> str | None:
     if self.coordinator.data is None:
-      return None
+      return "off"
     mode = self.coordinator.data.get("schedule_mode")
     if mode and mode.lower() in MODE_OPTIONS:
       return mode.lower()
-    return None
+    return "off"
 
   async def async_select_option(self, option: str) -> None:
     option = option.lower()
