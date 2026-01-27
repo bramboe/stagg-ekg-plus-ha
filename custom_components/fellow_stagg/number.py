@@ -28,7 +28,6 @@ async def async_setup_entry(
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
   async_add_entities([
     FellowStaggTargetTemperature(coordinator),
-    FellowStaggScheduleTemperature(coordinator),
     FellowStaggScheduleTime(coordinator),
   ])
 
@@ -84,43 +83,10 @@ class FellowStaggTargetTemperature(NumberEntity):
     # Give the kettle a moment to update its internal state
     await asyncio.sleep(0.5)
     _LOGGER.debug("Requesting refresh after temperature change")
-    await self.coordinator.async_request_refresh() 
-
-
-class FellowStaggScheduleTemperature(NumberEntity):
-  """Number to set scheduled target temperature."""
-
-  _attr_has_entity_name = True
-  _attr_name = "Schedule Temperature"
-  _attr_mode = NumberMode.BOX
-  _attr_native_step = 1.0
-
-  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
-    super().__init__()
-    self.coordinator = coordinator
-    self._attr_unique_id = f"{coordinator.base_url}_schedule_temp"
-    self._attr_device_info = coordinator.device_info
-    self._attr_native_min_value = coordinator.min_temp
-    self._attr_native_max_value = coordinator.max_temp
-    self._attr_native_unit_of_measurement = coordinator.temperature_unit
-
-  @property
-  def native_value(self) -> float | None:
-    if self.coordinator.data is None:
-      return None
-    return self.coordinator.data.get("schedule_temp_c")
-
-  async def async_set_native_value(self, value: float) -> None:
-    await self.coordinator.kettle.async_set_schedule_temperature(
-      self.coordinator.session,
-      int(value),
-    )
-    if self.coordinator.data is not None:
-      self.coordinator.data["schedule_temp_c"] = float(value)
     await self.coordinator.async_request_refresh()
 
 
-class FellowStaggScheduleHour(NumberEntity):
+class FellowStaggScheduleTime(NumberEntity):
   """Number to set scheduled time as HHMM (e.g., 730 for 07:30)."""
 
   _attr_has_entity_name = True
@@ -156,6 +122,11 @@ class FellowStaggScheduleHour(NumberEntity):
       hour,
       minute,
     )
+    await self.coordinator.kettle.async_set_schedule_enabled(
+      self.coordinator.session,
+      True,
+    )
     if self.coordinator.data is not None:
       self.coordinator.data["schedule_time"] = {"hour": hour, "minute": minute}
+      self.coordinator.data["schedule_enabled"] = True
     await self.coordinator.async_request_refresh()
