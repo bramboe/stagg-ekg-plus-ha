@@ -28,7 +28,6 @@ async def async_setup_entry(
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
   async_add_entities([
     FellowStaggTargetTemperature(coordinator),
-    FellowStaggScheduleTime(coordinator),
     FellowStaggScheduleTemperature(coordinator),
   ])
 
