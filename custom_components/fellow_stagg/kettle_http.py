@@ -31,6 +31,9 @@ class KettleHttpClient:
     target_temp, target_units = self._parse_target_temp(body)
     mode = self._parse_mode(body)
     clock = self._parse_clock(body)
+    sched_time = self._parse_schedule_time(body)
+    sched_temp_c = self._parse_schedule_temp(body)
+    sched_enabled = self._parse_schedule_enabled(body)
 
     # Prefer explicit units from parsed temps; only fall back to the kettle
     # units flag when no temp labels provided.
@@ -48,6 +51,9 @@ class KettleHttpClient:
       "units": units,
       "lifted": self._parse_lifted(body),
       "clock": clock,
+      "schedule_time": sched_time,
+      "schedule_temp_c": sched_temp_c,
+      "schedule_enabled": sched_enabled,
     }
 
     return data
@@ -209,6 +215,33 @@ class KettleHttpClient:
     hour = hour % 24
     minute = minute % 60
     return f"{hour:02d}:{minute:02d}"
+
+  @staticmethod
+  def _parse_schedule_time(body: str) -> dict[str, int] | None:
+    """Parse schedule time encoded as schtime (hour*256 + minute)."""
+    match = re.search(r"\bschtime\s*=\s*(\d+)", body or "", re.IGNORECASE)
+    if not match:
+      return None
+    value = int(match.group(1))
+    hour = (value // 256) % 24
+    minute = value % 256
+    return {"hour": hour, "minute": minute}
+
+  def _parse_schedule_temp(self, body: str) -> float | None:
+    """Parse scheduled temperature (F -> C)."""
+    match = re.search(r"\bschtempr\s*=\s*(-?\d+)", body or "", re.IGNORECASE)
+    if not match:
+      return None
+    temp_f = float(match.group(1))
+    return self._f_to_c(temp_f)
+
+  @staticmethod
+  def _parse_schedule_enabled(body: str) -> bool | None:
+    """Parse schedule enable flag from schedon."""
+    match = re.search(r"\bschedon\s*=\s*(\d+)", body or "", re.IGNORECASE)
+    if not match:
+      return None
+    return match.group(1) == "1"
 
   @staticmethod
   def _parse_first_number(body: str) -> float | None:
