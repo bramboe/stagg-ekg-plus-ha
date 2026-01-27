@@ -96,6 +96,7 @@ class FellowStaggScheduleTime(NumberEntity):
   _attr_native_step = 1.0
   _attr_native_min_value = 0
   _attr_native_max_value = 2359
+  _attr_entity_registry_enabled_default = False  # hide by default; use selects instead
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__()
