@@ -35,9 +35,10 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
   _attr_name = "Water Heater"
   _attr_supported_features = (
     WaterHeaterEntityFeature.TARGET_TEMPERATURE |
-    WaterHeaterEntityFeature.ON_OFF
+    WaterHeaterEntityFeature.ON_OFF |
+    WaterHeaterEntityFeature.OPERATION_MODE
   )
-  _attr_operation_list = ["off", "on"]
+  _attr_operation_list = ["off", "heat"]
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     """Initialize the water heater."""
@@ -79,9 +80,17 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     """Return current operation."""
     if not self.coordinator.data:
       return None
-    value = "on" if self.coordinator.data.get("power") else "off"
+    value = "heat" if self.coordinator.data.get("power") else "off"
     _LOGGER.debug("Water heater operation state read as: %s", value)
     return value
+
+  async def async_set_operation_mode(self, operation_mode: str) -> None:
+    """Set operation mode (heat/off)."""
+    _LOGGER.debug("Setting operation mode to %s", operation_mode)
+    if operation_mode == "heat":
+      await self.async_turn_on()
+    elif operation_mode == "off":
+      await self.async_turn_off()
 
   async def async_set_temperature(self, **kwargs: Any) -> None:
     """Set new target temperature."""
