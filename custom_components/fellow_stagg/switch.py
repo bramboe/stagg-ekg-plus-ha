@@ -25,6 +25,7 @@ async def async_setup_entry(
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
   async_add_entities([
     FellowStaggPowerSwitch(coordinator),
+    FellowStaggClockSyncSwitch(coordinator),
   ])
 
 
@@ -59,4 +60,30 @@ class FellowStaggPowerSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator]
     await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
     if self.coordinator.data is not None:
       self.coordinator.data["power"] = False
+    await self.coordinator.async_request_refresh()
+
+
+class FellowStaggClockSyncSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SwitchEntity):
+  """Switch to enable/disable daily clock sync."""
+
+  _attr_has_entity_name = True
+  _attr_name = "Sync Clock"
+  _attr_should_poll = False
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.base_url}_sync_clock"
+    self._attr_device_info = coordinator.device_info
+    _LOGGER.debug("Initialized sync clock switch for %s", coordinator.base_url)
+
+  @property
+  def is_on(self) -> bool | None:
+    return bool(self.coordinator.sync_clock_enabled)
+
+  async def async_turn_on(self, **kwargs: Any) -> None:
+    self.coordinator.sync_clock_enabled = True
+    await self.coordinator.async_request_refresh()
+
+  async def async_turn_off(self, **kwargs: Any) -> None:
+    self.coordinator.sync_clock_enabled = False
     await self.coordinator.async_request_refresh()
