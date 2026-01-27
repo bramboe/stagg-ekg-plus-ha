@@ -37,7 +37,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     WaterHeaterEntityFeature.TARGET_TEMPERATURE |
     WaterHeaterEntityFeature.ON_OFF
   )
-  _attr_operation_list = ["off", "on"]
+  _attr_operation_list = ["off", "heat"]
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     """Initialize the water heater."""
@@ -79,7 +79,7 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     """Return current operation."""
     if not self.coordinator.data:
       return None
-    value = "on" if self.coordinator.data.get("power") else "off"
+    value = "heat" if self.coordinator.data.get("power") else "off"
     _LOGGER.debug("Water heater operation state read as: %s", value)
     return value
 
