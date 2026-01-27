@@ -42,21 +42,18 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
       raise ValueError("No coordinator data available to update schedule")
 
     sched = self.coordinator.data.get("schedule_time") or {}
-    hour = sched.get("hour")
-    minute = sched.get("minute")
-    if hour is None or minute is None:
-      raise ValueError("No schedule time set; set hour/minute first")
+    hour = int(sched.get("hour", 0))
+    minute = int(sched.get("minute", 0))
 
     temp_c = self.coordinator.data.get("schedule_temp_c")
     if temp_c is None:
       temp_c = self.coordinator.data.get("target_temp")
-    if temp_c is None:
-      raise ValueError("No schedule temperature available; set schedule temperature first")
 
     mode = self.coordinator.data.get("schedule_mode") or ("daily" if self.coordinator.data.get("schedule_enabled") else "off")
 
-    _LOGGER.debug("Button updating schedule: %s:%s temp_c=%s mode=%s", hour, minute, temp_c, mode)
-    await self.coordinator.kettle.async_set_schedule_temperature(self.coordinator.session, int(temp_c))
+    _LOGGER.debug("Button updating schedule: %02d:%02d temp_c=%s mode=%s", hour, minute, temp_c, mode)
+    if temp_c is not None:
+      await self.coordinator.kettle.async_set_schedule_temperature(self.coordinator.session, int(temp_c))
     await self.coordinator.kettle.async_set_schedule_time(self.coordinator.session, int(hour), int(minute))
     await self.coordinator.kettle.async_set_schedule_mode(self.coordinator.session, str(mode))
     await self.coordinator.async_request_refresh()
