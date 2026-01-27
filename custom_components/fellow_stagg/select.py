@@ -101,6 +101,7 @@ class FellowStaggScheduleHourSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
     await self.coordinator.kettle.async_set_schedule_time(self.coordinator.session, hour, minute)
     if self.coordinator.data is not None:
       self.coordinator.data["schedule_time"] = {"hour": hour, "minute": minute}
+    self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
     await self.coordinator.async_request_refresh()
 
 
@@ -133,4 +134,5 @@ class FellowStaggScheduleMinuteSelect(CoordinatorEntity[FellowStaggDataUpdateCoo
     await self.coordinator.kettle.async_set_schedule_time(self.coordinator.session, hour, minute)
     if self.coordinator.data is not None:
       self.coordinator.data["schedule_time"] = {"hour": hour, "minute": minute}
+    self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
     await self.coordinator.async_request_refresh()
