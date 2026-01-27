@@ -29,6 +29,7 @@ async def async_setup_entry(
   async_add_entities([
     FellowStaggTargetTemperature(coordinator),
     FellowStaggScheduleTime(coordinator),
+    FellowStaggScheduleTemperature(coordinator),
   ])
 
 class FellowStaggTargetTemperature(NumberEntity):
@@ -129,4 +130,42 @@ class FellowStaggScheduleTime(NumberEntity):
     if self.coordinator.data is not None:
       self.coordinator.data["schedule_time"] = {"hour": hour, "minute": minute}
       self.coordinator.data["schedule_enabled"] = True
+    await self.coordinator.async_request_refresh()
+
+
+class FellowStaggScheduleTemperature(NumberEntity):
+  """Number to set scheduled target temperature."""
+
+  _attr_has_entity_name = True
+  _attr_name = "Schedule Temperature"
+  _attr_mode = NumberMode.BOX
+  _attr_native_step = 1.0
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__()
+    self.coordinator = coordinator
+    self._attr_unique_id = f"{coordinator.base_url}_schedule_temp"
+    self._attr_device_info = coordinator.device_info
+    self._attr_native_min_value = coordinator.min_temp
+    self._attr_native_max_value = coordinator.max_temp
+    self._attr_native_unit_of_measurement = coordinator.temperature_unit
+
+  @property
+  def native_value(self) -> float | None:
+    if self.coordinator.data is None:
+      return None
+    sched = self.coordinator.data.get("schedule_temp_c")
+    if sched is not None:
+      return float(sched)
+    # Fallback: mirror current target temp if schedule temp is unknown
+    current_target = self.coordinator.data.get("target_temp")
+    return float(current_target) if current_target is not None else None
+
+  async def async_set_native_value(self, value: float) -> None:
+    await self.coordinator.kettle.async_set_schedule_temperature(
+      self.coordinator.session,
+      int(value),
+    )
+    if self.coordinator.data is not None:
+      self.coordinator.data["schedule_temp_c"] = float(value)
     await self.coordinator.async_request_refresh()
