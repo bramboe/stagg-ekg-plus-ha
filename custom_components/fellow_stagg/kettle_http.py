@@ -275,18 +275,17 @@ class KettleHttpClient:
 
   @staticmethod
   def _derive_schedule_mode(sched_enabled: bool | None, repeat: int | None) -> str | None:
+    # Default to off if nothing reported
     if sched_enabled is None and repeat is None:
-      return None
-    # schedon semantics:
-    # 0 -> off, 1 -> once, 2 -> daily
-    # repeat_sched 0 for once, 1 for daily
+      return "off"
     if sched_enabled is False:
       return "off"
     if sched_enabled is True:
       if repeat == 1:
         return "daily"
       return "once"
-    return None
+    # Fallback
+    return "off"
 
   @staticmethod
   def _parse_first_number(body: str) -> float | None:
