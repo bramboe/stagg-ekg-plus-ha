@@ -9,8 +9,11 @@ set_schedule:
       description: Minute (0-59)
       example: 30
     temperature_c:
-      description: Target temperature in Celsius (will be sent as Fahrenheit internally)
+      description: Target temperature in Celsius (convert to F internally). Provide temperature_c or temperature_f.
       example: 90
+    temperature_f:
+      description: Target temperature in Fahrenheit (optional alternative to temperature_c)
+      example: 203
     enable:
       description: Enable schedule after setting it (default true)
       example: true
