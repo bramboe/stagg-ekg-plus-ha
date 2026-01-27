@@ -168,6 +168,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
       schema=vol.Schema({vol.Optional("entry_id"): str}),
     )
 
+    async def async_handle_update_schedule(call) -> None:
+      coord = await async_resolve_coordinator(call.data)
+      if not coord.data:
+        raise ValueError("No coordinator data available")
+
+      sched = coord.data.get("schedule_time") or {}
+      hour = sched.get("hour")
+      minute = sched.get("minute")
+      if hour is None or minute is None:
+        raise ValueError("No schedule time set; set hour/minute first")
+
+      temp_c = coord.data.get("schedule_temp_c")
+      if temp_c is None:
+        temp_c = coord.data.get("target_temp")
+      if temp_c is None:
+        raise ValueError("No schedule temperature available; set schedule temperature first")
+
+      mode = coord.data.get("schedule_mode") or ("daily" if coord.data.get("schedule_enabled") else "off")
+
+      _LOGGER.debug("Updating schedule: %s:%s temp_c=%s mode=%s", hour, minute, temp_c, mode)
+      await coord.kettle.async_set_schedule_temperature(coord.session, int(temp_c))
+      await coord.kettle.async_set_schedule_time(coord.session, int(hour), int(minute))
+      await coord.kettle.async_set_schedule_mode(coord.session, str(mode))
+      await coord.async_request_refresh()
+
+    hass.services.async_register(
+      DOMAIN,
+      "update_schedule",
+      async_handle_update_schedule,
+      schema=vol.Schema({vol.Optional("entry_id"): str}),
+    )
+
     hass.data[DOMAIN]["services_registered"] = True
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
