@@ -96,12 +96,21 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       device_sched_temp = data.get("schedule_temp_c")
       device_sched_mode = data.get("schedule_mode")
 
-      if device_sched_time:
+      valid_device_time = (
+        device_sched_time
+        and not (
+          isinstance(device_sched_time, dict)
+          and device_sched_time.get("hour", 0) == 0
+          and device_sched_time.get("minute", 0) == 0
+        )
+      )
+      if valid_device_time:
         self.last_schedule_time = device_sched_time
       elif self.last_schedule_time is not None:
         data["schedule_time"] = self.last_schedule_time
 
-      if device_sched_temp is not None:
+      valid_device_temp = device_sched_temp is not None and device_sched_temp > 0
+      if valid_device_temp:
         self.last_schedule_temp_c = device_sched_temp
       elif self.last_schedule_temp_c is not None:
         data["schedule_temp_c"] = self.last_schedule_temp_c
