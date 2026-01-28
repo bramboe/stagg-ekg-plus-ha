@@ -35,10 +35,37 @@ class KettleHttpClient:
     clock = self._parse_clock(body)
     sched_time = self._parse_schedule_time(settings_body) or self._parse_schedule_time(body)
     sched_temp_c = self._parse_schedule_temp(settings_body) or self._parse_schedule_temp(body)
-    schedon_value = self._parse_schedon_value(settings_body) or self._parse_schedon_value(body)
-    sched_enabled = self._parse_schedule_enabled(settings_body) if self._parse_schedule_enabled(settings_body) is not None else self._parse_schedule_enabled(body)
-    sched_repeat = self._parse_schedule_repeat(settings_body)
-    sched_mode = self._derive_schedule_mode(schedon_value, sched_repeat)
+
+    schedon_settings = self._parse_schedon_value(settings_body)
+    schedon_state = self._parse_schedon_value(body)
+    schedon_value = schedon_settings if schedon_settings is not None else schedon_state
+
+    sched_enabled_settings = self._parse_schedule_enabled(settings_body)
+    sched_enabled_state = self._parse_schedule_enabled(body)
+    sched_enabled = sched_enabled_settings if sched_enabled_settings is not None else sched_enabled_state
+
+    sched_repeat_settings = self._parse_schedule_repeat(settings_body)
+    sched_repeat_state = self._parse_schedule_repeat(body)
+    sched_repeat = sched_repeat_settings if sched_repeat_settings is not None else sched_repeat_state
+
+    # Determine armed / mode with validation to avoid false positives (schedon set but no time/temp).
+    has_time = bool(sched_time) and not (
+      isinstance(sched_time, dict)
+      and sched_time.get("hour", 0) == 0
+      and sched_time.get("minute", 0) == 0
+    )
+    has_temp = sched_temp_c is not None and sched_temp_c > 0
+
+    armed = bool(schedon_value in (1, 2) and has_time and has_temp)
+    incomplete = bool(schedon_value in (1, 2) and not armed)
+
+    if armed:
+      if schedon_value == 2 or sched_repeat == 1:
+        sched_mode = "daily"
+      else:
+        sched_mode = "once"
+    else:
+      sched_mode = "off"
 
     # Prefer explicit units from parsed temps; only fall back to the kettle
     # units flag when no temp labels provided.
@@ -58,16 +85,13 @@ class KettleHttpClient:
       "clock": clock,
       "schedule_time": sched_time,
       "schedule_temp_c": sched_temp_c,
-      "schedule_enabled": sched_enabled,
+      "schedule_enabled": armed,
       "schedule_schedon": schedon_value,
       "schedule_repeat": sched_repeat,
       "schedule_mode": sched_mode,
+      "schedule_armed": armed,
+      "schedule_incomplete": incomplete,
     }
-
-    # If schedon is explicitly 0, force mode to off for clarity.
-    if schedon_value == 0:
-      data["schedule_mode"] = "off"
-      data["schedule_enabled"] = False
 
     return data
 
