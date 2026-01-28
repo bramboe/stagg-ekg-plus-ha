@@ -31,6 +31,11 @@ class KettleHttpClient:
 
     current_temp, temp_units = self._parse_temp(body)
     target_temp, target_units = self._parse_target_temp(body)
+    # Clamp unrealistic temps to avoid bogus values (e.g., 47.22 when device misreports)
+    if target_temp is not None and (target_temp < 30 or target_temp > 100):
+      target_temp = None
+    if current_temp is not None and (current_temp < 0 or current_temp > 120):
+      current_temp = None
     mode = self._parse_mode(body)
     clock = self._parse_clock(body)
     sched_time = self._parse_schedule_time(settings_body) or self._parse_schedule_time(body)
