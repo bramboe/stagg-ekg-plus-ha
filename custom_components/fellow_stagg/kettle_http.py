@@ -27,16 +27,17 @@ class KettleHttpClient:
   async def async_poll(self, session: ClientSession) -> dict[str, Any]:
     """Fetch kettle state via CLI commands."""
     body = await self._cli_command(session, "state")
+    settings_body = await self._cli_command(session, "prtsettings")
 
     current_temp, temp_units = self._parse_temp(body)
     target_temp, target_units = self._parse_target_temp(body)
     mode = self._parse_mode(body)
     clock = self._parse_clock(body)
-    sched_time = self._parse_schedule_time(body)
-    sched_temp_c = self._parse_schedule_temp(body)
-    schedon_value = self._parse_schedon_value(body)
-    sched_enabled = self._parse_schedule_enabled(body)
-    sched_repeat = self._parse_schedule_repeat(body)
+    sched_time = self._parse_schedule_time(settings_body) or self._parse_schedule_time(body)
+    sched_temp_c = self._parse_schedule_temp(settings_body) or self._parse_schedule_temp(body)
+    schedon_value = self._parse_schedon_value(settings_body) or self._parse_schedon_value(body)
+    sched_enabled = self._parse_schedule_enabled(settings_body) if self._parse_schedule_enabled(settings_body) is not None else self._parse_schedule_enabled(body)
+    sched_repeat = self._parse_schedule_repeat(settings_body)
     sched_mode = self._derive_schedule_mode(schedon_value, sched_repeat)
 
     # Prefer explicit units from parsed temps; only fall back to the kettle
@@ -266,14 +267,23 @@ class KettleHttpClient:
 
   @staticmethod
   def _parse_schedule_time(body: str) -> dict[str, int] | None:
-    """Parse schedule time encoded as schtime (hour*256 + minute)."""
-    match = re.search(r"\bschtime\s*=\s*(\d+)", body or "", re.IGNORECASE)
-    if not match:
-      return None
-    value = int(match.group(1))
-    hour = (value // 256) % 24
-    minute = value % 256
-    return {"hour": hour, "minute": minute}
+    """Parse schedule time; supports numeric (hour*256+minute) and HH:MM."""
+    # Try numeric packed format
+    match_num = re.search(r"\bschtime\s*=\s*(\d+)", body or "", re.IGNORECASE)
+    if match_num:
+      value = int(match_num.group(1))
+      hour = (value // 256) % 24
+      minute = value % 256
+      return {"hour": hour, "minute": minute}
+
+    # Try HH:MM format
+    match_hhmm = re.search(r"\bschtime\s*=\s*(\d{1,2}):(\d{1,2})", body or "", re.IGNORECASE)
+    if match_hhmm:
+      hour = int(match_hhmm.group(1)) % 24
+      minute = int(match_hhmm.group(2)) % 60
+      return {"hour": hour, "minute": minute}
+
+    return None
 
   def _parse_schedule_temp(self, body: str) -> float | None:
     """Parse scheduled temperature (F -> C)."""
