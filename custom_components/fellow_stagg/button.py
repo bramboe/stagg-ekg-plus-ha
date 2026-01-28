@@ -52,8 +52,8 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     if temp_c is None:
       temp_c = self.coordinator.last_schedule_temp_c
 
-    # Use current Schedule Mode so kettle only runs at programmed time when mode is once/daily, not when off.
-    mode = self.coordinator.data.get("schedule_mode") or ("daily" if self.coordinator.data.get("schedule_enabled") else "off")
+    # Use intended schedule mode (select value); fall back to device state if user never set it.
+    mode = self.coordinator.last_schedule_mode or self.coordinator.data.get("schedule_mode") or ("daily" if self.coordinator.data.get("schedule_enabled") else "off")
     mode = str(mode).lower()
     if mode not in ("off", "once", "daily"):
       mode = "off"
@@ -80,6 +80,7 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
     if temp_c is not None:
       self.coordinator.last_schedule_temp_c = float(temp_c)
+    self.coordinator.last_schedule_mode = mode
     data = dict(self.coordinator.data)
     data["schedule_time"] = {"hour": hour, "minute": minute}
     if temp_c is not None:
