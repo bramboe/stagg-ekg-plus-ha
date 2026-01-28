@@ -77,7 +77,7 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     await k.async_set_schedule_time(session, int(hour), int(minute))
     await asyncio.sleep(0.8)
 
-    # Arm schedon and verify via prtsettings/state. Retry a few times if it doesn't stick.
+    # Arm schedon and verify; retry a few times if it doesn't stick.
     for attempt in range(5):
       try:
         await k.async_set_schedon(session, schedon)
@@ -106,5 +106,6 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     data["schedule_mode"] = mode
     data["schedule_enabled"] = mode != "off"
     data["schedule_repeat"] = repeat
+    data["schedule_schedon"] = schedon
     self.coordinator.async_set_updated_data(data)
     await self.coordinator.async_request_refresh()
