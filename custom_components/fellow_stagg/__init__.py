@@ -102,6 +102,15 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       elif self.last_schedule_temp_c is not None:
         data["schedule_temp_c"] = self.last_schedule_temp_c
 
+      # Persist schedule mode locally; fall back to last known desired mode.
+      # Only adopt the device value if we don't already have a user-intended mode.
+      if data.get("schedule_mode"):
+        device_mode = str(data.get("schedule_mode")).lower()
+        if self.last_schedule_mode is None:
+          self.last_schedule_mode = device_mode
+      if self.last_schedule_mode is not None:
+        data["schedule_mode"] = self.last_schedule_mode
+
       await self._maybe_sync_clock(data)
       return data
     except Exception as err:  # noqa: BLE001
