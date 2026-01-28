@@ -91,7 +91,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     try:
       data = await self.kettle.async_poll(self.session)
       _LOGGER.debug("Fetched data: %s", data)
-      # Persist schedule time/temp/mode locally. Prefer device-reported values and keep user-intended only as a fallback for UI entry fields.
+      # Persist schedule time/temp locally. Prefer device-reported values; keep user-intended only as fallback for UI entry fields.
       device_sched_time = data.get("schedule_time")
       device_sched_temp = data.get("schedule_temp_c")
       device_sched_mode = data.get("schedule_mode")
@@ -108,7 +108,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
       if device_sched_mode:
         self.last_schedule_mode = str(device_sched_mode).lower()
-      # If device reports schedon=0, ensure mode off and clear last cache
+      # If device reports schedon=0, ensure mode off in data and reset cached desired mode
       if data.get("schedule_schedon") == 0:
         data["schedule_mode"] = "off"
         self.last_schedule_mode = "off"
