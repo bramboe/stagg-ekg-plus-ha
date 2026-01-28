@@ -79,7 +79,7 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         ),
         FellowStaggSensorEntityDescription(
             key="schedule_mode",
-            name="Schedule Mode",
+            name="Current Schedule Mode",
             icon="mdi:calendar-clock",
         ),
     ]
