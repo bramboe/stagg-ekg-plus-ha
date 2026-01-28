@@ -37,6 +37,7 @@ class KettleHttpClient:
     if current_temp is not None and (current_temp < 0 or current_temp > 120):
       current_temp = None
     mode = self._parse_mode(body)
+    clock_mode = self._parse_clock_mode(settings_body) or self._parse_clock_mode(body)
     clock = self._parse_clock(body)
     sched_time = self._parse_schedule_time(settings_body) or self._parse_schedule_time(body)
     sched_temp_c = self._parse_schedule_temp(settings_body) or self._parse_schedule_temp(body)
@@ -86,11 +87,13 @@ class KettleHttpClient:
       "raw": body,
       "power": self._parse_power(mode),
       "hold": self._parse_hold(mode),
+      "mode": mode,
       "current_temp": current_temp,
       "target_temp": target_temp,
       "units": units,
       "lifted": self._parse_lifted(body),
       "clock": clock,
+      "clock_mode": clock_mode,
       "schedule_time": sched_time,
       "schedule_temp_c": sched_temp_c,
       "schedule_enabled": armed,
@@ -180,6 +183,23 @@ class KettleHttpClient:
       raise ValueError("Invalid time for setclock")
     await self._cli_command(session, f"setclock {hour} {minute} {second}")
 
+  async def async_set_clock_mode(self, session: ClientSession, mode: int | str) -> None:
+    """Set display clock mode.
+
+    0 = Off (black screen)
+    1 = Digital (HH:MM AM/PM)
+    2 = Analog (virtual clock face)
+    """
+    try:
+      value = int(mode)
+    except (TypeError, ValueError) as err:
+      raise ValueError("clockmode must be 0, 1 or 2") from err
+
+    if value not in (0, 1, 2):
+      raise ValueError("clockmode must be 0, 1 or 2")
+
+    await self._cli_command(session, f"setsetting clockmode {value}")
+
   async def _cli_command(self, session: ClientSession, command: str) -> str:
     """Send a CLI command over HTTP."""
     encoded = self._encode_cli_command(command)
@@ -204,6 +224,20 @@ class KettleHttpClient:
     if match:
       return match.group(1).upper()
     return None
+
+  @staticmethod
+  def _parse_clock_mode(body: str) -> int | None:
+    """Parse display clock mode (0=off,1=digital,2=analog) from CLI output."""
+    match = re.search(r"\bclockmode\s*=\s*(\d+)", body or "", re.IGNORECASE)
+    if not match:
+      return None
+    try:
+      value = int(match.group(1))
+    except ValueError:
+      return None
+    if value not in (0, 1, 2):
+      return None
+    return value
 
   @staticmethod
   def _parse_units_flag(body: str) -> str | None:
