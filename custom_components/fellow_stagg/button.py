@@ -46,11 +46,8 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     hour = int(sched.get("hour", 0))
     minute = int(sched.get("minute", 0))
 
-    temp_c = self.coordinator.data.get("schedule_temp_c")
-    if temp_c is None:
-      temp_c = self.coordinator.data.get("target_temp")
-    if temp_c is None:
-      temp_c = self.coordinator.last_schedule_temp_c
+    # Only use user-entered schedule temperature (do not infer from target temp or device)
+    temp_c = self.coordinator.last_schedule_temp_c
 
     # Use intended schedule mode (select value); fall back to device state; default to once.
     mode = (
