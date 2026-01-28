@@ -52,8 +52,12 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     if temp_c is None:
       temp_c = self.coordinator.last_schedule_temp_c
 
-    # Use intended schedule mode (select value); fall back to device state if user never set it.
-    mode = self.coordinator.last_schedule_mode or self.coordinator.data.get("schedule_mode") or ("daily" if self.coordinator.data.get("schedule_enabled") else "off")
+    # Use intended schedule mode (select value); fall back to device state; default to once.
+    mode = (
+      self.coordinator.last_schedule_mode
+      or self.coordinator.data.get("schedule_mode")
+      or ("daily" if self.coordinator.data.get("schedule_enabled") else "once")
+    )
     mode = str(mode).lower()
     if mode not in ("off", "once", "daily"):
       mode = "off"
@@ -64,19 +68,17 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     k = self.coordinator.kettle
     session = self.coordinator.session
 
-    # If mode is off, keep values locally but do not send to the kettle.
-    if mode != "off":
-      # Order per doc: schtempr, Repeat_sched, schtime, schedon.
-      if temp_c is not None:
-        await k.async_set_schedule_temperature(session, int(temp_c))
-        await asyncio.sleep(0.2)
-      await k.async_set_schedule_repeat(session, repeat)
+    # Always push time/temp/repeat/schedon so kettle reflects the current plan, even when mode=off.
+    if temp_c is not None:
+      await k.async_set_schedule_temperature(session, int(temp_c))
       await asyncio.sleep(0.2)
-      await k.async_set_schedule_time(session, int(hour), int(minute))
-      await asyncio.sleep(0.2)
-      await k.async_set_schedon(session, schedon)
-      await asyncio.sleep(0.2)
-      await k.async_refresh_ui(session)
+    await k.async_set_schedule_repeat(session, repeat)
+    await asyncio.sleep(0.2)
+    await k.async_set_schedule_time(session, int(hour), int(minute))
+    await asyncio.sleep(0.2)
+    await k.async_set_schedon(session, schedon)
+    await asyncio.sleep(0.2)
+    await k.async_refresh_ui(session)
 
     # Update coordinator data so UI refreshes with time, temp, and mode we just set.
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
