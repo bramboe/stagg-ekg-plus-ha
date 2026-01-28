@@ -108,6 +108,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
       if device_sched_mode:
         self.last_schedule_mode = str(device_sched_mode).lower()
+      # If device reports schedon=0, ensure mode off and clear last cache
+      if data.get("schedule_schedon") == 0:
+        data["schedule_mode"] = "off"
+        self.last_schedule_mode = "off"
 
       # Auto-reset once schedules after the scheduled time passes
       await self._maybe_auto_reset_once_schedule(data)
