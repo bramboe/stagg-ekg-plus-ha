@@ -65,6 +65,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.last_schedule_time: dict[str, int] | None = None
     self.last_schedule_temp_c: float | None = None
     self.last_schedule_mode: str | None = None
+    self.last_target_temp: float | None = None
 
   @property
   def temperature_unit(self) -> str:
@@ -98,6 +99,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         data["schedule_time"] = self.last_schedule_time
       if self.last_schedule_temp_c is not None:
         data["schedule_temp_c"] = self.last_schedule_temp_c
+      if self.last_target_temp is not None:
+        data["target_temp"] = self.last_target_temp
       if data.get("schedule_schedon") == 0:
         data["schedule_mode"] = "off"
 
