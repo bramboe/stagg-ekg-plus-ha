@@ -58,4 +58,17 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
       await self.coordinator.kettle.async_set_schedule_temperature(self.coordinator.session, int(temp_c))
     await self.coordinator.kettle.async_set_schedule_time(self.coordinator.session, int(hour), int(minute))
     await self.coordinator.kettle.async_set_schedule_mode(self.coordinator.session, str(mode))
+
+    # Update coordinator data so UI refreshes immediately with the values we just set
+    self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
+    if temp_c is not None:
+      self.coordinator.last_schedule_temp_c = float(temp_c)
+    data = dict(self.coordinator.data)
+    data["schedule_time"] = {"hour": hour, "minute": minute}
+    if temp_c is not None:
+      data["schedule_temp_c"] = float(temp_c)
+    data["schedule_mode"] = mode
+    data["schedule_enabled"] = mode != "off"
+    data["schedule_repeat"] = 1 if mode == "daily" else 0
+    self.coordinator.async_set_updated_data(data)
     await self.coordinator.async_request_refresh()
