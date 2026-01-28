@@ -125,6 +125,9 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
         """Return the state of the sensor."""
         if self.coordinator.data is None:
             return None
+        if self.entity_description.key == "schedule_mode":
+            # Prefer the last intended mode from HA UI when present
+            return self.coordinator.last_schedule_mode or self.coordinator.data.get("schedule_mode")
         return VALUE_FUNCTIONS[self.entity_description.key](self.coordinator.data)
 
     @property
