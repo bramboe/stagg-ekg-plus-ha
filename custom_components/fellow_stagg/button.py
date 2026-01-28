@@ -1,6 +1,7 @@
 """Button entities for Fellow Stagg EKG Pro (HTTP CLI)."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -54,10 +55,22 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     mode = self.coordinator.data.get("schedule_mode") or ("daily" if self.coordinator.data.get("schedule_enabled") else "off")
 
     _LOGGER.debug("Button updating schedule: %02d:%02d temp_c=%s mode=%s", hour, minute, temp_c, mode)
+    k = self.coordinator.kettle
+    session = self.coordinator.session
+
+    # Order per doc: schtempr, Repeat_sched, schtime, schedon (then refresh UI)
     if temp_c is not None:
-      await self.coordinator.kettle.async_set_schedule_temperature(self.coordinator.session, int(temp_c))
-    await self.coordinator.kettle.async_set_schedule_time(self.coordinator.session, int(hour), int(minute))
-    await self.coordinator.kettle.async_set_schedule_mode(self.coordinator.session, str(mode))
+      await k.async_set_schedule_temperature(session, int(temp_c))
+      await asyncio.sleep(0.2)
+    repeat = 1 if mode == "daily" else 0
+    schedon = 0 if mode == "off" else (2 if mode == "daily" else 1)
+    await k.async_set_schedule_repeat(session, repeat)
+    await asyncio.sleep(0.2)
+    await k.async_set_schedule_time(session, int(hour), int(minute))
+    await asyncio.sleep(0.2)
+    await k.async_set_schedon(session, schedon)
+    await asyncio.sleep(0.2)
+    await k.async_refresh_ui(session)
 
     # Update coordinator data so UI refreshes immediately with the values we just set
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
