@@ -106,8 +106,6 @@ class FellowStaggScheduleTime(NumberEntity):
   @property
   def native_value(self) -> float | None:
     sched = self.coordinator.last_schedule_time
-    if sched is None and self.coordinator.data:
-      sched = self.coordinator.data.get("schedule_time")
     if not sched or "hour" not in sched or "minute" not in sched:
       return None
     return float(sched["hour"] * 100 + sched["minute"])
@@ -144,13 +142,7 @@ class FellowStaggScheduleTemperature(NumberEntity):
   def native_value(self) -> float | None:
     if self.coordinator.last_schedule_temp_c is not None:
       return float(self.coordinator.last_schedule_temp_c)
-    if self.coordinator.data is None:
-      return None
-    sched = self.coordinator.data.get("schedule_temp_c")
-    if sched is not None:
-      return float(sched)
-    current_target = self.coordinator.data.get("target_temp")
-    return float(current_target) if current_target is not None else None
+    return None
 
   async def async_set_native_value(self, value: float) -> None:
     _LOGGER.debug("Setting schedule temperature to %s (local only; press Update Schedule to send)", value)
