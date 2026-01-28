@@ -42,17 +42,14 @@ class FellowStaggScheduleTimeEntity(
 
   @property
   def native_value(self) -> time | None:
-    sched = None
-    if self.coordinator.data:
+    # Always prefer the locally stored schedule time so UI edits don't revert
+    # to device-reported defaults (often 00:00 when schedule is off).
+    sched = self.coordinator.last_schedule_time
+    if not sched and self.coordinator.data:
       sched = self.coordinator.data.get("schedule_time")
-    if not sched and self.coordinator.last_schedule_time:
-      sched = self.coordinator.last_schedule_time
     if not sched or "hour" not in sched or "minute" not in sched:
       return time(0, 0)
-    return time(
-      int(sched.get("hour", 0)) % 24,
-      int(sched.get("minute", 0)) % 60,
-    )
+    return time(int(sched.get("hour", 0)) % 24, int(sched.get("minute", 0)) % 60)
 
   async def async_set_value(self, value: time) -> None:
     hour, minute = value.hour, value.minute
@@ -66,4 +63,3 @@ class FellowStaggScheduleTimeEntity(
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
     if self.coordinator.data is not None:
       self.coordinator.async_set_updated_data(self.coordinator.data)
-    await self.coordinator.async_request_refresh()
