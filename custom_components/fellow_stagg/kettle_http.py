@@ -48,7 +48,11 @@ class KettleHttpClient:
     sched_repeat_state = self._parse_schedule_repeat(body)
     sched_repeat = sched_repeat_settings if sched_repeat_settings is not None else sched_repeat_state
 
-    # Determine armed / mode: honor schedon directly; mark incomplete if time/temp missing.
+    # Determine armed / mode per spec:
+    # OFF: schedon=0
+    # ONCE: schedon=1 (Repeat_sched usually 0)
+    # DAILY: schedon=2 or Repeat_sched=1
+    # Do not invalidate armed state if time/temp are missing; just flag incomplete.
     has_time = bool(sched_time) and not (
       isinstance(sched_time, dict)
       and sched_time.get("hour", 0) == 0
@@ -59,11 +63,10 @@ class KettleHttpClient:
     armed = bool(schedon_value in (1, 2))
     incomplete = bool(armed and (not has_time or not has_temp))
 
-    if armed:
-      if schedon_value == 2 or sched_repeat == 1:
-        sched_mode = "daily"
-      else:
-        sched_mode = "once"
+    if schedon_value == 2 or sched_repeat == 1:
+      sched_mode = "daily" if armed else "off"
+    elif schedon_value == 1:
+      sched_mode = "once" if armed else "off"
     else:
       sched_mode = "off"
 
