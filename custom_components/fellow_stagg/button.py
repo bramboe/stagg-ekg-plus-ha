@@ -90,12 +90,20 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
           current_schedon = refreshed.get("schedule_schedon")
           if current_schedon == schedon:
             break
+        await asyncio.sleep(0.5)
         await k.async_set_schedon(session, schedon)
         await asyncio.sleep(0.5)
         await k.async_refresh_ui(session)
         await asyncio.sleep(0.5)
       except Exception as err:  # noqa: BLE001
         _LOGGER.debug("Schedule retry attempt %s failed: %s", attempt + 1, err)
+
+    # Final attempt to arm after a short wait
+    await asyncio.sleep(1.0)
+    await k.async_set_schedon(session, schedon)
+    await asyncio.sleep(0.5)
+    await k.async_refresh_ui(session)
+    await asyncio.sleep(0.5)
 
     # Update coordinator data so UI refreshes with time, temp, and mode we just set.
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
