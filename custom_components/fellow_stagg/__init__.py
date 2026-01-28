@@ -93,6 +93,11 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       _LOGGER.debug("Fetched data: %s", data)
       # Do not overwrite user-entered schedule time/temp/mode during polling.
       # Trust device-reported mode from schedon only for sensors; do not override user inputs.
+      # If we have user-entered schedule time/temp, surface them back to entities.
+      if self.last_schedule_time is not None:
+        data["schedule_time"] = self.last_schedule_time
+      if self.last_schedule_temp_c is not None:
+        data["schedule_temp_c"] = self.last_schedule_temp_c
       if data.get("schedule_schedon") == 0:
         data["schedule_mode"] = "off"
 
