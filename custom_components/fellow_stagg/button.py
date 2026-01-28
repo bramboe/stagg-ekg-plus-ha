@@ -71,18 +71,18 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     # Always push time/temp/repeat/schedon so kettle reflects the current plan, even when mode=off.
     if temp_c is not None:
       await k.async_set_schedule_temperature(session, int(temp_c))
-      await asyncio.sleep(0.2)
+      await asyncio.sleep(0.5)
     await k.async_set_schedule_repeat(session, repeat)
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.5)
     await k.async_set_schedule_time(session, int(hour), int(minute))
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.5)
     await k.async_set_schedon(session, schedon)
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.5)
     await k.async_refresh_ui(session)
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.5)
 
-    # Retry arming if schedon did not stick
-    for attempt in range(2):
+    # Retry arming if schedon did not stick (poll + re-arm + refresh UI)
+    for attempt in range(3):
       try:
         refreshed = await k.async_poll(session)
         if refreshed:
@@ -91,9 +91,9 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
           if current_schedon == schedon:
             break
         await k.async_set_schedon(session, schedon)
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.5)
         await k.async_refresh_ui(session)
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.5)
       except Exception as err:  # noqa: BLE001
         _LOGGER.debug("Schedule retry attempt %s failed: %s", attempt + 1, err)
 
