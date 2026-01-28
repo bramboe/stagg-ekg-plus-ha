@@ -1,6 +1,7 @@
 """HTTP CLI client for Fellow Stagg EKG Pro kettles."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from typing import Any
@@ -115,6 +116,24 @@ class KettleHttpClient:
     await self._cli_command(session, f"setsetting Repeat_sched {repeat}")
     await self._cli_command(session, f"setsetting schedon {schedon}")
 
+  async def async_set_schedule_repeat(self, session: ClientSession, repeat: int) -> None:
+    """Set Repeat_sched: 0 = once, 1 = daily."""
+    if repeat not in (0, 1):
+      raise ValueError("repeat must be 0 or 1")
+    await self._cli_command(session, f"setsetting Repeat_sched {repeat}")
+
+  async def async_set_schedon(self, session: ClientSession, value: int) -> None:
+    """Set schedon: 0 = off, 1 = once, 2 = daily."""
+    if value not in (0, 1, 2):
+      raise ValueError("schedon must be 0, 1, or 2")
+    await self._cli_command(session, f"setsetting schedon {value}")
+
+  async def async_refresh_ui(self, session: ClientSession) -> None:
+    """Simulate button press to refresh kettle display (1d then 1u)."""
+    await self._cli_command(session, "1d")
+    await asyncio.sleep(0.1)
+    await self._cli_command(session, "1u")
+
   async def async_set_clock(self, session: ClientSession, hour: int, minute: int, second: int = 0) -> None:
     """Set kettle clock (24h)."""
     if hour < 0 or hour > 23 or minute < 0 or minute > 59 or second < 0 or second > 59:
@@ -162,7 +181,6 @@ class KettleHttpClient:
       return False
     # Treat any other mode as on/active
     return True
-    return None
 
   @staticmethod
   def _parse_hold(mode: str | None) -> bool | None:
