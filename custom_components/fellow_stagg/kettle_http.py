@@ -34,9 +34,10 @@ class KettleHttpClient:
     clock = self._parse_clock(body)
     sched_time = self._parse_schedule_time(body)
     sched_temp_c = self._parse_schedule_temp(body)
+    schedon_value = self._parse_schedon_value(body)
     sched_enabled = self._parse_schedule_enabled(body)
     sched_repeat = self._parse_schedule_repeat(body)
-    sched_mode = self._derive_schedule_mode(sched_enabled, sched_repeat)
+    sched_mode = self._derive_schedule_mode(schedon_value, sched_repeat)
 
     # Prefer explicit units from parsed temps; only fall back to the kettle
     # units flag when no temp labels provided.
@@ -57,6 +58,7 @@ class KettleHttpClient:
       "schedule_time": sched_time,
       "schedule_temp_c": sched_temp_c,
       "schedule_enabled": sched_enabled,
+      "schedule_schedon": schedon_value,
       "schedule_repeat": sched_repeat,
       "schedule_mode": sched_mode,
     }
@@ -282,12 +284,20 @@ class KettleHttpClient:
     return self._f_to_c(temp_f)
 
   @staticmethod
-  def _parse_schedule_enabled(body: str) -> bool | None:
-    """Parse schedule enable flag from schedon."""
+  def _parse_schedon_value(body: str) -> int | None:
+    """Parse schedon raw value: 0=off, 1=once, 2=daily."""
     match = re.search(r"\bschedon\s*=\s*(\d+)", body or "", re.IGNORECASE)
     if not match:
       return None
-    return match.group(1) == "1"
+    return int(match.group(1))
+
+  @staticmethod
+  def _parse_schedule_enabled(body: str) -> bool | None:
+    """Parse schedule enable flag from schedon (any nonzero = enabled)."""
+    value = KettleHttpClient._parse_schedon_value(body)
+    if value is None:
+      return None
+    return value != 0
 
   @staticmethod
   def _parse_schedule_repeat(body: str) -> int | None:
@@ -298,17 +308,25 @@ class KettleHttpClient:
     return int(match.group(1))
 
   @staticmethod
-  def _derive_schedule_mode(sched_enabled: bool | None, repeat: int | None) -> str | None:
-    # Default to off if nothing reported
-    if sched_enabled is None and repeat is None:
+  def _derive_schedule_mode(schedon: int | None, repeat: int | None) -> str | None:
+    """Derive schedule mode from schedon (0/1/2) with repeat fallback."""
+    if schedon is None:
+      if repeat is None:
+        return "off"
+      return "daily" if repeat == 1 else "once"
+
+    if schedon == 0:
       return "off"
-    if sched_enabled is False:
-      return "off"
-    if sched_enabled is True:
-      if repeat == 1:
-        return "daily"
+    if schedon == 2:
+      return "daily"
+    if schedon == 1:
       return "once"
-    # Fallback
+
+    # Unknown value, fallback using repeat or off
+    if repeat == 1:
+      return "daily"
+    if repeat == 0:
+      return "once"
     return "off"
 
   @staticmethod
