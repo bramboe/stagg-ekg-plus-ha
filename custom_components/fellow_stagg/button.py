@@ -71,39 +71,28 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     # Always push time/temp/repeat/schedon so kettle reflects the current plan, even when mode=off.
     if temp_c is not None:
       await k.async_set_schedule_temperature(session, int(temp_c))
-      await asyncio.sleep(1.0)
+      await asyncio.sleep(0.8)
     await k.async_set_schedule_repeat(session, repeat)
-    await asyncio.sleep(1.0)
+    await asyncio.sleep(0.8)
     await k.async_set_schedule_time(session, int(hour), int(minute))
-    await asyncio.sleep(1.0)
-    await k.async_set_schedon(session, schedon)
-    await asyncio.sleep(1.0)
-    await k.async_refresh_ui(session)
-    await asyncio.sleep(1.0)
+    await asyncio.sleep(0.8)
 
-    # Retry arming if schedon did not stick (poll + re-arm + refresh UI)
-    for attempt in range(3):
+    # Arm schedon and verify via prtsettings/state. Retry a few times if it doesn't stick.
+    for attempt in range(5):
       try:
+        await k.async_set_schedon(session, schedon)
+        await asyncio.sleep(0.8)
+        await k.async_refresh_ui(session)
+        await asyncio.sleep(0.8)
         refreshed = await k.async_poll(session)
         if refreshed:
           self.coordinator.async_set_updated_data(refreshed)
           current_schedon = refreshed.get("schedule_schedon")
           if current_schedon == schedon:
             break
-        await asyncio.sleep(1.0)
-        await k.async_set_schedon(session, schedon)
-        await asyncio.sleep(1.0)
-        await k.async_refresh_ui(session)
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(0.8)
       except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Schedule retry attempt %s failed: %s", attempt + 1, err)
-
-    # Final attempt to arm after a short wait
-    await asyncio.sleep(1.5)
-    await k.async_set_schedon(session, schedon)
-    await asyncio.sleep(1.0)
-    await k.async_refresh_ui(session)
-    await asyncio.sleep(1.0)
+        _LOGGER.debug("Schedule arming attempt %s failed: %s", attempt + 1, err)
 
     # Update coordinator data so UI refreshes with time, temp, and mode we just set.
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
