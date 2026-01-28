@@ -57,3 +57,4 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
       raise ValueError(f"Invalid schedule mode {option}")
     _LOGGER.debug("Setting schedule mode to %s (local only; press Update Schedule to send)", option)
     self.coordinator.last_schedule_mode = option
+    self.async_write_ha_state()
