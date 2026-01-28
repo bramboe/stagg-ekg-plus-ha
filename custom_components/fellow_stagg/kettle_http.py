@@ -64,6 +64,11 @@ class KettleHttpClient:
       "schedule_mode": sched_mode,
     }
 
+    # If schedon is explicitly 0, force mode to off for clarity.
+    if schedon_value == 0:
+      data["schedule_mode"] = "off"
+      data["schedule_enabled"] = False
+
     return data
 
   async def async_set_power(self, session: ClientSession, power_on: bool) -> None:
