@@ -52,20 +52,31 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     if temp_c is None:
       temp_c = self.coordinator.last_schedule_temp_c
 
-    _LOGGER.debug("Button updating schedule time: %02d:%02d temp_c=%s", hour, minute, temp_c)
+    # Use current Schedule Mode so kettle only runs at programmed time when mode is once/daily, not when off.
+    mode = self.coordinator.data.get("schedule_mode") or ("daily" if self.coordinator.data.get("schedule_enabled") else "off")
+    mode = str(mode).lower()
+    if mode not in ("off", "once", "daily"):
+      mode = "off"
+    repeat = 1 if mode == "daily" else 0
+    schedon = 0 if mode == "off" else (2 if mode == "daily" else 1)
+
+    _LOGGER.debug("Button updating schedule: %02d:%02d temp_c=%s mode=%s", hour, minute, temp_c, mode)
     k = self.coordinator.kettle
     session = self.coordinator.session
 
-    # Update schedule temperature and time; keep existing mode (schedon/repeat) as programmed.
+    # Order per doc: schtempr, Repeat_sched, schtime, schedon. Mode must be sent so "off" disables run.
     if temp_c is not None:
       await k.async_set_schedule_temperature(session, int(temp_c))
       await asyncio.sleep(0.2)
+    await k.async_set_schedule_repeat(session, repeat)
+    await asyncio.sleep(0.2)
     await k.async_set_schedule_time(session, int(hour), int(minute))
+    await asyncio.sleep(0.2)
+    await k.async_set_schedon(session, schedon)
     await asyncio.sleep(0.2)
     await k.async_refresh_ui(session)
 
-    # Update coordinator data so UI refreshes immediately with the values we just set
-    # Update local coordinator data so UI reflects time/temp changes immediately.
+    # Update coordinator data so UI refreshes with time, temp, and mode we just set.
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
     if temp_c is not None:
       self.coordinator.last_schedule_temp_c = float(temp_c)
@@ -73,5 +84,8 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     data["schedule_time"] = {"hour": hour, "minute": minute}
     if temp_c is not None:
       data["schedule_temp_c"] = float(temp_c)
+    data["schedule_mode"] = mode
+    data["schedule_enabled"] = mode != "off"
+    data["schedule_repeat"] = repeat
     self.coordinator.async_set_updated_data(data)
     await self.coordinator.async_request_refresh()
