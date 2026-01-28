@@ -63,7 +63,9 @@ class FellowStaggTargetTemperature(NumberEntity):
   @property
   def native_value(self) -> float | None:
     """Return the current target temperature."""
-    value = self.coordinator.data.get("target_temp")
+    value = self.coordinator.last_target_temp
+    if value is None and self.coordinator.data is not None:
+      value = self.coordinator.data.get("target_temp")
     _LOGGER.debug("Target temperature read as: %s°%s", value, self.coordinator.temperature_unit)
     return value
 
@@ -74,6 +76,9 @@ class FellowStaggTargetTemperature(NumberEntity):
       value,
       self.coordinator.temperature_unit
     )
+    self.coordinator.last_target_temp = float(value)
+    if self.coordinator.data is not None:
+      self.coordinator.data["target_temp"] = float(value)
     
     await self.coordinator.kettle.async_set_temperature(
       self.coordinator.session,
