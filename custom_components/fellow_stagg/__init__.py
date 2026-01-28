@@ -112,11 +112,61 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         self.last_schedule_mode = str(device_sched_mode).lower()
         data["schedule_mode"] = self.last_schedule_mode
 
+      # Auto-reset once schedules after the scheduled time passes
+      await self._maybe_auto_reset_once_schedule(data)
+
       await self._maybe_sync_clock(data)
       return data
     except Exception as err:  # noqa: BLE001
       _LOGGER.error("Error polling Fellow Stagg kettle at %s: %s", self._base_url, err)
       return None
+
+  async def _maybe_auto_reset_once_schedule(self, data: dict[str, Any]) -> None:
+    """If mode is once and scheduled time has passed today, turn schedon off locally and on device."""
+    mode = (data.get("schedule_mode") or "").lower()
+    schedon = data.get("schedule_schedon")
+    sched_time = data.get("schedule_time") or self.last_schedule_time
+    clock = data.get("clock")
+
+    if mode != "once" or schedon != 1 or not sched_time:
+      return
+
+    try:
+      hour = int(sched_time.get("hour", 0))
+      minute = int(sched_time.get("minute", 0))
+    except Exception:
+      return
+
+    # Determine current time in minutes using kettle clock if available, else local time.
+    now_minutes = None
+    if clock and ":" in clock:
+      try:
+        ch, cm = clock.split(":")[:2]
+        now_minutes = (int(ch) % 24) * 60 + (int(cm) % 60)
+      except Exception:
+        now_minutes = None
+
+    if now_minutes is None:
+      from datetime import datetime
+      now = datetime.now()
+      now_minutes = now.hour * 60 + now.minute
+
+    sched_minutes = (hour % 24) * 60 + (minute % 60)
+    delta = now_minutes - sched_minutes  # >=0 means time has passed today
+
+    if delta < 0:
+      return  # Scheduled time not reached yet
+
+    # Time has passed today; reset to off.
+    _LOGGER.debug("Auto-resetting once schedule (schedon=1) after time passed: %02d:%02d -> off", hour, minute)
+    try:
+      await self.kettle.async_set_schedon(self.session, 0)
+      data["schedule_schedon"] = 0
+      data["schedule_mode"] = "off"
+      data["schedule_enabled"] = False
+      self.last_schedule_mode = "off"
+    except Exception as err:  # noqa: BLE001
+      _LOGGER.warning("Failed to auto-reset once schedule: %s", err)
 
   async def _maybe_sync_clock(self, data: dict[str, Any]) -> None:
     """If sync enabled, align kettle clock to current time when drift is large."""
