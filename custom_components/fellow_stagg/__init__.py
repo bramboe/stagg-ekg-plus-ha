@@ -91,24 +91,25 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     try:
       data = await self.kettle.async_poll(self.session)
       _LOGGER.debug("Fetched data: %s", data)
-      # Persist schedule time/temp locally if device does not report them consistently
-      if data.get("schedule_time"):
-        self.last_schedule_time = data.get("schedule_time")
-      elif self.last_schedule_time:
+      # Persist schedule time/temp/mode locally. Prefer user-intended (last_*) over device.
+      device_sched_time = data.get("schedule_time")
+      device_sched_temp = data.get("schedule_temp_c")
+      device_sched_mode = data.get("schedule_mode")
+
+      if self.last_schedule_time is not None:
         data["schedule_time"] = self.last_schedule_time
+      elif device_sched_time:
+        self.last_schedule_time = device_sched_time
 
-      if data.get("schedule_temp_c") is not None:
-        self.last_schedule_temp_c = data.get("schedule_temp_c")
-      elif self.last_schedule_temp_c is not None:
+      if self.last_schedule_temp_c is not None:
         data["schedule_temp_c"] = self.last_schedule_temp_c
+      elif device_sched_temp is not None:
+        self.last_schedule_temp_c = device_sched_temp
 
-      # Persist schedule mode locally; fall back to last known desired mode.
-      # Only adopt the device value if we don't already have a user-intended mode.
-      if data.get("schedule_mode"):
-        device_mode = str(data.get("schedule_mode")).lower()
-        if self.last_schedule_mode is None:
-          self.last_schedule_mode = device_mode
       if self.last_schedule_mode is not None:
+        data["schedule_mode"] = self.last_schedule_mode
+      elif device_sched_mode:
+        self.last_schedule_mode = str(device_sched_mode).lower()
         data["schedule_mode"] = self.last_schedule_mode
 
       await self._maybe_sync_clock(data)
