@@ -91,26 +91,23 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     try:
       data = await self.kettle.async_poll(self.session)
       _LOGGER.debug("Fetched data: %s", data)
-      # Persist schedule time/temp/mode locally. Prefer user-intended (last_*) over device.
+      # Persist schedule time/temp/mode locally. Prefer device-reported values and keep user-intended only as a fallback for UI entry fields.
       device_sched_time = data.get("schedule_time")
       device_sched_temp = data.get("schedule_temp_c")
       device_sched_mode = data.get("schedule_mode")
 
-      if self.last_schedule_time is not None:
-        data["schedule_time"] = self.last_schedule_time
-      elif device_sched_time:
+      if device_sched_time:
         self.last_schedule_time = device_sched_time
+      elif self.last_schedule_time is not None:
+        data["schedule_time"] = self.last_schedule_time
 
-      if self.last_schedule_temp_c is not None:
-        data["schedule_temp_c"] = self.last_schedule_temp_c
-      elif device_sched_temp is not None:
+      if device_sched_temp is not None:
         self.last_schedule_temp_c = device_sched_temp
+      elif self.last_schedule_temp_c is not None:
+        data["schedule_temp_c"] = self.last_schedule_temp_c
 
-      if self.last_schedule_mode is not None:
-        data["schedule_mode"] = self.last_schedule_mode
-      elif device_sched_mode:
+      if device_sched_mode:
         self.last_schedule_mode = str(device_sched_mode).lower()
-        data["schedule_mode"] = self.last_schedule_mode
 
       # Auto-reset once schedules after the scheduled time passes
       await self._maybe_auto_reset_once_schedule(data)
