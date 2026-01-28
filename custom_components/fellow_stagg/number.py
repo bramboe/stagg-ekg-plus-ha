@@ -123,7 +123,6 @@ class FellowStaggScheduleTime(NumberEntity):
       self.coordinator.data["schedule_time"] = {"hour": hour, "minute": minute}
       self.coordinator.async_set_updated_data(self.coordinator.data)
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
-    await self.coordinator.async_request_refresh()
 
 
 class FellowStaggScheduleTemperature(NumberEntity):
