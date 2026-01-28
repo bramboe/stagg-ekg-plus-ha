@@ -41,6 +41,9 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
 
   @property
   def current_option(self) -> str | None:
+    # Show intended mode (what will be sent on Update); only fall back to device state when never set.
+    if self.coordinator.last_schedule_mode is not None:
+      return self.coordinator.last_schedule_mode
     if self.coordinator.data is None:
       return "off"
     mode = self.coordinator.data.get("schedule_mode")
@@ -53,6 +56,7 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
     if option not in MODE_OPTIONS:
       raise ValueError(f"Invalid schedule mode {option}")
     _LOGGER.debug("Setting schedule mode to %s (local only; press Update Schedule to send)", option)
+    self.coordinator.last_schedule_mode = option
     if self.coordinator.data is not None:
       self.coordinator.data["schedule_mode"] = option
       self.coordinator.data["schedule_enabled"] = option != "off"
