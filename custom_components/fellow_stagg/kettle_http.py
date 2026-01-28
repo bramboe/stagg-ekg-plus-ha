@@ -326,8 +326,8 @@ class KettleHttpClient:
     if not match:
       return None
     temp_f = float(match.group(1))
-    # Treat 0 or negative as unset to avoid -17.77 showing up
-    if temp_f <= 0:
+    # Treat 0 or out-of-range as unset to avoid bogus values
+    if temp_f <= 0 or temp_f > 250:
       return None
     return self._f_to_c(temp_f)
 
