@@ -283,12 +283,48 @@ class KettleHttpClient:
 
   @staticmethod
   def _parse_lifted(body: str) -> bool | None:
-    """Parse kettle position (on/off base) from ipb flag."""
-    match = re.search(r"\bipb\b\s*=?\s*(\d+)", body or "", re.IGNORECASE)
-    if not match:
+    """Parse kettle position (on/off base) from tempr and ketl fields.
+    
+    The "Golden Rule": If tempr contains "nan", the kettle is off the base.
+    This happens because the thermistor circuit is physically broken when lifted.
+    
+    Secondary check: ketl field may also indicate position, but tempr=nan is primary.
+    """
+    if not body:
       return None
-    # Empirically, ipb appears to be 0 when on base; 1 when lifted.
-    return match.group(1) == "1"
+    
+    # Primary check: tempr=nan indicates kettle is off base
+    # Pattern matches: "tempr=nan", "tempr=nan C", "tempr=nan F", etc.
+    # The nan value means the thermistor circuit is broken (kettle lifted)
+    tempr_nan_match = re.search(r"\btempr\s*=\s*nan\b", body, re.IGNORECASE)
+    if tempr_nan_match:
+      return True  # Off base - thermistor circuit broken
+    
+    # If tempr exists and is a valid number, kettle is on base
+    # Pattern matches: "tempr=38.783316 C", "tempr=100.5 F", etc.
+    tempr_numeric_match = re.search(r"\btempr\s*=\s*([-\d\.]+)", body, re.IGNORECASE)
+    if tempr_numeric_match:
+      # Found a numeric temperature value, kettle is on base
+      return False  # On base - valid temperature reading
+    
+    # Secondary check: ketl field (less reliable, but can help)
+    # Empty ketl or ketl with only whitespace may indicate off base
+    # Pattern matches: "ketl=" (empty) or "ketl= " (whitespace)
+    ketl_match = re.search(r"\bketl\s*=\s*(\S*)", body, re.IGNORECASE)
+    if ketl_match:
+      ketl_value = ketl_match.group(1).strip()
+      # If ketl is empty or just whitespace, might be off base
+      # But this is secondary, so only use if tempr wasn't found
+      if not ketl_value:
+        return True  # Likely off base
+    
+    # Fallback: check ipb flag if available (for backward compatibility)
+    ipb_match = re.search(r"\bipb\b\s*=?\s*(\d+)", body, re.IGNORECASE)
+    if ipb_match:
+      # Empirically, ipb appears to be 0 when on base; 1 when lifted.
+      return ipb_match.group(1) == "1"
+    
+    return None  # Unknown state
 
   @staticmethod
   def _parse_clock(body: str) -> str | None:
