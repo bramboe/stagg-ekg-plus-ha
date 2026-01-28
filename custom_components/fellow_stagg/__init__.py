@@ -91,40 +91,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     try:
       data = await self.kettle.async_poll(self.session)
       _LOGGER.debug("Fetched data: %s", data)
-      # Persist schedule time/temp locally. Prefer device-reported values; keep user-intended only as fallback for UI entry fields.
-      device_sched_time = data.get("schedule_time")
-      device_sched_temp = data.get("schedule_temp_c")
-      device_sched_mode = data.get("schedule_mode")
-
-      valid_device_time = (
-        device_sched_time
-        and not (
-          isinstance(device_sched_time, dict)
-          and device_sched_time.get("hour", 0) == 0
-          and device_sched_time.get("minute", 0) == 0
-        )
-      )
-      if valid_device_time:
-        self.last_schedule_time = device_sched_time
-      elif self.last_schedule_time is not None:
-        data["schedule_time"] = self.last_schedule_time
-
-      valid_device_temp = (
-        device_sched_temp is not None
-        and device_sched_temp > 0
-        and device_sched_temp <= self.max_temp  # clamp to kettle range
-      )
-      if valid_device_temp:
-        self.last_schedule_temp_c = device_sched_temp
-      elif self.last_schedule_temp_c is not None:
-        data["schedule_temp_c"] = self.last_schedule_temp_c
-
-      if device_sched_mode:
-        self.last_schedule_mode = str(device_sched_mode).lower()
-      # If device reports schedon=0, ensure mode off in data and reset cached desired mode
+      # Do not overwrite user-entered schedule time/temp/mode during polling.
+      # Just trust device-reported mode from schedon; input entities will keep showing last user values.
       if data.get("schedule_schedon") == 0:
         data["schedule_mode"] = "off"
-        self.last_schedule_mode = "off"
 
       await self._maybe_sync_clock(data)
       return data
