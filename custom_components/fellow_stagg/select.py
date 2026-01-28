@@ -41,14 +41,9 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
 
   @property
   def current_option(self) -> str | None:
-    # Show intended mode if user has selected one locally; otherwise show device state.
+    # Show only the last user-selected mode (local), default off.
     if self.coordinator.last_schedule_mode is not None:
       return self.coordinator.last_schedule_mode
-    if self.coordinator.data is None:
-      return "off"
-    mode = self.coordinator.data.get("schedule_mode")
-    if mode and mode.lower() in MODE_OPTIONS:
-      return mode.lower()
     return "off"
 
   async def async_select_option(self, option: str) -> None:
