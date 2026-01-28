@@ -118,18 +118,11 @@ class FellowStaggScheduleTime(NumberEntity):
     minute = hhmm % 100
     if hour < 0 or hour > 23 or minute < 0 or minute > 59:
       raise ValueError("Provide time as HHMM, e.g. 730 for 07:30")
-    await self.coordinator.kettle.async_set_schedule_time(
-      self.coordinator.session,
-      hour,
-      minute,
-    )
-    await self.coordinator.kettle.async_set_schedule_enabled(
-      self.coordinator.session,
-      True,
-    )
+    _LOGGER.debug("Setting schedule time %02d:%02d (local only; press Update Schedule to send)", hour, minute)
     if self.coordinator.data is not None:
       self.coordinator.data["schedule_time"] = {"hour": hour, "minute": minute}
-      self.coordinator.data["schedule_enabled"] = True
+      self.coordinator.async_set_updated_data(self.coordinator.data)
+    self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
     await self.coordinator.async_request_refresh()
 
 
@@ -164,11 +157,10 @@ class FellowStaggScheduleTemperature(NumberEntity):
     return float(current_target) if current_target is not None else None
 
   async def async_set_native_value(self, value: float) -> None:
-    await self.coordinator.kettle.async_set_schedule_temperature(
-      self.coordinator.session,
-      int(value),
-    )
+    _LOGGER.debug("Setting schedule temperature to %s (local only; press Update Schedule to send)", value)
     if self.coordinator.data is not None:
       self.coordinator.data["schedule_temp_c"] = float(value)
     self.coordinator.last_schedule_temp_c = float(value)
+    if self.coordinator.data is not None:
+      self.coordinator.async_set_updated_data(self.coordinator.data)
     await self.coordinator.async_request_refresh()
