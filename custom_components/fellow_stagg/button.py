@@ -73,6 +73,7 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     await asyncio.sleep(0.8)
     await k.async_set_schedule_repeat(session, repeat)
     await asyncio.sleep(0.8)
+    desired_time = {"hour": int(hour), "minute": int(minute)}
     await k.async_set_schedule_time(session, int(hour), int(minute))
     await asyncio.sleep(0.8)
 
@@ -86,6 +87,16 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
         refreshed = await k.async_poll(session)
         if refreshed:
           self.coordinator.async_set_updated_data(refreshed)
+          # If schedule_time on device doesn't match desired, try sending again
+          device_time = refreshed.get("schedule_time")
+          if device_time != desired_time:
+            await k.async_set_schedule_time(session, desired_time["hour"], desired_time["minute"])
+            await asyncio.sleep(0.8)
+            await k.async_refresh_ui(session)
+            await asyncio.sleep(0.8)
+            refreshed = await k.async_poll(session)
+            if refreshed:
+              self.coordinator.async_set_updated_data(refreshed)
           current_schedon = refreshed.get("schedule_schedon")
           if current_schedon == schedon:
             break
