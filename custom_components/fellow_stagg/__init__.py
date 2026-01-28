@@ -103,6 +103,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         data["target_temp"] = self.last_target_temp
       if data.get("schedule_schedon") == 0:
         data["schedule_mode"] = "off"
+        self.last_schedule_mode = "off"
 
       await self._maybe_sync_clock(data)
       return data
