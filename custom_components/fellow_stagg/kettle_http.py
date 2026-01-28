@@ -267,20 +267,23 @@ class KettleHttpClient:
 
   @staticmethod
   def _parse_schedule_time(body: str) -> dict[str, int] | None:
-    """Parse schedule time; supports numeric (hour*256+minute) and HH:MM."""
+    """Parse schedule time; supports HH:MM and numeric (hour*256+minute).
+
+    Try HH:MM first to avoid partial numeric matches on strings like "12:3".
+    """
+    # Try HH:MM format first
+    match_hhmm = re.search(r"\bschtime\s*=\s*(\d{1,2}):(\d{1,2})", body or "", re.IGNORECASE)
+    if match_hhmm:
+      hour = int(match_hhmm.group(1)) % 24
+      minute = int(match_hhmm.group(2)) % 60
+      return {"hour": hour, "minute": minute}
+
     # Try numeric packed format
     match_num = re.search(r"\bschtime\s*=\s*(\d+)", body or "", re.IGNORECASE)
     if match_num:
       value = int(match_num.group(1))
       hour = (value // 256) % 24
       minute = value % 256
-      return {"hour": hour, "minute": minute}
-
-    # Try HH:MM format
-    match_hhmm = re.search(r"\bschtime\s*=\s*(\d{1,2}):(\d{1,2})", body or "", re.IGNORECASE)
-    if match_hhmm:
-      hour = int(match_hhmm.group(1)) % 24
-      minute = int(match_hhmm.group(2)) % 60
       return {"hour": hour, "minute": minute}
 
     return None
