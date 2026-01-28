@@ -109,7 +109,11 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       elif self.last_schedule_time is not None:
         data["schedule_time"] = self.last_schedule_time
 
-      valid_device_temp = device_sched_temp is not None and device_sched_temp > 0
+      valid_device_temp = (
+        device_sched_temp is not None
+        and device_sched_temp > 0
+        and device_sched_temp <= self.max_temp  # clamp to kettle range
+      )
       if valid_device_temp:
         self.last_schedule_temp_c = device_sched_temp
       elif self.last_schedule_temp_c is not None:
