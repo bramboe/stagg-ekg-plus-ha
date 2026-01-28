@@ -64,17 +64,19 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     k = self.coordinator.kettle
     session = self.coordinator.session
 
-    # Order per doc: schtempr, Repeat_sched, schtime, schedon. Mode must be sent so "off" disables run.
-    if temp_c is not None:
-      await k.async_set_schedule_temperature(session, int(temp_c))
+    # If mode is off, keep values locally but do not send to the kettle.
+    if mode != "off":
+      # Order per doc: schtempr, Repeat_sched, schtime, schedon.
+      if temp_c is not None:
+        await k.async_set_schedule_temperature(session, int(temp_c))
+        await asyncio.sleep(0.2)
+      await k.async_set_schedule_repeat(session, repeat)
       await asyncio.sleep(0.2)
-    await k.async_set_schedule_repeat(session, repeat)
-    await asyncio.sleep(0.2)
-    await k.async_set_schedule_time(session, int(hour), int(minute))
-    await asyncio.sleep(0.2)
-    await k.async_set_schedon(session, schedon)
-    await asyncio.sleep(0.2)
-    await k.async_refresh_ui(session)
+      await k.async_set_schedule_time(session, int(hour), int(minute))
+      await asyncio.sleep(0.2)
+      await k.async_set_schedon(session, schedon)
+      await asyncio.sleep(0.2)
+      await k.async_refresh_ui(session)
 
     # Update coordinator data so UI refreshes with time, temp, and mode we just set.
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
