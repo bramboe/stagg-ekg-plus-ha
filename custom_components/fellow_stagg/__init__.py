@@ -64,6 +64,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self._last_clock_sync: datetime | None = None
     self.last_schedule_time: dict[str, int] | None = None
     self.last_schedule_temp_c: float | None = None
+    self.last_schedule_mode: str | None = None
 
   @property
   def temperature_unit(self) -> str:
@@ -232,7 +233,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
       if temp_c is None:
         raise ValueError("No schedule temperature available; set schedule temperature first")
 
-      mode = coord.data.get("schedule_mode") or ("daily" if coord.data.get("schedule_enabled") else "off")
+      mode = coord.last_schedule_mode or coord.data.get("schedule_mode") or ("daily" if coord.data.get("schedule_enabled") else "off")
 
       _LOGGER.debug("Updating schedule: %s:%s temp_c=%s mode=%s", hour, minute, temp_c, mode)
       await coord.kettle.async_set_schedule_temperature(coord.session, int(temp_c))
