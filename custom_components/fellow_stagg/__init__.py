@@ -60,7 +60,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       manufacturer="Fellow",
       model="Stagg EKG Pro (HTTP CLI)",
     )
-    self.sync_clock_enabled = False
+    self.sync_clock_enabled = True
     self._last_clock_sync: datetime | None = None
     self.last_schedule_time: dict[str, int] | None = None
     self.last_schedule_temp_c: float | None = None
@@ -113,7 +113,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
 
   async def _maybe_sync_clock(self, data: dict[str, Any]) -> None:
-    """If sync enabled, align kettle clock to current time when drift is large."""
+    """If sync enabled, align kettle clock to current time when drift is large.
+    
+    Checks every hour and syncs if drift is >= 2 minutes.
+    """
     if not self.sync_clock_enabled:
       return
     clock = data.get("clock")
@@ -126,8 +129,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     except Exception:
       return
 
-    # Prevent excessive writes: at most once every 6 hours
-    if self._last_clock_sync and (now - self._last_clock_sync).total_seconds() < 6 * 3600:
+    # Check clock sync at most once per hour to avoid excessive writes
+    if self._last_clock_sync and (now - self._last_clock_sync).total_seconds() < 3600:
       return
 
     drift_minutes = abs((hour * 60 + minute) - (now.hour * 60 + now.minute))
