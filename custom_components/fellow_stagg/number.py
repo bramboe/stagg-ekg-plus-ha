@@ -105,9 +105,9 @@ class FellowStaggScheduleTime(NumberEntity):
 
   @property
   def native_value(self) -> float | None:
-    if self.coordinator.data is None:
-      return None
-    sched = self.coordinator.data.get("schedule_time")
+    sched = self.coordinator.last_schedule_time
+    if sched is None and self.coordinator.data:
+      sched = self.coordinator.data.get("schedule_time")
     if not sched or "hour" not in sched or "minute" not in sched:
       return None
     return float(sched["hour"] * 100 + sched["minute"])
@@ -119,10 +119,8 @@ class FellowStaggScheduleTime(NumberEntity):
     if hour < 0 or hour > 23 or minute < 0 or minute > 59:
       raise ValueError("Provide time as HHMM, e.g. 730 for 07:30")
     _LOGGER.debug("Setting schedule time %02d:%02d (local only; press Update Schedule to send)", hour, minute)
-    if self.coordinator.data is not None:
-      self.coordinator.data["schedule_time"] = {"hour": hour, "minute": minute}
-      self.coordinator.async_set_updated_data(self.coordinator.data)
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
+    self.async_write_ha_state()
 
 
 class FellowStaggScheduleTemperature(NumberEntity):
@@ -144,22 +142,17 @@ class FellowStaggScheduleTemperature(NumberEntity):
 
   @property
   def native_value(self) -> float | None:
+    if self.coordinator.last_schedule_temp_c is not None:
+      return float(self.coordinator.last_schedule_temp_c)
     if self.coordinator.data is None:
       return None
     sched = self.coordinator.data.get("schedule_temp_c")
     if sched is not None:
       return float(sched)
-    if self.coordinator.last_schedule_temp_c is not None:
-      return float(self.coordinator.last_schedule_temp_c)
-    # Fallback: mirror current target temp if schedule temp is unknown
     current_target = self.coordinator.data.get("target_temp")
     return float(current_target) if current_target is not None else None
 
   async def async_set_native_value(self, value: float) -> None:
     _LOGGER.debug("Setting schedule temperature to %s (local only; press Update Schedule to send)", value)
-    if self.coordinator.data is not None:
-      self.coordinator.data["schedule_temp_c"] = float(value)
     self.coordinator.last_schedule_temp_c = float(value)
-    if self.coordinator.data is not None:
-      self.coordinator.async_set_updated_data(self.coordinator.data)
-    await self.coordinator.async_request_refresh()
+    self.async_write_ha_state()
