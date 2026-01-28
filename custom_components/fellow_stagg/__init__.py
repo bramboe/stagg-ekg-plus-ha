@@ -92,7 +92,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       data = await self.kettle.async_poll(self.session)
       _LOGGER.debug("Fetched data: %s", data)
       # Do not overwrite user-entered schedule time/temp/mode during polling.
-      # Just trust device-reported mode from schedon; input entities will keep showing last user values.
+      # Trust device-reported mode from schedon only for sensors; do not override user inputs.
       if data.get("schedule_schedon") == 0:
         data["schedule_mode"] = "off"
 
