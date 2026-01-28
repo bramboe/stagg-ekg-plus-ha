@@ -83,6 +83,8 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     # Re-assert schedon in case UI refresh cleared it; then pull fresh state/settings.
     await k.async_set_schedon(session, schedon)
     await asyncio.sleep(0.2)
+    await k.async_refresh_ui(session)
+    await asyncio.sleep(0.2)
 
     # Refresh coordinator with latest device state/settings
     try:
