@@ -32,7 +32,7 @@ async def async_setup_entry(
     FellowStaggScheduleTemperature(coordinator),
   ])
 
-class FellowStaggTargetTemperature(NumberEntity):
+class FellowStaggTargetTemperature(CoordinatorEntity[FellowStaggDataUpdateCoordinator], NumberEntity):
   """Number class for Fellow Stagg kettle target temperature control."""
 
   _attr_has_entity_name = True
@@ -42,8 +42,7 @@ class FellowStaggTargetTemperature(NumberEntity):
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     """Initialize the number."""
-    super().__init__()
-    self.coordinator = coordinator
+    super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.base_url}_target_temp"
     self._attr_device_info = coordinator.device_info
     
@@ -72,24 +71,26 @@ class FellowStaggTargetTemperature(NumberEntity):
 
   async def async_set_native_value(self, value: float) -> None:
     """Set new target temperature."""
-    _LOGGER.debug(
-      "Setting target temperature to %s°%s",
-      value,
-      self.coordinator.temperature_unit
-    )
-    self.coordinator.last_target_temp = float(value)
-    if self.coordinator.data is not None:
-      self.coordinator.data["target_temp"] = float(value)
-    
-    await self.coordinator.kettle.async_set_temperature(
-      self.coordinator.session,
-      int(value),
-    )
-    _LOGGER.debug("Target temperature command sent, waiting before refresh")
-    # Give the kettle a moment to update its internal state
-    await asyncio.sleep(0.5)
-    _LOGGER.debug("Requesting refresh after temperature change")
-    await self.coordinator.async_request_refresh()
+    async with self.coordinator.command_lock:
+      _LOGGER.debug(
+        "Setting target temperature to %s°%s",
+        value,
+        self.coordinator.temperature_unit
+      )
+      self.coordinator.last_target_temp = float(value)
+      if self.coordinator.data is not None:
+        self.coordinator.data["target_temp"] = float(value)
+      self.async_write_ha_state()
+      
+      await self.coordinator.kettle.async_set_temperature(
+        self.coordinator.session,
+        int(value),
+      )
+      _LOGGER.debug("Target temperature command sent, waiting before refresh")
+      # Give the kettle a moment to update its internal state
+      await asyncio.sleep(0.5)
+      _LOGGER.debug("Requesting refresh after temperature change")
+      await self.coordinator.async_request_refresh()
 
 
 class FellowStaggScheduleTime(NumberEntity):
