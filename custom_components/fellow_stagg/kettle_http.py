@@ -305,7 +305,7 @@ class KettleHttpClient:
 
   @staticmethod
   def _parse_mode(body: str) -> str | None:
-    match = re.search(r"\bmode\s*=\s*([A-Za-z0-9_]+)", body or "", re.IGNORECASE)
+    match = re.search(r"\bmode\s*=\s*([A-Za-z0-9_\+]+)", body or "", re.IGNORECASE)
     if match:
       return match.group(1).upper()
     return None
@@ -334,26 +334,41 @@ class KettleHttpClient:
 
   @staticmethod
   def _parse_nw(body: str) -> int | None:
-    """Parse nw (No Water) flag."""
-    match = re.search(r"\bnw\s*=?\s*(\d+)", body or "", re.IGNORECASE)
+    """Parse nw (No Water) flag. Matches 'nw 1', 'nw=1', etc."""
+    if not body:
+      return None
+    # The log shows 'nw 1' or 'nw=1'. ho 0 wd 0 nw 1 ipb 0
+    match = re.search(r"\bnw\b\s*=?\s*(\d+)", body, re.IGNORECASE)
     if match:
-      return int(match.group(1))
+      try:
+        return int(match.group(1))
+      except ValueError:
+        pass
     return None
 
   @staticmethod
   def _parse_tempr_b(body: str) -> float | None:
-    """Parse temprB (Boiling point)."""
-    match = re.search(r"\btemprB\s*=\s*([-\d\.]+)", body or "", re.IGNORECASE)
+    """Parse temprB (Boiling point). Matches 'temprB=100.0'."""
+    if not body:
+      return None
+    match = re.search(r"\btemprB\s*=\s*([-\d\.]+)", body, re.IGNORECASE)
     if match:
-      return float(match.group(1))
+      try:
+        return float(match.group(1))
+      except ValueError:
+        pass
     return None
 
   @staticmethod
   def _parse_scrname(body: str) -> str | None:
-    """Parse scrname (Screen name)."""
-    match = re.search(r"\bscrname\s*=\s*([^ \n]+)", body or "", re.IGNORECASE)
+    """Parse scrname (Screen name). Handles spaces until next key= value."""
+    if not body:
+      return None
+    # Log: scrname=error screen - add water.png value=0
+    match = re.search(r"\bscrname\s*=\s*(.*?)(?:\s+\w+=|$)", body, re.IGNORECASE)
     if match:
-      return match.group(1).replace(".png", "").replace("-", " ").strip()
+      val = match.group(1).replace(".png", "").replace("-", " ").strip()
+      return val
     return None
 
   @staticmethod
