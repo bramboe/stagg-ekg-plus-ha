@@ -32,35 +32,7 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "countdown": lambda data: data.get("countdown") if data else None,
     "clock": lambda data: data.get("clock") if data else None,
     "schedule_mode": lambda data: data.get("schedule_mode") if data else None,
-    "temperature_unit": lambda data: (
-        "Fahrenheit" if data and data.get("units") == "F" else "Celsius"
-    ),
-    "water_status": lambda data: _derive_water_status(data),
 }
-
-
-def _derive_water_status(data: dict[str, Any] | None) -> str:
-    """Derive water status based on safety flags and temperature."""
-    if not data:
-        return "Unknown"
-
-    # Check for critical safety issues in multiple fields
-    nw = data.get("nw")
-    scrname = (data.get("scrname") or "").lower()
-    mode = (data.get("mode") or "").lower()
-    tempr = data.get("current_temp")
-    tempr_b = data.get("tempr_b")
-
-    # Critical: Hard hardware lock, screen explicitly says add water, or mode is NoWater
-    if nw == 1 or "add water" in scrname or "nowater" in mode:
-        return "Critical: Add Water"
-
-    # Warning: Thermal safety check (Overheating / Dry Boil)
-    if tempr is not None and tempr_b is not None:
-        if tempr > (tempr_b + 1.5):
-            return "Warning: Dry Boil"
-
-    return "Normal"
 
 
 def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
@@ -109,16 +81,6 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
             key="schedule_mode",
             name="Current Schedule Mode",
             icon="mdi:calendar-clock",
-        ),
-        FellowStaggSensorEntityDescription(
-            key="temperature_unit",
-            name="Temperature Unit",
-            icon="mdi:thermometer",
-        ),
-        FellowStaggSensorEntityDescription(
-            key="water_status",
-            name="Water Status",
-            icon="mdi:water-alert",
         ),
     ]
 
@@ -169,8 +131,10 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
 
     @property
     def native_unit_of_measurement(self) -> str | None:
-        """Return Celsius as the native unit (we normalize everything to C internally)."""
+        """Return the unit for temperature sensors based on kettle units."""
         if self.entity_description.device_class == SensorDeviceClass.TEMPERATURE:
+            if self.coordinator.data and self.coordinator.data.get("units") == "F":
+                return UnitOfTemperature.FAHRENHEIT
             return UnitOfTemperature.CELSIUS
         return super().native_unit_of_measurement
 
