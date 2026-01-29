@@ -26,7 +26,6 @@ class FellowStaggSensorEntityDescription(SensorEntityDescription):
 VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "power": lambda data: "On" if data and data.get("power") else "Off",
     "current_temp": lambda data: data.get("current_temp") if data else None,
-    "target_temp": lambda data: data.get("target_temp") if data else None,
     "hold": lambda data: "Hold" if data and data.get("hold") else "Normal",
     "lifted": lambda data: "Lifted" if data and data.get("lifted") else "On Base",
     "countdown": lambda data: data.get("countdown") if data else None,
@@ -46,13 +45,6 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(
             key="current_temp",
             name="Current Temperature",
-            icon="mdi:thermometer",
-            device_class=SensorDeviceClass.TEMPERATURE,
-            native_unit_of_measurement=UnitOfTemperature.FAHRENHEIT,
-        ),
-        FellowStaggSensorEntityDescription(
-            key="target_temp",
-            name="Target Temperature",
             icon="mdi:thermometer",
             device_class=SensorDeviceClass.TEMPERATURE,
             native_unit_of_measurement=UnitOfTemperature.FAHRENHEIT,
