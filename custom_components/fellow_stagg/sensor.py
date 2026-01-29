@@ -31,7 +31,6 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "countdown": lambda data: data.get("countdown") if data else None,
     "clock": lambda data: data.get("clock") if data else None,
     "schedule_mode": lambda data: data.get("schedule_mode") if data else None,
-    "no_water": lambda data: "Error: Add Water" if data and data.get("no_water") else "OK",
     "screen_name": lambda data: data.get("screen_name") if data else None,
 }
 
@@ -75,11 +74,6 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
             key="schedule_mode",
             name="Current Schedule Mode",
             icon="mdi:calendar-clock",
-        ),
-        FellowStaggSensorEntityDescription(
-            key="no_water",
-            name="Water Level Error",
-            icon="mdi:water-off",
         ),
         FellowStaggSensorEntityDescription(
             key="screen_name",
