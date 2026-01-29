@@ -83,7 +83,7 @@ class FellowStaggTargetTemperature(NumberEntity):
     
     await self.coordinator.kettle.async_set_temperature(
       self.coordinator.session,
-      round(float(value)),
+      int(value),
     )
     _LOGGER.debug("Target temperature command sent, waiting before refresh")
     # Give the kettle a moment to update its internal state
