@@ -146,7 +146,11 @@ class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCo
 
   @property
   def current_option(self) -> str | None:
-    """Return current unit from kettle; default Celsius when unknown."""
+    """Return current unit; prefer user selection then kettle state."""
+    if self.coordinator.preferred_unit == "F":
+      return "fahrenheit"
+    if self.coordinator.preferred_unit == "C":
+      return "celsius"
     if not self.coordinator.data:
       return "celsius"
     return "fahrenheit" if self.coordinator.data.get("units") == "F" else "celsius"
@@ -157,7 +161,8 @@ class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCo
     if opt not in TEMPERATURE_UNIT_OPTIONS:
       raise ValueError(f"Invalid temperature unit {option}")
     unit = "F" if opt == "fahrenheit" else "C"
-    _LOGGER.debug("Setting kettle temperature unit to %s", unit)
+    _LOGGER.debug("Setting kettle temperature unit to %s (override set)", unit)
+    self.coordinator.preferred_unit = unit
     await self.coordinator.kettle.async_set_units(self.coordinator.session, unit)
     await asyncio.sleep(0.5)
     await self.coordinator.async_request_refresh()
