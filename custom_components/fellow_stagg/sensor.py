@@ -41,9 +41,10 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
 
 def _derive_water_status(data: dict[str, Any] | None) -> str:
     """Derive water status based on safety flags and temperature."""
-    if data is None:
+    if not data:
         return "Unknown"
 
+    # Check for critical safety issues in multiple fields
     nw = data.get("nw")
     scrname = (data.get("scrname") or "").lower()
     mode = (data.get("mode") or "").lower()
