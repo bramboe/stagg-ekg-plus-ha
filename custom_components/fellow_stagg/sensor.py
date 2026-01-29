@@ -1,6 +1,7 @@
 """Support for Fellow Stagg EKG+ kettle sensors."""
 from dataclasses import dataclass
 import logging
+import re
 from typing import Any, Callable
 
 from homeassistant import config_entries
@@ -220,30 +221,39 @@ class FellowStaggWaterWarningSensor(
             return data.get("raw") or ""
         return ""
 
+    def _normalize_raw_for_check(self, raw: str) -> str:
+        """Normalize raw state so newlines/split lines still match (e.g. nw\\n1 -> nw 1)."""
+        if not raw:
+            return ""
+        text = raw.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+        return re.sub(r"\s+", " ", text).strip().lower()
+
     @property
     def native_value(self) -> str | None:
         """Return critical, warning, or normal.
         Matches device state format: scrname=error screen - add water.png, mode=S_NoWater+menu, nw 1
         """
         raw = self._get_raw_for_check()
-        raw_lower = raw.lower()
+        raw_norm = self._normalize_raw_for_check(raw)
 
         # 0. Raw body first (works even when coordinator.data is None / poll failed).
-        # Device log: "... scrname=error screen - add water.png ... mode=S_NoWater+menu ... nw 1 ..."
+        # Device may return key=value with newlines; normalize so "nw\\n1" matches.
         no_water_in_raw = (
-            "add water" in raw_lower
-            or "nowater" in raw_lower
-            or "no water" in raw_lower
-            or "no_water" in raw_lower
-            or "s_nowater" in raw_lower
-            or "nw 1" in raw_lower
-            or "nw=1" in raw_lower
-            or "nw:1" in raw_lower
-            or "error screen - add water" in raw_lower
+            "add water" in raw_norm
+            or "nowater" in raw_norm
+            or "no water" in raw_norm
+            or "no_water" in raw_norm
+            or "s_nowater" in raw_norm
+            or "low water" in raw_norm
+            or "nw 1" in raw_norm
+            or "nw=1" in raw_norm
+            or "nw:1" in raw_norm
+            or "error screen - add water" in raw_norm
+            or bool(re.search(r"\bnw\s*[=:\s]\s*1\b", raw_norm))
         )
         if no_water_in_raw:
             return "critical"
-        if "mode=" in raw_lower and "nowater" in raw_lower:
+        if "mode=" in raw_norm and "nowater" in raw_norm:
             return "critical"
 
         data = self.coordinator.data
