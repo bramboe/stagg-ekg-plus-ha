@@ -50,6 +50,14 @@ class FellowStaggPowerSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator]
     return bool(self.coordinator.data.get("power"))
 
   async def async_turn_on(self, **kwargs: Any) -> None:
+    # Safety check
+    if self.coordinator.data and (
+      self.coordinator.data.get("nw") == 1
+      or "add water" in (self.coordinator.data.get("scrname") or "").lower()
+    ):
+      _LOGGER.warning("Refusing to turn on kettle switch: No water detected")
+      return
+
     _LOGGER.debug("Turning kettle power ON")
     await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
     if self.coordinator.data is not None:
