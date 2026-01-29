@@ -83,21 +83,10 @@ class KettleHttpClient:
       units = self._parse_units_flag(body) or "C"
     units = units.upper()
 
-    # Use state line for no-water / thermal parsing (strip log prefix if present)
-    state_line = self._normalize_state_body(body)
-    nw = self._parse_nw(state_line)
-    temprB_c = self._parse_temprB(state_line)
-    scrname = self._parse_scrname(state_line)
-    if nw is None and body:
-      nw = self._parse_nw(body)
-    if temprB_c is None and body:
-      temprB_c = self._parse_temprB(body)
-    if scrname is None and body:
-      scrname = self._parse_scrname(body)
-    _LOGGER.debug(
-      "Water/safety parse: nw=%s temprB_c=%s scrname=%s mode=%s raw_len=%s",
-      nw, temprB_c, scrname, mode, len(body) if body else 0,
-    )
+    # Safety/Thermal fields
+    nw = self._parse_nw(body)
+    tempr_b = self._parse_tempr_b(body)
+    scrname = self._parse_scrname(body)
 
     data: dict[str, Any] = {
       "raw": body,
@@ -109,7 +98,7 @@ class KettleHttpClient:
       "units": units,
       "lifted": self._parse_lifted(body),
       "nw": nw,
-      "temprB_c": temprB_c,
+      "tempr_b": tempr_b,
       "scrname": scrname,
       "clock": clock,
       "clock_mode": clock_mode,
@@ -344,6 +333,30 @@ class KettleHttpClient:
     return None
 
   @staticmethod
+  def _parse_nw(body: str) -> int | None:
+    """Parse nw (No Water) flag."""
+    match = re.search(r"\bnw\s*=?\s*(\d+)", body or "", re.IGNORECASE)
+    if match:
+      return int(match.group(1))
+    return None
+
+  @staticmethod
+  def _parse_tempr_b(body: str) -> float | None:
+    """Parse temprB (Boiling point)."""
+    match = re.search(r"\btemprB\s*=\s*([-\d\.]+)", body or "", re.IGNORECASE)
+    if match:
+      return float(match.group(1))
+    return None
+
+  @staticmethod
+  def _parse_scrname(body: str) -> str | None:
+    """Parse scrname (Screen name)."""
+    match = re.search(r"\bscrname\s*=\s*([^ \n]+)", body or "", re.IGNORECASE)
+    if match:
+      return match.group(1).replace(".png", "").replace("-", " ").strip()
+    return None
+
+  @staticmethod
   def _parse_power(mode: str | None) -> bool | None:
     if not mode:
       return None
@@ -455,63 +468,6 @@ class KettleHttpClient:
       return ipb_match.group(1) == "1"
     
     return None  # Unknown state
-
-  @staticmethod
-  def _normalize_state_body(body: str) -> str:
-    """Return state line suitable for parsing; strip log prefix if present."""
-    if not body:
-      return ""
-    text = body.strip()
-    # If device returns log line like "I (791770) Main: OTA ... scrname=... nw 1"
-    # take the part that contains key=value state (after "Main:" or use full line)
-    if " scrname=" in text or " scrname " in text:
-      return text
-    if "Main:" in text:
-      idx = text.find("Main:")
-      return text[idx + 5 :].strip()
-    return text
-
-  @staticmethod
-  def _parse_nw(body: str) -> int | None:
-    """Parse no-water flag from state. nw=1 or nw 1 → CRITICAL (no water)."""
-    if not body:
-      return None
-    # Try nw=1, nw 1, nw:1
-    for pattern in (r"\bnw\s*=\s*(\d+)", r"\bnw\s+(\d+)", r"\bnw\s*:\s*(\d+)"):
-      match = re.search(pattern, body, re.IGNORECASE)
-      if match:
-        return int(match.group(1))
-    return None
-
-  @staticmethod
-  def _parse_temprB(body: str) -> float | None:
-    """Parse boiling point temprB from state; return value in Celsius."""
-    if not body:
-      return None
-    regex = r"\btemprB\s*=\s*([-\d.]+)\s*([CF])?"
-    match = re.search(regex, body, re.IGNORECASE)
-    if not match:
-      return None
-    value = float(match.group(1))
-    unit = (match.group(2) or "C").upper()
-    if unit == "F":
-      return (value - 32) / 1.8
-    return value
-
-  @staticmethod
-  def _parse_scrname(body: str) -> str | None:
-    """Parse screen name from state (e.g. 'error screen - add water.png')."""
-    if not body:
-      return None
-    # End at next key= (value=, mode=, tempr=, etc.) or end of string
-    match = re.search(
-      r"\bscrname\s*=\s*(.+?)(?=\s+value=|\s+mode=|\s+tempr|\s+ketl=|\s*$)",
-      body,
-      re.IGNORECASE | re.DOTALL,
-    )
-    if match:
-      return match.group(1).strip()
-    return None
 
   @staticmethod
   def _parse_clock(body: str) -> str | None:
