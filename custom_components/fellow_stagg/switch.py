@@ -50,18 +50,24 @@ class FellowStaggPowerSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator]
     return bool(self.coordinator.data.get("power"))
 
   async def async_turn_on(self, **kwargs: Any) -> None:
-    _LOGGER.debug("Turning kettle power ON")
-    await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
-    if self.coordinator.data is not None:
-      self.coordinator.data["power"] = True
-    await self.coordinator.async_request_refresh()
+    async with self.coordinator.command_lock:
+      _LOGGER.debug("Turning kettle power ON")
+      await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
+      if self.coordinator.data is not None:
+        self.coordinator.data["power"] = True
+      self.async_write_ha_state()
+      await asyncio.sleep(0.5)
+      await self.coordinator.async_request_refresh()
 
   async def async_turn_off(self, **kwargs: Any) -> None:
-    _LOGGER.debug("Turning kettle power OFF")
-    await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
-    if self.coordinator.data is not None:
-      self.coordinator.data["power"] = False
-    await self.coordinator.async_request_refresh()
+    async with self.coordinator.command_lock:
+      _LOGGER.debug("Turning kettle power OFF")
+      await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
+      if self.coordinator.data is not None:
+        self.coordinator.data["power"] = False
+      self.async_write_ha_state()
+      await asyncio.sleep(0.5)
+      await self.coordinator.async_request_refresh()
 
 
 class FellowStaggClockSyncSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SwitchEntity):
