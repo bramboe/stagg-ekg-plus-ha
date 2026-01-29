@@ -61,6 +61,7 @@ class FellowStaggClimate(
         self._attr_min_temp = coordinator.min_temp
         self._attr_max_temp = coordinator.max_temp
         self._attr_temperature_unit = coordinator.temperature_unit
+        self._power_lock = asyncio.Lock()
         _LOGGER.debug(
             "Initializing climate (kettle) with units: %s",
             coordinator.temperature_unit,
@@ -116,19 +117,21 @@ class FellowStaggClimate(
         await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the kettle on (Heat)."""
-        _LOGGER.debug("Turning climate (kettle) ON")
-        await self.coordinator.kettle.async_set_power(
-            self.coordinator.session, True
-        )
-        await asyncio.sleep(0.5)
-        await self.coordinator.async_request_refresh()
+        """Turn the kettle on (Heat). Serialized so rapid Heat/Off taps both apply."""
+        async with self._power_lock:
+            _LOGGER.debug("Turning climate (kettle) ON")
+            await self.coordinator.kettle.async_set_power(
+                self.coordinator.session, True
+            )
+            await asyncio.sleep(0.5)
+            await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the kettle off."""
-        _LOGGER.debug("Turning climate (kettle) OFF")
-        await self.coordinator.kettle.async_set_power(
-            self.coordinator.session, False
-        )
-        await asyncio.sleep(0.5)
-        await self.coordinator.async_request_refresh()
+        """Turn the kettle off. Serialized so rapid Heat/Off taps both apply."""
+        async with self._power_lock:
+            _LOGGER.debug("Turning climate (kettle) OFF")
+            await self.coordinator.kettle.async_set_power(
+                self.coordinator.session, False
+            )
+            await asyncio.sleep(0.5)
+            await self.coordinator.async_request_refresh()
