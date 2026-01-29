@@ -41,20 +41,20 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
 
 def _derive_water_status(data: dict[str, Any] | None) -> str:
     """Derive water status based on safety flags and temperature."""
-    if not data:
+    if data is None:
         return "Unknown"
 
     nw = data.get("nw")
     scrname = (data.get("scrname") or "").lower()
+    mode = (data.get("mode") or "").lower()
     tempr = data.get("current_temp")
     tempr_b = data.get("tempr_b")
 
-    # Critical: Hard hardware lock or screen explicitly says add water
-    if nw == 1 or "add water" in scrname:
+    # Critical: Hard hardware lock, screen explicitly says add water, or mode is NoWater
+    if nw == 1 or "add water" in scrname or "nowater" in mode:
         return "Critical: Add Water"
 
     # Warning: Thermal safety check (Overheating / Dry Boil)
-    # Use 1.5C over boiling point as the trigger
     if tempr is not None and tempr_b is not None:
         if tempr > (tempr_b + 1.5):
             return "Warning: Dry Boil"
