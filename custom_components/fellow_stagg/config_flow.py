@@ -8,6 +8,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components.persistent_notification import async_create as persistent_notification_create
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
@@ -234,8 +235,20 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._discovered_devices = sorted(discovered)
         if self._discovered_devices:
             _LOGGER.info("Found %s kettle(s): %s", len(self._discovered_devices), self._discovered_devices)
+            msg = f"Found {len(self._discovered_devices)} kettle(s): " + ", ".join(self._discovered_devices)
         else:
             _LOGGER.info("No Fellow Stagg kettles found on scanned subnets %s", subnet_list)
+            msg = (
+                "No kettle found. Scanned: "
+                + ", ".join(subnet_list)
+                + ". If your kettle is on a different subnet, enter its URL manually (e.g. from your router's device list)."
+            )
+        persistent_notification_create(
+            self.hass,
+            msg,
+            title="Fellow Stagg discovery",
+            notification_id="fellow_stagg_scan_result",
+        )
 
         if not self._discovered_devices:
             return self.async_show_form(
