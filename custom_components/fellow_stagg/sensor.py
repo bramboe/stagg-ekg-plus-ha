@@ -177,9 +177,7 @@ class FellowStaggStabilitySensor(CoordinatorEntity[FellowStaggDataUpdateCoordina
         return "Cooling"
 
 
-class FellowStaggWaterWarningSensor(
-    CoordinatorEntity[FellowStaggDataUpdateCoordinator], SensorEntity
-):
+class FellowStaggWaterWarningSensor(SensorEntity):
     """
     Thermal safety / low water warning from kettle state.
 
@@ -193,14 +191,21 @@ class FellowStaggWaterWarningSensor(
     _attr_has_entity_name = True
     _attr_name = "Water Warning"
     _attr_icon = "mdi:water-alert"
+    _attr_should_poll = True
 
     def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
-        super().__init__(coordinator)
+        """Initialize the sensor."""
+        super().__init__()
+        self.coordinator = coordinator
         self._attr_unique_id = f"{coordinator.base_url}_water_warning"
         self._attr_device_info = coordinator.device_info
-        # Ensure HA calls async_update so we can do the direct state fetch.
-        self._attr_should_poll = True
         self._direct_raw: str | None = None
+
+    async def async_added_to_hass(self) -> None:
+        """Register callbacks."""
+        self.async_on_remove(
+            self.coordinator.async_add_listener(self.async_write_ha_state)
+        )
 
     async def async_update(self) -> None:
         """Fetch state directly so we see no-water even if coordinator poll failed."""
@@ -208,11 +213,14 @@ class FellowStaggWaterWarningSensor(
             raw = await self.coordinator.kettle._cli_command(
                 self.coordinator.session, "state"
             )
-            self._direct_raw = raw or ""
+            if raw:
+                _LOGGER.debug("Water Warning direct state fetch success: %s", raw[:100])
+                self._direct_raw = raw
+            else:
+                self._direct_raw = ""
         except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Water Warning direct state fetch failed: %s", err)
+            _LOGGER.warning("Water Warning direct state fetch failed: %s", err)
             self._direct_raw = None
-        # Do not force a coordinator refresh here; the direct fetch is sufficient.
 
     def _get_raw_for_check(self) -> str:
         """Use direct fetch first, then coordinator data."""
@@ -246,11 +254,13 @@ class FellowStaggWaterWarningSensor(
             or "no water" in raw_norm
             or "no_water" in raw_norm
             or "s_nowater" in raw_norm
+            or "s_no_water" in raw_norm
             or "low water" in raw_norm
             or "nw 1" in raw_norm
             or "nw=1" in raw_norm
             or "nw:1" in raw_norm
-            or "error screen - add water" in raw_norm
+            or "error screen" in raw_norm
+            or "add_water" in raw_norm
             or bool(re.search(r"\bnw\s*[=:\s]\s*1\b", raw_norm))
         )
         if no_water_in_raw:
