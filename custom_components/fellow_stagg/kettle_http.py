@@ -26,8 +26,15 @@ class KettleHttpClient:
 
   async def async_poll(self, session: ClientSession) -> dict[str, Any]:
     """Fetch kettle state via CLI commands."""
+    # Main state command
     body = await self._cli_command(session, "state")
-    settings_body = await self._cli_command(session, "prtsettings")
+    
+    # Optional settings command (may not be supported on all firmware)
+    settings_body = ""
+    try:
+      settings_body = await self._cli_command(session, "prtsettings")
+    except Exception as err:
+      _LOGGER.debug("Optional prtsettings command failed (likely unsupported): %s", err)
 
     current_temp, temp_units = self._parse_temp(body)
     target_temp, target_units = self._parse_target_temp(body)
