@@ -13,7 +13,8 @@ from homeassistant.data_entry_flow import FlowResult
 
 from .const import CLI_STATE_MARKERS, DOMAIN
 
-_LOGGER = logging.getLogger(__name__)
+# Use package logger so "custom_components.fellow_stagg" in HA logging shows config_flow logs
+_LOGGER = logging.getLogger(__package__)
 
 
 async def validate_kettle_cli(hass: HomeAssistant, base_url: str) -> bool:
@@ -204,6 +205,9 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except ValueError:
                 pass
 
+        subnet_list = [str(net) for net in networks_to_scan]
+        _LOGGER.info("Scanning for Fellow Stagg kettles on %s", subnet_list)
+
         discovered: list[str] = []
         sem = asyncio.Semaphore(20)
 
@@ -228,6 +232,11 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await asyncio.gather(*[scan_network(net) for net in networks_to_scan])
 
         self._discovered_devices = sorted(discovered)
+        if self._discovered_devices:
+            _LOGGER.info("Found %s kettle(s): %s", len(self._discovered_devices), self._discovered_devices)
+        else:
+            _LOGGER.info("No Fellow Stagg kettles found on scanned subnets %s", subnet_list)
+
         if not self._discovered_devices:
             return self.async_show_form(
                 step_id="user",
