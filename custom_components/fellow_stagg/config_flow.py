@@ -53,7 +53,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step: manual URL or discover."""
+        """Handle the initial step: run network scan first, or manual URL."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -92,16 +92,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data={"base_url": base_url},
             )
 
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("base_url", default=""): str,
-                    vol.Required("discover", default=False): bool,
-                }
-            ),
-            errors=errors,
-        )
+        # First time: run network scan immediately so the kettle shows up
+        return await self.async_step_scan()
 
     async def async_step_zeroconf(
         self, discovery_info: Any
@@ -184,12 +176,19 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except Exception as e:  # noqa: BLE001
             _LOGGER.debug("Could not get adapters: %s", e)
 
-        if not networks_to_scan:
-            for net_str in ("192.168.0.0/24", "192.168.1.0/24", "10.0.0.0/24"):
-                try:
-                    networks_to_scan.append(ipaddress.IPv4Network(net_str))
-                except ValueError:
-                    pass
+        # Always include common home subnets (e.g. when HA runs in Docker, adapters may only show container network)
+        for net_str in (
+            "192.168.0.0/24",
+            "192.168.1.0/24",
+            "192.168.2.0/24",
+            "10.0.0.0/24",
+        ):
+            try:
+                net = ipaddress.IPv4Network(net_str)
+                if net not in networks_to_scan:
+                    networks_to_scan.append(net)
+            except ValueError:
+                pass
 
         discovered: list[str] = []
         sem = asyncio.Semaphore(20)
@@ -205,7 +204,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 async with sem:
                     try:
                         result = await asyncio.wait_for(
-                            check_ip(str(ip)), timeout=2.0
+                            check_ip(str(ip)), timeout=4.0
                         )
                         if result and result not in discovered:
                             discovered.append(result)
