@@ -32,6 +32,7 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "clock": lambda data: data.get("clock") if data else None,
     "schedule_mode": lambda data: data.get("schedule_mode") if data else None,
     "screen_name": lambda data: data.get("screen_name") if data else None,
+    "programmed_unit": lambda data: "Celsius" if data and data.get("raw_units") == "C" else ("Fahrenheit" if data and data.get("raw_units") == "F" else None),
 }
 
 
@@ -79,6 +80,11 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
             key="screen_name",
             name="Current Screen",
             icon="mdi:monitor",
+        ),
+        FellowStaggSensorEntityDescription(
+            key="programmed_unit",
+            name="Programmed Unit",
+            icon="mdi:alphabetical",
         ),
     ]
 
