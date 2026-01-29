@@ -23,6 +23,14 @@ class FellowStaggSensorEntityDescription(SensorEntityDescription):
 
 
 # Define value functions separately to avoid serialization issues
+def _kettle_temperature_unit(data: dict[str, Any] | None) -> str | None:
+    """Unit reported by the kettle (for sensor); 'celsius' or 'fahrenheit'."""
+    if not data:
+        return None
+    unit = data.get("kettle_unit") or data.get("units") or "C"
+    return "celsius" if unit.upper() == "C" else "fahrenheit"
+
+
 VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "power": lambda data: "On" if data and data.get("power") else "Off",
     "current_temp": lambda data: data.get("current_temp") if data else None,
@@ -32,11 +40,7 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "countdown": lambda data: data.get("countdown") if data else None,
     "clock": lambda data: data.get("clock") if data else None,
     "schedule_mode": lambda data: data.get("schedule_mode") if data else None,
-    "kettle_temperature_unit": lambda data: (
-        "Fahrenheit" if data and data.get("units") == "F" else "Celsius"
-    )
-    if data
-    else None,
+    "temperature_unit": _kettle_temperature_unit,
 }
 
 
@@ -88,8 +92,8 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
             icon="mdi:calendar-clock",
         ),
         FellowStaggSensorEntityDescription(
-            key="kettle_temperature_unit",
-            name="Kettle Temperature Unit",
+            key="temperature_unit",
+            name="Temperature Unit",
             icon="mdi:thermometer",
         ),
     ]
