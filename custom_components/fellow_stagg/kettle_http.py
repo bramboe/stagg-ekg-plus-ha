@@ -83,6 +83,10 @@ class KettleHttpClient:
       units = self._parse_units_flag(body) or "C"
     units = units.upper()
 
+    nw = self._parse_nw(body)
+    temprB_c = self._parse_temprB(body)
+    scrname = self._parse_scrname(body)
+
     data: dict[str, Any] = {
       "raw": body,
       "power": self._parse_power(mode),
@@ -92,6 +96,9 @@ class KettleHttpClient:
       "target_temp": target_temp,
       "units": units,
       "lifted": self._parse_lifted(body),
+      "nw": nw,
+      "temprB_c": temprB_c,
+      "scrname": scrname,
       "clock": clock,
       "clock_mode": clock_mode,
       "schedule_time": sched_time,
@@ -436,6 +443,45 @@ class KettleHttpClient:
       return ipb_match.group(1) == "1"
     
     return None  # Unknown state
+
+  @staticmethod
+  def _parse_nw(body: str) -> int | None:
+    """Parse no-water flag from state. nw=1 or nw 1 → CRITICAL (no water)."""
+    if not body:
+      return None
+    match = re.search(r"\bnw\s*=\s*(\d+)", body, re.IGNORECASE)
+    if not match:
+      match = re.search(r"\bnw\s+(\d+)", body, re.IGNORECASE)
+    if not match:
+      return None
+    return int(match.group(1))
+
+  @staticmethod
+  def _parse_temprB(body: str) -> float | None:
+    """Parse boiling point temprB from state; return value in Celsius."""
+    if not body:
+      return None
+    regex = r"\btemprB\s*=\s*([-\d.]+)\s*([CF])?"
+    match = re.search(regex, body, re.IGNORECASE)
+    if not match:
+      return None
+    value = float(match.group(1))
+    unit = (match.group(2) or "C").upper()
+    if unit == "F":
+      return (value - 32) / 1.8
+    return value
+
+  @staticmethod
+  def _parse_scrname(body: str) -> str | None:
+    """Parse screen name from state (e.g. 'error screen - add water.png')."""
+    if not body:
+      return None
+    match = re.search(
+      r"\bscrname\s*=\s*(.+?)(?=\s+\w+\s*=|\s*$)", body, re.IGNORECASE | re.DOTALL
+    )
+    if match:
+      return match.group(1).strip()
+    return None
 
   @staticmethod
   def _parse_clock(body: str) -> str | None:
