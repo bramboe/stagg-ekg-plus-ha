@@ -16,6 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 MODE_OPTIONS = ["off", "once", "daily"]
 CLOCK_MODE_OPTIONS = ["off", "digital", "analog"]
+UNIT_OPTIONS = ["Celsius", "Fahrenheit"]
 
 
 async def async_setup_entry(
@@ -29,6 +30,7 @@ async def async_setup_entry(
     [
       FellowStaggScheduleModeSelect(coordinator),
       FellowStaggClockModeSelect(coordinator),
+      FellowStaggTemperatureUnitSelect(coordinator),
     ]
   )
 
@@ -126,4 +128,41 @@ class FellowStaggClockModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoordina
         _LOGGER.warning("Failed to toggle power for clock mode refresh: %s", err)
 
     # Request an update so the entity reflects the new mode
+    await self.coordinator.async_request_refresh()
+
+
+class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SelectEntity):
+  """Select for temperature units (Celsius/Fahrenheit)."""
+
+  _attr_has_entity_name = True
+  _attr_name = "Temperature Unit"
+  _attr_options = UNIT_OPTIONS
+  _attr_icon = "mdi:temperature-celsius"
+  _attr_should_poll = False
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.base_url}_temp_unit_select"
+    self._attr_device_info = coordinator.device_info
+
+  @property
+  def current_option(self) -> str | None:
+    """Return the current programmed unit."""
+    data = self.coordinator.data or {}
+    unit = data.get("raw_units")
+    if unit == "C":
+      return "Celsius"
+    if unit == "F":
+      return "Fahrenheit"
+    return None
+
+  async def async_select_option(self, option: str) -> None:
+    """Handle user selection of a new temperature unit."""
+    unit = "C" if option == "Celsius" else "F"
+    _LOGGER.debug("Setting temperature unit to %s", unit)
+
+    # Send unit change to the kettle
+    await self.coordinator.kettle.async_set_units(self.coordinator.session, unit)
+
+    # Refresh data
     await self.coordinator.async_request_refresh()
