@@ -1,9 +1,9 @@
 DOMAIN = "fellow_stagg"
 
-# Config entry options
-OPT_TEMPERATURE_UNIT = "temperature_unit"
-OPT_TEMPERATURE_UNIT_C = "C"
-OPT_TEMPERATURE_UNIT_F = "F"
+# Config entry options (Controls section)
+OPTION_TEMPERATURE_UNIT = "temperature_unit"
+OPTION_TEMP_CELSIUS = "celsius"
+OPTION_TEMP_FAHRENHEIT = "fahrenheit"
 
 # Default temperature limits (C / F) for the EKG Pro Wi‑Fi CLI API
 MIN_TEMP_F = 104
