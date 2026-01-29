@@ -1,0 +1,94 @@
+--- a/homeassistant/components/homekit/type_thermostats.py
++++ b/homeassistant/components/homekit/type_thermostats.py
+@@ -63,6 +63,8 @@ from homeassistant.components.water_heater import (
+ from homeassistant.const import (
+     ATTR_ENTITY_ID,
+     ATTR_SUPPORTED_FEATURES,
+     ATTR_TEMPERATURE,
++    SERVICE_TURN_OFF,
++    SERVICE_TURN_ON,
+     PERCENTAGE,
+     STATE_UNAVAILABLE,
+     STATE_UNKNOWN,
+@@ -114,6 +116,7 @@ HC_HEAT_COOL_PREFER_COOL = [
+ HC_HOMEKIT_VALID_MODES_WATER_HEATER = {"Heat": 1}
++HC_HOMEKIT_VALID_MODES_WATER_HEATER_OFF_HEAT = {"Off": 0, "Heat": 1}
+ UNIT_HASS_TO_HOMEKIT = {UnitOfTemperature.CELSIUS: 0, UnitOfTemperature.FAHRENHEIT: 1}
+ 
+ HC_HEAT_COOL_OFF = 0
+@@ -518,6 +521,7 @@ class WaterHeater(HomeAccessory):
+         self._reload_on_change_attrs.extend(
+             (
+                 ATTR_MAX_TEMP,
+                 ATTR_MIN_TEMP,
++                "operation_list",
+             )
+         )
+         self._unit = self.hass.config.units.temperature_unit
+@@ -525,16 +529,32 @@ class WaterHeater(HomeAccessory):
+         assert state
+         min_temp, max_temp = self.get_temperature_range(state)
+ 
++        operation_list = state.attributes.get("operation_list") or []
++        self._supports_off = "off" in [str(m).lower() for m in operation_list]
++        if self._supports_off:
++            valid_values = HC_HOMEKIT_VALID_MODES_WATER_HEATER_OFF_HEAT
++            initial_mode = 0 if state.state == "off" else 1
++        else:
++            valid_values = HC_HOMEKIT_VALID_MODES_WATER_HEATER
++            initial_mode = 1
++
+         serv_thermostat = self.add_preload_service(SERV_THERMOSTAT)
+ 
+         self.char_current_heat_cool = serv_thermostat.configure_char(
+-            CHAR_CURRENT_HEATING_COOLING, value=1
++            CHAR_CURRENT_HEATING_COOLING, value=initial_mode
+         )
+         self.char_target_heat_cool = serv_thermostat.configure_char(
+             CHAR_TARGET_HEATING_COOLING,
+-            value=1,
++            value=initial_mode,
+             setter_callback=self.set_heat_cool,
+-            valid_values=HC_HOMEKIT_VALID_MODES_WATER_HEATER,
++            valid_values=valid_values,
+         )
+ 
+         self.char_current_temp = serv_thermostat.configure_char(
+@@ -561,9 +581,20 @@ class WaterHeater(HomeAccessory):
+ 
+     def set_heat_cool(self, value: int) -> None:
+         """Change operation mode to value if call came from HomeKit."""
+         _LOGGER.debug("%s: Set heat-cool to %d", self.entity_id, value)
+-        if HC_HOMEKIT_TO_HASS[value] != HVACMode.HEAT:
+-            self.char_target_heat_cool.set_value(1)  # Heat
++        if self._supports_off:
++            if value == 0:
++                params = {ATTR_ENTITY_ID: self.entity_id}
++                self.async_call_service(
++                    DOMAIN_WATER_HEATER, SERVICE_TURN_OFF, params, "Off"
++                )
++            else:
++                params = {ATTR_ENTITY_ID: self.entity_id}
++                self.async_call_service(
++                    DOMAIN_WATER_HEATER, SERVICE_TURN_ON, params, "Heat"
++                )
++        elif value != 1:
++            self.char_target_heat_cool.set_value(1)  # Heat
+ 
+     def set_target_temperature(self, value: float) -> None:
+         """Set target temperature to value if call came from HomeKit."""
+@@ -585,5 +616,11 @@ class WaterHeater(HomeAccessory):
+         if self._unit and self._unit in UNIT_HASS_TO_HOMEKIT:
+             unit = UNIT_HOMEKIT_TO_HOMEKIT[self._unit]
+             self.char_display_units.set_value(unit)
+ 
+-        # Update target operation mode
+-        if new_state.state:
+-            self.char_target_heat_cool.set_value(1)  # Heat
++        # Update target and current operation mode
++        if self._supports_off:
++            hk_value = 0 if new_state.state == "off" else 1
++            self.char_target_heat_cool.set_value(hk_value)
++            self.char_current_heat_cool.set_value(hk_value)
++        elif new_state.state:
++            self.char_target_heat_cool.set_value(1)  # Heat
