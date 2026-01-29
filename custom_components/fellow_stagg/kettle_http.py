@@ -92,6 +92,8 @@ class KettleHttpClient:
       "target_temp": target_temp,
       "units": units,
       "lifted": self._parse_lifted(body),
+      "no_water": self._parse_no_water(body),
+      "screen_name": self._parse_screen_name(body),
       "clock": clock,
       "clock_mode": clock_mode,
       "schedule_time": sched_time,
@@ -423,6 +425,28 @@ class KettleHttpClient:
       return ipb_match.group(1) == "1"
     
     return None  # Unknown state
+
+  @staticmethod
+  def _parse_no_water(body: str) -> bool | None:
+    """Parse no water (nw) flag from CLI output."""
+    match = re.search(r"\bnw\s*=\s*(\d+)", body or "", re.IGNORECASE)
+    if match:
+      return match.group(1) == "1"
+    
+    # Fallback to mode check
+    mode = KettleHttpClient._parse_mode(body)
+    if mode and "NOWATER" in mode.upper():
+      return True
+      
+    return None
+
+  @staticmethod
+  def _parse_screen_name(body: str) -> str | None:
+    """Parse current screen name (scrname) from CLI output."""
+    match = re.search(r"\bscrname\s*=\s*([^ \r\n]+)", body or "", re.IGNORECASE)
+    if match:
+      return match.group(1).replace(".png", "").replace("-", " ").strip()
+    return None
 
   @staticmethod
   def _parse_clock(body: str) -> str | None:
