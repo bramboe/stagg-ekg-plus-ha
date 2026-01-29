@@ -28,6 +28,9 @@ from .const import (
   MAX_TEMP_F,
   MIN_TEMP_C,
   MIN_TEMP_F,
+  OPT_TEMPERATURE_UNIT,
+  OPT_TEMPERATURE_UNIT_C,
+  OPT_TEMPERATURE_UNIT_F,
   POLLING_INTERVAL_SECONDS,
 )
 from .kettle_http import KettleHttpClient
@@ -48,7 +51,12 @@ PLATFORMS: list[Platform] = [
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
   """Manage fetching Fellow Stagg data via the HTTP CLI API."""
 
-  def __init__(self, hass: HomeAssistant, base_url: str) -> None:
+  def __init__(
+    self,
+    hass: HomeAssistant,
+    base_url: str,
+    config_entry: ConfigEntry | None = None,
+  ) -> None:
     """Initialize the coordinator."""
     super().__init__(
       hass,
@@ -60,6 +68,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.kettle = KettleHttpClient(base_url, CLI_PATH)
     self._base_url = base_url
     self.base_url = base_url
+    self._config_entry = config_entry
 
     self.device_info = DeviceInfo(
       identifiers={(DOMAIN, base_url)},
@@ -121,7 +130,14 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
   @property
   def temperature_unit(self) -> str:
-    """Return the current temperature unit from the kettle data."""
+    """Return temperature unit: from config options (default Celsius), else kettle."""
+    if self._config_entry and self._config_entry.options:
+      chosen = self._config_entry.options.get(OPT_TEMPERATURE_UNIT, OPT_TEMPERATURE_UNIT_C)
+      return (
+        UnitOfTemperature.FAHRENHEIT
+        if chosen == OPT_TEMPERATURE_UNIT_F
+        else UnitOfTemperature.CELSIUS
+      )
     return (
       UnitOfTemperature.FAHRENHEIT
       if self.data and self.data.get("units") == "F"
@@ -220,7 +236,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return False
 
   _LOGGER.debug("Setting up Fellow Stagg integration for %s", base_url)
-  coordinator = FellowStaggDataUpdateCoordinator(hass, base_url)
+  coordinator = FellowStaggDataUpdateCoordinator(hass, base_url, entry)
   await coordinator.async_config_entry_first_refresh()
 
   # Register services once
