@@ -1,16 +1,23 @@
 """Support for Fellow Stagg EKG Pro kettles over the HTTP CLI API."""
 from __future__ import annotations
 
+import asyncio
 import logging
-from datetime import timedelta
-from datetime import datetime
+from collections import deque
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
+from aiohttp import web
+
+from homeassistant.components import frontend
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.http import HomeAssistantView
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 import voluptuous as vol
 
@@ -66,6 +73,51 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.last_schedule_temp_c: float | None = None
     self.last_schedule_mode: str | None = None
     self.last_target_temp: float | None = None
+    # Live heating graph: 1s pwmprt polling and rolling buffer (e.g. 10 min at 1 Hz)
+    self.live_graph_enabled = False
+    self.pwmprt_buffer: deque[dict[str, Any]] = deque(maxlen=600)
+    self.last_pwmprt: dict[str, Any] | None = None  # for stability indicator
+    self._pwmprt_task: asyncio.Task[None] | None = None
+
+  def _start_pwmprt_polling(self) -> None:
+    """Start background task that polls pwmprt every 1s when live graph is enabled."""
+    if self._pwmprt_task is not None and not self._pwmprt_task.done():
+      return
+    self._pwmprt_task = asyncio.create_task(self._pwmprt_poll_loop())
+
+  def _stop_pwmprt_polling(self) -> None:
+    """Stop pwmprt polling task."""
+    if self._pwmprt_task is not None:
+      self._pwmprt_task.cancel()
+      self._pwmprt_task = None
+
+  async def _pwmprt_poll_loop(self) -> None:
+    """Poll pwmprt every 1 second and append to buffer."""
+    def _append(data: dict[str, Any]) -> None:
+      now = datetime.now()
+      point = {
+        "t": now.strftime("%H:%M:%S"),
+        "ts": now.timestamp(),
+        "tempr": data.get("tempr"),
+        "setp": data.get("setp"),
+        "out": data.get("out"),
+        "err": data.get("err"),
+        "integral": data.get("integral"),
+      }
+      self.last_pwmprt = data
+      if point.get("tempr") is not None or point.get("setp") is not None or point.get("out") is not None:
+        self.pwmprt_buffer.append(point)
+
+    while self.live_graph_enabled:
+      try:
+        data = await self.kettle.async_pwmprt(self.session)
+        _append(data)
+      except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("pwmprt poll error: %s", err)
+      try:
+        await asyncio.sleep(1)
+      except asyncio.CancelledError:
+        break
 
   @property
   def temperature_unit(self) -> str:
@@ -257,6 +309,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data[DOMAIN]["services_registered"] = True
 
+    class GraphDataView(HomeAssistantView):
+      url = "/api/fellow_stagg/graph_data"
+      name = "api:fellow_stagg:graph_data"
+      requires_auth = True
+
+      async def get(self, request: web.Request) -> web.Response:
+        entry_id = request.query.get("entry_id")
+        if not entry_id:
+          return self.json_message("entry_id required", 400)
+        coord = request.app["hass"].data.get(DOMAIN, {}).get(entry_id)
+        if not coord or not hasattr(coord, "pwmprt_buffer"):
+          return self.json_message("unknown entry_id", 404)
+        data = list(coord.pwmprt_buffer)
+        stable = False
+        last = coord.last_pwmprt or {}
+        if last.get("err") is not None and last.get("integral") is not None:
+          stable = abs(last["err"]) < 0.5 and abs(last["integral"]) < 1.0
+        return self.json({"data": data, "stable": stable})
+
+    hass.http.register_view(GraphDataView())
+
+    # Serve Lovelace card and register as extra module
+    www = Path(__file__).parent / "www"
+    if www.is_dir():
+      await hass.http.async_register_static_paths(
+        [StaticPathConfig("/fellow_stagg", str(www), False)]
+      )
+      frontend.add_extra_js_url(hass, "/fellow_stagg/fellow_stagg_heating_graph.js")
+
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
   _LOGGER.debug("Setup complete for Fellow Stagg device: %s", base_url)
@@ -266,6 +347,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
   """Unload a config entry."""
   _LOGGER.debug("Unloading Fellow Stagg integration for entry: %s", entry.entry_id)
+  coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+  if coordinator and hasattr(coordinator, "_stop_pwmprt_polling"):
+    coordinator._stop_pwmprt_polling()
   if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
     hass.data[DOMAIN].pop(entry.entry_id)
   return unload_ok
