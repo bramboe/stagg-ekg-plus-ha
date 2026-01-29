@@ -13,15 +13,10 @@ Home Assistant integration for the Fellow Stagg EKG Pro using the kettle’s HTT
 2) Enter your kettle’s base URL, e.g. `http://192.168.1.32` (the `/cli` suffix is appended automatically).  
 3) Save.
 
-## HomeKit: Off + Heat in the Home app
-
-The kettle is exposed as a climate (thermostat) entity with Heat and Off. HomeKit's thermostat profile supports both, so in the Home app you get both in the same control (no separate Power switch or core patch needed).
-
-
 ## Notes
 - Kettle firmware must support the HTTP CLI (`setstate`, `setsetting settempr`).  
 - Polling interval defaults to 5s.  
-- Entities: power switch, target temp number, climate (water heater) with Heat/Off, and sensors for power/hold/current/target temperature.  
+- Entities: power switch, target temp number, water heater, and sensors for power/hold/current/target temperature.  
 - Units are inferred from the CLI output (`tempr`, `temprT`, `S_Heat/S_Hold/S_Off`).
 # Stagg EKG+ Home Assistant Integration
 
