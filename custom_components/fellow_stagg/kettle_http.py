@@ -83,9 +83,15 @@ class KettleHttpClient:
       units = self._parse_units_flag(body) or "C"
     units = units.upper()
 
-    nw = self._parse_nw(body)
-    temprB_c = self._parse_temprB(body)
-    scrname = self._parse_scrname(body)
+    # Use state line for no-water / thermal parsing (strip log prefix if present)
+    state_line = self._normalize_state_body(body)
+    nw = self._parse_nw(state_line)
+    temprB_c = self._parse_temprB(state_line)
+    scrname = self._parse_scrname(state_line)
+    _LOGGER.debug(
+      "Water/safety parse: nw=%s temprB_c=%s scrname=%s mode=%s",
+      nw, temprB_c, scrname, mode,
+    )
 
     data: dict[str, Any] = {
       "raw": body,
@@ -445,16 +451,31 @@ class KettleHttpClient:
     return None  # Unknown state
 
   @staticmethod
+  def _normalize_state_body(body: str) -> str:
+    """Return state line suitable for parsing; strip log prefix if present."""
+    if not body:
+      return ""
+    text = body.strip()
+    # If device returns log line like "I (791770) Main: OTA ... scrname=... nw 1"
+    # take the part that contains key=value state (after "Main:" or use full line)
+    if " scrname=" in text or " scrname " in text:
+      return text
+    if "Main:" in text:
+      idx = text.find("Main:")
+      return text[idx + 5 :].strip()
+    return text
+
+  @staticmethod
   def _parse_nw(body: str) -> int | None:
     """Parse no-water flag from state. nw=1 or nw 1 → CRITICAL (no water)."""
     if not body:
       return None
-    match = re.search(r"\bnw\s*=\s*(\d+)", body, re.IGNORECASE)
-    if not match:
-      match = re.search(r"\bnw\s+(\d+)", body, re.IGNORECASE)
-    if not match:
-      return None
-    return int(match.group(1))
+    # Try nw=1, nw 1, nw:1
+    for pattern in (r"\bnw\s*=\s*(\d+)", r"\bnw\s+(\d+)", r"\bnw\s*:\s*(\d+)"):
+      match = re.search(pattern, body, re.IGNORECASE)
+      if match:
+        return int(match.group(1))
+    return None
 
   @staticmethod
   def _parse_temprB(body: str) -> float | None:
