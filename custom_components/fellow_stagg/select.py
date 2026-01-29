@@ -102,28 +102,35 @@ class FellowStaggClockModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoordina
     else:
       value = 2
 
-    _LOGGER.debug("Setting clock display mode to %s (%s)", opt, value)
+    async with self.coordinator.command_lock:
+      _LOGGER.debug("Setting clock display mode to %s (%s)", opt, value)
 
-    # Send clock mode change to the kettle
-    await self.coordinator.kettle.async_set_clock_mode(self.coordinator.session, value)
+      # Optimistic update
+      if self.coordinator.data is not None:
+        self.coordinator.data["clock_mode"] = value
+      self.async_write_ha_state()
 
-    # If a schedule is set and the kettle is in standby mode, briefly toggle power
-    # so the new display mode becomes visible.
-    data = self.coordinator.data or {}
-    schedule_enabled = bool(data.get("schedule_enabled"))
-    mode = (data.get("mode") or "").upper()
+      # Send clock mode change to the kettle
+      await self.coordinator.kettle.async_set_clock_mode(self.coordinator.session, value)
 
-    if schedule_enabled and mode == "S_STANDBY":
-      _LOGGER.debug(
-        "Clock mode changed while schedule is set and kettle is in S_STANDBY; "
-        "briefly toggling power to refresh display"
-      )
-      try:
-        await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
-        await asyncio.sleep(0.5)
-        await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
-      except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Failed to toggle power for clock mode refresh: %s", err)
+      # If a schedule is set and the kettle is in standby mode, briefly toggle power
+      # so the new display mode becomes visible.
+      data = self.coordinator.data or {}
+      schedule_enabled = bool(data.get("schedule_enabled"))
+      mode = (data.get("mode") or "").upper()
 
-    # Request an update so the entity reflects the new mode
-    await self.coordinator.async_request_refresh()
+      if schedule_enabled and mode == "S_STANDBY":
+        _LOGGER.debug(
+          "Clock mode changed while schedule is set and kettle is in S_STANDBY; "
+          "briefly toggling power to refresh display"
+        )
+        try:
+          await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
+          await asyncio.sleep(0.5)
+          await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
+        except Exception as err:  # noqa: BLE001
+          _LOGGER.warning("Failed to toggle power for clock mode refresh: %s", err)
+
+      # Request an update so the entity reflects the new mode
+      await asyncio.sleep(0.5)
+      await self.coordinator.async_request_refresh()
