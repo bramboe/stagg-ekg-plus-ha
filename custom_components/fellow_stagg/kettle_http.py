@@ -79,8 +79,9 @@ class KettleHttpClient:
     # Prefer explicit units from parsed temps; only fall back to the kettle
     # units flag when no temp labels provided.
     units = (temp_units or target_units)
+    raw_units = self._parse_units_flag(body)
     if not units:
-      units = self._parse_units_flag(body) or "C"
+      units = raw_units or "C"
     units = units.upper()
 
     data: dict[str, Any] = {
@@ -91,7 +92,7 @@ class KettleHttpClient:
       "current_temp": current_temp,
       "target_temp": target_temp,
       "units": units,
-      "lifted": self._parse_lifted(body),
+      "raw_units": raw_units,
       "no_water": self._parse_no_water(body),
       "screen_name": self._parse_screen_name(body),
       "clock": clock,
@@ -202,6 +203,14 @@ class KettleHttpClient:
 
     await self._cli_command(session, f"setsetting clockmode {value}")
 
+  async def async_set_units(self, session: ClientSession, unit: str) -> None:
+    """Set kettle units: C or F.
+    
+    Per user logs: 1 = Celsius, 0 = Fahrenheit.
+    """
+    value = 1 if unit.upper() == "C" else 0
+    await self._cli_command(session, f"setsetting units {value}")
+
   async def async_pwmprt(self, session: ClientSession) -> dict[str, Any]:
     """Fetch PID controller state (pwmprt) for live heating graph.
     Returns tempr, setp, out, err, integral, cnt. Used at 1s interval when graph is enabled.
@@ -307,10 +316,10 @@ class KettleHttpClient:
 
   @staticmethod
   def _parse_units_flag(body: str) -> str | None:
-    # units=1 typically indicates Fahrenheit on the CLI
-    match = re.search(r"\bunits\s*=\s*(\d+)", body or "", re.IGNORECASE)
-    if match and match.group(1) == "1":
-      return "F"
+    # Per user logs: units=1 is Celsius, units=0 is Fahrenheit
+    match = re.search(r"\bunits\s*=?\s*(\d+)", body or "", re.IGNORECASE)
+    if match:
+      return "C" if match.group(1) == "1" else "F"
     return None
 
   @staticmethod
