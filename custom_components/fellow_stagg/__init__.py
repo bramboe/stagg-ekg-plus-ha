@@ -36,6 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[str] = [
   "sensor",
+  "binary_sensor",
   "number",
   "select",
   "time",
