@@ -1,6 +1,8 @@
 # HomeKit: only "Heat" visible, no "Off" + `TargetHeatingCoolingState: value=0 is an invalid value`
 
-## Quick fix: use the Power switch in HomeKit
+**This integration now uses a climate (thermostat) entity instead of water_heater**, so HomeKit shows both **Heat** and **Off** natively. The notes below apply if you still use an older version or another water_heater integration.
+
+## Quick fix (for water_heater): use the Power switch in HomeKit
 
 You can get **Off** in the Home app without patching Home Assistant:
 
