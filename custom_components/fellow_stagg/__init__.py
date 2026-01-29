@@ -78,7 +78,6 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.pwmprt_buffer: deque[dict[str, Any]] = deque(maxlen=600)
     self.last_pwmprt: dict[str, Any] | None = None  # for stability indicator
     self._pwmprt_task: asyncio.Task[None] | None = None
-    self.command_lock = asyncio.Lock()
 
   def _start_pwmprt_polling(self) -> None:
     """Start background task that polls pwmprt every 1s when live graph is enabled."""
