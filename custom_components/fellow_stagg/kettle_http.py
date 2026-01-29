@@ -88,9 +88,15 @@ class KettleHttpClient:
     nw = self._parse_nw(state_line)
     temprB_c = self._parse_temprB(state_line)
     scrname = self._parse_scrname(state_line)
+    if nw is None and body:
+      nw = self._parse_nw(body)
+    if temprB_c is None and body:
+      temprB_c = self._parse_temprB(body)
+    if scrname is None and body:
+      scrname = self._parse_scrname(body)
     _LOGGER.debug(
-      "Water/safety parse: nw=%s temprB_c=%s scrname=%s mode=%s",
-      nw, temprB_c, scrname, mode,
+      "Water/safety parse: nw=%s temprB_c=%s scrname=%s mode=%s raw_len=%s",
+      nw, temprB_c, scrname, mode, len(body) if body else 0,
     )
 
     data: dict[str, Any] = {
@@ -497,8 +503,11 @@ class KettleHttpClient:
     """Parse screen name from state (e.g. 'error screen - add water.png')."""
     if not body:
       return None
+    # End at next key= (value=, mode=, tempr=, etc.) or end of string
     match = re.search(
-      r"\bscrname\s*=\s*(.+?)(?=\s+\w+\s*=|\s*$)", body, re.IGNORECASE | re.DOTALL
+      r"\bscrname\s*=\s*(.+?)(?=\s+value=|\s+mode=|\s+tempr|\s+ketl=|\s*$)",
+      body,
+      re.IGNORECASE | re.DOTALL,
     )
     if match:
       return match.group(1).strip()
