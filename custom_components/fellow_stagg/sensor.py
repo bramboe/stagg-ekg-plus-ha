@@ -203,12 +203,18 @@ class FellowStaggWaterWarningSensor(
             return "normal"
 
         nw = data.get("nw")
+        mode = (data.get("mode") or "").upper()
+        scrname = (data.get("scrname") or "").lower()
         current_temp = data.get("current_temp")
         temprB_c = data.get("temprB_c")
         power = data.get("power")
 
-        # 1. Hard no-water flag from kettle
+        # 1. No water: nw==1, or mode contains NoWater, or scrname contains "add water"
         if nw == 1:
+            return "critical"
+        if "NOWATER" in mode:
+            return "critical"
+        if "add water" in scrname:
             return "critical"
 
         # 2. Predictive thermal safety: tempr > temprB + 2°C (dry boil)
@@ -247,7 +253,8 @@ class FellowStaggWaterWarningSensor(
 
         return {
             "nw": nw,
-            "scrname": scrname,
+            "mode": data.get("mode"),
+            "scrname": data.get("scrname") or "",
             "message": message,
             "current_temp_c": data.get("current_temp"),
             "temprB_c": data.get("temprB_c"),
