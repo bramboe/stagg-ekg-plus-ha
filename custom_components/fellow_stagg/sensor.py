@@ -32,6 +32,11 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "countdown": lambda data: data.get("countdown") if data else None,
     "clock": lambda data: data.get("clock") if data else None,
     "schedule_mode": lambda data: data.get("schedule_mode") if data else None,
+    "kettle_temperature_unit": lambda data: (
+        "Fahrenheit" if data and data.get("units") == "F" else "Celsius"
+    )
+    if data
+    else None,
 }
 
 
@@ -81,6 +86,11 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
             key="schedule_mode",
             name="Current Schedule Mode",
             icon="mdi:calendar-clock",
+        ),
+        FellowStaggSensorEntityDescription(
+            key="kettle_temperature_unit",
+            name="Kettle Temperature Unit",
+            icon="mdi:thermometer",
         ),
     ]
 
