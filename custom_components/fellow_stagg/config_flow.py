@@ -182,7 +182,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         continue
                     try:
                         ip = ipaddress.ip_address(addr)
-                        if ip.is_private:
+                        if ip.is_private and not ip.is_loopback:
                             network_str = f"{addr.rsplit('.', 1)[0]}.0/24"
                             net = ipaddress.IPv4Network(network_str, strict=False)
                             if net not in networks_to_scan:
@@ -206,11 +206,14 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except ValueError:
                 pass
 
+        # Drop loopback (127.x) - adapters can include localhost
+        networks_to_scan = [n for n in networks_to_scan if not n.network_address.is_loopback]
         subnet_list = [str(net) for net in networks_to_scan]
         _LOGGER.info("Scanning for Fellow Stagg kettles on %s", subnet_list)
 
         discovered: list[str] = []
-        sem = asyncio.Semaphore(20)
+        # Low concurrency: the kettle is a small device and may drop or timeout under many parallel probes
+        sem = asyncio.Semaphore(3)
 
         async def check_ip(ip_str: str) -> str | None:
             base = f"http://{ip_str}"
@@ -241,7 +244,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             msg = (
                 "No kettle found. Scanned: "
                 + ", ".join(subnet_list)
-                + ". If your kettle is on a different subnet, enter its URL manually (e.g. from your router's device list)."
+                + ". You can enter the kettle URL manually (e.g. http://192.168.1.XX from your router's device list)."
             )
         persistent_notification_create(
             self.hass,
