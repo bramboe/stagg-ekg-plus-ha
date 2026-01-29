@@ -16,7 +16,6 @@ _LOGGER = logging.getLogger(__name__)
 
 MODE_OPTIONS = ["off", "once", "daily"]
 CLOCK_MODE_OPTIONS = ["off", "digital", "analog"]
-TEMPERATURE_UNIT_OPTIONS = ["celsius", "fahrenheit"]
 
 
 async def async_setup_entry(
@@ -30,7 +29,6 @@ async def async_setup_entry(
     [
       FellowStaggScheduleModeSelect(coordinator),
       FellowStaggClockModeSelect(coordinator),
-      FellowStaggTemperatureUnitSelect(coordinator),
     ]
   )
 
@@ -128,41 +126,4 @@ class FellowStaggClockModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoordina
         _LOGGER.warning("Failed to toggle power for clock mode refresh: %s", err)
 
     # Request an update so the entity reflects the new mode
-    await self.coordinator.async_request_refresh()
-
-
-class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SelectEntity):
-  """Select for kettle temperature display unit (Celsius / Fahrenheit)."""
-
-  _attr_has_entity_name = True
-  _attr_name = "Temperature Unit"
-  _attr_options = TEMPERATURE_UNIT_OPTIONS
-  _attr_should_poll = False
-
-  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
-    super().__init__(coordinator)
-    self._attr_unique_id = f"{coordinator.base_url}_temperature_unit"
-    self._attr_device_info = coordinator.device_info
-
-  @property
-  def current_option(self) -> str | None:
-    """Return current unit; prefer user selection then kettle state."""
-    if self.coordinator.preferred_unit == "F":
-      return "fahrenheit"
-    if self.coordinator.preferred_unit == "C":
-      return "celsius"
-    if not self.coordinator.data:
-      return "celsius"
-    return "fahrenheit" if self.coordinator.data.get("units") == "F" else "celsius"
-
-  async def async_select_option(self, option: str) -> None:
-    """Set kettle display unit to selected option."""
-    opt = option.lower()
-    if opt not in TEMPERATURE_UNIT_OPTIONS:
-      raise ValueError(f"Invalid temperature unit {option}")
-    unit = "F" if opt == "fahrenheit" else "C"
-    _LOGGER.debug("Setting kettle temperature unit to %s (override set)", unit)
-    self.coordinator.preferred_unit = unit
-    await self.coordinator.kettle.async_set_units(self.coordinator.session, unit)
-    await asyncio.sleep(0.5)
     await self.coordinator.async_request_refresh()
