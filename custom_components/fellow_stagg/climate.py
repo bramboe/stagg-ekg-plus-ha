@@ -140,14 +140,17 @@ class FellowStaggClimate(
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
+        # Round so HomeKit half-degree values (e.g. 69.5) match user intent (70)
+        temp_rounded = round(float(temperature))
         _LOGGER.debug(
-            "Setting climate target temperature to %s°%s",
-            temperature,
+            "Setting climate target temperature to %s°%s (raw %s)",
+            temp_rounded,
             self.coordinator.temperature_unit,
+            temperature,
         )
         await self.coordinator.kettle.async_set_temperature(
             self.coordinator.session,
-            int(temperature),
+            temp_rounded,
         )
         await asyncio.sleep(0.5)
         await self.coordinator.async_request_refresh()
