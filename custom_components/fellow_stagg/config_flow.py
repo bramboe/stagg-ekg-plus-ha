@@ -18,34 +18,47 @@ from .const import CLI_STATE_MARKERS, DOMAIN
 _LOGGER = logging.getLogger(__package__)
 
 
-async def validate_kettle_cli(hass: HomeAssistant, base_url: str) -> bool:
-    """Validate during setup: GET /cli?cmd=state and check for Fellow Stagg CLI response."""
+async def validate_kettle_cli(
+    hass: HomeAssistant, base_url: str
+) -> tuple[bool, str | None]:
+    """Validate during setup: GET /cli?cmd=state and check for Fellow Stagg CLI response.
+
+    Returns (True, None) on success, (False, error_message) on failure.
+    """
     from aiohttp import ClientTimeout
 
-    url = f"{base_url.rstrip('/')}/cli?cmd=state"
+    base_url = base_url.strip().rstrip("/")
+    if not base_url:
+        return False, "URL is empty"
+    if not base_url.startswith(("http://", "https://")):
+        base_url = f"http://{base_url}"
+    url = f"{base_url}/cli?cmd=state"
     try:
         session = hass.helpers.aiohttp_client.async_get_clientsession(hass)
-        # Longer timeout for slow or congested networks; some devices ignore User-Agent but it can help
-        timeout = ClientTimeout(total=10)
+        timeout = ClientTimeout(total=15)
         headers = {"User-Agent": "HomeAssistant-FellowStagg/1.0"}
         async with session.get(url, timeout=timeout, headers=headers) as resp:
             if resp.status != 200:
-                _LOGGER.debug("Kettle at %s returned status %s", base_url, resp.status)
-                return False
+                return False, f"HTTP {resp.status}"
             text = await resp.text()
-            # Case-insensitive: firmware may return S_HEAT, S_OFF, mode=, etc. in different casing
-            text_lower = text.lower()
+            text_lower = (text or "").lower()
             if any(marker.lower() in text_lower for marker in CLI_STATE_MARKERS):
-                return True
-            _LOGGER.debug(
-                "Kettle at %s returned 200 but no known CLI markers in response (first 200 chars): %s",
-                base_url,
-                (text or "")[:200],
+                return True, None
+            # Fallback: any key=value style body with tempr/mode/clock/ketl
+            if len(text) > 5 and "=" in text and any(
+                w in text_lower for w in ("tempr", "mode", "clock", "ketl")
+            ):
+                return True, None
+            return (
+                False,
+                f"Response didn't look like a Fellow Stagg CLI (first 150 chars: {text[:150]!r})",
             )
-            return False
-    except Exception as err:  # noqa: S110
-        _LOGGER.debug("Kettle at %s unreachable: %s", base_url, err)
-        return False
+    except asyncio.TimeoutError:
+        return False, "Connection timed out (15 s)"
+    except OSError as err:
+        return False, str(err) or "Connection failed"
+    except Exception as err:  # noqa: BLE001
+        return False, f"{type(err).__name__}: {err}"
 
 
 def _build_base_url(host: str, port: int | None = None) -> str:
@@ -90,7 +103,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
             if not base_url.startswith(("http://", "https://")):
                 base_url = f"http://{base_url}"
-            if not await validate_kettle_cli(self.hass, base_url):
+            ok, err_msg = await validate_kettle_cli(self.hass, base_url)
+            if not ok:
                 return self.async_show_form(
                     step_id="user",
                     data_schema=vol.Schema(
@@ -100,6 +114,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         }
                     ),
                     errors={"base": "cannot_connect"},
+                    description_placeholders={"error_detail": err_msg or "Unknown error"},
                 )
             await self.async_set_unique_id(base_url)
             self._abort_if_unique_id_configured()
@@ -131,7 +146,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if host.startswith("127.") or host == "::1":
             return self.async_abort(reason="loopback")
         base_url = _build_base_url(host, port)
-        if not await validate_kettle_cli(self.hass, base_url):
+        ok, _ = await validate_kettle_cli(self.hass, base_url)
+        if not ok:
             return self.async_abort(reason="not_fellow_stagg")
         await self.async_set_unique_id(base_url)
         self._abort_if_unique_id_configured()
@@ -217,9 +233,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         async def check_ip(ip_str: str) -> str | None:
             base = f"http://{ip_str}"
-            if await validate_kettle_cli(self.hass, base):
-                return base
-            return None
+            ok, _ = await validate_kettle_cli(self.hass, base)
+            return base if ok else None
 
         async def scan_network(net: ipaddress.IPv4Network) -> None:
             for ip in net.hosts():
