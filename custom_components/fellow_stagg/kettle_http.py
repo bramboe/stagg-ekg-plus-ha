@@ -429,7 +429,7 @@ class KettleHttpClient:
   @staticmethod
   def _parse_no_water(body: str) -> bool | None:
     """Parse no water (nw) flag from CLI output."""
-    match = re.search(r"\bnw\s*=\s*(\d+)", body or "", re.IGNORECASE)
+    match = re.search(r"\bnw\s*=?\s*(\d+)", body or "", re.IGNORECASE)
     if match:
       return match.group(1) == "1"
     
@@ -443,9 +443,17 @@ class KettleHttpClient:
   @staticmethod
   def _parse_screen_name(body: str) -> str | None:
     """Parse current screen name (scrname) from CLI output."""
+    # Look for scrname=... until we hit a field that looks like 'key=' or 'key value'
+    # Actually, simpler: find scrname= and take everything until the next likely field (value= or mode=)
+    match = re.search(r"\bscrname\s*=\s*(.*?)\s+(?:value|mode|tempr)=", body or "", re.IGNORECASE)
+    if match:
+      return match.group(1).replace(".png", "").replace("-", " ").strip()
+    
+    # Simple fallback
     match = re.search(r"\bscrname\s*=\s*([^ \r\n]+)", body or "", re.IGNORECASE)
     if match:
       return match.group(1).replace(".png", "").replace("-", " ").strip()
+      
     return None
 
   @staticmethod
