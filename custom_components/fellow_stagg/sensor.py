@@ -97,10 +97,12 @@ async def async_setup_entry(
     """Set up the Fellow Stagg sensors."""
     coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    async_add_entities(
+    entities = [
         FellowStaggSensor(coordinator, description)
         for description in SENSOR_DESCRIPTIONS
-    )
+    ]
+    entities.append(FellowStaggStabilitySensor(coordinator))
+    async_add_entities(entities)
 
 
 class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SensorEntity):
@@ -135,3 +137,28 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
                 return UnitOfTemperature.FAHRENHEIT
             return UnitOfTemperature.CELSIUS
         return super().native_unit_of_measurement
+
+
+class FellowStaggStabilitySensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SensorEntity):
+    """PID stability: 'Stable' when err < 0.5 and integral is small (water at target)."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Water Stabilized"
+    _attr_icon = "mdi:water-thermometer"
+
+    def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_url}_water_stabilized"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def native_value(self) -> str | None:
+        last = self.coordinator.last_pwmprt
+        if not last or last.get("err") is None or last.get("integral") is None:
+            return None
+        err, integral = last["err"], last["integral"]
+        if abs(err) < 0.5 and abs(integral) < 1.0:
+            return "Stable"
+        if err and err > 0:
+            return "Heating"
+        return "Cooling"
