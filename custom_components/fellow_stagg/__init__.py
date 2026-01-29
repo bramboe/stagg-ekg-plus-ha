@@ -28,9 +28,9 @@ from .const import (
   MAX_TEMP_F,
   MIN_TEMP_C,
   MIN_TEMP_F,
-  OPT_TEMPERATURE_UNIT,
-  OPT_TEMPERATURE_UNIT_C,
-  OPT_TEMPERATURE_UNIT_F,
+  OPTION_TEMP_CELSIUS,
+  OPTION_TEMP_FAHRENHEIT,
+  OPTION_TEMPERATURE_UNIT,
   POLLING_INTERVAL_SECONDS,
 )
 from .kettle_http import KettleHttpClient
@@ -55,7 +55,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self,
     hass: HomeAssistant,
     base_url: str,
-    config_entry: ConfigEntry | None = None,
+    entry: ConfigEntry,
   ) -> None:
     """Initialize the coordinator."""
     super().__init__(
@@ -68,7 +68,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.kettle = KettleHttpClient(base_url, CLI_PATH)
     self._base_url = base_url
     self.base_url = base_url
-    self._config_entry = config_entry
+    self._entry = entry
 
     self.device_info = DeviceInfo(
       identifiers={(DOMAIN, base_url)},
@@ -130,19 +130,19 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
   @property
   def temperature_unit(self) -> str:
-    """Return temperature unit: from config options (default Celsius), else kettle."""
-    if self._config_entry and self._config_entry.options:
-      chosen = self._config_entry.options.get(OPT_TEMPERATURE_UNIT, OPT_TEMPERATURE_UNIT_C)
-      return (
-        UnitOfTemperature.FAHRENHEIT
-        if chosen == OPT_TEMPERATURE_UNIT_F
-        else UnitOfTemperature.CELSIUS
-      )
+    """Return the selected temperature unit (from Controls option, default Celsius)."""
+    option = self._entry.options.get(OPTION_TEMPERATURE_UNIT, OPTION_TEMP_CELSIUS)
     return (
       UnitOfTemperature.FAHRENHEIT
-      if self.data and self.data.get("units") == "F"
+      if option == OPTION_TEMP_FAHRENHEIT
       else UnitOfTemperature.CELSIUS
     )
+
+  def value_to_celsius(self, value: float) -> float:
+    """Convert a value from the display unit (option) to Celsius for the API."""
+    if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+      return (value - 32.0) * 5.0 / 9.0
+    return value
 
   @property
   def min_temp(self) -> float:
@@ -154,12 +154,30 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     """Return maximum temperature based on current units."""
     return MAX_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MAX_TEMP_C
 
+  def _convert_data_to_option_unit(self, data: dict[str, Any]) -> None:
+    """Convert current_temp and target_temp to the selected option unit; set kettle_unit for sensor."""
+    kettle_unit = (data.get("units") or "C").upper()
+    data["kettle_unit"] = kettle_unit
+    option = self._entry.options.get(OPTION_TEMPERATURE_UNIT, OPTION_TEMP_CELSIUS)
+    want_f = option == OPTION_TEMP_FAHRENHEIT
+    if want_f and kettle_unit == "C":
+      for key in ("current_temp", "target_temp"):
+        if data.get(key) is not None:
+          data[key] = data[key] * 9.0 / 5.0 + 32.0
+      data["units"] = "F"
+    elif not want_f and kettle_unit == "F":
+      for key in ("current_temp", "target_temp"):
+        if data.get(key) is not None:
+          data[key] = (data[key] - 32.0) * 5.0 / 9.0
+      data["units"] = "C"
+
   async def _async_update_data(self) -> dict[str, Any] | None:
     """Fetch data from the kettle."""
     _LOGGER.debug("Polling Fellow Stagg kettle at %s", self._base_url)
     try:
       data = await self.kettle.async_poll(self.session)
       _LOGGER.debug("Fetched data: %s", data)
+      self._convert_data_to_option_unit(data)
       # Do not overwrite user-entered schedule time/temp/mode during polling.
       # Trust device-reported mode from schedon only for sensors; do not override user inputs.
       # If we have user-entered schedule time/temp, surface them back to entities.
@@ -377,4 +395,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
   """Migrate old entry."""
+  if not config_entry.options:
+    hass.config_entries.async_update_entry(
+      config_entry,
+      options={OPTION_TEMPERATURE_UNIT: OPTION_TEMP_CELSIUS},
+    )
   return True
