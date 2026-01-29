@@ -26,6 +26,7 @@ async def async_setup_entry(
   async_add_entities([
     FellowStaggPowerSwitch(coordinator),
     FellowStaggClockSyncSwitch(coordinator),
+    FellowStaggLiveGraphSwitch(coordinator),
   ])
 
 
@@ -87,3 +88,30 @@ class FellowStaggClockSyncSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordina
   async def async_turn_off(self, **kwargs: Any) -> None:
     self.coordinator.sync_clock_enabled = False
     await self.coordinator.async_request_refresh()
+
+
+class FellowStaggLiveGraphSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SwitchEntity):
+  """Switch to enable/disable live heating graph (1s pwmprt polling)."""
+
+  _attr_has_entity_name = True
+  _attr_name = "Live Heating Graph"
+  _attr_should_poll = False
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.base_url}_live_graph"
+    self._attr_device_info = coordinator.device_info
+
+  @property
+  def is_on(self) -> bool | None:
+    return bool(self.coordinator.live_graph_enabled)
+
+  async def async_turn_on(self, **kwargs: Any) -> None:
+    self.coordinator.live_graph_enabled = True
+    self.coordinator._start_pwmprt_polling()
+    self.async_write_ha_state()
+
+  async def async_turn_off(self, **kwargs: Any) -> None:
+    self.coordinator.live_graph_enabled = False
+    self.coordinator._stop_pwmprt_polling()
+    self.async_write_ha_state()
