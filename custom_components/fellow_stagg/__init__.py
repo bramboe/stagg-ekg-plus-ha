@@ -169,8 +169,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       tempr = data.get("current_temp")
       tempr_b = data.get("tempr_b")
       scrname = (data.get("scrname") or "").lower()
+      mode = (data.get("mode") or "").lower()
 
-      is_error = bool(nw == 1 or "add water" in scrname)
+      is_error = bool(nw == 1 or "add water" in scrname or "nowater" in mode)
       
       if is_error:
         if not self._in_water_error:
