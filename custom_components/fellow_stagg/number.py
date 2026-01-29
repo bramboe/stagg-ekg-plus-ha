@@ -81,10 +81,9 @@ class FellowStaggTargetTemperature(NumberEntity):
     if self.coordinator.data is not None:
       self.coordinator.data["target_temp"] = float(value)
     
-    value_c = round(self.coordinator.value_to_celsius(float(value)))
     await self.coordinator.kettle.async_set_temperature(
       self.coordinator.session,
-      value_c,
+      round(float(value)),
     )
     _LOGGER.debug("Target temperature command sent, waiting before refresh")
     # Give the kettle a moment to update its internal state
