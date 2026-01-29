@@ -198,6 +198,8 @@ class FellowStaggWaterWarningSensor(
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.base_url}_water_warning"
         self._attr_device_info = coordinator.device_info
+        # Ensure HA calls async_update so we can do the direct state fetch.
+        self._attr_should_poll = True
         self._direct_raw: str | None = None
 
     async def async_update(self) -> None:
@@ -210,7 +212,7 @@ class FellowStaggWaterWarningSensor(
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Water Warning direct state fetch failed: %s", err)
             self._direct_raw = None
-        await super().async_update()
+        # Do not force a coordinator refresh here; the direct fetch is sufficient.
 
     def _get_raw_for_check(self) -> str:
         """Use direct fetch first, then coordinator data."""
