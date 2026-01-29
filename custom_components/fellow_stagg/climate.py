@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
+    HVACAction,
     HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -77,6 +78,36 @@ class FellowStaggClimate(
     def hvac_mode(self) -> HVACMode:
         """Return current operation (Heat when on, Off when off)."""
         return HVACMode.HEAT if self.is_on else HVACMode.OFF
+
+    @property
+    def hvac_action(self) -> HVACAction | None:
+        """Return the current running hvac operation.
+        
+        This helps HomeKit show the correct color (Orange for heating, Green/Black for idle).
+        """
+        if not self.coordinator.data:
+            return None
+        
+        mode = self.coordinator.data.get("mode")
+        current_temp = self.current_temperature
+        target_temp = self.target_temperature
+
+        # Explicit heating modes
+        if mode in ("S_HEAT", "S_STARTUPTOTEMPR", "S_BOIL"):
+            return HVACAction.HEATING
+            
+        # Fallback: if kettle is on and current temp is significantly below target
+        if self.is_on and current_temp is not None and target_temp is not None:
+            if target_temp - current_temp > 0.5:
+                return HVACAction.HEATING
+        
+        if mode == "S_OFF":
+            return HVACAction.OFF
+        
+        if self.is_on:
+            return HVACAction.IDLE
+            
+        return HVACAction.OFF
 
     @property
     def current_temperature(self) -> float | None:
