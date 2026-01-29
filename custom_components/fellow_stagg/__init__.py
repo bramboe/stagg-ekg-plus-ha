@@ -78,8 +78,6 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.pwmprt_buffer: deque[dict[str, Any]] = deque(maxlen=600)
     self.last_pwmprt: dict[str, Any] | None = None  # for stability indicator
     self._pwmprt_task: asyncio.Task[None] | None = None
-    self._in_water_error = False  # Track if we were in a "No Water" state
-    self.preferred_unit: str | None = None  # User-selected unit override (C/F)
 
   def _start_pwmprt_polling(self) -> None:
     """Start background task that polls pwmprt every 1s when live graph is enabled."""
@@ -123,12 +121,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
   @property
   def temperature_unit(self) -> str:
-    """Return the current temperature unit (with user override support)."""
-    if self.preferred_unit == "F":
-      return UnitOfTemperature.FAHRENHEIT
-    if self.preferred_unit == "C":
-      return UnitOfTemperature.CELSIUS
-
+    """Return the current temperature unit from the kettle data."""
     return (
       UnitOfTemperature.FAHRENHEIT
       if self.data and self.data.get("units") == "F"
@@ -163,31 +156,6 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       if data.get("schedule_schedon") == 0:
         data["schedule_mode"] = "off"
         self.last_schedule_mode = "off"
-
-      # Safety Recovery Sequence
-      nw = data.get("nw")
-      tempr = data.get("current_temp")
-      tempr_b = data.get("tempr_b")
-      scrname = (data.get("scrname") or "").lower()
-      mode = (data.get("mode") or "").lower()
-
-      is_error = bool(nw == 1 or "add water" in scrname or "nowater" in mode)
-      
-      if is_error:
-        if not self._in_water_error:
-          _LOGGER.warning("Kettle safety trigger: No Water / Dry Boil detected")
-          self._in_water_error = True
-      elif self._in_water_error:
-        # We were in error, but nw is now 0. 
-        # Check if temperature has dropped sufficiently (10C below boiling)
-        if tempr is not None and tempr_b is not None and tempr < (tempr_b - 10):
-          _LOGGER.info("Kettle safety recovered: water added and cooled. Clearing error screen.")
-          self._in_water_error = False
-          # Auto-Refresh: Send Button 2 (cmd=2) to clear error screen
-          try:
-            await self.kettle._cli_command(self.session, "2")
-          except Exception as err:
-            _LOGGER.warning("Failed to send clear error command (cmd=2): %s", err)
 
       await self._maybe_sync_clock(data)
       return data
