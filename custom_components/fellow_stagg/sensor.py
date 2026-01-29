@@ -110,6 +110,7 @@ async def async_setup_entry(
         for description in SENSOR_DESCRIPTIONS
     ]
     entities.append(FellowStaggStabilitySensor(coordinator))
+    entities.append(FellowStaggWaterWarningSensor(coordinator))
     async_add_entities(entities)
 
 
@@ -170,3 +171,84 @@ class FellowStaggStabilitySensor(CoordinatorEntity[FellowStaggDataUpdateCoordina
         if err and err > 0:
             return "Heating"
         return "Cooling"
+
+
+class FellowStaggWaterWarningSensor(
+    CoordinatorEntity[FellowStaggDataUpdateCoordinator], SensorEntity
+):
+    """
+    Thermal safety / low water warning from kettle state.
+
+    State: critical | warning | normal
+    - critical: nw==1 (no water) OR tempr > temprB + 2°C (dry boil)
+    - warning: tempr > 98°C and power on (approaching boil)
+    - normal: nw==0 and no thermal override
+    Uses scrname from kettle for human-readable message when available.
+    """
+
+    _attr_has_entity_name = True
+    _attr_name = "Water Warning"
+    _attr_icon = "mdi:water-alert"
+
+    def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_url}_water_warning"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def native_value(self) -> str | None:
+        """Return critical, warning, or normal."""
+        data = self.coordinator.data
+        if not data:
+            return "normal"
+
+        nw = data.get("nw")
+        current_temp = data.get("current_temp")
+        temprB_c = data.get("temprB_c")
+        power = data.get("power")
+
+        # 1. Hard no-water flag from kettle
+        if nw == 1:
+            return "critical"
+
+        # 2. Predictive thermal safety: tempr > temprB + 2°C (dry boil)
+        if (
+            current_temp is not None
+            and temprB_c is not None
+            and current_temp > (temprB_c + 2.0)
+        ):
+            return "critical"
+
+        # 3. Approaching boil: temp > 98°C and heating
+        if current_temp is not None and current_temp > 98.0 and power:
+            return "warning"
+
+        return "normal"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose nw, scrname, and message for dashboards/automations."""
+        data = self.coordinator.data
+        if not data:
+            return {}
+
+        nw = data.get("nw")
+        scrname = data.get("scrname") or ""
+        state = self.native_value
+
+        if state == "critical" and "add water" in scrname.lower():
+            message = "Add water to continue."
+        elif state == "critical":
+            message = "Add water to continue."
+        elif state == "warning":
+            message = "Approaching boil"
+        else:
+            message = "OK"
+
+        return {
+            "nw": nw,
+            "scrname": scrname,
+            "message": message,
+            "current_temp_c": data.get("current_temp"),
+            "temprB_c": data.get("temprB_c"),
+        }
