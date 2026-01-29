@@ -1,7 +1,6 @@
 """Switches for Fellow Stagg EKG Pro over HTTP CLI."""
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -42,7 +41,6 @@ class FellowStaggPowerSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator]
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.base_url}_power_switch"
     self._attr_device_info = coordinator.device_info
-    self._command_lock = asyncio.Lock()
     _LOGGER.debug("Initialized power switch for %s", coordinator.base_url)
 
   @property
@@ -53,23 +51,17 @@ class FellowStaggPowerSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator]
 
   async def async_turn_on(self, **kwargs: Any) -> None:
     _LOGGER.debug("Turning kettle power ON")
-    async with self._command_lock:
-      await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
-      if self.coordinator.data is not None:
-        self.coordinator.data["power"] = True
-      self.async_write_ha_state()
-      await asyncio.sleep(0.5)
-      await self.coordinator.async_request_refresh()
+    await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
+    if self.coordinator.data is not None:
+      self.coordinator.data["power"] = True
+    await self.coordinator.async_request_refresh()
 
   async def async_turn_off(self, **kwargs: Any) -> None:
     _LOGGER.debug("Turning kettle power OFF")
-    async with self._command_lock:
-      await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
-      if self.coordinator.data is not None:
-        self.coordinator.data["power"] = False
-      self.async_write_ha_state()
-      await asyncio.sleep(0.5)
-      await self.coordinator.async_request_refresh()
+    await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
+    if self.coordinator.data is not None:
+      self.coordinator.data["power"] = False
+    await self.coordinator.async_request_refresh()
 
 
 class FellowStaggClockSyncSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SwitchEntity):
