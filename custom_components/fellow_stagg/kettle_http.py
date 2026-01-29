@@ -200,6 +200,19 @@ class KettleHttpClient:
 
     await self._cli_command(session, f"setsetting clockmode {value}")
 
+  async def async_set_units(
+    self, session: ClientSession, unit: str
+  ) -> None:
+    """Set kettle display unit: 'C' for Celsius, 'F' for Fahrenheit.
+    CLI: setsetting units 0 = Celsius, 1 = Fahrenheit.
+    """
+    u = unit.upper()
+    if u == "F":
+      value = 1
+    else:
+      value = 0
+    await self._cli_command(session, f"setsetting units {value}")
+
   async def async_pwmprt(self, session: ClientSession) -> dict[str, Any]:
     """Fetch PID controller state (pwmprt) for live heating graph.
     Returns tempr, setp, out, err, integral, cnt. Used at 1s interval when graph is enabled.
