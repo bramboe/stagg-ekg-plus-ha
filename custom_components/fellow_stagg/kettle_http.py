@@ -344,7 +344,7 @@ class KettleHttpClient:
     """Parse nw (No Water) flag. Matches 'nw 1', 'nw=1', etc."""
     if not body:
       return None
-    # The log shows 'nw 1' or 'nw=1'. ho 0 wd 0 nw 1 ipb 0
+    # Log: ho 0 wd 0 nw 1 ipb 0
     match = re.search(r"\bnw\b\s*=?\s*(\d+)", body, re.IGNORECASE)
     if match:
       try:
