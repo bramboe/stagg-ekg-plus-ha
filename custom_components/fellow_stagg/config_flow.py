@@ -23,12 +23,26 @@ async def validate_kettle_cli(hass: HomeAssistant, base_url: str) -> bool:
     url = f"{base_url.rstrip('/')}/cli?cmd=state"
     try:
         session = hass.helpers.aiohttp_client.async_get_clientsession(hass)
-        async with session.get(url, timeout=ClientTimeout(total=5)) as resp:
+        # Longer timeout for slow or congested networks; some devices ignore User-Agent but it can help
+        timeout = ClientTimeout(total=10)
+        headers = {"User-Agent": "HomeAssistant-FellowStagg/1.0"}
+        async with session.get(url, timeout=timeout, headers=headers) as resp:
             if resp.status != 200:
+                _LOGGER.debug("Kettle at %s returned status %s", base_url, resp.status)
                 return False
             text = await resp.text()
-            return any(marker in text for marker in CLI_STATE_MARKERS)
-    except Exception:  # noqa: S110
+            # Case-insensitive: firmware may return S_HEAT, S_OFF, mode=, etc. in different casing
+            text_lower = text.lower()
+            if any(marker.lower() in text_lower for marker in CLI_STATE_MARKERS):
+                return True
+            _LOGGER.debug(
+                "Kettle at %s returned 200 but no known CLI markers in response (first 200 chars): %s",
+                base_url,
+                (text or "")[:200],
+            )
+            return False
+    except Exception as err:  # noqa: S110
+        _LOGGER.debug("Kettle at %s unreachable: %s", base_url, err)
         return False
 
 
@@ -204,7 +218,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 async with sem:
                     try:
                         result = await asyncio.wait_for(
-                            check_ip(str(ip)), timeout=4.0
+                            check_ip(str(ip)), timeout=12.0
                         )
                         if result and result not in discovered:
                             discovered.append(result)
