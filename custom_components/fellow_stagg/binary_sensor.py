@@ -31,7 +31,7 @@ class FellowStaggNoWaterSensor(
     """Binary sensor for water level error (Add Water)."""
 
     _attr_has_entity_name = True
-    _attr_name = "Water Level"
+    _attr_name = "Water Level Error"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
     def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
