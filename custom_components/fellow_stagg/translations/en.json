@@ -1,0 +1,36 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add Fellow Stagg kettle",
+        "description": "Enter the kettle URL (e.g. http://192.168.1.100) or use Search to scan your network again.",
+        "data": {
+          "base_url": "Kettle URL",
+          "discover": "Search network for kettles"
+        }
+      },
+      "scan": {
+        "title": "Select kettle",
+        "description": "Found {count} kettle(s). Choose one to add.",
+        "data": {
+          "base_url": "Kettle"
+        }
+      },
+      "zeroconf_confirm": {
+        "title": "Fellow Stagg kettle found",
+        "description": "Do you want to add the kettle at {base_url}?"
+      }
+    },
+    "error": {
+      "base_url_required": "Please enter the kettle URL or use Search to find it.",
+      "cannot_connect": "Could not connect to the kettle. Check the URL and that the kettle is on and connected to WiFi.",
+      "no_devices_found": "No kettle found on your network. Make sure the kettle is on, connected to the same WiFi (2.4 GHz), and that Wireless is enabled in the kettle's settings. You can enter its URL manually if you know it (e.g. from your router's device list)."
+    },
+    "abort": {
+      "no_host": "No host in discovery info",
+      "loopback": "Ignoring loopback address",
+      "not_fellow_stagg": "Discovered device is not a Fellow Stagg kettle",
+      "no_discovery": "No discovery data"
+    }
+  }
+}
