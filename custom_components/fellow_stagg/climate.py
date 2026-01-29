@@ -21,6 +21,9 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Delay before applying power so rapid HomeKit Heat/Off taps become one command
+_HVAC_DEBOUNCE_SECONDS = 0.4
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -62,6 +65,8 @@ class FellowStaggClimate(
         self._attr_max_temp = coordinator.max_temp
         self._attr_temperature_unit = coordinator.temperature_unit
         self._power_lock = asyncio.Lock()
+        self._pending_hvac_mode: HVACMode | None = None
+        self._hvac_debounce_task: asyncio.Task[None] | None = None
         _LOGGER.debug(
             "Initializing climate (kettle) with units: %s",
             coordinator.temperature_unit,
@@ -92,12 +97,43 @@ class FellowStaggClimate(
             return None
         return self.coordinator.data.get("target_temp")
 
+    async def _apply_power(self, on: bool) -> None:
+        """Send power command to kettle and refresh. Caller must hold _power_lock."""
+        _LOGGER.debug("Applying power: %s", "ON" if on else "OFF")
+        await self.coordinator.kettle.async_set_power(
+            self.coordinator.session, on
+        )
+        await asyncio.sleep(0.5)
+        await self.coordinator.async_request_refresh()
+
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
-        """Set HVAC mode (Heat = on, Off = off)."""
-        if hvac_mode == HVACMode.OFF:
-            await self.async_turn_off()
-        else:
-            await self.async_turn_on()
+        """Set HVAC mode. Debounced so rapid HomeKit taps apply the last mode once."""
+        self._pending_hvac_mode = hvac_mode
+        if (
+            self._hvac_debounce_task is not None
+            and not self._hvac_debounce_task.done()
+        ):
+            self._hvac_debounce_task.cancel()
+            try:
+                await self._hvac_debounce_task
+            except asyncio.CancelledError:
+                pass
+
+        async def _apply_pending_after_delay() -> None:
+            try:
+                await asyncio.sleep(_HVAC_DEBOUNCE_SECONDS)
+            except asyncio.CancelledError:
+                return
+            pending = self._pending_hvac_mode
+            self._pending_hvac_mode = None
+            self._hvac_debounce_task = None
+            if pending is None:
+                return
+            want_on = pending == HVACMode.HEAT
+            async with self._power_lock:
+                await self._apply_power(want_on)
+
+        self._hvac_debounce_task = asyncio.create_task(_apply_pending_after_delay())
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
@@ -117,21 +153,19 @@ class FellowStaggClimate(
         await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the kettle on (Heat). Serialized so rapid Heat/Off taps both apply."""
+        """Turn the kettle on (Heat). Direct call, not debounced."""
+        if self._hvac_debounce_task is not None:
+            self._hvac_debounce_task.cancel()
+            self._pending_hvac_mode = None
+            self._hvac_debounce_task = None
         async with self._power_lock:
-            _LOGGER.debug("Turning climate (kettle) ON")
-            await self.coordinator.kettle.async_set_power(
-                self.coordinator.session, True
-            )
-            await asyncio.sleep(0.5)
-            await self.coordinator.async_request_refresh()
+            await self._apply_power(True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the kettle off. Serialized so rapid Heat/Off taps both apply."""
+        """Turn the kettle off. Direct call, not debounced."""
+        if self._hvac_debounce_task is not None:
+            self._hvac_debounce_task.cancel()
+            self._pending_hvac_mode = None
+            self._hvac_debounce_task = None
         async with self._power_lock:
-            _LOGGER.debug("Turning climate (kettle) OFF")
-            await self.coordinator.kettle.async_set_power(
-                self.coordinator.session, False
-            )
-            await asyncio.sleep(0.5)
-            await self.coordinator.async_request_refresh()
+            await self._apply_power(False)
