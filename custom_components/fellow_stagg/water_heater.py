@@ -10,12 +10,15 @@ from homeassistant.components.water_heater import (
   WaterHeaterEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_TEMPERATURE
+from homeassistant.const import ATTR_TEMPERATURE, STATE_OFF
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import FellowStaggDataUpdateCoordinator
 from .const import DOMAIN
+
+# Operation mode when kettle is heating (water_heater has no STATE_HEAT; "heat" is standard for kettles)
+STATE_HEAT = "heat"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,11 +37,10 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
   _attr_has_entity_name = True
   _attr_name = "Water Heater"
   _attr_supported_features = (
-    WaterHeaterEntityFeature.TARGET_TEMPERATURE |
-    WaterHeaterEntityFeature.ON_OFF |
-    WaterHeaterEntityFeature.OPERATION_MODE
+    WaterHeaterEntityFeature.TARGET_TEMPERATURE
+    | WaterHeaterEntityFeature.ON_OFF
+    | WaterHeaterEntityFeature.OPERATION_MODE
   )
-  _attr_operation_list = ["off", "heat"]
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     """Initialize the water heater."""
@@ -62,6 +64,11 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
     )
 
   @property
+  def operation_list(self) -> list[str]:
+    """List of available operation modes for HomeKit (Off + Heat)."""
+    return [STATE_OFF, STATE_HEAT]
+
+  @property
   def current_temperature(self) -> float | None:
     """Return the current temperature."""
     value = self.coordinator.data.get("current_temp") if self.coordinator.data else None
@@ -77,19 +84,19 @@ class FellowStaggWaterHeater(WaterHeaterEntity):
 
   @property
   def current_operation(self) -> str | None:
-    """Return current operation."""
+    """Return current operation. HomeKit uses this for the toggle status."""
     if not self.coordinator.data:
       return None
-    value = "heat" if self.coordinator.data.get("power") else "off"
+    value = STATE_HEAT if self.coordinator.data.get("power") else STATE_OFF
     _LOGGER.debug("Water heater operation state read as: %s", value)
     return value
 
   async def async_set_operation_mode(self, operation_mode: str) -> None:
-    """Set operation mode (off/heat)."""
-    if operation_mode == "heat":
-      await self.async_turn_on()
-    elif operation_mode == "off":
+    """Set operation mode. HomeKit calls this when toggling Off/Heat."""
+    if operation_mode == STATE_OFF:
       await self.async_turn_off()
+    elif operation_mode == STATE_HEAT:
+      await self.async_turn_on()
     else:
       _LOGGER.debug("Unsupported operation_mode requested: %s", operation_mode)
 
