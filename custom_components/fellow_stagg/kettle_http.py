@@ -200,6 +200,70 @@ class KettleHttpClient:
 
     await self._cli_command(session, f"setsetting clockmode {value}")
 
+  async def async_pwmprt(self, session: ClientSession) -> dict[str, Any]:
+    """Fetch PID controller state (pwmprt) for live heating graph.
+    Returns tempr, setp, out, err, integral, cnt. Used at 1s interval when graph is enabled.
+    """
+    body = await self._cli_command(session, "pwmprt")
+    return self._parse_pwmprt(body)
+
+  @staticmethod
+  def _parse_pwmprt(body: str) -> dict[str, Any]:
+    """Parse pwmprt output: PID cnt 2669830 err 36.144832 int -0.881226 out -10 tempr 58.178278 C setp 95.000000."""
+    result: dict[str, Any] = {
+      "tempr": None,
+      "setp": None,
+      "out": None,
+      "err": None,
+      "integral": None,
+      "cnt": None,
+    }
+    if not body:
+      return result
+    # tempr (C or F)
+    m = re.search(r"\btempr\s+([-\d.]+)\s*[CF]?", body, re.IGNORECASE)
+    if m:
+      try:
+        result["tempr"] = float(m.group(1))
+      except ValueError:
+        pass
+    # setp (setpoint)
+    m = re.search(r"\bsetp\s+([-\d.]+)", body, re.IGNORECASE)
+    if m:
+      try:
+        result["setp"] = float(m.group(1))
+      except ValueError:
+        pass
+    # out (heater effort)
+    m = re.search(r"\bout\s+([-\d.]+)", body, re.IGNORECASE)
+    if m:
+      try:
+        result["out"] = float(m.group(1))
+      except ValueError:
+        pass
+    # err (error)
+    m = re.search(r"\berr\s+([-\d.]+)", body, re.IGNORECASE)
+    if m:
+      try:
+        result["err"] = float(m.group(1))
+      except ValueError:
+        pass
+    # int (integral)
+    m = re.search(r"\bint\s+([-\d.]+)", body, re.IGNORECASE)
+    if m:
+      try:
+        result["integral"] = float(m.group(1))
+      except ValueError:
+        pass
+    # cnt
+    m = re.search(r"\bcnt\s+(\d+)", body, re.IGNORECASE)
+    if m:
+      try:
+        result["cnt"] = int(m.group(1))
+      except ValueError:
+        pass
+    return result
+
   async def _cli_command(self, session: ClientSession, command: str) -> str:
     """Send a CLI command over HTTP."""
     encoded = self._encode_cli_command(command)
