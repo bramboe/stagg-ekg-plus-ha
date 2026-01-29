@@ -64,6 +64,13 @@
       this._entryId = null;
     }
 
+    static getStubConfig() {
+      return {
+        type: "custom:fellow-stagg-heating-graph",
+        entry_id: "",
+      };
+    }
+
     setConfig(config) {
       this._config = config || {};
       this._entryId = this._config.entry_id || null;
@@ -247,11 +254,14 @@
   }
 
   customElements.define("fellow-stagg-heating-graph", FellowStaggHeatingGraphCard);
-  window.customCards = window.customCards || [];
-  window.customCards.push({
-    type: "fellow-stagg-heating-graph",
-    name: "Fellow Stagg Heating Graph",
-    description: "Live PID graph: current temp, target, heater effort.",
-    preview: true,
-  });
+
+  // Register for card picker / custom card finder
+  if (window.customCards) {
+    window.customCards.push({
+      type: "fellow-stagg-heating-graph",
+      name: "Fellow Stagg Heating Graph",
+      description: "Live PID graph: current temp, target, heater effort.",
+      preview: true,
+    });
+  }
 })();
