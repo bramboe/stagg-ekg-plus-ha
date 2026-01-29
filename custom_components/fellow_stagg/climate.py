@@ -130,6 +130,16 @@ class FellowStaggClimate(
             if pending is None:
                 return
             want_on = pending == HVACMode.HEAT
+            
+            # Safety check for debounced path
+            if want_on and self.coordinator.data and (
+                self.coordinator.data.get("nw") == 1
+                or "add water" in (self.coordinator.data.get("scrname") or "").lower()
+            ):
+                _LOGGER.warning("Refusing to turn on kettle (debounced): No water detected")
+                self._pending_hvac_mode = None
+                return
+
             async with self._power_lock:
                 await self._apply_power(want_on)
 
@@ -161,6 +171,15 @@ class FellowStaggClimate(
             self._hvac_debounce_task.cancel()
             self._pending_hvac_mode = None
             self._hvac_debounce_task = None
+
+        # Safety check: do not turn on if no water
+        if self.coordinator.data and (
+            self.coordinator.data.get("nw") == 1
+            or "add water" in (self.coordinator.data.get("scrname") or "").lower()
+        ):
+            _LOGGER.warning("Refusing to turn on kettle: No water detected")
+            return
+
         async with self._power_lock:
             await self._apply_power(True)
 
