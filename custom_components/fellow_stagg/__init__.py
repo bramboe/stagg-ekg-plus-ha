@@ -196,7 +196,19 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
-  """Set up the Fellow Stagg integration."""
+  """Set up the Fellow Stagg integration and register the heating graph card."""
+  www = Path(__file__).parent / "www"
+  if www.is_dir():
+    await hass.http.async_register_static_paths(
+      [StaticPathConfig("/fellow_stagg", str(www), False)]
+    )
+    frontend.add_extra_js_url(hass, "/fellow_stagg/fellow_stagg_heating_graph.js")
+    _LOGGER.info(
+      "Fellow Stagg Heating Graph card registered. Add via: Dashboard > Add card > "
+      "Add manually, type: custom:fellow-stagg-heating-graph, entry_id: <your config entry id>. "
+      "If the card does not appear, add resource: Settings > Dashboards > Resources > "
+      "URL: /fellow_stagg/fellow_stagg_heating_graph.js, Type: JavaScript Module."
+    )
   return True
 
 
@@ -329,14 +341,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return self.json({"data": data, "stable": stable})
 
     hass.http.register_view(GraphDataView())
-
-    # Serve Lovelace card and register as extra module
-    www = Path(__file__).parent / "www"
-    if www.is_dir():
-      await hass.http.async_register_static_paths(
-        [StaticPathConfig("/fellow_stagg", str(www), False)]
-      )
-      frontend.add_extra_js_url(hass, "/fellow_stagg/fellow_stagg_heating_graph.js")
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
