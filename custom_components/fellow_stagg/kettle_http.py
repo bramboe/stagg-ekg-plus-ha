@@ -26,15 +26,8 @@ class KettleHttpClient:
 
   async def async_poll(self, session: ClientSession) -> dict[str, Any]:
     """Fetch kettle state via CLI commands."""
-    # Main state command
     body = await self._cli_command(session, "state")
-    
-    # Optional settings command (may not be supported on all firmware)
-    settings_body = ""
-    try:
-      settings_body = await self._cli_command(session, "prtsettings")
-    except Exception as err:
-      _LOGGER.debug("Optional prtsettings command failed (likely unsupported): %s", err)
+    settings_body = await self._cli_command(session, "prtsettings")
 
     current_temp, temp_units = self._parse_temp(body)
     target_temp, target_units = self._parse_target_temp(body)
@@ -90,11 +83,6 @@ class KettleHttpClient:
       units = self._parse_units_flag(body) or "C"
     units = units.upper()
 
-    # Safety/Thermal fields
-    nw = self._parse_nw(body)
-    tempr_b = self._parse_tempr_b(body)
-    scrname = self._parse_scrname(body)
-
     data: dict[str, Any] = {
       "raw": body,
       "power": self._parse_power(mode),
@@ -104,9 +92,6 @@ class KettleHttpClient:
       "target_temp": target_temp,
       "units": units,
       "lifted": self._parse_lifted(body),
-      "nw": nw,
-      "tempr_b": tempr_b,
-      "scrname": scrname,
       "clock": clock,
       "clock_mode": clock_mode,
       "schedule_time": sched_time,
@@ -215,19 +200,6 @@ class KettleHttpClient:
 
     await self._cli_command(session, f"setsetting clockmode {value}")
 
-  async def async_set_units(
-    self, session: ClientSession, unit: str
-  ) -> None:
-    """Set kettle display unit: 'C' for Celsius, 'F' for Fahrenheit.
-    CLI: setsetting units 0 = Celsius, 1 = Fahrenheit.
-    """
-    u = unit.upper()
-    if u == "F":
-      value = 1
-    else:
-      value = 0
-    await self._cli_command(session, f"setsetting units {value}")
-
   async def async_pwmprt(self, session: ClientSession) -> dict[str, Any]:
     """Fetch PID controller state (pwmprt) for live heating graph.
     Returns tempr, setp, out, err, integral, cnt. Used at 1s interval when graph is enabled.
@@ -312,7 +284,7 @@ class KettleHttpClient:
 
   @staticmethod
   def _parse_mode(body: str) -> str | None:
-    match = re.search(r"\bmode\s*=\s*([A-Za-z0-9_\+]+)", body or "", re.IGNORECASE)
+    match = re.search(r"\bmode\s*=\s*([A-Za-z0-9_]+)", body or "", re.IGNORECASE)
     if match:
       return match.group(1).upper()
     return None
@@ -337,45 +309,6 @@ class KettleHttpClient:
     match = re.search(r"\bunits\s*=\s*(\d+)", body or "", re.IGNORECASE)
     if match and match.group(1) == "1":
       return "F"
-    return None
-
-  @staticmethod
-  def _parse_nw(body: str) -> int | None:
-    """Parse nw (No Water) flag. Matches 'nw 1', 'nw=1', etc."""
-    if not body:
-      return None
-    # Log: ho 0 wd 0 nw 1 ipb 0
-    match = re.search(r"\bnw\b\s*=?\s*(\d+)", body, re.IGNORECASE)
-    if match:
-      try:
-        return int(match.group(1))
-      except ValueError:
-        pass
-    return None
-
-  @staticmethod
-  def _parse_tempr_b(body: str) -> float | None:
-    """Parse temprB (Boiling point). Matches 'temprB=100.0'."""
-    if not body:
-      return None
-    match = re.search(r"\btemprB\s*=\s*([-\d\.]+)", body, re.IGNORECASE)
-    if match:
-      try:
-        return float(match.group(1))
-      except ValueError:
-        pass
-    return None
-
-  @staticmethod
-  def _parse_scrname(body: str) -> str | None:
-    """Parse scrname (Screen name). Handles spaces until next key= value."""
-    if not body:
-      return None
-    # Log: scrname=error screen - add water.png value=0
-    match = re.search(r"\bscrname\s*=\s*(.*?)(?:\s+\w+=|$)", body, re.IGNORECASE)
-    if match:
-      val = match.group(1).replace(".png", "").replace("-", " ").strip()
-      return val
     return None
 
   @staticmethod
