@@ -1,5 +1,6 @@
 """Support for Fellow Stagg EKG+ kettle sensors."""
 from dataclasses import dataclass
+import logging
 from typing import Any, Callable
 
 from homeassistant import config_entries
@@ -15,6 +16,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
 from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -183,7 +186,7 @@ class FellowStaggWaterWarningSensor(
     - critical: nw==1 (no water) OR tempr > temprB + 2°C (dry boil)
     - warning: tempr > 98°C and power on (approaching boil)
     - normal: nw==0 and no thermal override
-    Uses scrname from kettle for human-readable message when available.
+    Fetches state directly so it still sees no-water when main poll fails.
     """
 
     _attr_has_entity_name = True
@@ -194,10 +197,55 @@ class FellowStaggWaterWarningSensor(
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.base_url}_water_warning"
         self._attr_device_info = coordinator.device_info
+        self._direct_raw: str | None = None
+
+    async def async_update(self) -> None:
+        """Fetch state directly so we see no-water even if coordinator poll failed."""
+        try:
+            raw = await self.coordinator.kettle._cli_command(
+                self.coordinator.session, "state"
+            )
+            self._direct_raw = raw or ""
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Water Warning direct state fetch failed: %s", err)
+            self._direct_raw = None
+        await super().async_update()
+
+    def _get_raw_for_check(self) -> str:
+        """Use direct fetch first, then coordinator data."""
+        if self._direct_raw is not None:
+            return self._direct_raw
+        data = self.coordinator.data
+        if data:
+            return data.get("raw") or ""
+        return ""
 
     @property
     def native_value(self) -> str | None:
-        """Return critical, warning, or normal."""
+        """Return critical, warning, or normal.
+        Matches device state format: scrname=error screen - add water.png, mode=S_NoWater+menu, nw 1
+        """
+        raw = self._get_raw_for_check()
+        raw_lower = raw.lower()
+
+        # 0. Raw body first (works even when coordinator.data is None / poll failed).
+        # Device log: "... scrname=error screen - add water.png ... mode=S_NoWater+menu ... nw 1 ..."
+        no_water_in_raw = (
+            "add water" in raw_lower
+            or "nowater" in raw_lower
+            or "no water" in raw_lower
+            or "no_water" in raw_lower
+            or "s_nowater" in raw_lower
+            or "nw 1" in raw_lower
+            or "nw=1" in raw_lower
+            or "nw:1" in raw_lower
+            or "error screen - add water" in raw_lower
+        )
+        if no_water_in_raw:
+            return "critical"
+        if "mode=" in raw_lower and "nowater" in raw_lower:
+            return "critical"
+
         data = self.coordinator.data
         if not data:
             return "normal"
@@ -209,7 +257,7 @@ class FellowStaggWaterWarningSensor(
         temprB_c = data.get("temprB_c")
         power = data.get("power")
 
-        # 1. No water: nw==1, or mode contains NoWater, or scrname contains "add water"
+        # 1. Parsed fields from coordinator
         if nw == 1:
             return "critical"
         if "NOWATER" in mode:
@@ -251,6 +299,9 @@ class FellowStaggWaterWarningSensor(
         else:
             message = "OK"
 
+        raw = self._get_raw_for_check()
+        raw_excerpt = raw[:500] if raw else ""
+
         return {
             "nw": nw,
             "mode": data.get("mode"),
@@ -258,4 +309,6 @@ class FellowStaggWaterWarningSensor(
             "message": message,
             "current_temp_c": data.get("current_temp"),
             "temprB_c": data.get("temprB_c"),
+            "raw_state_excerpt": raw_excerpt,
+            "raw_source": "direct" if self._direct_raw is not None else "coordinator",
         }
