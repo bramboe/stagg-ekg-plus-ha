@@ -61,6 +61,7 @@ class FellowStaggClimate(
         self._attr_min_temp = coordinator.min_temp
         self._attr_max_temp = coordinator.max_temp
         self._attr_temperature_unit = coordinator.temperature_unit
+        self._command_lock = asyncio.Lock()
         _LOGGER.debug(
             "Initializing climate (kettle) with units: %s",
             coordinator.temperature_unit,
@@ -103,52 +104,48 @@ class FellowStaggClimate(
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
-        async with self.coordinator.command_lock:
-            _LOGGER.debug(
-                "Setting climate target temperature to %s°%s",
-                temperature,
-                self.coordinator.temperature_unit,
-            )
+        _LOGGER.debug(
+            "Setting climate target temperature to %s°%s",
+            temperature,
+            self.coordinator.temperature_unit,
+        )
+        async with self._command_lock:
             await self.coordinator.kettle.async_set_temperature(
                 self.coordinator.session,
                 int(temperature),
             )
-            # Optimistic update
-            if self.coordinator.data is not None:
-                self.coordinator.data["target_temp"] = int(temperature)
-            self.async_write_ha_state()
-
+            # Give the kettle a moment to update its internal state
             await asyncio.sleep(0.5)
             await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the kettle on (Heat)."""
-        async with self.coordinator.command_lock:
-            _LOGGER.debug("Turning climate (kettle) ON")
+        _LOGGER.debug("Turning climate (kettle) ON")
+        async with self._command_lock:
             await self.coordinator.kettle.async_set_power(
                 self.coordinator.session, True
             )
-            # Optimistic update
+            # Optimistically update the coordinator's state
             if self.coordinator.data is not None:
                 self.coordinator.data["power"] = True
             self.async_write_ha_state()
-            
-            # Brief delay before refresh to let kettle update its own state
+
+            # Give the kettle a moment to update its internal state
             await asyncio.sleep(0.5)
             await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the kettle off."""
-        async with self.coordinator.command_lock:
-            _LOGGER.debug("Turning climate (kettle) OFF")
+        _LOGGER.debug("Turning climate (kettle) OFF")
+        async with self._command_lock:
             await self.coordinator.kettle.async_set_power(
                 self.coordinator.session, False
             )
-            # Optimistic update
+            # Optimistically update the coordinator's state
             if self.coordinator.data is not None:
                 self.coordinator.data["power"] = False
             self.async_write_ha_state()
 
-            # Brief delay before refresh to let kettle update its own state
+            # Give the kettle a moment to update its internal state
             await asyncio.sleep(0.5)
             await self.coordinator.async_request_refresh()
