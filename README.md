@@ -10,8 +10,13 @@ Home Assistant integration for the Fellow Stagg EKG Pro using the kettle’s HTT
 
 ## Add the integration
 1) Settings → Devices & Services → Add Integration → search “Fellow Stagg EKG Pro (HTTP CLI)”.  
-2) Enter your kettle’s base URL, e.g. `http://192.168.1.32` (the `/cli` suffix is appended automatically).  
-3) Save.
+2) A network scan runs automatically. When it finishes, a **notification** appears with the result (found kettle(s) or “No kettle found” and which subnets were scanned).  
+3) If no kettle was found, enter your kettle’s base URL manually, e.g. `http://192.168.1.32` (the `/cli` suffix is appended automatically).  
+4) Save.
+
+**Logs:** Integration messages appear in the **Home Assistant core log**, not in Supervisor logs. Open **Developer tools → Logs** (or Settings → System → Logs) and look at the main log stream. To enable debug, add to `configuration.yaml`:  
+`logger: { default: info, logs: { custom_components.fellow_stagg: debug } }`  
+then restart HA.
 
 ## Notes
 - Kettle firmware must support the HTTP CLI (`setstate`, `setsetting settempr`).  
