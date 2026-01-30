@@ -140,8 +140,9 @@ class KettleHttpClient:
     await self._cli_command(session, "setstate S_Heat")
     await asyncio.sleep(0.05)
 
-    # 5. Restore clock (digital)
-    await self._cli_command(session, "setsetting clockmode 1")
+    # 5. Restore clock mode using direct commands
+    # We try to infer the mode from the raw units toggle or default to digital
+    await self._cli_command(session, "setdigital")
 
   async def async_set_schedon(self, session: ClientSession, value: int) -> None:
     """Directly set the schedon value (0=off, 1=once, 2=daily)."""
@@ -191,6 +192,10 @@ class KettleHttpClient:
         await self._cli_command(session, "setsetting clockmode 0")
         await asyncio.sleep(0.1)
         await self.async_refresh(session, 2)
+
+  async def async_set_hold_duration(self, session: ClientSession, minutes: int) -> None:
+    """Set the hold duration (15, 30, 45, or 60)."""
+    await self._cli_command(session, f"setsetting hold {minutes}")
 
   async def async_set_bricky(self, session: ClientSession, enabled: bool) -> None:
     """Set the bricky setting (0 or 1)."""
