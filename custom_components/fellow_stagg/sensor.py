@@ -61,7 +61,6 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
             name="Current Temperature",
             icon="mdi:thermometer",
             device_class=SensorDeviceClass.TEMPERATURE,
-            native_unit_of_measurement=UnitOfTemperature.FAHRENHEIT,
         ),
         FellowStaggSensorEntityDescription(
             key="hold",
