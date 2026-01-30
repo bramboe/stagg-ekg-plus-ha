@@ -55,16 +55,11 @@ def get_friendly_screen_name(data: dict[str, Any] | None) -> str | None:
 
 
 def get_countdown_display(data: dict[str, Any] | None) -> str | None:
-    """Timer: show 'Active' only when the 3 sec pre-start countdown has completed (hold phase); otherwise 'Inactive'."""
+    """Timer: show 'Active' only when timer_phase is 'hold' (3 sec countdown done; e.g. time 0:15); otherwise 'Inactive'."""
     if not data:
         return None
-    v = data.get("countdown")
-    if v is None:
-        return "Inactive"
-    # 0, 1, 2, 3 = pre-start / 3 sec countdown; only show Active when hold phase (4+ min remaining)
-    if v in (0, 1, 2, 3):
-        return "Inactive"
-    return "Active"
+    phase = data.get("timer_phase")
+    return "Active" if phase == "hold" else "Inactive"
 
 def get_hold_status(data: dict[str, Any] | None) -> str | None:
     """Return the hold status with minutes if active."""
@@ -157,7 +152,7 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
             return {"raw_screen_name": self.coordinator.data.get("screen_name")}
         if self.entity_description.key == "countdown" and self.coordinator.data:
             v = self.coordinator.data.get("countdown")
-            if v is not None:
-                phase = "pre_start" if v in (1, 2, 3) else ("transition" if v == 0 else "hold")
+            phase = self.coordinator.data.get("timer_phase")
+            if v is not None or phase is not None:
                 return {"countdown_raw": v, "phase": phase}
         return super().extra_state_attributes
