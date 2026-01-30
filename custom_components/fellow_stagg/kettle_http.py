@@ -111,29 +111,33 @@ class KettleHttpClient:
     """Set units and perform the 3-step refresh to update the kettle's screen."""
     unit_cmd = "setunitsc" if unit.upper() == "C" else "setunitsf"
     
-    # Normalize mode for comparison (internal state is upper, but commands prefer S_Heat/S_Off)
+    # Normalize mode for comparison
     mode_is_off = current_mode.upper() == "S_OFF"
     
     # If the kettle is in standby (S_Off), we don't need a UI refresh blip.
-    # The screen is already off/empty, so the setting will take effect next time it's on.
     if mode_is_off:
         await self._cli_command(session, unit_cmd)
         return
 
-    # If it's ON, we must perform the 'Off-First' toggle to force the screen to reload its units variable.
-    # 1. Turn it OFF
+    # If it's ON, perform the ultra-fast 'Invisible Refresh' sequence (50ms delays)
+    # 1. Turn off clock (blank display)
+    await self._cli_command(session, "setsetting clockmode 0")
+    await asyncio.sleep(0.05)
+    
+    # 2. Toggle Power (forces screen to reload its units variable)
     await self._cli_command(session, "setstate S_Off")
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.05)
     
-    # 2. Change the Unit
+    # 3. Change the Unit
     await self._cli_command(session, unit_cmd)
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.05)
     
-    # 3. Turn it back ON
-    # If the previous mode was S_OFF (unlikely here) or something unknown, default to S_Heat.
-    # We use the CamelCase S_Heat as it matches the async_set_power implementation.
-    target = "S_Off" if mode_is_off else "S_Heat"
-    await self._cli_command(session, f"setstate {target}")
+    # 4. Turn Power back ON
+    await self._cli_command(session, "setstate S_Heat")
+    await asyncio.sleep(0.05)
+
+    # 5. Restore clock (digital)
+    await self._cli_command(session, "setsetting clockmode 1")
 
   async def async_set_clock(self, session: ClientSession, hour: int, minute: int, second: int = 0) -> None:
     """Set the kettle's internal clock."""
