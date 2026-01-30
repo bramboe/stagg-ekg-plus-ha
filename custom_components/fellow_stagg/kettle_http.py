@@ -80,6 +80,7 @@ class KettleHttpClient:
       "target_temp": target_temp,
       "units": units,
       "raw_units": raw_units,
+      "lifted": self._parse_lifted(body),
       "no_water": self._parse_no_water(body),
       "screen_name": self._parse_screen_name(body),
       "clock": clock,
@@ -178,6 +179,15 @@ class KettleHttpClient:
 
   async def async_set_clock_mode(self, session: ClientSession, mode: int | str) -> None:
     await self._cli_command(session, f"setsetting clockmode {int(mode)}")
+
+  async def async_set_bricky(self, session: ClientSession, enabled: bool) -> None:
+    """Set the bricky setting (0 or 1)."""
+    val = 1 if enabled else 0
+    await self._cli_command(session, f"setsetting bricky {val}")
+
+  async def async_reset(self, session: ClientSession) -> None:
+    """Reset the kettle firmware."""
+    await self._cli_command(session, "reset")
 
   async def async_pwmprt(self, session: ClientSession) -> dict[str, Any]:
     body = await self._cli_command(session, "pwmprt")
