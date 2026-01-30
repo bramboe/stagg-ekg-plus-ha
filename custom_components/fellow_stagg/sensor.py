@@ -23,9 +23,21 @@ class FellowStaggSensorEntityDescription(SensorEntityDescription):
 
 
 # Define value functions separately to avoid serialization issues
+def get_current_temp(data: dict[str, Any] | None) -> float | None:
+    """Return current temp in the kettle's native unit."""
+    if not data:
+        return None
+    temp_c = data.get("current_temp")
+    if temp_c is None:
+        return None
+    if data.get("units") == "F":
+        return round((temp_c * 1.8) + 32.0, 1)
+    return round(temp_c, 1)
+
+
 VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "power": lambda data: "On" if data and data.get("power") else "Off",
-    "current_temp": lambda data: data.get("current_temp") if data else None,
+    "current_temp": get_current_temp,
     "hold": lambda data: "Hold" if data and data.get("hold") else "Normal",
     "lifted": lambda data: "Lifted" if data and data.get("lifted") else "On Base",
     "countdown": lambda data: data.get("countdown") if data else None,
