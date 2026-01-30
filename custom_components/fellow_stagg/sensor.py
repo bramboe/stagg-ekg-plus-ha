@@ -55,7 +55,7 @@ def get_friendly_screen_name(data: dict[str, Any] | None) -> str | None:
 
 
 def get_countdown_display(data: dict[str, Any] | None) -> str | int | None:
-    """Countdown: 3→2→1 = pre-start ('Starting in X'), then 0 = 'Starting…', 4+ = hold (X min)."""
+    """Countdown: 1–3 = pre-start ('Starting in X'); 0 = '0 min' (avoids stuck 'Starting…'); 4+ = hold (X min)."""
     if not data:
         return None
     v = data.get("countdown")
@@ -64,7 +64,7 @@ def get_countdown_display(data: dict[str, Any] | None) -> str | int | None:
     if v in (1, 2, 3):
         return f"Starting in {v}"
     if v == 0:
-        return "Starting…"
+        return 0  # show "0 min" so it clears to "Off" when hold ends; avoids stuck "Starting…"
     return v  # hold phase: minutes remaining (displayed with unit "min")
 
 def get_hold_status(data: dict[str, Any] | None) -> str | None:
@@ -148,7 +148,7 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
             return UnitOfTemperature.CELSIUS
         if self.entity_description.key == "countdown" and self.coordinator.data:
             v = self.coordinator.data.get("countdown")
-            if v is not None and isinstance(v, int) and v >= 4:
+            if v is not None and isinstance(v, int) and (v == 0 or v >= 4):
                 return "min"
         return super().native_unit_of_measurement
 
