@@ -149,11 +149,12 @@ class KettleHttpClient:
 
   async def async_set_clock(self, session: ClientSession, hour: int, minute: int, second: int = 0) -> None:
     """Set the kettle's internal clock."""
-    await self._cli_command(session, f"setsetting clock {hour}:{minute}")
+    await self._cli_command(session, f"setclock {hour} {minute} {second}")
 
   async def async_set_schedule_time(self, session: ClientSession, hour: int, minute: int) -> None:
-    """Set the schedule time."""
-    await self._cli_command(session, f"setsetting schtime {hour}:{minute}")
+    """Set the schedule time using (hour << 8) | minute encoding."""
+    encoded_time = (int(hour) << 8) | int(minute)
+    await self._cli_command(session, f"setsetting schtime {encoded_time}")
 
   async def async_set_schedule_temperature(self, session: ClientSession, temp_c: int) -> None:
     """Set the schedule temperature (in Celsius)."""
