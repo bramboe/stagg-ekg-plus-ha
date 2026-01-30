@@ -99,13 +99,13 @@ class FellowStaggClimate(
 
     @property
     def min_temp(self) -> float:
-        """Return minimum temperature based on current units."""
-        return self.coordinator.min_temp
+        """Wide range to allow HomeKit to see both C and F values."""
+        return 40.0
 
     @property
     def max_temp(self) -> float:
-        """Return maximum temperature based on current units."""
-        return self.coordinator.max_temp
+        """Wide range to allow HomeKit to see both C and F values."""
+        return 212.0
 
     @property
     def is_on(self) -> bool:
@@ -177,7 +177,6 @@ class FellowStaggClimate(
         else:
             await self.async_turn_on()
 
-    # ⭐ THIS METHOD IS WHAT HOMEKIT CALLS WHEN TOGGLING C/F
     async def async_set_temperature_unit(self, temperature_unit: str) -> None:
         """Set the temperature unit (Celsius/Fahrenheit) and refresh."""
         unit = "C" if temperature_unit == UnitOfTemperature.CELSIUS else "F"
@@ -195,13 +194,37 @@ class FellowStaggClimate(
             await self.coordinator.async_request_refresh()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
-        """Set new target temperature."""
+        """Set new target temperature with Smart Unit Detection."""
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
 
-        # Convert back to Celsius for internal API if needed
-        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+        # SMART DETECT: 
+        # If the input temperature is in the Fahrenheit range (>103) while in Celsius mode,
+        # or in the Celsius range (<45) while in Fahrenheit mode, switch the kettle hardware unit.
+        current_unit = self.temperature_unit
+        if temperature > 103 and current_unit == UnitOfTemperature.CELSIUS:
+            _LOGGER.info("HomeKit Slider: Switching kettle to Fahrenheit mode")
+            await self.coordinator.kettle.async_set_units_safe(
+                self.coordinator.session,
+                "F",
+                self.coordinator.data.get("mode", "S_Off")
+            )
+            await self.coordinator.async_request_refresh()
+            await asyncio.sleep(1)
+        elif temperature < 45 and current_unit == UnitOfTemperature.FAHRENHEIT:
+             _LOGGER.info("HomeKit Slider: Switching kettle to Celsius mode")
+             await self.coordinator.kettle.async_set_units_safe(
+                self.coordinator.session,
+                "C",
+                self.coordinator.data.get("mode", "S_Off")
+            )
+            await self.coordinator.async_request_refresh()
+            await asyncio.sleep(1)
+
+        # Re-check unit after potential change
+        new_unit = self.temperature_unit
+        if new_unit == UnitOfTemperature.FAHRENHEIT:
             temp_to_send = int(round((temperature - 32.0) / 1.8))
         else:
             temp_to_send = int(round(temperature))
