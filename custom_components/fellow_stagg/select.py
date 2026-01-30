@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-import asyncio
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -117,22 +116,12 @@ class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCo
 
   async def async_select_option(self, option: str) -> None:
     unit = "C" if option == "Celsius" else "F"
-    
     data = self.coordinator.data or {}
-    current_mode = (data.get("mode") or "S_Off").upper()
+    current_mode = data.get("mode") or "S_Off"
     
-    if current_mode != "S_OFF":
-        target_mode = current_mode
-        # Ultra-reliable 3-step sequence
-        await self.coordinator.kettle._cli_command(self.coordinator.session, "ss S_Off")
-        await asyncio.sleep(0.5)
-        await self.coordinator.kettle.async_set_units(self.coordinator.session, unit)
-        await asyncio.sleep(0.5)
-        await self.coordinator.kettle._cli_command(self.coordinator.session, f"ss {target_mode}")
-    else:
-        await self.coordinator.kettle.async_set_units(self.coordinator.session, unit)
-        await self.coordinator.kettle._cli_command(self.coordinator.session, "ss S_Heat")
-        await asyncio.sleep(0.5)
-        await self.coordinator.kettle._cli_command(self.coordinator.session, "ss S_Off")
-
+    await self.coordinator.kettle.async_set_units_safe(
+        self.coordinator.session,
+        unit,
+        current_mode
+    )
     await self.coordinator.async_request_refresh()
