@@ -59,7 +59,15 @@ class KettleHttpClient:
     sched_repeat = sched_repeat_settings if sched_repeat_settings is not None else sched_repeat_state
 
     hold_minutes = self._parse_hold_setting(settings_body) or self._parse_hold_setting(body)
-    boil = self._parse_boil(settings_body) or self._parse_boil(body)
+    # Prefer prtsettings for boil; only use state if settings had no value (None). Avoid "False or parse(body)" overwriting off with stale state.
+    boil_settings = self._parse_boil(settings_body)
+    boil = boil_settings if boil_settings is not None else self._parse_boil(body)
+    _LOGGER.debug(
+      "Pre-boil: prtsettings=%s, state=%s -> boil=%s",
+      boil_settings,
+      self._parse_boil(body),
+      boil,
+    )
 
     has_time = bool(sched_time) and not (isinstance(sched_time, dict) and sched_time.get("hour", 0) == 0 and sched_time.get("minute", 0) == 0)
     has_temp = sched_temp_c is not None and sched_temp_c > 0
@@ -250,7 +258,8 @@ class KettleHttpClient:
 
   @staticmethod
   def _parse_mode(body: str) -> str | None:
-    m = re.search(r"\bmode\s*=\s*([A-Za-z0-9_]+)", body or "", re.IGNORECASE)
+    # Include '+' so mode=S_Heat+timer is captured fully for countdown detection
+    m = re.search(r"\bmode\s*=\s*([A-Za-z0-9_+]+)", body or "", re.IGNORECASE)
     return m.group(1).upper() if m else None
 
   @staticmethod
@@ -281,8 +290,10 @@ class KettleHttpClient:
 
   @staticmethod
   def _parse_hold(mode: str | None) -> bool | None:
-    if mode == "S_HOLD": return True
-    if mode in {"S_HEAT", "S_OFF", "S_STANDBY", "S_STARTUPTOTEMPR"}: return False
+    if not mode: return None
+    base = mode.split("+")[0] if "+" in mode else mode
+    if base == "S_HOLD": return True
+    if base in {"S_HEAT", "S_OFF", "S_STANDBY", "S_STARTUPTOTEMPR"}: return False
     return None
 
   @staticmethod
@@ -301,16 +312,22 @@ class KettleHttpClient:
 
   @staticmethod
   def _parse_countdown(body: str) -> int | None:
-    """Parse countdown (hold timer) from state: when mode contains '+timer', value is minutes remaining."""
+    """Parse countdown (hold timer) from state: when mode contains '+timer', value is minutes remaining.
+    Also accepts S_HOLD. Fallback: look for time M:SS (e.g. time 0:23) and return minutes."""
     if not body:
       return None
     mode = KettleHttpClient._parse_mode(body)
-    if not mode or "timer" not in mode.upper():
+    if not mode:
+      return None
+    if "timer" not in mode.upper() and mode != "S_HOLD":
       return None
     m = re.search(r"\bvalue\s*=\s*(\d+)", body, re.IGNORECASE)
-    if not m:
-      return None
-    return int(m.group(1))
+    if m:
+      return int(m.group(1))
+    tm = re.search(r"\btime\s*(\d+)\s*:\s*(\d+)", body, re.IGNORECASE)
+    if tm:
+      return int(tm.group(1))
+    return None
 
   def _parse_temp(self, body: str) -> tuple[float | None, str | None]:
     for label in ("tempr", "tempsc", "temps"):
