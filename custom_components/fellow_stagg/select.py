@@ -170,17 +170,20 @@ class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCo
     unit_cmd = "setunitsc" if unit == "C" else "setunitsf"
     
     if current_mode != "S_OFF":
-        # Split into two requests to force the state transition.
-        # This is the "sweet spot" for reliability and speed.
+        # Off-First sequence: This is the most reliable way to force a UI refresh
+        # while ensuring the kettle ends up in the correct power state.
         target_mode = current_mode if current_mode != "S_OFF" else "S_Heat"
         
-        # Request 1: Set Unit and Turn Off
-        await self.coordinator.kettle._cli_command(self.coordinator.session, f"{unit_cmd}\nss S_Off")
-        # Request 2: Return to previous mode
-        await self.coordinator.kettle._cli_command(self.coordinator.session, f"ss {target_mode}")
+        # Request 1: Force Off to stabilize state
+        await self.coordinator.kettle._cli_command(self.coordinator.session, "ss S_Off")
+        # Brief pause to let the state machine process the Off command
+        await asyncio.sleep(0.2)
+        # Request 2: Set Unit and Turn back on in one request
+        await self.coordinator.kettle._cli_command(self.coordinator.session, f"{unit_cmd}\nss {target_mode}")
     else:
         # If it's already off, briefly turn it on and back off.
         await self.coordinator.kettle._cli_command(self.coordinator.session, f"{unit_cmd}\nss S_Heat")
+        await asyncio.sleep(0.2)
         await self.coordinator.kettle._cli_command(self.coordinator.session, "ss S_Off")
 
     # Refresh data
