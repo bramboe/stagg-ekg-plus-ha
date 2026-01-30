@@ -189,6 +189,10 @@ class KettleHttpClient:
     """Reset the kettle firmware."""
     await self._cli_command(session, "reset")
 
+  async def async_refresh(self, session: ClientSession, mode: int = 2) -> None:
+    """Force a UI refresh (default mode 2)."""
+    await self._cli_command(session, f"refresh {mode}")
+
   async def async_pwmprt(self, session: ClientSession) -> dict[str, Any]:
     body = await self._cli_command(session, "pwmprt")
     return self._parse_pwmprt(body)
@@ -263,12 +267,15 @@ class KettleHttpClient:
     return (val - 32) / 1.8 if unit == "F" else val, unit
 
   @staticmethod
-  def _parse_lifted(body: str) -> bool | None:
-    if re.search(r"\btempr\s*=\s*nan\b", body or "", re.IGNORECASE): return True
-    m = re.search(r"\btempr\s*=\s*([-\d\.]+)", body or "", re.IGNORECASE)
-    if m: return False
-    m = re.search(r"\bipb\b\s*=?\s*(\d+)", body or "", re.IGNORECASE)
-    return m.group(1) == "1" if m else None
+  def _parse_lifted(body: str) -> bool:
+    """Check if the kettle is lifted off the base."""
+    if not body: return False
+    # If tempr is nan, it's a strong indicator it's lifted
+    if re.search(r"\btempr\s*=\s*nan\b", body, re.IGNORECASE): return True
+    # Check the ipb (is-power-base?) flag if available
+    m = re.search(r"\bipb\b\s*=?\s*(\d+)", body, re.IGNORECASE)
+    if m: return m.group(1) == "0" # Usually 1 if on base, 0 if lifted
+    return False
 
   @staticmethod
   def _parse_no_water(body: str) -> bool | None:
