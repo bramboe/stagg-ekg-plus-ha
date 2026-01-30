@@ -12,7 +12,7 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+from homeassistant.const import ATTR_TEMPERATURE, ATTR_UNIT_OF_MEASUREMENT, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -91,6 +91,13 @@ class FellowStaggClimate(
     def temperature_unit(self) -> str:
         """Return the unit currently set on the kettle hardware."""
         return self.coordinator.temperature_unit
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Provide unit of measurement in attributes to nudge HomeKit bridge."""
+        attrs = super().extra_state_attributes or {}
+        attrs[ATTR_UNIT_OF_MEASUREMENT] = self.temperature_unit
+        return attrs
 
     @property
     def target_temperature_step(self) -> float:
