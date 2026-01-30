@@ -68,15 +68,13 @@ class FellowStaggClimate(
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        # Force a refresh of all properties including units
         if self.hass and self.coordinator.data:
-            # Aggressively update the entity registry to force HomeKit to see unit changes.
-            # Without this, HomeKit bridge often caches the initial unit forever.
+            # Sync the Home Assistant Entity Registry so the HomeKit bridge picks up the change.
             registry = er.async_get(self.hass)
             entry = registry.async_get(self.entity_id)
             if entry and entry.unit_of_measurement != self.temperature_unit:
-                _LOGGER.debug(
-                    "Forcing registry update for unit change from %s to %s",
+                _LOGGER.info(
+                    "HomeKit Unit Sync: Forcing registry unit change from %s to %s",
                     entry.unit_of_measurement,
                     self.temperature_unit
                 )
@@ -100,12 +98,12 @@ class FellowStaggClimate(
 
     @property
     def min_temp(self) -> float:
-        """Dynamic minimum temperature based on kettle unit."""
+        """Wide range to allow sliding between C and F in HomeKit."""
         return self.coordinator.min_temp
 
     @property
     def max_temp(self) -> float:
-        """Dynamic maximum temperature based on kettle unit."""
+        """Wide range to allow sliding between C and F in HomeKit."""
         return self.coordinator.max_temp
 
     @property
@@ -179,23 +177,23 @@ class FellowStaggClimate(
             await self.async_turn_on()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
-        """Set new target temperature."""
+        """Set new target temperature with Smart Unit Detection."""
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
             
-        # If the input temperature is large (e.g. > 100), assume it's Fahrenheit
-        # and ensure the kettle is also in Fahrenheit mode.
-        if temperature > 100 and self.temperature_unit == UnitOfTemperature.CELSIUS:
-            _LOGGER.info("HomeKit sent F value while kettle in C mode; switching kettle to F")
+        # SMART DETECT:
+        # If the input temperature is in the Fahrenheit range (>100) while in Celsius mode,
+        # or in the Celsius range (<50) while in Fahrenheit mode, switch the kettle hardware unit.
+        
+        if temperature > 103 and self.temperature_unit == UnitOfTemperature.CELSIUS:
+            _LOGGER.info("HomeKit Slider: Switching kettle to Fahrenheit mode (detected target > 103)")
             await self.hass.services.async_call(
                 "select", "select_option",
                 {"entity_id": f"select.{DOMAIN}_{self.coordinator.base_url}_temp_unit_select", "option": "Fahrenheit"}
             )
-        # Handle the other way: if the input is small but we are in Fahrenheit mode,
-        # it might mean HomeKit is sending Celsius.
-        elif temperature < 50 and self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
-             _LOGGER.info("HomeKit sent C value while kettle in F mode; switching kettle to C")
+        elif temperature < 45 and self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+             _LOGGER.info("HomeKit Slider: Switching kettle to Celsius mode (detected target < 45)")
              await self.hass.services.async_call(
                 "select", "select_option",
                 {"entity_id": f"select.{DOMAIN}_{self.coordinator.base_url}_temp_unit_select", "option": "Celsius"}
