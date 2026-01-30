@@ -66,7 +66,13 @@ class FellowStaggClimate(
     @property
     def temperature_unit(self) -> str:
         """Return the current temperature unit."""
+        # Ensure we return the HA constant accurately
         return self.coordinator.temperature_unit
+
+    @property
+    def target_temperature_step(self) -> float:
+        """Return the supported step of target temperature."""
+        return 1.0
 
     @property
     def min_temp(self) -> float:
