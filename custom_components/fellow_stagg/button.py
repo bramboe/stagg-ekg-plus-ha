@@ -87,7 +87,7 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
         await asyncio.sleep(0.5)
         
         # Force a UI refresh on the kettle screen so the new schedule is visible immediately
-        await k._cli_command(session, "refresh 2")
+        await k.async_refresh(session, 2)
         
         refreshed = await k.async_poll(session)
         if refreshed:
@@ -121,6 +121,15 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     data["schedule_repeat"] = repeat
     data["schedule_schedon"] = schedon
     self.coordinator.async_set_updated_data(data)
+    
+    # Final "Aggressive Refresh" to ensure icons (like the round arrow) appear/disappear
+    await k.async_refresh(session, 2)
+    await asyncio.sleep(0.3)
+    # Toggling clock mode forces a full screen redraw in standby
+    await k.async_set_clock_mode(session, 0)
+    await asyncio.sleep(0.1)
+    await k.async_set_clock_mode(session, 1)
+
     await self.coordinator.async_request_refresh()
 
 class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator], ButtonEntity):
@@ -143,12 +152,17 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
     k = self.coordinator.kettle
     session = self.coordinator.session
     
+    _LOGGER.debug("Launching Bricky: Setting flag...")
     # 1. Enable the bricky flag
     await k.async_set_bricky(session, True)
     await asyncio.sleep(0.5)
     
-    # 2. Reset the kettle to trigger the launch on boot
-    await k.async_reset(session)
+    _LOGGER.debug("Launching Bricky: Sending reset command...")
+    # 2. Reset the kettle. We expect a connection error here because the kettle reboots instantly.
+    try:
+      await k.async_reset(session)
+    except Exception as err:
+      _LOGGER.debug("Kettle reset triggered (ignoring expected connection error: %s)", err)
     
     # 3. Request a refresh to eventually see the new screen state
     await self.coordinator.async_request_refresh()
