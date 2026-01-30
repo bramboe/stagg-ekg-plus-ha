@@ -122,6 +122,34 @@ class KettleHttpClient:
         await asyncio.sleep(0.5)
         await self._cli_command(session, "ss S_Off")
 
+  async def async_set_clock(self, session: ClientSession, hour: int, minute: int, second: int = 0) -> None:
+    """Set the kettle's internal clock."""
+    await self._cli_command(session, f"setsetting clock {hour}:{minute}")
+
+  async def async_set_schedule_time(self, session: ClientSession, hour: int, minute: int) -> None:
+    """Set the schedule time."""
+    await self._cli_command(session, f"setsetting schtime {hour}:{minute}")
+
+  async def async_set_schedule_temperature(self, session: ClientSession, temp_c: int) -> None:
+    """Set the schedule temperature (in Celsius)."""
+    temp_f = round((temp_c * 1.8) + 32.0)
+    await self._cli_command(session, f"setsetting schtempr {temp_f}")
+
+  async def async_set_schedule_enabled(self, session: ClientSession, enabled: bool) -> None:
+    """Enable or disable the schedule."""
+    # We use schedon (1=once, 2=daily, 0=off). If enabled, default to 'once' if currently 0.
+    val = 1 if enabled else 0
+    await self._cli_command(session, f"setsetting schedon {val}")
+
+  async def async_set_schedule_mode(self, session: ClientSession, mode: str) -> None:
+    """Set schedule mode (off/once/daily)."""
+    m = mode.lower()
+    if m == "off": val = 0
+    elif m == "once": val = 1
+    elif m == "daily": val = 2
+    else: raise ValueError(f"Invalid schedule mode: {mode}")
+    await self._cli_command(session, f"setsetting schedon {val}")
+
   async def async_set_clock_mode(self, session: ClientSession, mode: int | str) -> None:
     await self._cli_command(session, f"setsetting clockmode {int(mode)}")
 
