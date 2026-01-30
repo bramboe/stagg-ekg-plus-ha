@@ -214,10 +214,6 @@ class KettleHttpClient:
     """Force a UI refresh (default mode 2)."""
     await self._cli_command(session, f"refresh {mode}")
 
-  async def async_start_mdns(self, session: ClientSession) -> None:
-    """Start mDNS on the kettle (CLI: mdns). May help discovery if the kettle wasn't advertising."""
-    await self._cli_command(session, "mdns")
-
   async def async_pwmprt(self, session: ClientSession) -> dict[str, Any]:
     body = await self._cli_command(session, "pwmprt")
     return self._parse_pwmprt(body)
