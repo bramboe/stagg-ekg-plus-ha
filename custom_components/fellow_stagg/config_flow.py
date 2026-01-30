@@ -6,17 +6,15 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
 
-# mDNS names that indicate a Fellow Stagg EKG Pro kettle (HTTP CLI)
-ZEROCONF_MATCH = ("ekg", "fellow", "stagg")
-
-
-def _is_kettle_service(name: str, hostname: str = "") -> bool:
-    """Return True if the discovered service name/hostname looks like our kettle."""
-    combined = f"{name} {hostname}".lower()
-    return any(m in combined for m in ZEROCONF_MATCH)
+# CLI response must contain these to be recognized as our kettle
+CLI_FINGERPRINT = ("mode=", "tempr")
+CLI_PROBE_PATH = "/cli"
+CLI_PROBE_CMD = "state"
+CLI_PROBE_TIMEOUT = 4
 
 
 def _build_base_url(host: str, port: int | None) -> str:
@@ -29,6 +27,27 @@ def _build_base_url(host: str, port: int | None) -> str:
     return f"http://{host}"
 
 
+def _looks_like_kettle_cli(body: str) -> bool:
+    """Return True if the response looks like our kettle's CLI (state) output."""
+    if not body or not isinstance(body, str):
+        return False
+    body_lower = body.lower()
+    return all(mark in body_lower for mark in CLI_FINGERPRINT)
+
+
+async def _probe_kettle(session: Any, base_url: str) -> bool:
+    """GET base_url/cli?cmd=state and return True if response is our kettle."""
+    url = f"{base_url.rstrip('/')}{CLI_PROBE_PATH}?cmd={CLI_PROBE_CMD}"
+    try:
+        async with session.get(url, timeout=CLI_PROBE_TIMEOUT) as resp:
+            if resp.status != 200:
+                return False
+            text = await resp.text()
+            return _looks_like_kettle_cli(text)
+    except Exception:
+        return False
+
+
 class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Fellow Stagg integration."""
 
@@ -38,7 +57,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_zeroconf(
         self, discovery_info: Any
     ) -> FlowResult:
-        """Handle mDNS discovery of a Fellow Stagg EKG Pro kettle."""
+        """Handle mDNS discovery: probe _http._tcp services for our kettle CLI."""
         def _get(key: str, default: Any = ""):
             if hasattr(discovery_info, key):
                 return getattr(discovery_info, key) or default
@@ -52,19 +71,21 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             port = int(port)
         except (TypeError, ValueError):
             port = 80
-        name = str(_get("name", "") or "")
-        hostname = str(_get("hostname", name) or name)
 
-        if not host or not _is_kettle_service(name, hostname):
-            return self.async_abort(reason="not_fellow_stagg")
+        if not host:
+            return self.async_abort(reason="invalid_host")
 
         base_url = _build_base_url(host, port)
         if not base_url:
             return self.async_abort(reason="invalid_host")
 
-        # Use stable mDNS name so rediscovery with new IP updates the same entry
-        unique_id = (hostname or name or host).rstrip(".")
-        await self.async_set_unique_id(unique_id)
+        # Probe: GET /cli?cmd=state and check for our CLI fingerprint (mode=, tempr=)
+        session = async_get_clientsession(self.hass)
+        if not await _probe_kettle(session, base_url):
+            return self.async_abort(reason="not_fellow_stagg")
+
+        # Use base_url as unique_id so rediscovery with same IP updates the entry
+        await self.async_set_unique_id(base_url)
         self._abort_if_unique_id_configured(updates={"base_url": base_url})
 
         self.context["title_placeholders"] = {"base_url": base_url}
