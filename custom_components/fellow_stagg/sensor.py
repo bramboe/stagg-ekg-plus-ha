@@ -54,6 +54,19 @@ def get_friendly_screen_name(data: dict[str, Any] | None) -> str | None:
     return raw.title()
 
 
+def get_countdown_display(data: dict[str, Any] | None) -> str | int | None:
+    """Countdown: 3→2→1 = pre-start ('Starting in X'), then 0 = 'Starting…', 4+ = hold (X min)."""
+    if not data:
+        return None
+    v = data.get("countdown")
+    if v is None:
+        return "Off"
+    if v in (1, 2, 3):
+        return f"Starting in {v}"
+    if v == 0:
+        return "Starting…"
+    return v  # hold phase: minutes remaining (displayed with unit "min")
+
 def get_hold_status(data: dict[str, Any] | None) -> str | None:
     """Return the hold status with minutes if active."""
     if not data: return None
@@ -72,7 +85,7 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "current_temp": get_current_temp,
     "hold": get_hold_status,
     "lifted": lambda data: "Lifted" if data and data.get("lifted") else "On Base",
-    "countdown": lambda data: data.get("countdown") if data else None,
+    "countdown": get_countdown_display,
     "clock": lambda data: data.get("clock") if data else None,
     "schedule_mode": lambda data: data.get("schedule_mode") if data else None,
     "screen_name": get_friendly_screen_name,
@@ -133,6 +146,10 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
             if self.coordinator.data and self.coordinator.data.get("units") == "F":
                 return UnitOfTemperature.FAHRENHEIT
             return UnitOfTemperature.CELSIUS
+        if self.entity_description.key == "countdown" and self.coordinator.data:
+            v = self.coordinator.data.get("countdown")
+            if v is not None and isinstance(v, int) and v >= 4:
+                return "min"
         return super().native_unit_of_measurement
 
     @property
@@ -140,4 +157,9 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
         """Return extra attributes."""
         if self.entity_description.key == "screen_name" and self.coordinator.data:
             return {"raw_screen_name": self.coordinator.data.get("screen_name")}
+        if self.entity_description.key == "countdown" and self.coordinator.data:
+            v = self.coordinator.data.get("countdown")
+            if v is not None:
+                phase = "pre_start" if v in (1, 2, 3) else ("transition" if v == 0 else "hold")
+                return {"countdown_raw": v, "phase": phase}
         return super().extra_state_attributes
