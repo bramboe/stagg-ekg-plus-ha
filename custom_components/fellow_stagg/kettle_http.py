@@ -139,6 +139,14 @@ class KettleHttpClient:
     # 5. Restore clock (digital)
     await self._cli_command(session, "setsetting clockmode 1")
 
+  async def async_set_schedon(self, session: ClientSession, value: int) -> None:
+    """Directly set the schedon value (0=off, 1=once, 2=daily)."""
+    await self._cli_command(session, f"setsetting schedon {value}")
+
+  async def async_set_schedule_repeat(self, session: ClientSession, repeat: int) -> None:
+    """Set the schedule repeat value (0=none, 1=repeat)."""
+    await self._cli_command(session, f"setsetting Repeat_sched {repeat}")
+
   async def async_set_clock(self, session: ClientSession, hour: int, minute: int, second: int = 0) -> None:
     """Set the kettle's internal clock."""
     await self._cli_command(session, f"setsetting clock {hour}:{minute}")
