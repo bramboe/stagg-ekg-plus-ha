@@ -19,6 +19,9 @@ CLOCK_MODE_OPTIONS = ["off", "digital", "analog"]
 UNIT_OPTIONS = ["Celsius", "Fahrenheit"]
 
 
+HOLD_OPTIONS = ["Off", "15 min", "30 min", "45 min", "60 min"]
+
+
 async def async_setup_entry(
   hass: HomeAssistant,
   entry: ConfigEntry,
@@ -31,6 +34,7 @@ async def async_setup_entry(
       FellowStaggScheduleModeSelect(coordinator),
       FellowStaggClockModeSelect(coordinator),
       FellowStaggTemperatureUnitSelect(coordinator),
+      FellowStaggHoldDurationSelect(coordinator),
     ]
   )
 
@@ -131,4 +135,37 @@ class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCo
         unit,
         current_mode
     )
+    await self.coordinator.async_request_refresh()
+
+class FellowStaggHoldDurationSelect(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SelectEntity):
+  """Select for hold duration (15/30/45/60 min)."""
+
+  _attr_has_entity_name = True
+  _attr_name = "Hold Duration"
+  _attr_options = HOLD_OPTIONS
+  _attr_icon = "mdi:timer-cog"
+  _attr_should_poll = False
+  _attr_entity_category = EntityCategory.CONFIG
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.base_url}_hold_duration_select"
+    self._attr_device_info = coordinator.device_info
+
+  @property
+  def current_option(self) -> str | None:
+    data = self.coordinator.data or {}
+    minutes = data.get("hold_minutes")
+    if minutes == 0:
+        return "Off"
+    if minutes in (15, 30, 45, 60):
+        return f"{minutes} min"
+    return "15 min"
+
+  async def async_select_option(self, option: str) -> None:
+    if option == "Off":
+        minutes = 0
+    else:
+        minutes = int(option.split(" ")[0])
+    await self.coordinator.kettle.async_set_hold_duration(self.coordinator.session, minutes)
     await self.coordinator.async_request_refresh()
