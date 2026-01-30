@@ -85,6 +85,12 @@ class KettleHttpClient:
 
     firmware_version = self._parse_fwinfo(fwinfo_body)
     countdown_minutes = self._parse_countdown(body)
+    _LOGGER.debug(
+      "Countdown: mode=%s, raw_state=%s -> countdown=%s",
+      mode,
+      body[:500] if body else "",
+      countdown_minutes,
+    )
 
     data: dict[str, Any] = {
       "raw": body,
@@ -222,6 +228,12 @@ class KettleHttpClient:
     val = 1 if enabled else 0
     await self._cli_command(session, f"setsetting bricky {val}")
 
+  async def async_play_error_chime(self, session: ClientSession) -> None:
+    """Play an error chime on the kettle (buz: freq_hz duty_13_bit dur_ms). Two short low beeps."""
+    await self._cli_command(session, "buz 400 1000 200")
+    await asyncio.sleep(0.15)
+    await self._cli_command(session, "buz 400 1000 200")
+
   async def async_reset(self, session: ClientSession) -> None:
     """Reset the kettle firmware."""
     await self._cli_command(session, "reset")
@@ -312,14 +324,17 @@ class KettleHttpClient:
 
   @staticmethod
   def _parse_countdown(body: str) -> int | None:
-    """Parse countdown (hold timer) from state: when mode contains '+timer', value is minutes remaining.
-    Also accepts S_HOLD. Fallback: look for time M:SS (e.g. time 0:23) and return minutes."""
+    """Parse countdown (hold timer) from state. Prefer value=N (minutes).
+    Accepts: mode contains 'timer', mode is S_HOLD, or mode is S_Heat (firmware may omit +timer).
+    Looks for: value=N, time M:SS, timer=N."""
     if not body:
       return None
     mode = KettleHttpClient._parse_mode(body)
     if not mode:
       return None
-    if "timer" not in mode.upper() and mode != "S_HOLD":
+    base = mode.split("+")[0] if "+" in mode else mode
+    # Only consider countdown when heating or in hold (not S_Off, S_Standby, etc.)
+    if base not in ("S_HEAT", "S_HOLD"):
       return None
     m = re.search(r"\bvalue\s*=\s*(\d+)", body, re.IGNORECASE)
     if m:
@@ -327,6 +342,9 @@ class KettleHttpClient:
     tm = re.search(r"\btime\s*(\d+)\s*:\s*(\d+)", body, re.IGNORECASE)
     if tm:
       return int(tm.group(1))
+    t = re.search(r"\btimer\s*=\s*(\d+)", body, re.IGNORECASE)
+    if t:
+      return int(t.group(1))
     return None
 
   def _parse_temp(self, body: str) -> tuple[float | None, str | None]:
