@@ -161,8 +161,27 @@ class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCo
     unit = "C" if option == "Celsius" else "F"
     _LOGGER.debug("Setting temperature unit to %s", unit)
 
-    # Send unit change to the kettle
-    await self.coordinator.kettle.async_set_units(self.coordinator.session, unit)
+    # Force a UI refresh by ultra-fast toggling the power state.
+    # We send all commands in a single HTTP request using newlines (\n)
+    # to achieve near-instantaneous execution (approx 30ms).
+    data = self.coordinator.data or {}
+    current_mode = (data.get("mode") or "S_Off").upper()
+    
+    unit_cmd = "setunitsc" if unit == "C" else "setunitsf"
+    
+    if current_mode != "S_OFF":
+        # Split into two requests to force the state transition.
+        # This is the "sweet spot" for reliability and speed.
+        target_mode = current_mode if current_mode != "S_OFF" else "S_Heat"
+        
+        # Request 1: Set Unit and Turn Off
+        await self.coordinator.kettle._cli_command(self.coordinator.session, f"{unit_cmd}\nss S_Off")
+        # Request 2: Return to previous mode
+        await self.coordinator.kettle._cli_command(self.coordinator.session, f"ss {target_mode}")
+    else:
+        # If it's already off, briefly turn it on and back off.
+        await self.coordinator.kettle._cli_command(self.coordinator.session, f"{unit_cmd}\nss S_Heat")
+        await self.coordinator.kettle._cli_command(self.coordinator.session, "ss S_Off")
 
     # Refresh data
     await self.coordinator.async_request_refresh()
