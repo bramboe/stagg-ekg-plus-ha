@@ -28,7 +28,6 @@ async def async_setup_entry(
   async_add_entities([
     FellowStaggUpdateScheduleButton(coordinator),
     FellowStaggBrickyButton(coordinator),
-    FellowStaggStartMdnsButton(coordinator),
   ])
 
 
@@ -184,22 +183,4 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
       _LOGGER.debug("Kettle reset triggered (ignoring expected connection error: %s)", err)
     
     # 3. Request a refresh to eventually see the new screen state
-    await self.coordinator.async_request_refresh()
-
-
-class FellowStaggStartMdnsButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator], ButtonEntity):
-  """Button to start mDNS on the kettle (CLI: mdns). Can help discovery if the kettle wasn't advertising."""
-
-  _attr_has_entity_name = True
-  _attr_name = "Start mDNS"
-  _attr_icon = "mdi:network"
-  _attr_entity_category = EntityCategory.CONFIG
-
-  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
-    super().__init__(coordinator)
-    self._attr_unique_id = f"{coordinator.base_url}_start_mdns"
-    self._attr_device_info = coordinator.device_info
-
-  async def async_press(self) -> None:
-    await self.coordinator.kettle.async_start_mdns(self.coordinator.session)
     await self.coordinator.async_request_refresh()
