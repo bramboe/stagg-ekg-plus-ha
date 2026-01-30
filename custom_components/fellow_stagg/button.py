@@ -32,7 +32,7 @@ async def async_setup_entry(
 
 
 class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator], ButtonEntity):
-  """Button to push current schedule settings to the kettle."""
+  """Button to push current schedule settings to the kettle. This is the ONLY code path that sends schedule commands (schedon, schtime, schtempr, Repeat_sched) to the kettle; changing Schedule Mode / Time / Temp never sends until this button is pressed."""
 
   _attr_has_entity_name = True
   _attr_name = "Update Schedule"
