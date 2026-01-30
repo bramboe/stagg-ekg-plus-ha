@@ -54,13 +54,6 @@ def get_friendly_screen_name(data: dict[str, Any] | None) -> str | None:
     return raw.title()
 
 
-def get_countdown_display(data: dict[str, Any] | None) -> str | None:
-    """Timer: show 'Active' only when timer_phase is 'hold' (3 sec countdown done; e.g. time 0:15); otherwise 'Inactive'."""
-    if not data:
-        return None
-    phase = data.get("timer_phase")
-    return "Active" if phase == "hold" else "Inactive"
-
 def get_hold_status(data: dict[str, Any] | None) -> str | None:
     """Return the hold status with minutes if active."""
     if not data: return None
@@ -79,12 +72,10 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "current_temp": get_current_temp,
     "hold": get_hold_status,
     "lifted": lambda data: "Lifted" if data and data.get("lifted") else "On Base",
-    "countdown": get_countdown_display,
     "clock": lambda data: data.get("clock") if data else None,
     "schedule_mode": lambda data: data.get("schedule_mode") if data else None,
     "screen_name": get_friendly_screen_name,
     "programmed_unit": lambda data: "Celsius" if data and data.get("raw_units") == "C" else ("Fahrenheit" if data and data.get("raw_units") == "F" else "Unknown"),
-    "hold_duration": lambda data: f"{data.get('hold_minutes')} min" if data and data.get("hold_minutes") else "Off",
     "firmware_version": lambda data: data.get("firmware_version") if data else None,
     "dry_boil_detection": lambda data: "Refill Kettle" if data and data.get("no_water") else ("Water Detected" if data is not None else None),
 }
@@ -96,12 +87,10 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="current_temp", name="Current Temperature", icon="mdi:thermometer", device_class=SensorDeviceClass.TEMPERATURE),
         FellowStaggSensorEntityDescription(key="hold", name="Hold Mode", icon="mdi:timer", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="lifted", name="Kettle Position", icon="mdi:cup", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="countdown", name="Timer", icon="mdi:timer", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="clock", name="Clock", icon="mdi:clock-outline", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="schedule_mode", name="Current Schedule Mode", icon="mdi:calendar-clock", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="screen_name", name="Current Screen", icon="mdi:monitor", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="programmed_unit", name="Unit Type", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="hold_duration", name="Configured Hold Time", icon="mdi:timer-cog", entity_category=EntityCategory.CONFIG),
         FellowStaggSensorEntityDescription(key="firmware_version", name="Firmware Version", icon="mdi:chip", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="dry_boil_detection", name="Dry-Boil Detection", icon="mdi:water-alert", entity_category=EntityCategory.DIAGNOSTIC),
     ]
@@ -140,9 +129,6 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
             if self.coordinator.data and self.coordinator.data.get("units") == "F":
                 return UnitOfTemperature.FAHRENHEIT
             return UnitOfTemperature.CELSIUS
-        # Timer shows Active/Inactive only; no unit
-        if self.entity_description.key == "countdown":
-            return None
         return super().native_unit_of_measurement
 
     @property
@@ -150,9 +136,4 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
         """Return extra attributes."""
         if self.entity_description.key == "screen_name" and self.coordinator.data:
             return {"raw_screen_name": self.coordinator.data.get("screen_name")}
-        if self.entity_description.key == "countdown" and self.coordinator.data:
-            v = self.coordinator.data.get("countdown")
-            phase = self.coordinator.data.get("timer_phase")
-            if v is not None or phase is not None:
-                return {"countdown_raw": v, "phase": phase}
         return super().extra_state_attributes
