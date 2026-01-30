@@ -58,14 +58,25 @@ class FellowStaggClimate(
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.base_url}_climate"
         self._attr_device_info = coordinator.device_info
-        self._attr_min_temp = coordinator.min_temp
-        self._attr_max_temp = coordinator.max_temp
-        self._attr_temperature_unit = coordinator.temperature_unit
         self._command_lock = asyncio.Lock()
         _LOGGER.debug(
-            "Initializing climate (kettle) with units: %s",
-            coordinator.temperature_unit,
+            "Initializing climate (kettle) with dynamic units from coordinator"
         )
+
+    @property
+    def temperature_unit(self) -> str:
+        """Return the current temperature unit."""
+        return self.coordinator.temperature_unit
+
+    @property
+    def min_temp(self) -> float:
+        """Return the minimum temperature."""
+        return self.coordinator.min_temp
+
+    @property
+    def max_temp(self) -> float:
+        """Return the maximum temperature."""
+        return self.coordinator.max_temp
 
     @property
     def is_on(self) -> bool:
