@@ -17,6 +17,7 @@ from .const import (
   CLI_PATH,
   DOMAIN,
   POLLING_INTERVAL_SECONDS,
+  POLLING_INTERVAL_COUNTDOWN_SECONDS,
   MIN_TEMP_C,
   MAX_TEMP_C,
   MIN_TEMP_F,
@@ -119,6 +120,11 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
           data["schedule_mode"] = self.last_schedule_mode
 
       await self._maybe_sync_clock(data)
+      # Use faster polling when countdown is active so the countdown sensor updates live
+      if data and data.get("countdown") is not None:
+        self.update_interval = timedelta(seconds=POLLING_INTERVAL_COUNTDOWN_SECONDS)
+      else:
+        self.update_interval = timedelta(seconds=POLLING_INTERVAL_SECONDS)
       return data
     except Exception as err:
       _LOGGER.error("Error polling Fellow Stagg kettle at %s: %s", self._base_url, err)
