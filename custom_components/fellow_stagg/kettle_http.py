@@ -76,12 +76,10 @@ class KettleHttpClient:
     else:
       sched_mode = "off"
 
-    # Prefer explicit units from parsed temps; only fall back to the kettle
-    # units flag when no temp labels provided.
-    units = (temp_units or target_units)
+    # The "units" flag from the kettle (0=F, 1=C) is the primary source of truth
+    # for the system-wide unit setting.
     raw_units = self._parse_units_flag(body)
-    if not units:
-      units = raw_units or "C"
+    units = raw_units or temp_units or target_units or "C"
     units = units.upper()
 
     data: dict[str, Any] = {
