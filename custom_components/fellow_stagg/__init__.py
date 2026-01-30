@@ -220,9 +220,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN] = {}
 
   if not hass.data[DOMAIN].get("services_registered"):
-    # ... (services logic remains same) ...
+    def _get_coordinator(entry_id: str | None = None):
+      entries = {k: v for k, v in hass.data[DOMAIN].items() if k != "services_registered" and isinstance(v, FellowStaggDataUpdateCoordinator)}
+      if entry_id and entry_id in entries:
+        return entries[entry_id]
+      return next(iter(entries.values()), None) if entries else None
+
+    async def send_cli_handler(call):
+      command = (call.data.get("command") or "").strip()
+      entry_id = call.data.get("entry_id")
+      if not command:
+        _LOGGER.warning("send_cli called with empty command")
+        return None
+      coord = _get_coordinator(entry_id)
+      if not coord:
+        _LOGGER.warning("send_cli: no coordinator found")
+        return None
+      try:
+        response = await coord.kettle._cli_command(coord.session, command)
+        return {"response": response}
+      except Exception as err:
+        _LOGGER.warning("send_cli failed: %s", err)
+        return {"response": "", "error": str(err)}
+
+    hass.services.async_register(
+      DOMAIN,
+      "send_cli",
+      send_cli_handler,
+      vol.Schema({vol.Required("command"): str, vol.Optional("entry_id"): str}),
+    )
     hass.data[DOMAIN]["services_registered"] = True
-    # ... (GraphDataView logic remains same) ...
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
