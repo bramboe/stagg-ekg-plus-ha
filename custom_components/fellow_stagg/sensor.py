@@ -8,7 +8,7 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
 )
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import UnitOfTemperature, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -47,15 +47,15 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
 
 def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
     return [
-        FellowStaggSensorEntityDescription(key="power", name="Power", icon="mdi:power"),
+        FellowStaggSensorEntityDescription(key="power", name="Power", icon="mdi:power", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="current_temp", name="Current Temperature", icon="mdi:thermometer", device_class=SensorDeviceClass.TEMPERATURE),
-        FellowStaggSensorEntityDescription(key="hold", name="Hold Mode", icon="mdi:timer"),
-        FellowStaggSensorEntityDescription(key="lifted", name="Kettle Position", icon="mdi:cup"),
-        FellowStaggSensorEntityDescription(key="countdown", name="Countdown", icon="mdi:timer"),
-        FellowStaggSensorEntityDescription(key="clock", name="Clock", icon="mdi:clock-outline"),
-        FellowStaggSensorEntityDescription(key="schedule_mode", name="Current Schedule Mode", icon="mdi:calendar-clock"),
-        FellowStaggSensorEntityDescription(key="screen_name", name="Current Screen", icon="mdi:monitor"),
-        FellowStaggSensorEntityDescription(key="programmed_unit", name="Programmed Unit", icon="mdi:alphabetical"),
+        FellowStaggSensorEntityDescription(key="hold", name="Hold Mode", icon="mdi:timer", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="lifted", name="Kettle Position", icon="mdi:cup", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="countdown", name="Countdown", icon="mdi:timer", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="clock", name="Clock", icon="mdi:clock-outline", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="schedule_mode", name="Current Schedule Mode", icon="mdi:calendar-clock", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="screen_name", name="Current Screen", icon="mdi:monitor", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="programmed_unit", name="Programmed Unit", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
     ]
 
 
@@ -101,6 +101,7 @@ class FellowStaggStabilitySensor(CoordinatorEntity[FellowStaggDataUpdateCoordina
     _attr_has_entity_name = True
     _attr_name = "Water Stabilized"
     _attr_icon = "mdi:water-thermometer"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
         super().__init__(coordinator)
