@@ -84,12 +84,13 @@ class KettleHttpClient:
     units = units.upper()
 
     firmware_version = self._parse_fwinfo(fwinfo_body)
-    countdown_minutes = self._parse_countdown(body)
+    countdown_minutes, timer_phase = self._parse_countdown(body)
     _LOGGER.debug(
-      "Countdown: mode=%s, raw_state=%s -> countdown=%s",
+      "Countdown: mode=%s, raw_state=%s -> countdown=%s phase=%s",
       mode,
       body[:500] if body else "",
       countdown_minutes,
+      timer_phase,
     )
 
     data: dict[str, Any] = {
@@ -118,6 +119,7 @@ class KettleHttpClient:
       "schedule_incomplete": incomplete,
       "boil": boil,
       "countdown": countdown_minutes,
+      "timer_phase": timer_phase,
     }
     return data
 
@@ -323,29 +325,34 @@ class KettleHttpClient:
     return int(m.group(1)) == 1
 
   @staticmethod
-  def _parse_countdown(body: str) -> int | None:
-    """Parse countdown (hold timer) from state. Prefer value=N (minutes).
-    Accepts: mode contains 'timer', mode is S_HOLD, or mode is S_Heat (firmware may omit +timer).
-    Looks for: value=N, time M:SS, timer=N."""
+  def _parse_countdown(body: str) -> tuple[int | None, str | None]:
+    """Parse countdown and phase from state. Returns (minutes_value, phase).
+    phase: 'pre_start' (3-2-1-0 countdown), 'hold' (hold timer active), or None.
+    Check time M:SS first: when state has both value=0 and 'time 1:10', hold is active (use time)."""
     if not body:
-      return None
+      return None, None
     mode = KettleHttpClient._parse_mode(body)
     if not mode:
-      return None
+      return None, None
     base = mode.split("+")[0] if "+" in mode else mode
-    # Only consider countdown when heating or in hold (not S_Off, S_Standby, etc.)
     if base not in ("S_HEAT", "S_HOLD"):
-      return None
-    m = re.search(r"\bvalue\s*=\s*(\d+)", body, re.IGNORECASE)
-    if m:
-      return int(m.group(1))
+      return None, None
+    # Prefer time M:SS (hold phase) over value= — state can have value=0 and "time 1:10" when hold is active
     tm = re.search(r"\btime\s*(\d+)\s*:\s*(\d+)", body, re.IGNORECASE)
     if tm:
-      return int(tm.group(1))
+      minutes = int(tm.group(1))
+      return minutes, "hold"
+    m = re.search(r"\bvalue\s*=\s*(\d+)", body, re.IGNORECASE)
+    if m:
+      v = int(m.group(1))
+      phase = "hold" if v >= 4 else "pre_start"
+      return v, phase
     t = re.search(r"\btimer\s*=\s*(\d+)", body, re.IGNORECASE)
     if t:
-      return int(t.group(1))
-    return None
+      v = int(t.group(1))
+      phase = "hold" if v >= 4 else "pre_start"
+      return v, phase
+    return None, None
 
   def _parse_temp(self, body: str) -> tuple[float | None, str | None]:
     for label in ("tempr", "tempsc", "temps"):
