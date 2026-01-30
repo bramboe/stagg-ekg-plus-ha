@@ -22,14 +22,11 @@ class FellowStaggSensorEntityDescription(SensorEntityDescription):
     """Description of a Fellow Stagg sensor."""
 
 
-# Define value functions separately to avoid serialization issues
 def get_current_temp(data: dict[str, Any] | None) -> float | None:
     """Return current temp in the kettle's native unit."""
-    if not data:
-        return None
+    if not data: return None
     temp_c = data.get("current_temp")
-    if temp_c is None:
-        return None
+    if temp_c is None: return None
     if data.get("units") == "F":
         return round((temp_c * 1.8) + 32.0, 1)
     return round(temp_c, 1)
@@ -49,59 +46,19 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
 
 
 def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
-    """Get sensor descriptions."""
     return [
-        FellowStaggSensorEntityDescription(
-            key="power",
-            name="Power",
-            icon="mdi:power",
-        ),
-        FellowStaggSensorEntityDescription(
-            key="current_temp",
-            name="Current Temperature",
-            icon="mdi:thermometer",
-            device_class=SensorDeviceClass.TEMPERATURE,
-            native_unit_of_measurement=UnitOfTemperature.FAHRENHEIT,
-        ),
-        FellowStaggSensorEntityDescription(
-            key="hold",
-            name="Hold Mode",
-            icon="mdi:timer",
-        ),
-        FellowStaggSensorEntityDescription(
-            key="lifted",
-            name="Kettle Position",
-            icon="mdi:cup",
-        ),
-        FellowStaggSensorEntityDescription(
-            key="countdown",
-            name="Countdown",
-            icon="mdi:timer",
-        ),
-        FellowStaggSensorEntityDescription(
-            key="clock",
-            name="Clock",
-            icon="mdi:clock-outline",
-        ),
-        FellowStaggSensorEntityDescription(
-            key="schedule_mode",
-            name="Current Schedule Mode",
-            icon="mdi:calendar-clock",
-        ),
-        FellowStaggSensorEntityDescription(
-            key="screen_name",
-            name="Current Screen",
-            icon="mdi:monitor",
-        ),
-        FellowStaggSensorEntityDescription(
-            key="programmed_unit",
-            name="Programmed Unit",
-            icon="mdi:alphabetical",
-        ),
+        FellowStaggSensorEntityDescription(key="power", name="Power", icon="mdi:power"),
+        FellowStaggSensorEntityDescription(key="current_temp", name="Current Temperature", icon="mdi:thermometer", device_class=SensorDeviceClass.TEMPERATURE),
+        FellowStaggSensorEntityDescription(key="hold", name="Hold Mode", icon="mdi:timer"),
+        FellowStaggSensorEntityDescription(key="lifted", name="Kettle Position", icon="mdi:cup"),
+        FellowStaggSensorEntityDescription(key="countdown", name="Countdown", icon="mdi:timer"),
+        FellowStaggSensorEntityDescription(key="clock", name="Clock", icon="mdi:clock-outline"),
+        FellowStaggSensorEntityDescription(key="schedule_mode", name="Current Schedule Mode", icon="mdi:calendar-clock"),
+        FellowStaggSensorEntityDescription(key="screen_name", name="Current Screen", icon="mdi:monitor"),
+        FellowStaggSensorEntityDescription(key="programmed_unit", name="Programmed Unit", icon="mdi:alphabetical"),
     ]
 
 
-# Get sensor descriptions once at module load
 SENSOR_DESCRIPTIONS = get_sensor_descriptions()
 
 
@@ -110,29 +67,17 @@ async def async_setup_entry(
     entry: config_entries.ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the Fellow Stagg sensors."""
     coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-
-    entities = [
-        FellowStaggSensor(coordinator, description)
-        for description in SENSOR_DESCRIPTIONS
-    ]
+    entities = [FellowStaggSensor(coordinator, description) for description in SENSOR_DESCRIPTIONS]
     entities.append(FellowStaggStabilitySensor(coordinator))
     async_add_entities(entities)
 
 
 class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SensorEntity):
-    """Fellow Stagg sensor."""
-
     entity_description: FellowStaggSensorEntityDescription
     _attr_has_entity_name = True
 
-    def __init__(
-        self,
-        coordinator: FellowStaggDataUpdateCoordinator,
-        description: FellowStaggSensorEntityDescription,
-    ) -> None:
-        """Initialize the sensor."""
+    def __init__(self, coordinator: FellowStaggDataUpdateCoordinator, description: FellowStaggSensorEntityDescription) -> None:
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{coordinator.base_url}_{description.key}"
@@ -140,14 +85,11 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
 
     @property
     def native_value(self) -> str | None:
-        """Return the state of the sensor."""
-        if self.coordinator.data is None:
-            return None
+        if self.coordinator.data is None: return None
         return VALUE_FUNCTIONS[self.entity_description.key](self.coordinator.data)
 
     @property
     def native_unit_of_measurement(self) -> str | None:
-        """Return the unit for temperature sensors based on kettle units."""
         if self.entity_description.device_class == SensorDeviceClass.TEMPERATURE:
             if self.coordinator.data and self.coordinator.data.get("units") == "F":
                 return UnitOfTemperature.FAHRENHEIT
@@ -156,8 +98,6 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
 
 
 class FellowStaggStabilitySensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SensorEntity):
-    """PID stability: 'Stable' when err < 0.5 and integral is small (water at target)."""
-
     _attr_has_entity_name = True
     _attr_name = "Water Stabilized"
     _attr_icon = "mdi:water-thermometer"
@@ -170,11 +110,8 @@ class FellowStaggStabilitySensor(CoordinatorEntity[FellowStaggDataUpdateCoordina
     @property
     def native_value(self) -> str | None:
         last = self.coordinator.last_pwmprt
-        if not last or last.get("err") is None or last.get("integral") is None:
-            return None
+        if not last or last.get("err") is None or last.get("integral") is None: return None
         err, integral = last["err"], last["integral"]
-        if abs(err) < 0.5 and abs(integral) < 1.0:
-            return "Stable"
-        if err and err > 0:
-            return "Heating"
+        if abs(err) < 0.5 and abs(integral) < 1.0: return "Stable"
+        if err > 0: return "Heating"
         return "Cooling"
