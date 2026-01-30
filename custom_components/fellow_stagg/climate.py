@@ -14,6 +14,7 @@ from homeassistant.components.climate import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -68,6 +69,22 @@ class FellowStaggClimate(
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         # Force a refresh of all properties including units
+        if self.hass and self.coordinator.data:
+            # Aggressively update the entity registry to force HomeKit to see unit changes.
+            # Without this, HomeKit bridge often caches the initial unit forever.
+            registry = er.async_get(self.hass)
+            entry = registry.async_get(self.entity_id)
+            if entry and entry.unit_of_measurement != self.temperature_unit:
+                _LOGGER.debug(
+                    "Forcing registry update for unit change from %s to %s",
+                    entry.unit_of_measurement,
+                    self.temperature_unit
+                )
+                registry.async_update_entity(
+                    self.entity_id,
+                    unit_of_measurement=self.temperature_unit
+                )
+        
         self.async_write_ha_state()
         super()._handle_coordinator_update()
 
@@ -174,6 +191,14 @@ class FellowStaggClimate(
             await self.hass.services.async_call(
                 "select", "select_option",
                 {"entity_id": f"select.{DOMAIN}_{self.coordinator.base_url}_temp_unit_select", "option": "Fahrenheit"}
+            )
+        # Handle the other way: if the input is small but we are in Fahrenheit mode,
+        # it might mean HomeKit is sending Celsius.
+        elif temperature < 50 and self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+             _LOGGER.info("HomeKit sent C value while kettle in F mode; switching kettle to C")
+             await self.hass.services.async_call(
+                "select", "select_option",
+                {"entity_id": f"select.{DOMAIN}_{self.coordinator.base_url}_temp_unit_select", "option": "Celsius"}
             )
 
         # Convert back to Celsius for internal API if needed
