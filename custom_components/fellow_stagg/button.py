@@ -127,10 +127,13 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     # Final "Aggressive Refresh" to ensure icons (like the round arrow) appear/disappear
     await k.async_refresh(session, 2)
     await asyncio.sleep(0.3)
-    # Toggling clock mode forces a full screen redraw in standby
+    
+    # Toggling clock mode forces a full screen redraw in standby.
+    # We restore the user's actual preferred mode instead of hardcoding 'digital'.
+    current_mode = self.coordinator.data.get("clock_mode", 1)
     await k.async_set_clock_mode(session, 0)
     await asyncio.sleep(0.1)
-    await k.async_set_clock_mode(session, 1)
+    await k.async_set_clock_mode(session, current_mode)
 
     await self.coordinator.async_request_refresh()
 
