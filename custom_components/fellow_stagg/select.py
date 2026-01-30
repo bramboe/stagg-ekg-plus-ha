@@ -58,6 +58,8 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
     if option not in MODE_OPTIONS:
       raise ValueError(f"Invalid schedule mode {option}")
     self.coordinator.last_schedule_mode = option
+    from datetime import datetime
+    self.coordinator._last_mode_change = datetime.now()
     if self.coordinator.data is not None:
         self.coordinator.data["schedule_mode"] = option
     self.async_write_ha_state()
