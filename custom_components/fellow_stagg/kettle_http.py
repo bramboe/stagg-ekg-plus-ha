@@ -59,6 +59,7 @@ class KettleHttpClient:
     sched_repeat = sched_repeat_settings if sched_repeat_settings is not None else sched_repeat_state
 
     hold_minutes = self._parse_hold_setting(settings_body) or self._parse_hold_setting(body)
+    boil = self._parse_boil(settings_body) or self._parse_boil(body)
 
     has_time = bool(sched_time) and not (isinstance(sched_time, dict) and sched_time.get("hour", 0) == 0 and sched_time.get("minute", 0) == 0)
     has_temp = sched_temp_c is not None and sched_temp_c > 0
@@ -75,6 +76,7 @@ class KettleHttpClient:
     units = units.upper()
 
     firmware_version = self._parse_fwinfo(fwinfo_body)
+    countdown_minutes = self._parse_countdown(body)
 
     data: dict[str, Any] = {
       "raw": body,
@@ -100,6 +102,8 @@ class KettleHttpClient:
       "schedule_mode": sched_mode,
       "schedule_armed": armed,
       "schedule_incomplete": incomplete,
+      "boil": boil,
+      "countdown": countdown_minutes,
     }
     return data
 
@@ -201,6 +205,10 @@ class KettleHttpClient:
     """Set the hold duration (15, 30, 45, or 60)."""
     await self._cli_command(session, f"setsetting hold {minutes}")
 
+  async def async_set_boil(self, session: ClientSession, on: bool) -> None:
+    """Set pre-boil on (1) or off (0)."""
+    await self._cli_command(session, f"setsetting boil {1 if on else 0}")
+
   async def async_set_bricky(self, session: ClientSession, enabled: bool) -> None:
     """Set the bricky setting (0 or 1)."""
     val = 1 if enabled else 0
@@ -282,6 +290,27 @@ class KettleHttpClient:
     """Parse the hold time setting from settings output."""
     m = re.search(r"\bhold\s*=?\s*(\d+)", body or "", re.IGNORECASE)
     return int(m.group(1)) if m else None
+
+  @staticmethod
+  def _parse_boil(body: str) -> bool | None:
+    """Parse pre-boil setting (0=off, 1=on) from settings output."""
+    m = re.search(r"\boil\s*=?\s*(\d+)", body or "", re.IGNORECASE)
+    if not m:
+      return None
+    return int(m.group(1)) == 1
+
+  @staticmethod
+  def _parse_countdown(body: str) -> int | None:
+    """Parse countdown (hold timer) from state: when mode contains '+timer', value is minutes remaining."""
+    if not body:
+      return None
+    mode = KettleHttpClient._parse_mode(body)
+    if not mode or "timer" not in mode.upper():
+      return None
+    m = re.search(r"\bvalue\s*=\s*(\d+)", body, re.IGNORECASE)
+    if not m:
+      return None
+    return int(m.group(1))
 
   def _parse_temp(self, body: str) -> tuple[float | None, str | None]:
     for label in ("tempr", "tempsc", "temps"):
