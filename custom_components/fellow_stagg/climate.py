@@ -12,9 +12,8 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_TEMPERATURE, ATTR_UNIT_OF_MEASUREMENT, UnitOfTemperature
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -60,44 +59,17 @@ class FellowStaggClimate(
         self._attr_unique_id = f"{coordinator.base_url}_climate"
         self._attr_device_info = coordinator.device_info
         self._command_lock = asyncio.Lock()
-        
-        _LOGGER.debug(
-            "Initializing climate (kettle) with dynamic unit sync"
-        )
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if self.hass and self.coordinator.data:
-            # Sync the Home Assistant Entity Registry so the HomeKit bridge picks up the change.
-            registry = er.async_get(self.hass)
-            entry = registry.async_get(self.entity_id)
-            if entry and entry.unit_of_measurement != self.temperature_unit:
-                _LOGGER.info(
-                    "HomeKit Unit Sync: Forcing registry unit change from %s to %s",
-                    entry.unit_of_measurement,
-                    self.temperature_unit
-                )
-                registry.async_update_entity(
-                    self.entity_id,
-                    unit_of_measurement=self.temperature_unit
-                )
-        
         self.async_write_ha_state()
         super()._handle_coordinator_update()
 
-    # ⭐ THIS PROPERTY IS WHAT HOMEKIT READS (TemperatureDisplayUnits)
     @property
     def temperature_unit(self) -> str:
         """Return the unit currently set on the kettle hardware."""
         return self.coordinator.temperature_unit
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Provide unit of measurement in attributes to nudge HomeKit bridge."""
-        attrs = super().extra_state_attributes or {}
-        attrs[ATTR_UNIT_OF_MEASUREMENT] = self.temperature_unit
-        return attrs
 
     @property
     def target_temperature_step(self) -> float:
@@ -106,13 +78,13 @@ class FellowStaggClimate(
 
     @property
     def min_temp(self) -> float:
-        """Wide range to allow HomeKit to see both C and F values."""
-        return 40.0
+        """Return the minimum temperature based on the current unit."""
+        return self.coordinator.min_temp
 
     @property
     def max_temp(self) -> float:
-        """Wide range to allow HomeKit to see both C and F values."""
-        return 212.0
+        """Return the maximum temperature based on the current unit."""
+        return self.coordinator.max_temp
 
     @property
     def is_on(self) -> bool:
@@ -183,22 +155,6 @@ class FellowStaggClimate(
             await self.async_turn_off()
         else:
             await self.async_turn_on()
-
-    async def async_set_temperature_unit(self, temperature_unit: str) -> None:
-        """Set the temperature unit (Celsius/Fahrenheit) and refresh."""
-        unit = "C" if temperature_unit == UnitOfTemperature.CELSIUS else "F"
-        _LOGGER.info("HomeKit toggled unit to %s; updating kettle", unit)
-        
-        data = self.coordinator.data or {}
-        current_mode = data.get("mode") or "S_Off"
-        
-        async with self._command_lock:
-            await self.coordinator.kettle.async_set_units_safe(
-                self.coordinator.session,
-                unit,
-                current_mode
-            )
-            await self.coordinator.async_request_refresh()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature with Smart Unit Detection."""
