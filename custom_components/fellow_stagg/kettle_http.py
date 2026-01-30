@@ -107,10 +107,33 @@ class KettleHttpClient:
     cmd = "setunitsc" if unit.upper() == "C" else "setunitsf"
     await self._cli_command(session, cmd)
 
-  async def async_set_units_safe(self, session: ClientSession, unit: str, current_mode: str = "S_OFF") -> None:
-    """Set units directly without power-cycling the kettle."""
+  async def async_set_units_safe(self, session: ClientSession, unit: str, current_mode: str = "S_Off") -> None:
+    """Set units and perform the 3-step refresh to update the kettle's screen."""
     unit_cmd = "setunitsc" if unit.upper() == "C" else "setunitsf"
+    
+    # Normalize mode for comparison (internal state is upper, but commands prefer S_Heat/S_Off)
+    mode_is_off = current_mode.upper() == "S_OFF"
+    
+    # If the kettle is in standby (S_Off), we don't need a UI refresh blip.
+    # The screen is already off/empty, so the setting will take effect next time it's on.
+    if mode_is_off:
+        await self._cli_command(session, unit_cmd)
+        return
+
+    # If it's ON, we must perform the 'Off-First' toggle to force the screen to reload its units variable.
+    # 1. Turn it OFF
+    await self._cli_command(session, "setstate S_Off")
+    await asyncio.sleep(0.5)
+    
+    # 2. Change the Unit
     await self._cli_command(session, unit_cmd)
+    await asyncio.sleep(0.5)
+    
+    # 3. Turn it back ON
+    # If the previous mode was S_OFF (unlikely here) or something unknown, default to S_Heat.
+    # We use the CamelCase S_Heat as it matches the async_set_power implementation.
+    target = "S_Off" if mode_is_off else "S_Heat"
+    await self._cli_command(session, f"setstate {target}")
 
   async def async_set_clock(self, session: ClientSession, hour: int, minute: int, second: int = 0) -> None:
     """Set the kettle's internal clock."""
