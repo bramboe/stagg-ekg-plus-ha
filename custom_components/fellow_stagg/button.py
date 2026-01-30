@@ -127,13 +127,25 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     # Final "Aggressive Refresh" to ensure icons (like the round arrow) appear/disappear
     await k.async_refresh(session, 2)
     await asyncio.sleep(0.3)
-    
-    # Toggling clock mode forces a full screen redraw in standby.
-    # We restore the user's actual preferred mode instead of hardcoding 'digital'.
+
+    # In standby (S_Off) the display often doesn't redraw schedule icons until we nudge it.
+    # Toggle digital -> analog -> restore to force a full screen update so the round arrow
+    # (daily icon) disappears when switching to "once".
+    power_mode = (self.coordinator.data.get("mode") or "").upper()
     current_mode = self.coordinator.data.get("clock_mode", 1)
-    await k.async_set_clock_mode(session, 0)
-    await asyncio.sleep(0.1)
-    await k.async_set_clock_mode(session, current_mode)
+    if power_mode == "S_OFF":
+      await k.async_set_clock_mode(session, 1)  # digital
+      await asyncio.sleep(0.15)
+      await k.async_set_clock_mode(session, 2)  # analog
+      await asyncio.sleep(0.15)
+      await k.async_set_clock_mode(session, current_mode)
+      await asyncio.sleep(0.1)
+      await k.async_refresh(session, 2)
+    else:
+      # Non-standby: light clock blip (off -> current) to refresh
+      await k.async_set_clock_mode(session, 0)
+      await asyncio.sleep(0.1)
+      await k.async_set_clock_mode(session, current_mode)
 
     await self.coordinator.async_request_refresh()
 
