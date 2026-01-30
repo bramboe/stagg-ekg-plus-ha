@@ -78,6 +78,7 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "screen_name": get_friendly_screen_name,
     "programmed_unit": lambda data: "Celsius" if data and data.get("raw_units") == "C" else ("Fahrenheit" if data and data.get("raw_units") == "F" else "Unknown"),
     "hold_duration": lambda data: f"{data.get('hold_minutes')} min" if data and data.get("hold_minutes") else "Off",
+    "firmware_version": lambda data: data.get("firmware_version") if data else None,
 }
 
 
@@ -93,6 +94,7 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="screen_name", name="Current Screen", icon="mdi:monitor", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="programmed_unit", name="Programmed Unit", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="hold_duration", name="Configured Hold Time", icon="mdi:timer-cog", entity_category=EntityCategory.CONFIG),
+        FellowStaggSensorEntityDescription(key="firmware_version", name="Firmware Version", icon="mdi:chip", entity_category=EntityCategory.DIAGNOSTIC),
     ]
 
 
