@@ -54,18 +54,17 @@ def get_friendly_screen_name(data: dict[str, Any] | None) -> str | None:
     return raw.title()
 
 
-def get_countdown_display(data: dict[str, Any] | None) -> str | int | None:
-    """Countdown: 1–3 = pre-start ('Starting in X'); 0 = '0 min' (avoids stuck 'Starting…'); 4+ = hold (X min)."""
+def get_countdown_display(data: dict[str, Any] | None) -> str | None:
+    """Timer: show 'Active' only when the 3 sec pre-start countdown has completed (hold phase); otherwise 'Inactive'."""
     if not data:
         return None
     v = data.get("countdown")
     if v is None:
-        return "Off"
-    if v in (1, 2, 3):
-        return f"Starting in {v}"
-    if v == 0:
-        return 0  # show "0 min" so it clears to "Off" when hold ends; avoids stuck "Starting…"
-    return v  # hold phase: minutes remaining (displayed with unit "min")
+        return "Inactive"
+    # 0, 1, 2, 3 = pre-start / 3 sec countdown; only show Active when hold phase (4+ min remaining)
+    if v in (0, 1, 2, 3):
+        return "Inactive"
+    return "Active"
 
 def get_hold_status(data: dict[str, Any] | None) -> str | None:
     """Return the hold status with minutes if active."""
@@ -102,7 +101,7 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="current_temp", name="Current Temperature", icon="mdi:thermometer", device_class=SensorDeviceClass.TEMPERATURE),
         FellowStaggSensorEntityDescription(key="hold", name="Hold Mode", icon="mdi:timer", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="lifted", name="Kettle Position", icon="mdi:cup", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="countdown", name="Countdown", icon="mdi:timer", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="countdown", name="Timer", icon="mdi:timer", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="clock", name="Clock", icon="mdi:clock-outline", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="schedule_mode", name="Current Schedule Mode", icon="mdi:calendar-clock", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="screen_name", name="Current Screen", icon="mdi:monitor", entity_category=EntityCategory.DIAGNOSTIC),
@@ -146,10 +145,9 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
             if self.coordinator.data and self.coordinator.data.get("units") == "F":
                 return UnitOfTemperature.FAHRENHEIT
             return UnitOfTemperature.CELSIUS
-        if self.entity_description.key == "countdown" and self.coordinator.data:
-            v = self.coordinator.data.get("countdown")
-            if v is not None and isinstance(v, int) and (v == 0 or v >= 4):
-                return "min"
+        # Timer shows Active/Inactive only; no unit
+        if self.entity_description.key == "countdown":
+            return None
         return super().native_unit_of_measurement
 
     @property
