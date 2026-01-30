@@ -25,6 +25,10 @@ from .const import (
   CLI_PATH,
   DOMAIN,
   POLLING_INTERVAL_SECONDS,
+  MIN_TEMP_C,
+  MAX_TEMP_C,
+  MIN_TEMP_F,
+  MAX_TEMP_F,
 )
 from .kettle_http import KettleHttpClient
 
