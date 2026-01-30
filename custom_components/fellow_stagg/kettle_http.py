@@ -206,10 +206,10 @@ class KettleHttpClient:
   async def async_set_units(self, session: ClientSession, unit: str) -> None:
     """Set kettle units: C or F.
     
-    Per user logs: 1 = Celsius, 0 = Fahrenheit.
+    Uses dedicated CLI commands which are more reliable.
     """
-    value = 1 if unit.upper() == "C" else 0
-    await self._cli_command(session, f"setsetting units {value}")
+    cmd = "setunitsc" if unit.upper() == "C" else "setunitsf"
+    await self._cli_command(session, cmd)
 
   async def async_pwmprt(self, session: ClientSession) -> dict[str, Any]:
     """Fetch PID controller state (pwmprt) for live heating graph.
@@ -290,8 +290,8 @@ class KettleHttpClient:
 
   @staticmethod
   def _encode_cli_command(command: str) -> str:
-    """Mirror kettle.sh behavior: replace spaces with '+' only."""
-    return str(command).replace(" ", "+")
+    """Mirror kettle.sh behavior: replace spaces with '+' and newlines with '%0A'."""
+    return str(command).replace(" ", "+").replace("\n", "%0A")
 
   @staticmethod
   def _parse_mode(body: str) -> str | None:
