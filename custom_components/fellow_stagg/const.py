@@ -8,6 +8,8 @@ MAX_TEMP_C = 100
 
 # Polling interval (in seconds) the coordinator will use
 POLLING_INTERVAL_SECONDS = 5
+# Faster polling when countdown/hold timer is active so the countdown sensor updates live
+POLLING_INTERVAL_COUNTDOWN_SECONDS = 1
 
 # Default path for the kettle HTTP CLI endpoint
 CLI_PATH = "/cli"
