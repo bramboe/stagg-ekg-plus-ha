@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.const import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -41,6 +42,7 @@ class FellowStaggClockSyncSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordina
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.base_url}_sync_clock"
     self._attr_device_info = coordinator.device_info
+    self._attr_entity_category = EntityCategory.CONFIG
     _LOGGER.debug("Initialized sync clock switch for %s", coordinator.base_url)
 
   @property
@@ -67,6 +69,7 @@ class FellowStaggLiveGraphSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordina
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.base_url}_live_graph"
     self._attr_device_info = coordinator.device_info
+    self._attr_entity_category = EntityCategory.CONFIG
 
   @property
   def is_on(self) -> bool | None:
