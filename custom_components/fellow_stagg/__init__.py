@@ -147,9 +147,23 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         data["schedule_temp_c"] = self.last_schedule_temp_c
       if self.last_target_temp is not None:
         data["target_temp"] = self.last_target_temp
-      if data.get("schedule_schedon") == 0:
-        data["schedule_mode"] = "off"
-        self.last_schedule_mode = "off"
+      
+      # Sync schedule mode: prioritize the user's last selected mode 
+      # to prevent UI jumping while preparing a schedule.
+      if self.last_schedule_mode is not None:
+          data["schedule_mode"] = self.last_schedule_mode
+      
+      # If the device actually has an active schedule, update the 'last' state to match
+      device_schedon = data.get("schedule_schedon")
+      if device_schedon == 1:
+          self.last_schedule_mode = "once"
+          data["schedule_mode"] = "once"
+      elif device_schedon == 2:
+          self.last_schedule_mode = "daily"
+          data["schedule_mode"] = "daily"
+      elif device_schedon == 0 and self.last_schedule_mode is None:
+          data["schedule_mode"] = "off"
+          self.last_schedule_mode = "off"
 
       await self._maybe_sync_clock(data)
       return data
