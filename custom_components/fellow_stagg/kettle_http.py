@@ -57,6 +57,8 @@ class KettleHttpClient:
     sched_repeat_state = self._parse_schedule_repeat(body)
     sched_repeat = sched_repeat_settings if sched_repeat_settings is not None else sched_repeat_state
 
+    hold_minutes = self._parse_hold_setting(settings_body) or self._parse_hold_setting(body)
+
     has_time = bool(sched_time) and not (isinstance(sched_time, dict) and sched_time.get("hour", 0) == 0 and sched_time.get("minute", 0) == 0)
     has_temp = sched_temp_c is not None and sched_temp_c > 0
     armed = bool(schedon_value in (1, 2))
@@ -75,6 +77,7 @@ class KettleHttpClient:
       "raw": body,
       "power": self._parse_power(mode),
       "hold": self._parse_hold(mode),
+      "hold_minutes": hold_minutes,
       "mode": mode,
       "current_temp": current_temp,
       "target_temp": target_temp,
@@ -245,6 +248,12 @@ class KettleHttpClient:
     if mode in {"S_HEAT", "S_OFF", "S_STANDBY", "S_STARTUPTOTEMPR"}: return False
     return None
 
+  @staticmethod
+  def _parse_hold_setting(body: str) -> int | None:
+    """Parse the hold time setting from settings output."""
+    m = re.search(r"\bhold\s*=?\s*(\d+)", body or "", re.IGNORECASE)
+    return int(m.group(1)) if m else None
+
   def _parse_temp(self, body: str) -> tuple[float | None, str | None]:
     for label in ("tempr", "tempsc", "temps"):
         res = self._parse_temp_line(body, label)
@@ -270,11 +279,9 @@ class KettleHttpClient:
   def _parse_lifted(body: str) -> bool:
     """Check if the kettle is lifted off the base."""
     if not body: return False
-    # If tempr is nan, it's a strong indicator it's lifted
+    # The only reliable 'lifted' indicator is when the temperature sensor 
+    # disconnects and reports 'nan'. 
     if re.search(r"\btempr\s*=\s*nan\b", body, re.IGNORECASE): return True
-    # Check the ipb (is-power-base?) flag if available
-    m = re.search(r"\bipb\b\s*=?\s*(\d+)", body, re.IGNORECASE)
-    if m: return m.group(1) == "0" # Usually 1 if on base, 0 if lifted
     return False
 
   @staticmethod
