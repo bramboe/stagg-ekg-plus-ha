@@ -1,4 +1,4 @@
-"""Climate platform for Fellow Stagg EKG Pro over HTTP CLI (HomeKit-friendly Heat/Off)."""
+"""Climate platform for Fellow Stagg EKG Pro over HTTP CLI (HomeKit HeaterCooler compatible)."""
 from __future__ import annotations
 
 import asyncio
@@ -28,7 +28,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Fellow Stagg climate (kettle as thermostat) based on a config entry."""
+    """Set up Fellow Stagg climate (kettle as thermostat/heater) based on a config entry."""
     coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([FellowStaggClimate(coordinator)])
 
@@ -37,10 +37,10 @@ class FellowStaggClimate(
     CoordinatorEntity[FellowStaggDataUpdateCoordinator], ClimateEntity
 ):
     """
-    Climate entity for Fellow Stagg kettle (Heat + Off).
-
-    Exposed as a thermostat in HomeKit so the Home app shows both Heat and Off
-    in the control wheel.
+    Climate entity for Fellow Stagg kettle.
+    
+    Compatible with both 'Thermostat' and 'Heater Cooler' HomeKit types.
+    'Heater Cooler' is recommended to remove the 'Hardware Display' section in the Home app.
     """
 
     _attr_has_entity_name = True
@@ -78,12 +78,12 @@ class FellowStaggClimate(
 
     @property
     def min_temp(self) -> float:
-        """Return the minimum temperature based on the current unit."""
+        """Return minimum temperature."""
         return self.coordinator.min_temp
 
     @property
     def max_temp(self) -> float:
-        """Return the maximum temperature based on the current unit."""
+        """Return maximum temperature."""
         return self.coordinator.max_temp
 
     @property
@@ -100,23 +100,25 @@ class FellowStaggClimate(
 
     @property
     def hvac_action(self) -> HVACAction | None:
-        """Return the current running hvac operation."""
+        """
+        Return the current running action.
+        HomeKit's HeaterCooler uses this to show 'Heating' vs 'Idle'.
+        """
         if not self.coordinator.data:
             return None
         
-        mode = self.coordinator.data.get("mode")
-        current_temp = self.current_temperature
-        target_temp = self.target_temperature
-
+        mode = self.coordinator.data.get("mode", "S_OFF").upper()
+        
+        # Explicit heating modes from the kettle
         if mode in ("S_HEAT", "S_STARTUPTOTEMPR", "S_BOIL"):
             return HVACAction.HEATING
             
+        # Fallback logic if mode is generic but temperature is rising
+        current_temp = self.current_temperature
+        target_temp = self.target_temperature
         if self.is_on and current_temp is not None and target_temp is not None:
             if target_temp - current_temp > 0.5:
                 return HVACAction.HEATING
-        
-        if mode == "S_OFF":
-            return HVACAction.OFF
         
         if self.is_on:
             return HVACAction.IDLE
@@ -125,7 +127,7 @@ class FellowStaggClimate(
 
     @property
     def current_temperature(self) -> float | None:
-        """Return the current temperature in the kettle's native unit."""
+        """Return current temperature in native units."""
         if not self.coordinator.data:
             return None
         temp_c = self.coordinator.data.get("current_temp")
@@ -138,7 +140,7 @@ class FellowStaggClimate(
 
     @property
     def target_temperature(self) -> float | None:
-        """Return the target temperature in the kettle's native unit."""
+        """Return target temperature in native units."""
         if not self.coordinator.data:
             return None
         temp_c = self.coordinator.data.get("target_temp")
@@ -157,37 +159,13 @@ class FellowStaggClimate(
             await self.async_turn_on()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
-        """Set new target temperature with Smart Unit Detection."""
+        """Set new target temperature."""
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
 
-        # SMART DETECT: 
-        # If the input temperature is in the Fahrenheit range (>103) while in Celsius mode,
-        # or in the Celsius range (<45) while in Fahrenheit mode, switch the kettle hardware unit.
-        current_unit = self.temperature_unit
-        if temperature > 103 and current_unit == UnitOfTemperature.CELSIUS:
-            _LOGGER.info("HomeKit Slider: Switching kettle to Fahrenheit mode")
-            await self.coordinator.kettle.async_set_units_safe(
-                self.coordinator.session,
-                "F",
-                self.coordinator.data.get("mode", "S_Off")
-            )
-            await self.coordinator.async_request_refresh()
-            await asyncio.sleep(1)
-        elif temperature < 45 and current_unit == UnitOfTemperature.FAHRENHEIT:
-            _LOGGER.info("HomeKit Slider: Switching kettle to Celsius mode")
-            await self.coordinator.kettle.async_set_units_safe(
-                self.coordinator.session,
-                "C",
-                self.coordinator.data.get("mode", "S_Off")
-            )
-            await self.coordinator.async_request_refresh()
-            await asyncio.sleep(1)
-
-        # Re-check unit after potential change
-        new_unit = self.temperature_unit
-        if new_unit == UnitOfTemperature.FAHRENHEIT:
+        # Simple unit conversion based on current state
+        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
             temp_to_send = int(round((temperature - 32.0) / 1.8))
         else:
             temp_to_send = int(round(temperature))
@@ -201,19 +179,21 @@ class FellowStaggClimate(
             await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn on."""
+        """Turn the kettle on (Heat mode)."""
         async with self._command_lock:
             await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
-            if self.coordinator.data: self.coordinator.data["power"] = True
+            if self.coordinator.data:
+                self.coordinator.data["power"] = True
             self.async_write_ha_state()
             await asyncio.sleep(0.5)
             await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn off."""
+        """Turn the kettle off (Standby mode)."""
         async with self._command_lock:
             await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
-            if self.coordinator.data: self.coordinator.data["power"] = False
+            if self.coordinator.data:
+                self.coordinator.data["power"] = False
             self.async_write_ha_state()
             await asyncio.sleep(0.5)
             await self.coordinator.async_request_refresh()
