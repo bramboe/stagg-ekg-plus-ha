@@ -108,6 +108,7 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
         _LOGGER.debug("Schedule arming attempt %s failed: %s", attempt + 1, err)
 
     # Update coordinator data so UI refreshes with time, temp, and mode we just set.
+    self.coordinator._last_mode_change = None  # Clear editing flag
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
     if temp_c is not None:
       self.coordinator.last_schedule_temp_c = float(temp_c)
