@@ -12,8 +12,8 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_TEMPERATURE
-from homeassistant.core import HomeAssistant
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -59,29 +59,36 @@ class FellowStaggClimate(
         self._attr_unique_id = f"{coordinator.base_url}_climate"
         self._attr_device_info = coordinator.device_info
         self._command_lock = asyncio.Lock()
+        
         _LOGGER.debug(
-            "Initializing climate (kettle) with dynamic units from coordinator"
+            "Initializing climate (kettle) with dynamic unit sync"
         )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        # Notify HA that the unit and ranges might have changed
+        self.async_write_ha_state()
+        super()._handle_coordinator_update()
 
     @property
     def temperature_unit(self) -> str:
-        """Return the current temperature unit."""
-        # Ensure we return the HA constant accurately
+        """Return the unit currently set on the kettle hardware."""
         return self.coordinator.temperature_unit
 
     @property
     def target_temperature_step(self) -> float:
-        """Return the supported step of target temperature."""
+        """Return 1.0 degree steps."""
         return 1.0
 
     @property
     def min_temp(self) -> float:
-        """Return the minimum temperature."""
+        """Dynamic minimum temperature based on kettle unit."""
         return self.coordinator.min_temp
 
     @property
     def max_temp(self) -> float:
-        """Return the maximum temperature."""
+        """Dynamic maximum temperature based on kettle unit."""
         return self.coordinator.max_temp
 
     @property
@@ -128,17 +135,30 @@ class FellowStaggClimate(
 
     @property
     def current_temperature(self) -> float | None:
-        """Return the current temperature."""
+        """Return the current temperature in the kettle's native unit."""
         if not self.coordinator.data:
             return None
-        return self.coordinator.data.get("current_temp")
+        temp_c = self.coordinator.data.get("current_temp")
+        if temp_c is None:
+            return None
+        
+        # If kettle is in F, convert the internal C value to F for display
+        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+            return round((temp_c * 1.8) + 32.0, 1)
+        return round(temp_c, 1)
 
     @property
     def target_temperature(self) -> float | None:
-        """Return the target temperature."""
+        """Return the target temperature in the kettle's native unit."""
         if not self.coordinator.data:
             return None
-        return self.coordinator.data.get("target_temp")
+        temp_c = self.coordinator.data.get("target_temp")
+        if temp_c is None:
+            return None
+            
+        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+            return round((temp_c * 1.8) + 32.0, 1)
+        return round(temp_c, 1)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set HVAC mode (Heat = on, Off = off)."""
@@ -152,15 +172,22 @@ class FellowStaggClimate(
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
+            
+        # Convert back to Celsius for the internal API call if we are in F mode
+        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+            temp_to_send = int(round((temperature - 32.0) / 1.8))
+        else:
+            temp_to_send = int(round(temperature))
+
         _LOGGER.debug(
-            "Setting climate target temperature to %s°%s",
+            "Setting climate target temperature to %s (converted to %s C)",
             temperature,
-            self.coordinator.temperature_unit,
+            temp_to_send
         )
         async with self._command_lock:
             await self.coordinator.kettle.async_set_temperature(
                 self.coordinator.session,
-                int(temperature),
+                temp_to_send,
             )
             # Give the kettle a moment to update its internal state
             await asyncio.sleep(0.5)
