@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.button import ButtonEntity
+from homeassistant.const import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -144,6 +145,7 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
     self._attr_unique_id = f"{coordinator.base_url}_launch_bricky"
     self._attr_device_info = coordinator.device_info
     self._attr_icon = "mdi:controller"
+    self._attr_entity_category = EntityCategory.CONFIG
 
   async def async_press(self) -> None:
     """Trigger the bricky sequence."""
