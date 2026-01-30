@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from homeassistant.components.select import SelectEntity
+from homeassistant.const import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -72,6 +73,7 @@ class FellowStaggClockModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoordina
   _attr_name = "Clock Display Mode"
   _attr_options = CLOCK_MODE_OPTIONS
   _attr_should_poll = False
+  _attr_entity_category = EntityCategory.CONFIG
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
@@ -104,6 +106,7 @@ class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCo
   _attr_options = UNIT_OPTIONS
   _attr_icon = "mdi:temperature-celsius"
   _attr_should_poll = False
+  _attr_entity_category = EntityCategory.CONFIG
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
