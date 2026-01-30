@@ -106,7 +106,7 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="clock", name="Clock", icon="mdi:clock-outline", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="schedule_mode", name="Current Schedule Mode", icon="mdi:calendar-clock", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="screen_name", name="Current Screen", icon="mdi:monitor", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="programmed_unit", name="Programmed Unit", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="programmed_unit", name="Unit Type", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="hold_duration", name="Configured Hold Time", icon="mdi:timer-cog", entity_category=EntityCategory.CONFIG),
         FellowStaggSensorEntityDescription(key="firmware_version", name="Firmware Version", icon="mdi:chip", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="dry_boil_detection", name="Dry-Boil Detection", icon="mdi:water-alert", entity_category=EntityCategory.DIAGNOSTIC),
