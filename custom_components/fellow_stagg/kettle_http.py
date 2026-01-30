@@ -19,6 +19,10 @@ class KettleHttpClient:
     if not base:
       raise ValueError("A kettle base URL is required")
 
+    # Ensure protocol (default to http if missing)
+    if not base.startswith(("http://", "https://")):
+      base = f"http://{base}"
+
     if base.endswith(cli_path.strip("/")):
       self._cli_url = base
     else:
