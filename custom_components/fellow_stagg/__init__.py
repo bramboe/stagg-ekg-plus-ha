@@ -35,14 +35,14 @@ from .kettle_http import KettleHttpClient
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[str] = [
-  "sensor",
-  "binary_sensor",
-  "number",
+  "climate",
   "select",
   "time",
+  "number",
   "button",
+  "sensor",
+  "binary_sensor",
   "switch",
-  "climate",
 ]
 
 
