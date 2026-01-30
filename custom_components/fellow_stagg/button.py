@@ -81,7 +81,11 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     for attempt in range(5):
       try:
         await k.async_set_schedon(session, schedon)
-        await asyncio.sleep(0.8)
+        await asyncio.sleep(0.5)
+        
+        # Force a UI refresh on the kettle screen so the new schedule is visible immediately
+        await k._cli_command(session, "refresh 2")
+        
         refreshed = await k.async_poll(session)
         if refreshed:
           self.coordinator.async_set_updated_data(refreshed)
