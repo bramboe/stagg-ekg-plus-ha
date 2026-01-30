@@ -32,16 +32,52 @@ def get_current_temp(data: dict[str, Any] | None) -> float | None:
     return round(temp_c, 1)
 
 
+def get_friendly_screen_name(data: dict[str, Any] | None) -> str | None:
+    """Translate technical screen names to human-readable ones."""
+    if not data: return None
+    raw = data.get("screen_name")
+    if not raw: return "Unknown"
+    
+    raw_lower = raw.lower().replace(" ", "").replace(".png", "")
+    
+    if raw_lower == "wnd":
+        return "Home Screen"
+    if raw_lower == "none2":
+        return "Bricky Game"
+    if "error" in raw_lower or "addwater" in raw_lower:
+        return "Water Level Error"
+    if "menu" in raw_lower:
+        return f"Menu: {raw.replace('menu', '').replace('-', '').strip().title()}"
+    if "units" in raw_lower:
+        return "Setting Units"
+        
+    return raw.title()
+
+
+def get_hold_status(data: dict[str, Any] | None) -> str | None:
+    """Return the hold status with minutes if active."""
+    if not data: return None
+    is_holding = data.get("hold")
+    minutes = data.get("hold_minutes")
+    
+    if is_holding:
+        if minutes:
+            return f"Active ({minutes} min)"
+        return "Active"
+    return "Off"
+
+
 VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "power": lambda data: "On" if data and data.get("power") else "Off",
     "current_temp": get_current_temp,
-    "hold": lambda data: "Hold" if data and data.get("hold") else "Normal",
+    "hold": get_hold_status,
     "lifted": lambda data: "Lifted" if data and data.get("lifted") else "On Base",
     "countdown": lambda data: data.get("countdown") if data else None,
     "clock": lambda data: data.get("clock") if data else None,
     "schedule_mode": lambda data: data.get("schedule_mode") if data else None,
-    "screen_name": lambda data: data.get("screen_name") if data else None,
+    "screen_name": get_friendly_screen_name,
     "programmed_unit": lambda data: "Celsius" if data and data.get("raw_units") == "C" else ("Fahrenheit" if data and data.get("raw_units") == "F" else "Unknown"),
+    "hold_duration": lambda data: f"{data.get('hold_minutes')} min" if data and data.get("hold_minutes") else "Off",
 }
 
 
@@ -56,6 +92,7 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="schedule_mode", name="Current Schedule Mode", icon="mdi:calendar-clock", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="screen_name", name="Current Screen", icon="mdi:monitor", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="programmed_unit", name="Programmed Unit", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="hold_duration", name="Configured Hold Time", icon="mdi:timer-cog", entity_category=EntityCategory.CONFIG),
     ]
 
 
@@ -95,6 +132,13 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
                 return UnitOfTemperature.FAHRENHEIT
             return UnitOfTemperature.CELSIUS
         return super().native_unit_of_measurement
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return extra attributes."""
+        if self.entity_description.key == "screen_name" and self.coordinator.data:
+            return {"raw_screen_name": self.coordinator.data.get("screen_name")}
+        return super().extra_state_attributes
 
 
 class FellowStaggStabilitySensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SensorEntity):
