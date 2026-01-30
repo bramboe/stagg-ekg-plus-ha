@@ -73,6 +73,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.last_schedule_time: dict[str, int] | None = None
     self.last_schedule_temp_c: float | None = None
     self.last_schedule_mode: str | None = None
+    self._last_mode_change: datetime | None = None
     self.last_target_temp: float | None = None
     
     self.live_graph_enabled = False
@@ -150,10 +151,14 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       
       # Sync schedule mode: prioritize the user's last selected mode 
       # to prevent UI jumping while preparing a schedule.
-      if self.last_schedule_mode is not None:
+      # We keep the UI sticky for 30 seconds after a manual change.
+      now = datetime.now()
+      is_editing = self._last_mode_change and (now - self._last_mode_change).total_seconds() < 30
+      
+      if self.last_schedule_mode is not None and is_editing:
           data["schedule_mode"] = self.last_schedule_mode
       else:
-          # Initial load: sync from device
+          # Not editing or timeout reached: sync from device
           device_schedon = data.get("schedule_schedon")
           if device_schedon == 1:
               self.last_schedule_mode = "once"
@@ -162,20 +167,6 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
           else:
               self.last_schedule_mode = "off"
           data["schedule_mode"] = self.last_schedule_mode
-
-      # If the device state changes (e.g. schedule finishes and turns off), 
-      # we update our local state to match, but only if we weren't in the middle of an edit.
-      # We detect an 'edit' by checking if our last_schedule_mode differs from the device.
-      # However, if the device goes to 'off' (0), we always follow it.
-      device_schedon = data.get("schedule_schedon")
-      device_mode = "off"
-      if device_schedon == 1: device_mode = "once"
-      elif device_schedon == 2: device_mode = "daily"
-
-      if device_schedon == 0 and self.last_schedule_mode != "off":
-          # Kettle turned off the schedule (e.g. it ran), so update UI
-          self.last_schedule_mode = "off"
-          data["schedule_mode"] = "off"
 
       await self._maybe_sync_clock(data)
       return data
