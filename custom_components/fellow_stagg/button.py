@@ -163,19 +163,24 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
     self._attr_entity_category = EntityCategory.CONFIG
 
   async def async_press(self) -> None:
-    """Trigger the bricky sequence if kettle is lifted; otherwise play error chime."""
+    """Trigger the bricky sequence only if kettle is lifted (same source as Kettle Position sensor).
+    When kettle is on base: play error chime only; do NOT send setsetting bricky or reset."""
     k = self.coordinator.kettle
     session = self.coordinator.session
 
-    if not self.coordinator.data or not self.coordinator.data.get("lifted"):
-      _LOGGER.info("Kettle is on base: playing error chime instead of launching Bricky.")
+    # Use latest state (same as sensor.fellow_stagg_*_kettle_position)
+    await self.coordinator.async_request_refresh()
+    is_lifted = bool(self.coordinator.data and self.coordinator.data.get("lifted"))
+
+    if not is_lifted:
+      _LOGGER.info("Kettle is on base: playing error chime only (no bricky command).")
       try:
         await k.async_play_error_chime(session)
       except Exception as err:
         _LOGGER.warning("Could not play error chime: %s", err)
       return
 
-    _LOGGER.debug("Launching Bricky: Setting flag...")
+    _LOGGER.debug("Kettle lifted: launching Bricky.")
     # 1. Enable the bricky flag
     await k.async_set_bricky(session, True)
     await asyncio.sleep(0.5)
