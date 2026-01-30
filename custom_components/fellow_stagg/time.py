@@ -33,6 +33,7 @@ class FellowStaggScheduleTimeEntity(
 
   _attr_has_entity_name = True
   _attr_name = "Schedule Time"
+  _attr_icon = "mdi:clock-edit"
   _attr_should_poll = False
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
