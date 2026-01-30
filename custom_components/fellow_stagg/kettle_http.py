@@ -181,7 +181,16 @@ class KettleHttpClient:
     await self._cli_command(session, f"setsetting schedon {val}")
 
   async def async_set_clock_mode(self, session: ClientSession, mode: int | str) -> None:
-    await self._cli_command(session, f"setsetting clockmode {int(mode)}")
+    """Set the clock display mode (0=off, 1=digital, 2=analog)."""
+    val = int(mode)
+    if val == 1:
+        await self._cli_command(session, "setdigital")
+    elif val == 2:
+        await self._cli_command(session, "setanalog")
+    else:
+        await self._cli_command(session, "setsetting clockmode 0")
+        await asyncio.sleep(0.1)
+        await self.async_refresh(session, 2)
 
   async def async_set_bricky(self, session: ClientSession, enabled: bool) -> None:
     """Set the bricky setting (0 or 1)."""
