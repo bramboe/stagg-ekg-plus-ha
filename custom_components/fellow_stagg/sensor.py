@@ -45,7 +45,7 @@ def get_friendly_screen_name(data: dict[str, Any] | None) -> str | None:
     if raw_lower == "none2":
         return "Bricky Game"
     if "error" in raw_lower or "addwater" in raw_lower:
-        return "Water Level Error"
+        return "Refill Kettle"
     if "menu" in raw_lower:
         return f"Menu: {raw.replace('menu', '').replace('-', '').strip().title()}"
     if "units" in raw_lower:
@@ -79,6 +79,7 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "programmed_unit": lambda data: "Celsius" if data and data.get("raw_units") == "C" else ("Fahrenheit" if data and data.get("raw_units") == "F" else "Unknown"),
     "hold_duration": lambda data: f"{data.get('hold_minutes')} min" if data and data.get("hold_minutes") else "Off",
     "firmware_version": lambda data: data.get("firmware_version") if data else None,
+    "dry_boil_detection": lambda data: "Refill Kettle" if data and data.get("no_water") else ("Water Detected" if data is not None else None),
 }
 
 
@@ -95,6 +96,7 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="programmed_unit", name="Programmed Unit", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="hold_duration", name="Configured Hold Time", icon="mdi:timer-cog", entity_category=EntityCategory.CONFIG),
         FellowStaggSensorEntityDescription(key="firmware_version", name="Firmware Version", icon="mdi:chip", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="dry_boil_detection", name="Dry-Boil Detection", icon="mdi:water-alert", entity_category=EntityCategory.DIAGNOSTIC),
     ]
 
 
@@ -107,9 +109,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = [FellowStaggSensor(coordinator, description) for description in SENSOR_DESCRIPTIONS]
-    entities.append(FellowStaggStabilitySensor(coordinator))
-    async_add_entities(entities)
+    async_add_entities([FellowStaggSensor(coordinator, description) for description in SENSOR_DESCRIPTIONS])
 
 
 class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SensorEntity):
@@ -141,24 +141,3 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
         if self.entity_description.key == "screen_name" and self.coordinator.data:
             return {"raw_screen_name": self.coordinator.data.get("screen_name")}
         return super().extra_state_attributes
-
-
-class FellowStaggStabilitySensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SensorEntity):
-    _attr_has_entity_name = True
-    _attr_name = "Water Stabilized"
-    _attr_icon = "mdi:water-thermometer"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.base_url}_water_stabilized"
-        self._attr_device_info = coordinator.device_info
-
-    @property
-    def native_value(self) -> str | None:
-        last = self.coordinator.last_pwmprt
-        if not last or last.get("err") is None or last.get("integral") is None: return None
-        err, integral = last["err"], last["integral"]
-        if abs(err) < 0.5 and abs(integral) < 1.0: return "Stable"
-        if err > 0: return "Heating"
-        return "Cooling"
