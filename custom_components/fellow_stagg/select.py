@@ -40,7 +40,7 @@ async def async_setup_entry(
 
 
 class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SelectEntity):
-  """Select for schedule mode (off/once/daily)."""
+  """Select for schedule mode (off/once/daily). Local only — no command is sent to the kettle until the user presses Update Schedule."""
 
   _attr_has_entity_name = True
   _attr_name = "Schedule Mode"
@@ -59,6 +59,7 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
     return "off"
 
   async def async_select_option(self, option: str) -> None:
+    """Store selected mode locally only. User must press Update Schedule to send to the kettle."""
     option = option.lower()
     if option not in MODE_OPTIONS:
       raise ValueError(f"Invalid schedule mode {option}")
