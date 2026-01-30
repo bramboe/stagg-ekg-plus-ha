@@ -220,8 +220,8 @@ class FellowStaggClimate(
             await self.coordinator.async_request_refresh()
             await asyncio.sleep(1)
         elif temperature < 45 and current_unit == UnitOfTemperature.FAHRENHEIT:
-             _LOGGER.info("HomeKit Slider: Switching kettle to Celsius mode")
-             await self.coordinator.kettle.async_set_units_safe(
+            _LOGGER.info("HomeKit Slider: Switching kettle to Celsius mode")
+            await self.coordinator.kettle.async_set_units_safe(
                 self.coordinator.session,
                 "C",
                 self.coordinator.data.get("mode", "S_Off")
