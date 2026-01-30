@@ -163,24 +163,28 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
     self._attr_entity_category = EntityCategory.CONFIG
 
   async def async_press(self) -> None:
-    """Trigger the bricky sequence."""
-    if not self.coordinator.data or not self.coordinator.data.get("lifted"):
-      _LOGGER.warning("Bricky usually only launches when the kettle is lifted off the base. Continuing anyway...")
-
+    """Trigger the bricky sequence if kettle is lifted; otherwise play error chime."""
     k = self.coordinator.kettle
     session = self.coordinator.session
-    
+
+    if not self.coordinator.data or not self.coordinator.data.get("lifted"):
+      _LOGGER.info("Kettle is on base: playing error chime instead of launching Bricky.")
+      try:
+        await k.async_play_error_chime(session)
+      except Exception as err:
+        _LOGGER.warning("Could not play error chime: %s", err)
+      return
+
     _LOGGER.debug("Launching Bricky: Setting flag...")
     # 1. Enable the bricky flag
     await k.async_set_bricky(session, True)
     await asyncio.sleep(0.5)
-    
+
     _LOGGER.debug("Launching Bricky: Sending reset command...")
     # 2. Reset the kettle. We expect a connection error here because the kettle reboots instantly.
     try:
       await k.async_reset(session)
     except Exception as err:
       _LOGGER.debug("Kettle reset triggered (ignoring expected connection error: %s)", err)
-    
-    # 3. Request a refresh to eventually see the new screen state
+
     await self.coordinator.async_request_refresh()
