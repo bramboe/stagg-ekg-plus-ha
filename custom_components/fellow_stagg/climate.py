@@ -14,6 +14,7 @@ from homeassistant.components.climate import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -67,6 +68,21 @@ class FellowStaggClimate(
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
+        if self.hass and self.coordinator.data:
+            # Sync the Home Assistant Entity Registry so the HomeKit bridge picks up the change.
+            registry = er.async_get(self.hass)
+            entry = registry.async_get(self.entity_id)
+            if entry and entry.unit_of_measurement != self.temperature_unit:
+                _LOGGER.info(
+                    "HomeKit Unit Sync: Forcing registry unit change from %s to %s",
+                    entry.unit_of_measurement,
+                    self.temperature_unit
+                )
+                registry.async_update_entity(
+                    self.entity_id,
+                    unit_of_measurement=self.temperature_unit
+                )
+        
         self.async_write_ha_state()
         super()._handle_coordinator_update()
 
