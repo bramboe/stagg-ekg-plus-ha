@@ -24,7 +24,10 @@ async def async_setup_entry(
 ) -> None:
   """Set up buttons."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-  async_add_entities([FellowStaggUpdateScheduleButton(coordinator)])
+  async_add_entities([
+    FellowStaggUpdateScheduleButton(coordinator),
+    FellowStaggBrickyButton(coordinator),
+  ])
 
 
 class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator], ButtonEntity):
@@ -118,4 +121,34 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     data["schedule_repeat"] = repeat
     data["schedule_schedon"] = schedon
     self.coordinator.async_set_updated_data(data)
+    await self.coordinator.async_request_refresh()
+
+class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator], ButtonEntity):
+  """Button to launch the Bricky game by setting the flag and resetting the kettle."""
+
+  _attr_has_entity_name = True
+  _attr_name = "Launch Bricky (Lift Kettle)"
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.base_url}_launch_bricky"
+    self._attr_device_info = coordinator.device_info
+    self._attr_icon = "mdi:controller"
+
+  async def async_press(self) -> None:
+    """Trigger the bricky sequence."""
+    if not self.coordinator.data or not self.coordinator.data.get("lifted"):
+      _LOGGER.warning("Bricky usually only launches when the kettle is lifted off the base. Continuing anyway...")
+
+    k = self.coordinator.kettle
+    session = self.coordinator.session
+    
+    # 1. Enable the bricky flag
+    await k.async_set_bricky(session, True)
+    await asyncio.sleep(0.5)
+    
+    # 2. Reset the kettle to trigger the launch on boot
+    await k.async_reset(session)
+    
+    # 3. Request a refresh to eventually see the new screen state
     await self.coordinator.async_request_refresh()
