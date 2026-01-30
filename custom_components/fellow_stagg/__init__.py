@@ -100,24 +100,21 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       if self.last_target_temp is not None:
         data["target_temp"] = self.last_target_temp
       
-      # Sync schedule mode: prioritize the user's last selected mode 
-      # to prevent UI jumping while preparing a schedule.
-      # We keep the UI sticky for 30 seconds after a manual change.
+      # schedule_mode in data is always the kettle's actual state (for Current Schedule Mode sensor).
+      # last_schedule_mode is the user's dropdown choice (sticky for 30s); sync from device when not editing.
+      device_schedon = data.get("schedule_schedon")
+      if device_schedon == 1:
+          device_mode = "once"
+      elif device_schedon == 2:
+          device_mode = "daily"
+      else:
+          device_mode = "off"
+      data["schedule_mode"] = device_mode
+
       now = datetime.now()
       is_editing = self._last_mode_change and (now - self._last_mode_change).total_seconds() < 30
-      
-      if self.last_schedule_mode is not None and is_editing:
-          data["schedule_mode"] = self.last_schedule_mode
-      else:
-          # Not editing or timeout reached: sync from device
-          device_schedon = data.get("schedule_schedon")
-          if device_schedon == 1:
-              self.last_schedule_mode = "once"
-          elif device_schedon == 2:
-              self.last_schedule_mode = "daily"
-          else:
-              self.last_schedule_mode = "off"
-          data["schedule_mode"] = self.last_schedule_mode
+      if not is_editing:
+          self.last_schedule_mode = device_mode
 
       await self._maybe_sync_clock(data)
       # Use faster polling when countdown is active so the countdown sensor updates live
