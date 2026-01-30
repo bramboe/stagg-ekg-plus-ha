@@ -32,6 +32,7 @@ class KettleHttpClient:
     """Fetch kettle state via CLI commands."""
     body = await self._cli_command(session, "state")
     settings_body = await self._cli_command(session, "prtsettings")
+    fwinfo_body = await self._cli_command(session, "fwinfo")
 
     current_temp, temp_units = self._parse_temp(body)
     target_temp, target_units = self._parse_target_temp(body)
@@ -73,8 +74,11 @@ class KettleHttpClient:
     units = raw_units or temp_units or target_units or "C"
     units = units.upper()
 
+    firmware_version = self._parse_fwinfo(fwinfo_body)
+
     data: dict[str, Any] = {
       "raw": body,
+      "firmware_version": firmware_version,
       "power": self._parse_power(mode),
       "hold": self._parse_hold(mode),
       "hold_minutes": hold_minutes,
@@ -245,6 +249,17 @@ class KettleHttpClient:
   def _parse_clock_mode(body: str) -> int | None:
     m = re.search(r"\bclockmode\s*=\s*(\d+)", body or "", re.IGNORECASE)
     return int(m.group(1)) if m and int(m.group(1)) in (0, 1, 2) else None
+
+  @staticmethod
+  def _parse_fwinfo(body: str) -> str | None:
+    """Parse firmware version from fwinfo CLI output (e.g. Current version: 1.2.5CL cli)."""
+    if not body:
+      return None
+    m = re.search(r"Current version:\s*([^\s\n]+)", body, re.IGNORECASE)
+    if m:
+      return m.group(1).strip()
+    m = re.search(r"fw version\s+([^\s\n]+)", body, re.IGNORECASE)
+    return m.group(1).strip() if m else None
 
   @staticmethod
   def _parse_units_flag(body: str) -> str | None:
