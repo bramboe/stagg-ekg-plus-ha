@@ -36,3 +36,14 @@ update_schedule:
     entry_id:
       description: Optional config entry id (needed if multiple kettles)
       example: 1234567890abcdef
+
+send_cli:
+  name: Send CLI command
+  description: Send a raw HTTP CLI command to the kettle (for testing). Response in result.
+  fields:
+    command:
+      description: CLI command string (e.g. fwinfo, temp, buz sos, shot 1)
+      example: fwinfo
+    entry_id:
+      description: Optional config entry id (needed if multiple kettles)
+      example: 1234567890abcdef
