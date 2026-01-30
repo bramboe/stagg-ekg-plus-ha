@@ -103,6 +103,25 @@ class KettleHttpClient:
     cmd = "setunitsc" if unit.upper() == "C" else "setunitsf"
     await self._cli_command(session, cmd)
 
+  async def async_set_units_safe(self, session: ClientSession, unit: str, current_mode: str = "S_OFF") -> None:
+    """Set units and perform the 3-step refresh to update the kettle's screen."""
+    unit_cmd = "setunitsc" if unit.upper() == "C" else "setunitsf"
+    current_mode = current_mode.upper()
+    
+    if current_mode != "S_OFF":
+        # Ultra-reliable 3-step sequence: Off -> Unit Change -> Back On
+        await self._cli_command(session, "ss S_Off")
+        await asyncio.sleep(0.5)
+        await self._cli_command(session, unit_cmd)
+        await asyncio.sleep(0.5)
+        await self._cli_command(session, f"ss {current_mode}")
+    else:
+        # If it's already off, briefly turn it on and back off to refresh UI.
+        await self._cli_command(session, unit_cmd)
+        await self._cli_command(session, "ss S_Heat")
+        await asyncio.sleep(0.5)
+        await self._cli_command(session, "ss S_Off")
+
   async def async_set_clock_mode(self, session: ClientSession, mode: int | str) -> None:
     await self._cli_command(session, f"setsetting clockmode {int(mode)}")
 
