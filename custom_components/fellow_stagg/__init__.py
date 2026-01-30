@@ -122,13 +122,13 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
   @property
   def min_temp(self) -> float:
-    """Return a wide minimum temperature to allow HomeKit sliding between C and F."""
-    return 40.0
+    """Return minimum temperature based on current units."""
+    return MIN_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MIN_TEMP_C
 
   @property
   def max_temp(self) -> float:
-    """Return a wide maximum temperature to allow HomeKit sliding between C and F."""
-    return 212.0
+    """Return maximum temperature based on current units."""
+    return MAX_TEMP_F if self.temperature_unit == UnitOfTemperature.FAHRENHEIT else MAX_TEMP_C
 
   async def _async_update_data(self) -> dict[str, Any] | None:
     """Fetch data from the kettle."""
