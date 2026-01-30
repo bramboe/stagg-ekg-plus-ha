@@ -14,7 +14,6 @@ from homeassistant.components.climate import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -68,24 +67,10 @@ class FellowStaggClimate(
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if self.hass and self.coordinator.data:
-            # Sync the Home Assistant Entity Registry so the HomeKit bridge picks up the change.
-            registry = er.async_get(self.hass)
-            entry = registry.async_get(self.entity_id)
-            if entry and entry.unit_of_measurement != self.temperature_unit:
-                _LOGGER.info(
-                    "HomeKit Unit Sync: Forcing registry unit change from %s to %s",
-                    entry.unit_of_measurement,
-                    self.temperature_unit
-                )
-                registry.async_update_entity(
-                    self.entity_id,
-                    unit_of_measurement=self.temperature_unit
-                )
-        
         self.async_write_ha_state()
         super()._handle_coordinator_update()
 
+    # ⭐ THIS PROPERTY IS WHAT HOMEKIT READS (TemperatureDisplayUnits)
     @property
     def temperature_unit(self) -> str:
         """Return the unit currently set on the kettle hardware."""
@@ -98,12 +83,12 @@ class FellowStaggClimate(
 
     @property
     def min_temp(self) -> float:
-        """Wide range to allow sliding between C and F in HomeKit."""
+        """Return minimum temperature based on current units."""
         return self.coordinator.min_temp
 
     @property
     def max_temp(self) -> float:
-        """Wide range to allow sliding between C and F in HomeKit."""
+        """Return maximum temperature based on current units."""
         return self.coordinator.max_temp
 
     @property
@@ -176,28 +161,28 @@ class FellowStaggClimate(
         else:
             await self.async_turn_on()
 
+    # ⭐ THIS METHOD IS WHAT HOMEKIT CALLS WHEN TOGGLING C/F
+    async def async_set_temperature_unit(self, temperature_unit: str) -> None:
+        """Set the temperature unit (Celsius/Fahrenheit) and refresh."""
+        unit = "C" if temperature_unit == UnitOfTemperature.CELSIUS else "F"
+        _LOGGER.info("HomeKit toggled unit to %s; updating kettle", unit)
+        
+        data = self.coordinator.data or {}
+        current_mode = data.get("mode") or "S_Off"
+        
+        async with self._command_lock:
+            await self.coordinator.kettle.async_set_units_safe(
+                self.coordinator.session,
+                unit,
+                current_mode
+            )
+            await self.coordinator.async_request_refresh()
+
     async def async_set_temperature(self, **kwargs: Any) -> None:
-        """Set new target temperature with Smart Unit Detection."""
+        """Set new target temperature."""
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
-            
-        # SMART DETECT:
-        # If the input temperature is in the Fahrenheit range (>100) while in Celsius mode,
-        # or in the Celsius range (<50) while in Fahrenheit mode, switch the kettle hardware unit.
-        
-        if temperature > 103 and self.temperature_unit == UnitOfTemperature.CELSIUS:
-            _LOGGER.info("HomeKit Slider: Switching kettle to Fahrenheit mode (detected target > 103)")
-            await self.hass.services.async_call(
-                "select", "select_option",
-                {"entity_id": f"select.{DOMAIN}_{self.coordinator.base_url}_temp_unit_select", "option": "Fahrenheit"}
-            )
-        elif temperature < 45 and self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
-             _LOGGER.info("HomeKit Slider: Switching kettle to Celsius mode (detected target < 45)")
-             await self.hass.services.async_call(
-                "select", "select_option",
-                {"entity_id": f"select.{DOMAIN}_{self.coordinator.base_url}_temp_unit_select", "option": "Celsius"}
-            )
 
         # Convert back to Celsius for internal API if needed
         if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
