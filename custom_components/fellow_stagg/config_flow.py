@@ -268,15 +268,16 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, discovery_info: BluetoothServiceInfoBleak | dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle BLE discovery: Stagg kettle found; try to get WiFi URL, then ask user to confirm or enter URL."""
-        # Form submit from same step (user clicked Add; Ignore is handled by discovery card)
-        if isinstance(discovery_info, dict) and "address" not in discovery_info:
-            user_input = discovery_info
-            # Use context or unique_id when it's a URL (we set unique_id=suggested_url when we had one)
+        # Form submit: user clicked Add (dict without address, or None when we already have unique_id)
+        is_form_submit = discovery_info is None or (
+            isinstance(discovery_info, dict) and "address" not in discovery_info
+        )
+        if is_form_submit:
+            user_input = discovery_info if isinstance(discovery_info, dict) else {}
             suggested_url = self.context.get("ble_suggested_url") or (
                 self.unique_id if self.unique_id and str(self.unique_id).startswith("http") else None
             )
             if suggested_url:
-                # We showed empty form; user clicked Add → create with suggested_url
                 return self.async_create_entry(
                     title=f"Fellow Stagg ({suggested_url})",
                     data={"base_url": suggested_url},
@@ -310,16 +311,28 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data={"base_url": base_url},
             )
 
-        if not discovery_info or not getattr(discovery_info, "address", None):
+        # Initial discovery: get address (dict uses .get, object uses getattr)
+        address = (
+            discovery_info.get("address", "") if isinstance(discovery_info, dict)
+            else (getattr(discovery_info, "address", None) or "")
+        )
+        if not address:
             return self.async_abort(reason="invalid_discovery_info")
-        name = (getattr(discovery_info, "name", None) or "").strip() or "Stagg kettle"
-        address = getattr(discovery_info, "address", None) or ""
+        name = (
+            discovery_info.get("name", "") if isinstance(discovery_info, dict)
+            else (getattr(discovery_info, "name", None) or "")
+        )
+        name = (name or "").strip() or "Stagg kettle"
         self.context["ble_name"] = name
         self.context["ble_address"] = address
 
         # Try to find IP in manufacturer / advertisement data (no connection)
         suggested_url: str | None = None
-        for _mid, data in (getattr(discovery_info, "manufacturer_data", None) or {}).items():
+        manufacturer_data = (
+            discovery_info.get("manufacturer_data", {}) if isinstance(discovery_info, dict)
+            else (getattr(discovery_info, "manufacturer_data", None) or {})
+        )
+        for _mid, data in manufacturer_data.items():
             if isinstance(data, (bytes, bytearray)):
                 ip = _extract_ip_from_data(bytes(data))
                 if ip:
