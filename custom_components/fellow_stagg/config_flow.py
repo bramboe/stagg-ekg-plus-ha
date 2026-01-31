@@ -222,9 +222,25 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured(updates={"base_url": base_url})
 
         self.context["title_placeholders"] = {"base_url": base_url}
-        return self.async_create_entry(
-            title=f"Fellow Stagg ({base_url})",
-            data={"base_url": base_url},
+        self.context["zeroconf_base_url"] = base_url
+        return await self.async_step_zeroconf_confirm()
+
+    async def async_step_zeroconf_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Confirm adding the discovered Fellow Stagg kettle (zeroconf)."""
+        base_url = self.context.get("zeroconf_base_url")
+        if not base_url:
+            return self.async_abort(reason="invalid_discovery_info")
+        if user_input is not None:
+            return self.async_create_entry(
+                title=f"Fellow Stagg ({base_url})",
+                data={"base_url": base_url},
+            )
+        return self.async_show_form(
+            step_id="zeroconf_confirm",
+            data_schema=vol.Schema({}),
+            description_placeholders={"base_url": base_url},
         )
 
     async def async_step_bluetooth(
@@ -251,17 +267,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not suggested_url and address:
             suggested_url = await _try_get_wifi_ip_from_ble(self.hass, address)
 
-        # Auto-create entry when we have a URL and the kettle responds (true auto-discovery)
-        if suggested_url:
-            session = async_get_clientsession(self.hass)
-            if await _probe_kettle(session, suggested_url):
-                await self.async_set_unique_id(suggested_url)
-                self._abort_if_unique_id_configured(updates={"base_url": suggested_url})
-                return self.async_create_entry(
-                    title=f"Fellow Stagg ({suggested_url})",
-                    data={"base_url": suggested_url},
-                )
-
+        # Let user confirm or enter URL (discovery only; no auto-add)
         return await self.async_step_bluetooth_configure(suggested_url)
 
     async def async_step_bluetooth_configure(
@@ -344,16 +350,6 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not suggested_url:
                     suggested_url = await _try_get_wifi_ip_from_ble(self.hass, choice)
                 self.context["ble_suggested_url"] = suggested_url or None
-                # Auto-create if we have URL and kettle responds
-                if suggested_url:
-                    session = async_get_clientsession(self.hass)
-                    if await _probe_kettle(session, suggested_url):
-                        await self.async_set_unique_id(suggested_url)
-                        self._abort_if_unique_id_configured(updates={"base_url": suggested_url})
-                        return self.async_create_entry(
-                            title=f"Fellow Stagg ({suggested_url})",
-                            data={"base_url": suggested_url},
-                        )
                 return await self.async_step_bluetooth_configure(suggested_url)
 
         # Show form: dropdown of devices + "Enter URL manually", or just URL if none found
