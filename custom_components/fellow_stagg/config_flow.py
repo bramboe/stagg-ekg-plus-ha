@@ -7,11 +7,23 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.components import bluetooth
+from homeassistant.components.bluetooth import (
+    async_discovered_service_info,
+    BluetoothServiceInfoBleak,
+)
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import (
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import DOMAIN
+
+# BLE local_name prefixes that identify a Stagg kettle (must match manifest bluetooth matchers)
+BLE_NAME_PREFIXES = ("stagg", "ekg", "fellow")
 
 # IPv4 pattern for matching IP from BLE characteristic or manufacturer data
 _IPV4_RE = re.compile(r"\b(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b")
@@ -21,6 +33,14 @@ CLI_FINGERPRINT = ("mode=", "tempr")
 CLI_PROBE_PATH = "/cli"
 CLI_PROBE_CMD = "state"
 CLI_PROBE_TIMEOUT = 4
+
+
+def _is_stagg_ble_device(name: str | None) -> bool:
+    """Return True if the BLE device name matches a Stagg kettle (Stagg*, EKG*, Fellow*)."""
+    if not name or not isinstance(name, str):
+        return False
+    n = name.strip().lower()
+    return any(n.startswith(p) for p in BLE_NAME_PREFIXES)
 
 
 def _build_base_url(host: str, port: int | None) -> str:
@@ -163,11 +183,13 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_bluetooth(
-        self, discovery_info: bluetooth.BluetoothServiceInfoBleak
+        self, discovery_info: BluetoothServiceInfoBleak
     ) -> FlowResult:
         """Handle BLE discovery: Stagg kettle found; try to get WiFi URL, then ask user to confirm or enter URL."""
         name = (getattr(discovery_info, "name", None) or "").strip() or "Stagg kettle"
         address = getattr(discovery_info, "address", None) or ""
+        if not address:
+            return self.async_abort(reason="invalid_discovery_info")
         self.context["ble_name"] = name
         self.context["ble_address"] = address
 
@@ -223,6 +245,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema({
             vol.Required("base_url", default=default_url): str,
         })
+        if suggested_url:
+            self._set_confirm_only()
         return self.async_show_form(
             step_id="bluetooth_configure",
             data_schema=schema,
@@ -237,20 +261,82 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step."""
-        errors: dict[str, str] = {}
+        """Handle the initial step: pick a discovered BLE device or enter URL manually."""
+        # Build list of discovered Stagg/EKG/Fellow BLE devices
+        discovered: dict[str, str] = {}
+        for info in async_discovered_service_info(self.hass):
+            if _is_stagg_ble_device(info.name):
+                discovered[info.address] = info.name or info.address
 
         if user_input is not None:
-            base_url = user_input["base_url"].strip()
-            await self.async_set_unique_id(base_url)
-            self._abort_if_unique_id_configured()
-            return self.async_create_entry(
-                title=f"Fellow Stagg ({base_url})",
-                data={"base_url": base_url},
+            choice = (user_input.get("device_or_manual") or "").strip()
+            if choice == "__manual__":
+                return await self.async_step_user_manual()
+            if choice in discovered:
+                # User picked a BLE device: set context and try to get URL, then show bluetooth_configure
+                self.context["ble_name"] = discovered[choice]
+                self.context["ble_address"] = choice
+                suggested_url: str | None = None
+                for info in async_discovered_service_info(self.hass):
+                    if info.address == choice:
+                        for _mid, data in (getattr(info, "manufacturer_data", None) or {}).items():
+                            if isinstance(data, (bytes, bytearray)):
+                                ip = _extract_ip_from_data(bytes(data))
+                                if ip:
+                                    suggested_url = f"http://{ip}"
+                                    break
+                        break
+                if not suggested_url:
+                    suggested_url = await _try_get_wifi_ip_from_ble(self.hass, choice)
+                self.context["ble_suggested_url"] = suggested_url or None
+                return await self.async_step_bluetooth_configure(suggested_url)
+
+        # Show form: dropdown of devices + "Enter URL manually", or just URL if none found
+        if discovered:
+            options: list[SelectOptionDict] = [
+                SelectOptionDict(value=addr, label=f"{name} ({addr})")
+                for addr, name in discovered.items()
+            ]
+            options.append(SelectOptionDict(value="__manual__", label="Enter URL manually"))
+            schema = vol.Schema({
+                vol.Required("device_or_manual"): SelectSelector(
+                    SelectSelectorConfig(
+                        options=options,
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            })
+            return self.async_show_form(
+                step_id="user",
+                data_schema=schema,
+                description="Pick a kettle found via Bluetooth, or enter its URL manually.",
             )
 
+        return await self.async_step_user_manual()
+
+    async def async_step_user_manual(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle manual entry of the kettle HTTP base URL."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            base_url = (user_input.get("base_url") or "").strip()
+            if not base_url:
+                errors["base_url"] = "required"
+            else:
+                session = async_get_clientsession(self.hass)
+                if not await _probe_kettle(session, base_url):
+                    errors["base_url"] = "not_fellow_stagg"
+                else:
+                    await self.async_set_unique_id(base_url)
+                    self._abort_if_unique_id_configured()
+                    return self.async_create_entry(
+                        title=f"Fellow Stagg ({base_url})",
+                        data={"base_url": base_url},
+                    )
         return self.async_show_form(
-            step_id="user",
+            step_id="user_manual",
             data_schema=vol.Schema({vol.Required("base_url"): str}),
             errors=errors,
+            description="Enter the kettle's HTTP base URL (e.g. http://192.168.1.86). Find the IP in your router or on the kettle's WiFi settings.",
         )
