@@ -79,8 +79,10 @@ class FellowStaggPreBoilSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinato
 
   async def async_turn_on(self, **kwargs: Any) -> None:
     await self.coordinator.kettle.async_set_boil(self.coordinator.session, True)
+    await asyncio.sleep(0.3)  # let device persist before we re-read
     await self.coordinator.async_request_refresh()
 
   async def async_turn_off(self, **kwargs: Any) -> None:
     await self.coordinator.kettle.async_set_boil(self.coordinator.session, False)
+    await asyncio.sleep(0.3)  # let device persist before we re-read
     await self.coordinator.async_request_refresh()
