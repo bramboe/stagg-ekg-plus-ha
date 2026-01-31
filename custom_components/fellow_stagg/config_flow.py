@@ -7,6 +7,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components import bluetooth
 from homeassistant.components.bluetooth import (
     async_discovered_service_info,
     BluetoothServiceInfoBleak,
@@ -24,6 +25,9 @@ from .const import DOMAIN
 
 # BLE local_name prefixes that identify a Stagg kettle (must match manifest bluetooth matchers)
 BLE_NAME_PREFIXES = ("stagg", "ekg", "fellow")
+
+# GATT characteristic that holds WiFi IP as first 4 bytes (binary IPv4). Service 7aebf330-...
+BLE_WIFI_IP_CHAR_UUID = "2291c4b4-5d7f-4477-a88b-b266edb97142"
 
 # IPv4 pattern for matching IP from BLE characteristic or manufacturer data
 _IPV4_RE = re.compile(r"\b(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b")
@@ -74,6 +78,18 @@ async def _probe_kettle(session: Any, base_url: str) -> bool:
         return False
 
 
+def _parse_binary_ipv4(data: bytes) -> str | None:
+    """Parse first 4 bytes as binary IPv4; return dotted string only if private/link-local."""
+    if not data or len(data) < 4:
+        return None
+    a, b, c, d = data[0], data[1], data[2], data[3]
+    ip = f"{a}.{b}.{c}.{d}"
+    # Accept only private/link-local: 10.x, 172.16-31.x, 192.168.x, 169.254.x
+    if (a == 10) or (a == 172 and 16 <= b <= 31) or (a == 192 and b == 168) or (a == 169 and b == 254):
+        return ip
+    return None
+
+
 def _extract_ip_from_data(data: bytes) -> str | None:
     """Try to find an IPv4 address in raw bytes (e.g. manufacturer data or GATT value)."""
     if not data:
@@ -114,21 +130,35 @@ async def _try_get_wifi_ip_from_ble(hass: Any, address: str) -> str | None:
         async with BleakClient(ble_device, timeout=8.0) as client:
             if not client.is_connected:
                 return None
-            for service in client.services:
-                for char in service.characteristics:
-                    if "read" not in char.properties:
-                        continue
-                    try:
-                        value = await asyncio.wait_for(client.read_gatt_char(char.uuid), timeout=3.0)
-                        if isinstance(value, (bytes, bytearray)):
-                            ip = _extract_ip_from_data(bytes(value))
-                            if ip:
-                                ip_found = ip
-                                break
-                    except (asyncio.TimeoutError, Exception):
-                        continue
-                if ip_found:
-                    break
+            # Prefer Stagg's known WiFi IP characteristic (first 4 bytes = binary IPv4)
+            try:
+                value = await asyncio.wait_for(
+                    client.read_gatt_char(BLE_WIFI_IP_CHAR_UUID), timeout=3.0
+                )
+                if isinstance(value, (bytes, bytearray)) and len(value) >= 4:
+                    ip_found = _parse_binary_ipv4(bytes(value))
+            except (asyncio.TimeoutError, Exception):
+                pass
+            # Fallback: scan all readable characteristics for text or binary IP
+            if not ip_found:
+                for service in client.services:
+                    for char in service.characteristics:
+                        if "read" not in char.properties:
+                            continue
+                        try:
+                            value = await asyncio.wait_for(
+                                client.read_gatt_char(char.uuid), timeout=3.0
+                            )
+                            if isinstance(value, (bytes, bytearray)):
+                                ip_found = _parse_binary_ipv4(bytes(value))
+                                if not ip_found:
+                                    ip_found = _extract_ip_from_data(bytes(value))
+                                if ip_found:
+                                    break
+                        except (asyncio.TimeoutError, Exception):
+                            continue
+                    if ip_found:
+                        break
     except (asyncio.TimeoutError, Exception):
         pass
     if ip_found:
@@ -205,6 +235,17 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # If not in advertisement, try connecting and reading GATT characteristics
         if not suggested_url and address:
             suggested_url = await _try_get_wifi_ip_from_ble(self.hass, address)
+
+        # Auto-create entry when we have a URL and the kettle responds (true auto-discovery)
+        if suggested_url:
+            session = async_get_clientsession(self.hass)
+            if await _probe_kettle(session, suggested_url):
+                await self.async_set_unique_id(suggested_url)
+                self._abort_if_unique_id_configured(updates={"base_url": suggested_url})
+                return self.async_create_entry(
+                    title=f"Fellow Stagg ({suggested_url})",
+                    data={"base_url": suggested_url},
+                )
 
         return await self.async_step_bluetooth_configure(suggested_url)
 
@@ -289,6 +330,16 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not suggested_url:
                     suggested_url = await _try_get_wifi_ip_from_ble(self.hass, choice)
                 self.context["ble_suggested_url"] = suggested_url or None
+                # Auto-create if we have URL and kettle responds
+                if suggested_url:
+                    session = async_get_clientsession(self.hass)
+                    if await _probe_kettle(session, suggested_url):
+                        await self.async_set_unique_id(suggested_url)
+                        self._abort_if_unique_id_configured(updates={"base_url": suggested_url})
+                        return self.async_create_entry(
+                            title=f"Fellow Stagg ({suggested_url})",
+                            data={"base_url": suggested_url},
+                        )
                 return await self.async_step_bluetooth_configure(suggested_url)
 
         # Show form: dropdown of devices + "Enter URL manually", or just URL if none found
