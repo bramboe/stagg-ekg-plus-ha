@@ -263,6 +263,9 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         address = getattr(discovery_info, "address", None) or ""
         if not address:
             return self.async_abort(reason="invalid_discovery_info")
+        # Set unique_id so HA shows the discovery card and can offer Ignore/Add
+        await self.async_set_unique_id(f"ble:{address}")
+        self._abort_if_unique_id_configured()
         self.context["ble_name"] = name
         self.context["ble_address"] = address
 
