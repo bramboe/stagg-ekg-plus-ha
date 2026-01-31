@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import re
 from typing import Any
 
@@ -13,7 +12,6 @@ from homeassistant.components.bluetooth import (
     async_discovered_service_info,
     BluetoothServiceInfoBleak,
 )
-from homeassistant.components import persistent_notification
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
@@ -25,13 +23,8 @@ from homeassistant.helpers.selector import (
 
 from .const import DOMAIN
 
-_LOGGER = logging.getLogger(__name__)
-
 # BLE local_name prefixes that identify a Stagg kettle (must match manifest bluetooth matchers)
 BLE_NAME_PREFIXES = ("stagg", "ekg", "fellow")
-
-# Service UUID from manifest; devices advertising this are Stagg kettles even without matching name
-BLE_STAGG_SERVICE_UUID = "021a9004-0382-4aea-bff4-6b3f1c5adfb4"
 
 # GATT characteristic that holds WiFi IP as first 4 bytes (binary IPv4). Service 7aebf330-...
 BLE_WIFI_IP_CHAR_UUID = "2291c4b4-5d7f-4477-a88b-b266edb97142"
@@ -46,15 +39,12 @@ CLI_PROBE_CMD = "state"
 CLI_PROBE_TIMEOUT = 4
 
 
-def _is_stagg_ble_device(name: str | None, service_uuids: list[str] | None = None) -> bool:
-    """Return True if the BLE device is a Stagg kettle (name or service_uuid match)."""
-    if name and isinstance(name, str):
-        n = name.strip().lower()
-        if any(n.startswith(p) for p in BLE_NAME_PREFIXES):
-            return True
-    if service_uuids and BLE_STAGG_SERVICE_UUID.lower() in [u.lower() for u in service_uuids]:
-        return True
-    return False
+def _is_stagg_ble_device(name: str | None) -> bool:
+    """Return True if the BLE device name matches a Stagg kettle (Stagg*, EKG*, Fellow*)."""
+    if not name or not isinstance(name, str):
+        return False
+    n = name.strip().lower()
+    return any(n.startswith(p) for p in BLE_NAME_PREFIXES)
 
 
 def _build_base_url(host: str, port: int | None) -> str:
@@ -262,23 +252,10 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Use base_url as unique_id so rediscovery with same IP updates the entry
         await self.async_set_unique_id(base_url)
-        # Allow rediscovery when the only existing entry is "ignored" (user can add it again)
-        existing = self.hass.config_entries.async_entry_for_domain_unique_id(
-            self.handler, self.unique_id
-        )
-        if existing is None or existing.source != config_entries.SOURCE_IGNORE:
-            self._abort_if_unique_id_configured(updates={"base_url": base_url})
+        self._abort_if_unique_id_configured(updates={"base_url": base_url})
 
         self.context["title_placeholders"] = {"base_url": base_url}
         self.context["zeroconf_base_url"] = base_url
-        # Notify in the notification sidebar
-        persistent_notification.async_create(
-            self.hass,
-            f"A Fellow Stagg kettle was discovered at **{base_url}**.\n\n"
-            "Go to **Settings** → **Devices & services** → **Discovered** to add or ignore it.",
-            title="Fellow Stagg kettle discovered",
-            notification_id=f"fellow_stagg_discovery_{base_url}",
-        )
         # confirm_only + empty schema: discovery card shows Add and Ignore as two buttons
         self._set_confirm_only()
         return self.async_show_form(
@@ -291,34 +268,15 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, discovery_info: BluetoothServiceInfoBleak | dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle BLE discovery: Stagg kettle found; try to get WiFi URL, then ask user to confirm or enter URL."""
-        # Debug: log when discovery is invoked (enable logger custom_components.fellow_stagg at DEBUG to see)
-        if discovery_info is not None:
-            addr = (
-                discovery_info.get("address", "") if isinstance(discovery_info, dict)
-                else (getattr(discovery_info, "address", None) or "")
-            )
-            name = (
-                discovery_info.get("name", "") if isinstance(discovery_info, dict)
-                else (getattr(discovery_info, "name", None) or "")
-            )
-            svc = (
-                discovery_info.get("service_uuids", []) if isinstance(discovery_info, dict)
-                else (getattr(discovery_info, "service_uuids", None) or [])
-            )
-            _LOGGER.debug(
-                "Bluetooth discovery: address=%s name=%s service_uuids=%s",
-                addr, name, svc,
-            )
-        # Form submit: user clicked Add (dict without address, or None when we already have unique_id)
-        is_form_submit = discovery_info is None or (
-            isinstance(discovery_info, dict) and "address" not in discovery_info
-        )
-        if is_form_submit:
-            user_input = discovery_info if isinstance(discovery_info, dict) else {}
+        # Form submit from same step (user clicked Add; Ignore is handled by discovery card)
+        if isinstance(discovery_info, dict) and "address" not in discovery_info:
+            user_input = discovery_info
+            # Use context or unique_id when it's a URL (we set unique_id=suggested_url when we had one)
             suggested_url = self.context.get("ble_suggested_url") or (
                 self.unique_id if self.unique_id and str(self.unique_id).startswith("http") else None
             )
             if suggested_url:
+                # We showed empty form; user clicked Add → create with suggested_url
                 return self.async_create_entry(
                     title=f"Fellow Stagg ({suggested_url})",
                     data={"base_url": suggested_url},
@@ -352,28 +310,16 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data={"base_url": base_url},
             )
 
-        # Initial discovery: get address (dict uses .get, object uses getattr)
-        address = (
-            discovery_info.get("address", "") if isinstance(discovery_info, dict)
-            else (getattr(discovery_info, "address", None) or "")
-        )
-        if not address:
+        if not discovery_info or not getattr(discovery_info, "address", None):
             return self.async_abort(reason="invalid_discovery_info")
-        name = (
-            discovery_info.get("name", "") if isinstance(discovery_info, dict)
-            else (getattr(discovery_info, "name", None) or "")
-        )
-        name = (name or "").strip() or "Stagg kettle"
+        name = (getattr(discovery_info, "name", None) or "").strip() or "Stagg kettle"
+        address = getattr(discovery_info, "address", None) or ""
         self.context["ble_name"] = name
         self.context["ble_address"] = address
 
         # Try to find IP in manufacturer / advertisement data (no connection)
         suggested_url: str | None = None
-        manufacturer_data = (
-            discovery_info.get("manufacturer_data", {}) if isinstance(discovery_info, dict)
-            else (getattr(discovery_info, "manufacturer_data", None) or {})
-        )
-        for _mid, data in manufacturer_data.items():
+        for _mid, data in (getattr(discovery_info, "manufacturer_data", None) or {}).items():
             if isinstance(data, (bytes, bytearray)):
                 ip = _extract_ip_from_data(bytes(data))
                 if ip:
@@ -388,19 +334,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Set unique_id so the discovery card shows the Ignore button (frontend requires it)
         if suggested_url:
             await self.async_set_unique_id(suggested_url)
-            existing = self.hass.config_entries.async_entry_for_domain_unique_id(
-                self.handler, self.unique_id
-            )
-            if existing is None or existing.source != config_entries.SOURCE_IGNORE:
-                self._abort_if_unique_id_configured(updates={"base_url": suggested_url})
-            # Notify in the notification sidebar
-            persistent_notification.async_create(
-                self.hass,
-                f"**{name}** was discovered ({suggested_url}).\n\n"
-                "Go to **Settings** → **Devices & services** → **Discovered** to add or ignore it.",
-                title="Fellow Stagg kettle discovered",
-                notification_id=f"fellow_stagg_discovery_{suggested_url}",
-            )
+            self._abort_if_unique_id_configured(updates={"base_url": suggested_url})
             self._set_confirm_only()
             # Empty schema: discovery card shows Add and Ignore as two buttons
             return self.async_show_form(
@@ -413,19 +347,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         # No URL yet: use BLE address as unique_id so Ignore button still appears
         await self.async_set_unique_id(f"ble:{address}")
-        existing = self.hass.config_entries.async_entry_for_domain_unique_id(
-            self.handler, self.unique_id
-        )
-        if existing is None or existing.source != config_entries.SOURCE_IGNORE:
-            self._abort_if_unique_id_configured()
-        # Notify in the notification sidebar
-        persistent_notification.async_create(
-            self.hass,
-            f"**{name}** was discovered via Bluetooth.\n\n"
-            "Go to **Settings** → **Devices & services** → **Discovered** to add it (you may need to enter its HTTP URL) or ignore it.",
-            title="Fellow Stagg kettle discovered",
-            notification_id=f"fellow_stagg_discovery_ble_{address}",
-        )
+        self._abort_if_unique_id_configured()
         return self.async_show_form(
             step_id="bluetooth",
             data_schema=_bluetooth_schema("", ""),
@@ -487,13 +409,11 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step: pick a discovered BLE device or enter URL manually."""
-        # Build list of discovered Stagg/EKG/Fellow BLE devices (by name or service_uuid)
+        # Build list of discovered Stagg/EKG/Fellow BLE devices
         discovered: dict[str, str] = {}
-        for connectable in (True, False):
-            for info in async_discovered_service_info(self.hass, connectable=connectable):
-                service_uuids = getattr(info, "service_uuids", None) or []
-                if _is_stagg_ble_device(info.name, service_uuids):
-                    discovered[info.address] = info.name or info.address
+        for info in async_discovered_service_info(self.hass):
+            if _is_stagg_ble_device(info.name):
+                discovered[info.address] = info.name or info.address
 
         if user_input is not None:
             choice = (user_input.get("device_or_manual") or "").strip()
@@ -504,7 +424,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.context["ble_name"] = discovered[choice]
                 self.context["ble_address"] = choice
                 suggested_url: str | None = None
-                for info in async_discovered_service_info(self.hass, connectable=True):
+                for info in async_discovered_service_info(self.hass):
                     if info.address == choice:
                         for _mid, data in (getattr(info, "manufacturer_data", None) or {}).items():
                             if isinstance(data, (bytes, bytearray)):
