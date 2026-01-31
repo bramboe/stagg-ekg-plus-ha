@@ -23,7 +23,6 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
-    CONF_BLUETOOTH_ADDRESS,
     DOMAIN,
     OPT_POLLING_INTERVAL,
     OPT_POLLING_INTERVAL_COUNTDOWN,
@@ -53,18 +52,6 @@ def _is_stagg_ble_device(name: str | None) -> bool:
         return False
     n = name.strip().lower()
     return any(n.startswith(p) for p in BLE_NAME_PREFIXES)
-
-
-def _normalize_ble_address(address: str | None) -> str | None:
-    """Normalize BLE MAC to lowercase with colons (aa:bb:cc:dd:ee:ff)."""
-    if not address or not isinstance(address, str):
-        return None
-    s = address.strip().lower().replace("-", ":")
-    if len(s) == 17 and s.count(":") == 5:
-        return s
-    if len(s) == 12 and s.isalnum():
-        return ":".join(s[i : i + 2] for i in range(0, 12, 2))
-    return s if s else None
 
 
 def _build_base_url(host: str, port: int | None) -> str:
@@ -353,14 +340,9 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.unique_id if self.unique_id and str(self.unique_id).startswith("http") else None
             )
             if suggested_url:
-                data: dict[str, Any] = {"base_url": suggested_url}
-                if self.context.get("ble_address"):
-                    addr = _normalize_ble_address(self.context["ble_address"])
-                    if addr:
-                        data[CONF_BLUETOOTH_ADDRESS] = addr
                 return self.async_create_entry(
                     title=f"Fellow Stagg ({suggested_url})",
-                    data=data,
+                    data={"base_url": suggested_url},
                 )
             base_url = (user_input.get("base_url") or "").strip()
             if not base_url:
@@ -386,14 +368,9 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
             await self.async_set_unique_id(base_url)
             self._abort_if_unique_id_configured()
-            data = {"base_url": base_url}
-            if self.context.get("ble_address"):
-                addr = _normalize_ble_address(self.context["ble_address"])
-                if addr:
-                    data[CONF_BLUETOOTH_ADDRESS] = addr
             return self.async_create_entry(
                 title=f"Fellow Stagg ({base_url})",
-                data=data,
+                data={"base_url": base_url},
             )
 
         # Initial discovery: get address (dict uses .get, object uses getattr)
@@ -492,14 +469,9 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 else:
                     await self.async_set_unique_id(base_url)
                     self._abort_if_unique_id_configured()
-                    data = {"base_url": base_url}
-                    if self.context.get("ble_address"):
-                        addr = _normalize_ble_address(self.context["ble_address"])
-                        if addr:
-                            data[CONF_BLUETOOTH_ADDRESS] = addr
                     return self.async_create_entry(
                         title=f"Fellow Stagg ({base_url})",
-                        data=data,
+                        data={"base_url": base_url},
                     )
             suggested_url = self.context.get("ble_suggested_url")
         else:
