@@ -1,12 +1,12 @@
 {
   "domain": "fellow_stagg",
   "name": "Fellow Stagg EKG Pro (HTTP CLI)",
-  "codeowners": ["@levi"],
+  "codeowners": ["@bramboe"],
   "config_flow": true,
   "dependencies": ["frontend", "http"],
-  "documentation": "https://github.com/levi/stagg-ekg-plus",
+  "documentation": "https://github.com/bramboe/stagg-ekg-plus-ha",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/levi/stagg-ekg-plus/issues",
+  "issue_tracker": "https://github.com/bramboe/stagg-ekg-plus-ha/issues",
   "requirements": [],
   "version": "0.3.30",
   "zeroconf": ["_http._tcp.local."]
