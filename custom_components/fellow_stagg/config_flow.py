@@ -253,7 +253,12 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Use base_url as unique_id so rediscovery with same IP updates the entry
         await self.async_set_unique_id(base_url)
-        self._abort_if_unique_id_configured(updates={"base_url": base_url})
+        # Allow rediscovery when the only existing entry is "ignored" (user can add it again)
+        existing = self.hass.config_entries.async_entry_for_domain_unique_id(
+            self.handler, self.unique_id
+        )
+        if existing is None or existing.source != config_entries.SOURCE_IGNORE:
+            self._abort_if_unique_id_configured(updates={"base_url": base_url})
 
         self.context["title_placeholders"] = {"base_url": base_url}
         self.context["zeroconf_base_url"] = base_url
@@ -356,7 +361,11 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Set unique_id so the discovery card shows the Ignore button (frontend requires it)
         if suggested_url:
             await self.async_set_unique_id(suggested_url)
-            self._abort_if_unique_id_configured(updates={"base_url": suggested_url})
+            existing = self.hass.config_entries.async_entry_for_domain_unique_id(
+                self.handler, self.unique_id
+            )
+            if existing is None or existing.source != config_entries.SOURCE_IGNORE:
+                self._abort_if_unique_id_configured(updates={"base_url": suggested_url})
             # Notify in the notification sidebar
             persistent_notification.async_create(
                 self.hass,
@@ -377,7 +386,11 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         # No URL yet: use BLE address as unique_id so Ignore button still appears
         await self.async_set_unique_id(f"ble:{address}")
-        self._abort_if_unique_id_configured()
+        existing = self.hass.config_entries.async_entry_for_domain_unique_id(
+            self.handler, self.unique_id
+        )
+        if existing is None or existing.source != config_entries.SOURCE_IGNORE:
+            self._abort_if_unique_id_configured()
         # Notify in the notification sidebar
         persistent_notification.async_create(
             self.hass,
