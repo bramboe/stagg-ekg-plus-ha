@@ -9,5 +9,10 @@
   "issue_tracker": "https://github.com/bramboe/stagg-ekg-plus-ha/issues",
   "requirements": [],
   "version": "0.3.30",
-  "zeroconf": ["_http._tcp.local."]
+  "zeroconf": ["_http._tcp.local."],
+  "bluetooth": [
+    { "local_name": "Stagg*" },
+    { "local_name": "EKG*" },
+    { "local_name": "Fellow*" }
+  ]
 }
