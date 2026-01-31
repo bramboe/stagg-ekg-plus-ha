@@ -12,6 +12,7 @@ from homeassistant.components.bluetooth import (
     async_discovered_service_info,
     BluetoothServiceInfoBleak,
 )
+from homeassistant.components import persistent_notification
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
@@ -21,7 +22,13 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    OPT_POLLING_INTERVAL,
+    OPT_POLLING_INTERVAL_COUNTDOWN,
+    POLLING_INTERVAL_COUNTDOWN_SECONDS,
+    POLLING_INTERVAL_SECONDS,
+)
 
 # BLE local_name prefixes that identify a Stagg kettle (must match manifest bluetooth matchers)
 BLE_NAME_PREFIXES = ("stagg", "ekg", "fellow")
@@ -55,6 +62,23 @@ def _build_base_url(host: str, port: int | None) -> str:
     if port and port != 80:
         return f"http://{host}:{port}"
     return f"http://{host}"
+
+
+def _bluetooth_schema(default_suggested: str, default_url: str) -> vol.Schema:
+    """Schema for BLE discovery step: action (Add/Ignore) + base_url."""
+    default = default_url.strip() or default_suggested
+    return vol.Schema({
+        vol.Required("action", default="add"): SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value="add", label="Add this device"),
+                    SelectOptionDict(value="ignore", label="Ignore"),
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        vol.Required("base_url", default=default): str,
+    })
 
 
 def _looks_like_kettle_cli(body: str) -> bool:
@@ -181,17 +205,81 @@ async def _try_get_wifi_ip_from_ble(hass: Any, address: str) -> str | None:
     return None
 
 
+def _options_schema(entry: config_entries.ConfigEntry) -> vol.Schema:
+    """Build options schema with current values as defaults."""
+    options = entry.options or {}
+    return vol.Schema(
+        {
+            vol.Required(
+                OPT_POLLING_INTERVAL,
+                default=options.get(OPT_POLLING_INTERVAL, POLLING_INTERVAL_SECONDS),
+            ): vol.All(vol.Coerce(int), vol.Range(min=3, max=120)),
+            vol.Required(
+                OPT_POLLING_INTERVAL_COUNTDOWN,
+                default=options.get(
+                    OPT_POLLING_INTERVAL_COUNTDOWN, POLLING_INTERVAL_COUNTDOWN_SECONDS
+                ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=15)),
+        }
+    )
+
+
+class FellowStaggOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle Fellow Stagg options (polling intervals)."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage options."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title=self.config_entry.title,
+                data=self.config_entry.data,
+                options=user_input,
+            )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=_options_schema(self.config_entry),
+        )
+
+
 class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Fellow Stagg integration."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
+    @staticmethod
+    async def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> FellowStaggOptionsFlowHandler:
+        """Return the options flow handler."""
+        return FellowStaggOptionsFlowHandler(config_entry)
+
     async def async_step_zeroconf(
-        self, discovery_info: Any
+        self, discovery_info: Any = None
     ) -> FlowResult:
         """Handle mDNS discovery: probe _http._tcp services for our kettle CLI."""
+        # Form submit from same step (user clicked Add; Ignore is handled by discovery card)
+        is_form_submit = (
+            discovery_info is None
+            or (isinstance(discovery_info, dict) and "host" not in discovery_info)
+        )
+        if is_form_submit and self.unique_id:
+            # We already showed the form; unique_id was set to base_url
+            base_url = self.context.get("zeroconf_base_url") or self.unique_id
+            if base_url:
+                return self.async_create_entry(
+                    title=f"Fellow Stagg ({base_url})",
+                    data={"base_url": base_url},
+                )
+
         def _get(key: str, default: Any = ""):
+            if discovery_info is None:
+                return default
             if hasattr(discovery_info, key):
                 return getattr(discovery_info, key) or default
             if isinstance(discovery_info, dict):
@@ -223,52 +311,90 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         self.context["title_placeholders"] = {"base_url": base_url}
         self.context["zeroconf_base_url"] = base_url
-        return await self.async_step_zeroconf_confirm()
-
-    async def async_step_zeroconf_confirm(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Confirm adding the discovered Fellow Stagg kettle (zeroconf)."""
-        base_url = self.context.get("zeroconf_base_url")
-        if not base_url:
-            return self.async_abort(reason="invalid_discovery_info")
-        if user_input is not None:
-            if user_input.get("action") == "ignore":
-                return self.async_abort(reason="ignored")
-            return self.async_create_entry(
-                title=f"Fellow Stagg ({base_url})",
-                data={"base_url": base_url},
-            )
+        # confirm_only + empty schema: discovery card shows Add and Ignore as two buttons
+        self._set_confirm_only()
+        persistent_notification.async_create(
+            self.hass,
+            f"A Fellow Stagg kettle was discovered at **{base_url}**.\n\n"
+            "[**Add or ignore in Discovered**](/config/integrations)",
+            title="Fellow Stagg kettle discovered",
+            notification_id=f"fellow_stagg_discovery_{base_url}",
+        )
         return self.async_show_form(
-            step_id="zeroconf_confirm",
-            data_schema=vol.Schema({
-                vol.Required("action", default="add"): SelectSelector(
-                    SelectSelectorConfig(
-                        options=[
-                            SelectOptionDict(value="add", label="Add this device"),
-                            SelectOptionDict(value="ignore", label="Ignore"),
-                        ],
-                        mode=SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-            }),
+            step_id="zeroconf",
+            data_schema=vol.Schema({}),
             description_placeholders={"base_url": base_url},
         )
 
     async def async_step_bluetooth(
-        self, discovery_info: BluetoothServiceInfoBleak
+        self, discovery_info: BluetoothServiceInfoBleak | dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle BLE discovery: Stagg kettle found; try to get WiFi URL, then ask user to confirm or enter URL."""
-        name = (getattr(discovery_info, "name", None) or "").strip() or "Stagg kettle"
-        address = getattr(discovery_info, "address", None) or ""
+        # Form submit: user clicked Add (dict without address, or None when we already have unique_id)
+        is_form_submit = discovery_info is None or (
+            isinstance(discovery_info, dict) and "address" not in discovery_info
+        )
+        if is_form_submit:
+            user_input = discovery_info if isinstance(discovery_info, dict) else {}
+            suggested_url = self.context.get("ble_suggested_url") or (
+                self.unique_id if self.unique_id and str(self.unique_id).startswith("http") else None
+            )
+            if suggested_url:
+                return self.async_create_entry(
+                    title=f"Fellow Stagg ({suggested_url})",
+                    data={"base_url": suggested_url},
+                )
+            base_url = (user_input.get("base_url") or "").strip()
+            if not base_url:
+                return self.async_show_form(
+                    step_id="bluetooth",
+                    data_schema=_bluetooth_schema("", user_input.get("base_url", "")),
+                    errors={"base_url": "required"},
+                    description_placeholders={
+                        "name": self.context.get("ble_name", "Stagg kettle"),
+                        "hint": "Find the IP in your router or on the kettle's WiFi settings, then enter http://IP",
+                    },
+                )
+            session = async_get_clientsession(self.hass)
+            if not await _probe_kettle(session, base_url):
+                return self.async_show_form(
+                    step_id="bluetooth",
+                    data_schema=_bluetooth_schema("", base_url),
+                    errors={"base_url": "not_fellow_stagg"},
+                    description_placeholders={
+                        "name": self.context.get("ble_name", "Stagg kettle"),
+                        "hint": "Find the IP in your router or on the kettle's WiFi settings, then enter http://IP",
+                    },
+                )
+            await self.async_set_unique_id(base_url)
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(
+                title=f"Fellow Stagg ({base_url})",
+                data={"base_url": base_url},
+            )
+
+        # Initial discovery: get address (dict uses .get, object uses getattr)
+        address = (
+            discovery_info.get("address", "") if isinstance(discovery_info, dict)
+            else (getattr(discovery_info, "address", None) or "")
+        )
         if not address:
             return self.async_abort(reason="invalid_discovery_info")
+        name = (
+            discovery_info.get("name", "") if isinstance(discovery_info, dict)
+            else (getattr(discovery_info, "name", None) or "")
+        )
+        name = (name or "").strip() or "Stagg kettle"
         self.context["ble_name"] = name
         self.context["ble_address"] = address
 
         # Try to find IP in manufacturer / advertisement data (no connection)
         suggested_url: str | None = None
-        for _mid, data in (getattr(discovery_info, "manufacturer_data", None) or {}).items():
+        manufacturer_data = (
+            discovery_info.get("manufacturer_data", {}) if isinstance(discovery_info, dict)
+            else (getattr(discovery_info, "manufacturer_data", None) or {})
+        )
+        for _mid, data in manufacturer_data.items():
             if isinstance(data, (bytes, bytearray)):
                 ip = _extract_ip_from_data(bytes(data))
                 if ip:
@@ -279,8 +405,45 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not suggested_url and address:
             suggested_url = await _try_get_wifi_ip_from_ble(self.hass, address)
 
-        # Let user confirm or enter URL (discovery only; no auto-add)
-        return await self.async_step_bluetooth_configure(suggested_url)
+        self.context["ble_suggested_url"] = suggested_url or None
+        # Set unique_id so the discovery card shows the Ignore button (frontend requires it)
+        if suggested_url:
+            await self.async_set_unique_id(suggested_url)
+            self._abort_if_unique_id_configured(updates={"base_url": suggested_url})
+            self._set_confirm_only()
+            persistent_notification.async_create(
+                self.hass,
+                f"A Fellow Stagg kettle (**{name}**) was discovered at **{suggested_url}**.\n\n"
+                "[**Add or ignore in Discovered**](/config/integrations)",
+                title="Fellow Stagg kettle discovered",
+                notification_id=f"fellow_stagg_discovery_{suggested_url}",
+            )
+            return self.async_show_form(
+                step_id="bluetooth",
+                data_schema=vol.Schema({}),
+                description_placeholders={
+                    "name": name,
+                    "hint": "Find the IP in your router or on the kettle's WiFi settings, then enter http://IP",
+                },
+            )
+        # No URL yet: use BLE address as unique_id so Ignore button still appears
+        await self.async_set_unique_id(f"ble:{address}")
+        self._abort_if_unique_id_configured()
+        persistent_notification.async_create(
+            self.hass,
+            f"A Fellow Stagg kettle (**{name}**) was discovered via Bluetooth.\n\n"
+            "[**Add or ignore in Discovered**](/config/integrations)",
+            title="Fellow Stagg kettle discovered",
+            notification_id=f"fellow_stagg_discovery_ble_{address}",
+        )
+        return self.async_show_form(
+            step_id="bluetooth",
+            data_schema=_bluetooth_schema("", ""),
+            description_placeholders={
+                "name": name,
+                "hint": "Find the IP in your router or on the kettle's WiFi settings, then enter http://IP",
+            },
+        )
 
     async def async_step_bluetooth_configure(
         self, user_input: dict[str, Any] | str | None = None
@@ -318,23 +481,11 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         default_url = suggested_url or ""
         if isinstance(user_input, dict) and user_input:
             default_url = (user_input.get("base_url") or "").strip() or default_url
-        schema = vol.Schema({
-            vol.Required("action", default="add"): SelectSelector(
-                SelectSelectorConfig(
-                    options=[
-                        SelectOptionDict(value="add", label="Add this device"),
-                        SelectOptionDict(value="ignore", label="Ignore"),
-                    ],
-                    mode=SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            vol.Required("base_url", default=default_url): str,
-        })
         if suggested_url:
             self._set_confirm_only()
         return self.async_show_form(
             step_id="bluetooth_configure",
-            data_schema=schema,
+            data_schema=_bluetooth_schema(suggested_url or "", default_url),
             errors=errors,
             description_placeholders={
                 "name": name,
