@@ -209,16 +209,22 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle mDNS discovery: probe _http._tcp services for our kettle CLI."""
         # Form submit from same step (user clicked Add; Ignore is handled by discovery card)
-        if isinstance(discovery_info, dict) and "host" not in discovery_info:
-            base_url = self.context.get("zeroconf_base_url")
-            if not base_url:
-                return self.async_abort(reason="invalid_discovery_info")
-            return self.async_create_entry(
-                title=f"Fellow Stagg ({base_url})",
-                data={"base_url": base_url},
-            )
+        is_form_submit = (
+            discovery_info is None
+            or (isinstance(discovery_info, dict) and "host" not in discovery_info)
+        )
+        if is_form_submit and self.unique_id:
+            # We already showed the form; unique_id was set to base_url
+            base_url = self.context.get("zeroconf_base_url") or self.unique_id
+            if base_url:
+                return self.async_create_entry(
+                    title=f"Fellow Stagg ({base_url})",
+                    data={"base_url": base_url},
+                )
 
         def _get(key: str, default: Any = ""):
+            if discovery_info is None:
+                return default
             if hasattr(discovery_info, key):
                 return getattr(discovery_info, key) or default
             if isinstance(discovery_info, dict):
@@ -265,7 +271,10 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Form submit from same step (user clicked Add; Ignore is handled by discovery card)
         if isinstance(discovery_info, dict) and "address" not in discovery_info:
             user_input = discovery_info
-            suggested_url = self.context.get("ble_suggested_url")
+            # Use context or unique_id when it's a URL (we set unique_id=suggested_url when we had one)
+            suggested_url = self.context.get("ble_suggested_url") or (
+                self.unique_id if self.unique_id and str(self.unique_id).startswith("http") else None
+            )
             if suggested_url:
                 # We showed empty form; user clicked Add → create with suggested_url
                 return self.async_create_entry(
