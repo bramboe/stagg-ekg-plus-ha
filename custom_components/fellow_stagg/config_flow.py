@@ -282,15 +282,22 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not suggested_url and address:
             suggested_url = await _try_get_wifi_ip_from_ble(self.hass, address)
 
-        # Let user confirm or enter URL (discovery only; no auto-add)
+        # If we have a URL from BLE, probe it; if probe succeeds we can auto-add on confirm (no URL input)
+        if suggested_url:
+            session = async_get_clientsession(self.hass)
+            if await _probe_kettle(session, suggested_url):
+                self.context["ble_verified_base_url"] = suggested_url
+
         return await self.async_step_bluetooth_configure(suggested_url)
 
     async def async_step_bluetooth_configure(
         self, user_input: dict[str, Any] | str | None = None
     ) -> FlowResult:
-        """Form to enter or confirm base URL after BLE discovery."""
+        """Form to enter or confirm base URL after BLE discovery. When URL was verified (probe OK), show Add/Ignore only (auto-discovery)."""
         errors: dict[str, str] = {}
         suggested_url: str | None = None
+        verified_url: str | None = self.context.get("ble_verified_base_url")
+
         if isinstance(user_input, str):
             suggested_url = user_input or None
             if suggested_url:
@@ -299,6 +306,14 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         elif isinstance(user_input, dict):
             if user_input.get("action") == "ignore":
                 return self.async_abort(reason="ignored")
+            # Auto-discovery: verified URL from BLE + probe success → no base_url field, create entry on Add
+            if verified_url:
+                await self.async_set_unique_id(verified_url)
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title=f"Fellow Stagg ({verified_url})",
+                    data={"base_url": verified_url},
+                )
             base_url = (user_input.get("base_url") or "").strip()
             if not base_url:
                 errors["base_url"] = "required"
@@ -318,6 +333,28 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             suggested_url = self.context.get("ble_suggested_url")
 
         name = self.context.get("ble_name", "Stagg kettle")
+        # When we have a verified URL (probe succeeded), show confirm-only: Add/Ignore, no URL input
+        if verified_url:
+            self._set_confirm_only()
+            return self.async_show_form(
+                step_id="bluetooth_configure",
+                data_schema=vol.Schema({
+                    vol.Required("action", default="add"): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(value="add", label="Add this device"),
+                                SelectOptionDict(value="ignore", label="Ignore"),
+                            ],
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
+                }),
+                description_placeholders={
+                    "name": name,
+                    "base_url": verified_url,
+                },
+            )
+
         default_url = suggested_url or ""
         if isinstance(user_input, dict) and user_input:
             default_url = (user_input.get("base_url") or "").strip() or default_url
@@ -360,7 +397,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if choice == "__manual__":
                 return await self.async_step_user_manual()
             if choice in discovered:
-                # User picked a BLE device: set context and try to get URL, then show bluetooth_configure
+                # User picked a BLE device: set context, get URL from BLE, probe it; then show bluetooth_configure
                 self.context["ble_name"] = discovered[choice]
                 self.context["ble_address"] = choice
                 suggested_url: str | None = None
@@ -376,6 +413,11 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not suggested_url:
                     suggested_url = await _try_get_wifi_ip_from_ble(self.hass, choice)
                 self.context["ble_suggested_url"] = suggested_url or None
+                # If we have a URL from BLE, probe it; if success we can show confirm-only (auto-discovery)
+                if suggested_url:
+                    session = async_get_clientsession(self.hass)
+                    if await _probe_kettle(session, suggested_url):
+                        self.context["ble_verified_base_url"] = suggested_url
                 return await self.async_step_bluetooth_configure(suggested_url)
 
         # Show form: dropdown of devices + "Enter URL manually", or just URL if none found
