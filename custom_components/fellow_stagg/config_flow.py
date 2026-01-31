@@ -121,46 +121,61 @@ async def _try_get_wifi_ip_from_ble(hass: Any, address: str) -> str | None:
         return None
 
     try:
-        from bleak import BleakClient
+        from bleak_retry_connector import (
+            BleakClientWithServiceCache,
+            establish_connection,
+        )
     except ImportError:
         return None
 
     ip_found: str | None = None
+    client = None
     try:
-        async with BleakClient(ble_device, timeout=8.0) as client:
-            if not client.is_connected:
-                return None
-            # Prefer Stagg's known WiFi IP characteristic (first 4 bytes = binary IPv4)
-            try:
-                value = await asyncio.wait_for(
-                    client.read_gatt_char(BLE_WIFI_IP_CHAR_UUID), timeout=3.0
-                )
-                if isinstance(value, (bytes, bytearray)) and len(value) >= 4:
-                    ip_found = _parse_binary_ipv4(bytes(value))
-            except (asyncio.TimeoutError, Exception):
-                pass
-            # Fallback: scan all readable characteristics for text or binary IP
-            if not ip_found:
-                for service in client.services:
-                    for char in service.characteristics:
-                        if "read" not in char.properties:
-                            continue
-                        try:
-                            value = await asyncio.wait_for(
-                                client.read_gatt_char(char.uuid), timeout=3.0
-                            )
-                            if isinstance(value, (bytes, bytearray)):
-                                ip_found = _parse_binary_ipv4(bytes(value))
-                                if not ip_found:
-                                    ip_found = _extract_ip_from_data(bytes(value))
-                                if ip_found:
-                                    break
-                        except (asyncio.TimeoutError, Exception):
-                            continue
-                    if ip_found:
-                        break
+        client = await establish_connection(
+            BleakClientWithServiceCache,
+            ble_device,
+            ble_device.name or ble_device.address or address,
+            timeout=8.0,
+        )
+        if not client.is_connected:
+            return None
+        # Prefer Stagg's known WiFi IP characteristic (first 4 bytes = binary IPv4)
+        try:
+            value = await asyncio.wait_for(
+                client.read_gatt_char(BLE_WIFI_IP_CHAR_UUID), timeout=3.0
+            )
+            if isinstance(value, (bytes, bytearray)) and len(value) >= 4:
+                ip_found = _parse_binary_ipv4(bytes(value))
+        except (asyncio.TimeoutError, Exception):
+            pass
+        # Fallback: scan all readable characteristics for text or binary IP
+        if not ip_found:
+            for service in client.services:
+                for char in service.characteristics:
+                    if "read" not in char.properties:
+                        continue
+                    try:
+                        value = await asyncio.wait_for(
+                            client.read_gatt_char(char.uuid), timeout=3.0
+                        )
+                        if isinstance(value, (bytes, bytearray)):
+                            ip_found = _parse_binary_ipv4(bytes(value))
+                            if not ip_found:
+                                ip_found = _extract_ip_from_data(bytes(value))
+                            if ip_found:
+                                break
+                    except (asyncio.TimeoutError, Exception):
+                        continue
+                if ip_found:
+                    break
     except (asyncio.TimeoutError, Exception):
         pass
+    finally:
+        if client is not None:
+            try:
+                await client.disconnect()
+            except Exception:
+                pass
     if ip_found:
         return f"http://{ip_found}"
     return None
@@ -296,7 +311,6 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "name": name,
                 "hint": "Find the IP in your router or on the kettle's WiFi settings, then enter http://IP",
             },
-            description="Found {name} via Bluetooth. Enter this kettle's HTTP base URL (e.g. http://192.168.1.86). {hint}.",
         )
 
     async def async_step_user(
@@ -360,7 +374,6 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(
                 step_id="user",
                 data_schema=schema,
-                description="Pick a kettle found via Bluetooth, or enter its URL manually.",
             )
 
         return await self.async_step_user_manual()
@@ -389,5 +402,4 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user_manual",
             data_schema=vol.Schema({vol.Required("base_url"): str}),
             errors=errors,
-            description="Enter the kettle's HTTP base URL (e.g. http://192.168.1.86). Find the IP in your router or on the kettle's WiFi settings.",
         )
