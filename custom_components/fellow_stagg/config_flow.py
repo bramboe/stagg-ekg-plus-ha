@@ -221,6 +221,9 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     title=f"Fellow Stagg ({base_url})",
                     data={"base_url": base_url},
                 )
+        if discovery_info is None:
+            # No discovery data (e.g. Add was pressed with no form data) → let user add manually
+            return await self.async_step_user()
 
         def _get(key: str, default: Any = ""):
             if discovery_info is None:
@@ -268,15 +271,18 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, discovery_info: BluetoothServiceInfoBleak | dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle BLE discovery: Stagg kettle found; try to get WiFi URL, then ask user to confirm or enter URL."""
-        # Form submit from same step (user clicked Add; Ignore is handled by discovery card)
-        if isinstance(discovery_info, dict) and "address" not in discovery_info:
-            user_input = discovery_info
+        # Form submit: user clicked Add (discovery_info is None or dict without "address")
+        is_form_submit = (
+            discovery_info is None
+            or (isinstance(discovery_info, dict) and "address" not in discovery_info)
+        )
+        if is_form_submit and self.unique_id:
+            user_input = discovery_info if isinstance(discovery_info, dict) else {}
             # Use context or unique_id when it's a URL (we set unique_id=suggested_url when we had one)
             suggested_url = self.context.get("ble_suggested_url") or (
-                self.unique_id if self.unique_id and str(self.unique_id).startswith("http") else None
+                self.unique_id if str(self.unique_id).startswith("http") else None
             )
             if suggested_url:
-                # We showed empty form; user clicked Add → create with suggested_url
                 return self.async_create_entry(
                     title=f"Fellow Stagg ({suggested_url})",
                     data={"base_url": suggested_url},
@@ -311,7 +317,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         if not discovery_info or not getattr(discovery_info, "address", None):
-            return self.async_abort(reason="invalid_discovery_info")
+            # No discovery data (e.g. Add was pressed with no form data) → let user add manually
+            return await self.async_step_user()
         name = (getattr(discovery_info, "name", None) or "").strip() or "Stagg kettle"
         address = getattr(discovery_info, "address", None) or ""
         self.context["ble_name"] = name
