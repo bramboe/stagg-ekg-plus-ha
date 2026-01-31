@@ -47,11 +47,3 @@ send_cli:
     entry_id:
       description: Optional config entry id (needed if multiple kettles)
       example: 1234567890abcdef
-
-refresh_and_log_data:
-  name: Refresh and return state
-  description: Trigger a poll, then return the current parsed kettle state (for debugging). Response contains error (if any) and data (parsed state dict).
-  fields:
-    entry_id:
-      description: Optional config entry id (needed if multiple kettles)
-      example: 1234567890abcdef
