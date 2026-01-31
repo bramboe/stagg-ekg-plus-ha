@@ -5,7 +5,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.components import persistent_notification
+from homeassistant.config_entries import ConfigEntry, SOURCE_IGNORE
 from homeassistant.const import Platform, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -156,6 +157,13 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
   return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+  # Dismiss discovery notification when user adds or ignores (entry created)
+  if entry.unique_id:
+    persistent_notification.async_dismiss(hass, f"fellow_stagg_discovery_{entry.unique_id}")
+    if str(entry.unique_id).startswith("ble:"):
+      persistent_notification.async_dismiss(hass, f"fellow_stagg_discovery_ble_{entry.unique_id[4:]}")
+  if entry.source == SOURCE_IGNORE:
+    return True
   base_url: str | None = entry.data.get("base_url")
   if base_url is None:
     return False
