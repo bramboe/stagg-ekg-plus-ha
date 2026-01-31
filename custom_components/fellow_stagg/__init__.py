@@ -8,7 +8,7 @@ from typing import Any
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry, SOURCE_IGNORE
 from homeassistant.const import Platform, UnitOfTemperature
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, SupportsResponse
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo, async_get as async_get_device_registry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -223,11 +223,39 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.warning("send_cli failed: %s", err)
         return {"response": "", "error": str(err)}
 
+    async def refresh_and_log_data_handler(call):
+      """Refresh coordinator and return current parsed state (for debugging)."""
+      entry_id = call.data.get("entry_id")
+      coord = _get_coordinator(entry_id)
+      if not coord:
+        _LOGGER.warning("refresh_and_log_data: no coordinator found")
+        return {"error": "No coordinator found", "data": None}
+      try:
+        await coord.async_request_refresh()
+        data = coord.data
+        if data is None:
+          return {"error": None, "data": None}
+        # Return full parsed state; omit raw CLI string if very long for readability
+        result = dict(data)
+        if len(result.get("raw", "") or "") > 2000:
+          result["raw"] = (result["raw"][:2000] + "... [truncated]") if result.get("raw") else None
+        return {"error": None, "data": result}
+      except Exception as err:
+        _LOGGER.warning("refresh_and_log_data failed: %s", err)
+        return {"error": str(err), "data": None}
+
     hass.services.async_register(
       DOMAIN,
       "send_cli",
       send_cli_handler,
       vol.Schema({vol.Required("command"): str, vol.Optional("entry_id"): str}),
+    )
+    hass.services.async_register(
+      DOMAIN,
+      "refresh_and_log_data",
+      refresh_and_log_data_handler,
+      vol.Schema({vol.Optional("entry_id"): str}),
+      supports_response=SupportsResponse.ONLY,
     )
     hass.data[DOMAIN]["services_registered"] = True
 
