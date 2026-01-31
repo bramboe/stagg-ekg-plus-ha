@@ -3,7 +3,7 @@
   "name": "Fellow Stagg EKG Pro (HTTP CLI)",
   "codeowners": ["@bramboe"],
   "config_flow": true,
-  "dependencies": ["bluetooth", "bluetooth_adapters", "frontend", "http", "persistent_notification"],
+  "dependencies": ["bluetooth_adapters", "frontend", "http"],
   "documentation": "https://github.com/bramboe/stagg-ekg-plus-ha",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/bramboe/stagg-ekg-plus-ha/issues",
@@ -14,11 +14,6 @@
     { "local_name": "Stagg*" },
     { "local_name": "EKG*" },
     { "local_name": "Fellow*" },
-    { "service_uuid": "021a9004-0382-4aea-bff4-6b3f1c5adfb4" },
-    { "local_name": "Stagg*", "connectable": false },
-    { "local_name": "EKG*", "connectable": false },
-    { "local_name": "Fellow*", "connectable": false },
-    { "service_uuid": "021a9004-0382-4aea-bff4-6b3f1c5adfb4", "connectable": false }
-  ],
-  "loggers": ["custom_components.fellow_stagg"]
+    { "service_uuid": "021a9004-0382-4aea-bff4-6b3f1c5adfb4" }
+  ]
 }
