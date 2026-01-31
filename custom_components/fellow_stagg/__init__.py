@@ -8,17 +8,15 @@ from typing import Any
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry, SOURCE_IGNORE
 from homeassistant.const import Platform, UnitOfTemperature
-from homeassistant.core import HomeAssistant, SupportsResponse
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.device_registry import DeviceInfo, async_get as async_get_device_registry
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 import voluptuous as vol
 
 from .const import (
   CLI_PATH,
   DOMAIN,
-  OPT_POLLING_INTERVAL,
-  OPT_POLLING_INTERVAL_COUNTDOWN,
   POLLING_INTERVAL_SECONDS,
   POLLING_INTERVAL_COUNTDOWN_SECONDS,
   MIN_TEMP_C,
@@ -42,40 +40,21 @@ PLATFORMS: list[str] = [
 ]
 
 
-def _polling_interval_seconds(entry: ConfigEntry) -> int:
-  """Return configured or default polling interval (seconds)."""
-  opts = (entry.options or {}).get(OPT_POLLING_INTERVAL)
-  if opts is not None and isinstance(opts, (int, float)):
-    return max(3, min(120, int(opts)))
-  return POLLING_INTERVAL_SECONDS
-
-
-def _polling_interval_countdown_seconds(entry: ConfigEntry) -> int:
-  """Return configured or default countdown polling interval (seconds)."""
-  opts = (entry.options or {}).get(OPT_POLLING_INTERVAL_COUNTDOWN)
-  if opts is not None and isinstance(opts, (int, float)):
-    return max(1, min(15, int(opts)))
-  return POLLING_INTERVAL_COUNTDOWN_SECONDS
-
-
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
   """Manage fetching Fellow Stagg data via the HTTP CLI API."""
 
-  def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+  def __init__(self, hass: HomeAssistant, base_url: str) -> None:
     """Initialize the coordinator."""
-    base_url: str = (entry.data or {}).get("base_url", "")
-    interval = _polling_interval_seconds(entry)
     super().__init__(
       hass,
       _LOGGER,
       name=f"Fellow Stagg {base_url}",
-      update_interval=timedelta(seconds=interval),
+      update_interval=timedelta(seconds=POLLING_INTERVAL_SECONDS),
     )
     self.session = async_get_clientsession(hass)
     self.kettle = KettleHttpClient(base_url, CLI_PATH)
     self._base_url = base_url
     self.base_url = base_url
-    self._entry = entry
 
     self.device_info = DeviceInfo(
       identifiers={(DOMAIN, base_url)},
@@ -141,13 +120,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       await self._maybe_sync_clock(data)
       # Use faster polling when countdown is active so the countdown sensor updates live
       if data and data.get("countdown") is not None:
-        self.update_interval = timedelta(
-          seconds=_polling_interval_countdown_seconds(self._entry)
-        )
+        self.update_interval = timedelta(seconds=POLLING_INTERVAL_COUNTDOWN_SECONDS)
       else:
-        self.update_interval = timedelta(
-          seconds=_polling_interval_seconds(self._entry)
-        )
+        self.update_interval = timedelta(seconds=POLLING_INTERVAL_SECONDS)
       return data
     except Exception as err:
       _LOGGER.error("Error polling Fellow Stagg kettle at %s: %s", self._base_url, err)
@@ -193,7 +168,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
   if base_url is None:
     return False
 
-  coordinator = FellowStaggDataUpdateCoordinator(hass, entry)
+  coordinator = FellowStaggDataUpdateCoordinator(hass, base_url)
   await coordinator.async_config_entry_first_refresh()
 
   if DOMAIN not in hass.data:
@@ -223,62 +198,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.warning("send_cli failed: %s", err)
         return {"response": "", "error": str(err)}
 
-    async def refresh_and_log_data_handler(call):
-      """Refresh coordinator and return current parsed state (for debugging)."""
-      entry_id = call.data.get("entry_id")
-      coord = _get_coordinator(entry_id)
-      if not coord:
-        _LOGGER.warning("refresh_and_log_data: no coordinator found")
-        return {"error": "No coordinator found", "data": None}
-      try:
-        await coord.async_request_refresh()
-        data = coord.data
-        if data is None:
-          return {"error": None, "data": None}
-        # Return full parsed state; omit raw CLI string if very long for readability
-        result = dict(data)
-        if len(result.get("raw", "") or "") > 2000:
-          result["raw"] = (result["raw"][:2000] + "... [truncated]") if result.get("raw") else None
-        return {"error": None, "data": result}
-      except Exception as err:
-        _LOGGER.warning("refresh_and_log_data failed: %s", err)
-        return {"error": str(err), "data": None}
-
     hass.services.async_register(
       DOMAIN,
       "send_cli",
       send_cli_handler,
       vol.Schema({vol.Required("command"): str, vol.Optional("entry_id"): str}),
     )
-    hass.services.async_register(
-      DOMAIN,
-      "refresh_and_log_data",
-      refresh_and_log_data_handler,
-      vol.Schema({vol.Optional("entry_id"): str}),
-      supports_response=SupportsResponse.ONLY,
-    )
     hass.data[DOMAIN]["services_registered"] = True
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-  entry.add_update_listener(_async_options_updated)
-
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-  # Expose firmware in device registry (sw_version) after first poll
-  if coordinator.data and coordinator.data.get("firmware_version"):
-    dev_reg = async_get_device_registry(hass)
-    device = dev_reg.async_get_device(identifiers={(DOMAIN, base_url)})
-    if device:
-      dev_reg.async_update_device(device.id, sw_version=coordinator.data["firmware_version"])
-
   return True
-
-
-async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
-  """Apply options changes to the coordinator without full reload."""
-  coord = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-  if isinstance(coord, FellowStaggDataUpdateCoordinator):
-    coord.update_interval = timedelta(seconds=_polling_interval_seconds(entry))
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
   if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
