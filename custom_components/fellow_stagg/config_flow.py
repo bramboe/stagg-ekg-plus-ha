@@ -22,7 +22,13 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    OPT_POLLING_INTERVAL,
+    OPT_POLLING_INTERVAL_COUNTDOWN,
+    POLLING_INTERVAL_COUNTDOWN_SECONDS,
+    POLLING_INTERVAL_SECONDS,
+)
 
 # BLE local_name prefixes that identify a Stagg kettle (must match manifest bluetooth matchers)
 BLE_NAME_PREFIXES = ("stagg", "ekg", "fellow")
@@ -199,11 +205,59 @@ async def _try_get_wifi_ip_from_ble(hass: Any, address: str) -> str | None:
     return None
 
 
+def _options_schema(entry: config_entries.ConfigEntry) -> vol.Schema:
+    """Build options schema with current values as defaults."""
+    options = entry.options or {}
+    return vol.Schema(
+        {
+            vol.Required(
+                OPT_POLLING_INTERVAL,
+                default=options.get(OPT_POLLING_INTERVAL, POLLING_INTERVAL_SECONDS),
+            ): vol.All(vol.Coerce(int), vol.Range(min=3, max=120)),
+            vol.Required(
+                OPT_POLLING_INTERVAL_COUNTDOWN,
+                default=options.get(
+                    OPT_POLLING_INTERVAL_COUNTDOWN, POLLING_INTERVAL_COUNTDOWN_SECONDS
+                ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=15)),
+        }
+    )
+
+
+class FellowStaggOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle Fellow Stagg options (polling intervals)."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage options."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title=self.config_entry.title,
+                data=self.config_entry.data,
+                options=user_input,
+            )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=_options_schema(self.config_entry),
+        )
+
+
 class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Fellow Stagg integration."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+
+    @staticmethod
+    async def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> FellowStaggOptionsFlowHandler:
+        """Return the options flow handler."""
+        return FellowStaggOptionsFlowHandler(config_entry)
 
     async def async_step_zeroconf(
         self, discovery_info: Any = None
