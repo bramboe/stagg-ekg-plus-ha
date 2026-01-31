@@ -261,8 +261,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._set_confirm_only()
         persistent_notification.async_create(
             self.hass,
-            f"A Fellow Stagg kettle was discovered at **{base_url}**. "
-            "Go to **Settings** → **Devices & services** → **Discovered** to add or ignore it.",
+            f"A Fellow Stagg kettle was discovered at **{base_url}**.\n\n"
+            "[**Add or ignore in Discovered**](/config/integrations)",
             title="Fellow Stagg kettle discovered",
             notification_id=f"fellow_stagg_discovery_{base_url}",
         )
@@ -359,8 +359,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._set_confirm_only()
             persistent_notification.async_create(
                 self.hass,
-                f"A Fellow Stagg kettle (**{name}**) was discovered at **{suggested_url}**. "
-                "Go to **Settings** → **Devices & services** → **Discovered** to add or ignore it.",
+                f"A Fellow Stagg kettle (**{name}**) was discovered at **{suggested_url}**.\n\n"
+                "[**Add or ignore in Discovered**](/config/integrations)",
                 title="Fellow Stagg kettle discovered",
                 notification_id=f"fellow_stagg_discovery_{suggested_url}",
             )
@@ -377,8 +377,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         persistent_notification.async_create(
             self.hass,
-            f"A Fellow Stagg kettle (**{name}**) was discovered via Bluetooth. "
-            "Go to **Settings** → **Devices & services** → **Discovered** to add or ignore it.",
+            f"A Fellow Stagg kettle (**{name}**) was discovered via Bluetooth.\n\n"
+            "[**Add or ignore in Discovered**](/config/integrations)",
             title="Fellow Stagg kettle discovered",
             notification_id=f"fellow_stagg_discovery_ble_{address}",
         )
