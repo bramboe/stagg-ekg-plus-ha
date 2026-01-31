@@ -233,13 +233,25 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not base_url:
             return self.async_abort(reason="invalid_discovery_info")
         if user_input is not None:
+            if user_input.get("action") == "ignore":
+                return self.async_abort(reason="ignored")
             return self.async_create_entry(
                 title=f"Fellow Stagg ({base_url})",
                 data={"base_url": base_url},
             )
         return self.async_show_form(
             step_id="zeroconf_confirm",
-            data_schema=vol.Schema({}),
+            data_schema=vol.Schema({
+                vol.Required("action", default="add"): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            SelectOptionDict(value="add", label="Add this device"),
+                            SelectOptionDict(value="ignore", label="Ignore"),
+                        ],
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            }),
             description_placeholders={"base_url": base_url},
         )
 
@@ -282,6 +294,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.context["ble_suggested_url"] = suggested_url
             user_input = None
         elif isinstance(user_input, dict):
+            if user_input.get("action") == "ignore":
+                return self.async_abort(reason="ignored")
             base_url = (user_input.get("base_url") or "").strip()
             if not base_url:
                 errors["base_url"] = "required"
@@ -305,6 +319,15 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if isinstance(user_input, dict) and user_input:
             default_url = (user_input.get("base_url") or "").strip() or default_url
         schema = vol.Schema({
+            vol.Required("action", default="add"): SelectSelector(
+                SelectSelectorConfig(
+                    options=[
+                        SelectOptionDict(value="add", label="Add this device"),
+                        SelectOptionDict(value="ignore", label="Ignore"),
+                    ],
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
             vol.Required("base_url", default=default_url): str,
         })
         if suggested_url:
