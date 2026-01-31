@@ -12,6 +12,7 @@ from homeassistant.components.bluetooth import (
     async_discovered_service_info,
     BluetoothServiceInfoBleak,
 )
+from homeassistant.components import persistent_notification
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
@@ -21,17 +22,13 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .const import DOMAIN
-
-
-def _create_discovery_notification(hass: Any, message: str, title: str, notification_id: str) -> None:
-    """Create a persistent notification if the component is available."""
-    try:
-        from homeassistant.components import persistent_notification
-        persistent_notification.async_create(hass, message, title=title, notification_id=notification_id)
-    except (ImportError, Exception):
-        pass
-
+from .const import (
+    DOMAIN,
+    OPT_POLLING_INTERVAL,
+    OPT_POLLING_INTERVAL_COUNTDOWN,
+    POLLING_INTERVAL_COUNTDOWN_SECONDS,
+    POLLING_INTERVAL_SECONDS,
+)
 
 # BLE local_name prefixes that identify a Stagg kettle (must match manifest bluetooth matchers)
 BLE_NAME_PREFIXES = ("stagg", "ekg", "fellow")
@@ -208,11 +205,59 @@ async def _try_get_wifi_ip_from_ble(hass: Any, address: str) -> str | None:
     return None
 
 
+def _options_schema(entry: config_entries.ConfigEntry) -> vol.Schema:
+    """Build options schema with current values as defaults."""
+    options = entry.options or {}
+    return vol.Schema(
+        {
+            vol.Required(
+                OPT_POLLING_INTERVAL,
+                default=options.get(OPT_POLLING_INTERVAL, POLLING_INTERVAL_SECONDS),
+            ): vol.All(vol.Coerce(int), vol.Range(min=3, max=120)),
+            vol.Required(
+                OPT_POLLING_INTERVAL_COUNTDOWN,
+                default=options.get(
+                    OPT_POLLING_INTERVAL_COUNTDOWN, POLLING_INTERVAL_COUNTDOWN_SECONDS
+                ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=15)),
+        }
+    )
+
+
+class FellowStaggOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle Fellow Stagg options (polling intervals)."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage options."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title=self.config_entry.title,
+                data=self.config_entry.data,
+                options=user_input,
+            )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=_options_schema(self.config_entry),
+        )
+
+
 class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Fellow Stagg integration."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+
+    @staticmethod
+    async def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> FellowStaggOptionsFlowHandler:
+        """Return the options flow handler."""
+        return FellowStaggOptionsFlowHandler(config_entry)
 
     async def async_step_zeroconf(
         self, discovery_info: Any = None
@@ -268,13 +313,12 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.context["zeroconf_base_url"] = base_url
         # confirm_only + empty schema: discovery card shows Add and Ignore as two buttons
         self._set_confirm_only()
-        _create_discovery_notification(
+        persistent_notification.async_create(
             self.hass,
             f"A Fellow Stagg kettle was discovered at **{base_url}**.\n\n"
-            "[**Add**](/config/integrations) · [**Ignore**](/config/integrations)\n\n"
-            "Links open Devices & services where you can add or ignore this device.",
-            "Fellow Stagg kettle discovered",
-            f"fellow_stagg_discovery_{base_url}",
+            "[**Add or ignore in Discovered**](/config/integrations)",
+            title="Fellow Stagg kettle discovered",
+            notification_id=f"fellow_stagg_discovery_{base_url}",
         )
         return self.async_show_form(
             step_id="zeroconf",
@@ -367,13 +411,12 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(suggested_url)
             self._abort_if_unique_id_configured(updates={"base_url": suggested_url})
             self._set_confirm_only()
-            _create_discovery_notification(
+            persistent_notification.async_create(
                 self.hass,
                 f"A Fellow Stagg kettle (**{name}**) was discovered at **{suggested_url}**.\n\n"
-                "[**Add**](/config/integrations) · [**Ignore**](/config/integrations)\n\n"
-                "Links open Devices & services where you can add or ignore this device.",
-                "Fellow Stagg kettle discovered",
-                f"fellow_stagg_discovery_{suggested_url}",
+                "[**Add or ignore in Discovered**](/config/integrations)",
+                title="Fellow Stagg kettle discovered",
+                notification_id=f"fellow_stagg_discovery_{suggested_url}",
             )
             return self.async_show_form(
                 step_id="bluetooth",
@@ -386,13 +429,12 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # No URL yet: use BLE address as unique_id so Ignore button still appears
         await self.async_set_unique_id(f"ble:{address}")
         self._abort_if_unique_id_configured()
-        _create_discovery_notification(
+        persistent_notification.async_create(
             self.hass,
             f"A Fellow Stagg kettle (**{name}**) was discovered via Bluetooth.\n\n"
-            "[**Add**](/config/integrations) · [**Ignore**](/config/integrations)\n\n"
-            "Links open Devices & services where you can add or ignore this device.",
-            "Fellow Stagg kettle discovered",
-            f"fellow_stagg_discovery_ble_{address}",
+            "[**Add or ignore in Discovered**](/config/integrations)",
+            title="Fellow Stagg kettle discovered",
+            notification_id=f"fellow_stagg_discovery_ble_{address}",
         )
         return self.async_show_form(
             step_id="bluetooth",
