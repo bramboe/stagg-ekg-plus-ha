@@ -1,14 +1,20 @@
 """Config flow for Fellow Stagg HTTP CLI integration."""
 from __future__ import annotations
 
+import asyncio
+import re
 from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components import bluetooth
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
+
+# IPv4 pattern for matching IP from BLE characteristic or manufacturer data
+_IPV4_RE = re.compile(r"\b(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b")
 
 # CLI response must contain these to be recognized as our kettle
 CLI_FINGERPRINT = ("mode=", "tempr")
@@ -46,6 +52,68 @@ async def _probe_kettle(session: Any, base_url: str) -> bool:
             return _looks_like_kettle_cli(text)
     except Exception:
         return False
+
+
+def _extract_ip_from_data(data: bytes) -> str | None:
+    """Try to find an IPv4 address in raw bytes (e.g. manufacturer data or GATT value)."""
+    if not data:
+        return None
+    try:
+        text = data.decode("utf-8", errors="replace")
+        m = _IPV4_RE.search(text)
+        if m:
+            return m.group(0)
+    except Exception:
+        pass
+    try:
+        text = data.decode("ascii", errors="replace")
+        m = _IPV4_RE.search(text)
+        if m:
+            return m.group(0)
+    except Exception:
+        pass
+    return None
+
+
+async def _try_get_wifi_ip_from_ble(hass: Any, address: str) -> str | None:
+    """Try to retrieve WiFi IP from kettle over BLE (connect and read GATT). Returns http://IP or None."""
+    try:
+        ble_device = bluetooth.async_ble_device_from_address(hass, address, connectable=True)
+        if not ble_device:
+            return None
+    except Exception:
+        return None
+
+    try:
+        from bleak import BleakClient
+    except ImportError:
+        return None
+
+    ip_found: str | None = None
+    try:
+        async with BleakClient(ble_device, timeout=8.0) as client:
+            if not client.is_connected:
+                return None
+            for service in client.services:
+                for char in service.characteristics:
+                    if "read" not in char.properties:
+                        continue
+                    try:
+                        value = await asyncio.wait_for(client.read_gatt_char(char.uuid), timeout=3.0)
+                        if isinstance(value, (bytes, bytearray)):
+                            ip = _extract_ip_from_data(bytes(value))
+                            if ip:
+                                ip_found = ip
+                                break
+                    except (asyncio.TimeoutError, Exception):
+                        continue
+                if ip_found:
+                    break
+    except (asyncio.TimeoutError, Exception):
+        pass
+    if ip_found:
+        return f"http://{ip_found}"
+    return None
 
 
 class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -92,6 +160,78 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(
             title=f"Fellow Stagg ({base_url})",
             data={"base_url": base_url},
+        )
+
+    async def async_step_bluetooth(
+        self, discovery_info: bluetooth.BluetoothServiceInfoBleak
+    ) -> FlowResult:
+        """Handle BLE discovery: Stagg kettle found; try to get WiFi URL, then ask user to confirm or enter URL."""
+        name = (getattr(discovery_info, "name", None) or "").strip() or "Stagg kettle"
+        address = getattr(discovery_info, "address", None) or ""
+        self.context["ble_name"] = name
+        self.context["ble_address"] = address
+
+        # Try to find IP in manufacturer / advertisement data (no connection)
+        suggested_url: str | None = None
+        for _mid, data in (getattr(discovery_info, "manufacturer_data", None) or {}).items():
+            if isinstance(data, (bytes, bytearray)):
+                ip = _extract_ip_from_data(bytes(data))
+                if ip:
+                    suggested_url = f"http://{ip}"
+                    break
+
+        # If not in advertisement, try connecting and reading GATT characteristics
+        if not suggested_url and address:
+            suggested_url = await _try_get_wifi_ip_from_ble(self.hass, address)
+
+        return await self.async_step_bluetooth_configure(suggested_url)
+
+    async def async_step_bluetooth_configure(
+        self, user_input: dict[str, Any] | str | None = None
+    ) -> FlowResult:
+        """Form to enter or confirm base URL after BLE discovery."""
+        errors: dict[str, str] = {}
+        suggested_url: str | None = None
+        if isinstance(user_input, str):
+            suggested_url = user_input or None
+            if suggested_url:
+                self.context["ble_suggested_url"] = suggested_url
+            user_input = None
+        elif isinstance(user_input, dict):
+            base_url = (user_input.get("base_url") or "").strip()
+            if not base_url:
+                errors["base_url"] = "required"
+            else:
+                session = async_get_clientsession(self.hass)
+                if not await _probe_kettle(session, base_url):
+                    errors["base_url"] = "not_fellow_stagg"
+                else:
+                    await self.async_set_unique_id(base_url)
+                    self._abort_if_unique_id_configured()
+                    return self.async_create_entry(
+                        title=f"Fellow Stagg ({base_url})",
+                        data={"base_url": base_url},
+                    )
+            suggested_url = self.context.get("ble_suggested_url")
+        else:
+            suggested_url = self.context.get("ble_suggested_url")
+
+        name = self.context.get("ble_name", "Stagg kettle")
+        default_url = suggested_url or ""
+        if isinstance(user_input, dict) and user_input:
+            default_url = (user_input.get("base_url") or "").strip() or default_url
+        schema = vol.Schema({
+            vol.Required("base_url", default=default_url): str,
+        })
+        return self.async_show_form(
+            step_id="bluetooth_configure",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "name": name,
+                "hint": "Find the IP in your router or on the kettle's WiFi settings, then enter http://IP",
+            },
+            description="Found {name} via Bluetooth. Enter this kettle's HTTP base URL (e.g. http://192.168.1.86). {hint}.",
         )
 
     async def async_step_user(
