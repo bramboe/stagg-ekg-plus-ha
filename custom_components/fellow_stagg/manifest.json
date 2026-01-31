@@ -12,8 +12,10 @@
   "zeroconf": ["_http._tcp.local."],
   "bluetooth": [
     { "local_name": "Stagg*" },
+    { "local_name": "STAGG*" },
     { "local_name": "EKG*" },
     { "local_name": "Fellow*" },
+    { "local_name": "FELLOW*" },
     { "service_uuid": "021a9004-0382-4aea-bff4-6b3f1c5adfb4" },
     { "service_uuid": "7aebf330-6cb1-46e4-b23b-7cc2262c605e" }
   ]
