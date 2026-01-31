@@ -11,11 +11,16 @@ from homeassistant.const import Platform, UnitOfTemperature
 from homeassistant.core import HomeAssistant, SupportsResponse
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo, async_get as async_get_device_registry
+try:
+  from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH
+except ImportError:
+  CONNECTION_BLUETOOTH = "bluetooth"  # fallback for older HA
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 import voluptuous as vol
 
 from .const import (
   CLI_PATH,
+  CONF_BLUETOOTH_ADDRESS,
   DOMAIN,
   OPT_POLLING_INTERVAL,
   OPT_POLLING_INTERVAL_COUNTDOWN,
@@ -77,12 +82,18 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.base_url = base_url
     self._entry = entry
 
-    self.device_info = DeviceInfo(
-      identifiers={(DOMAIN, base_url)},
-      name=f"Fellow Stagg EKG Pro ({base_url})",
-      manufacturer="Fellow",
-      model="Stagg EKG Pro (HTTP CLI)",
-    )
+    # Device info: identifiers, optional Bluetooth address, Wi‑Fi URL
+    device_info_kw: dict[str, Any] = {
+      "identifiers": {(DOMAIN, base_url)},
+      "configuration_url": base_url,
+      "name": f"Fellow Stagg EKG Pro ({base_url})",
+      "manufacturer": "Fellow",
+      "model": "Stagg EKG Pro (HTTP CLI)",
+    }
+    bluetooth_address = (entry.data or {}).get(CONF_BLUETOOTH_ADDRESS)
+    if bluetooth_address:
+      device_info_kw["connections"] = {(CONNECTION_BLUETOOTH, bluetooth_address)}
+    self.device_info = DeviceInfo(**device_info_kw)
     self.sync_clock_enabled = True
     self._last_clock_sync: datetime | None = None
     self.last_schedule_time: dict[str, int] | None = None
