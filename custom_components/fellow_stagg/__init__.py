@@ -73,14 +73,6 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       configuration_url=base_url,
       serial_number=ble_address or None,
     )
-    # Separate device so schedule entities appear in their own category/card
-    self.schedule_device_info = DeviceInfo(
-      identifiers={(DOMAIN, f"{base_url}_schedule")},
-      name="Schedule",
-      manufacturer="Fellow",
-      model="Stagg EKG Pro (HTTP CLI)",
-      configuration_url=base_url,
-    )
     self.sync_clock_enabled = True
     self._last_clock_sync: datetime | None = None
     self.last_schedule_time: dict[str, int] | None = None
