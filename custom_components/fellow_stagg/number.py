@@ -11,7 +11,7 @@ from homeassistant.components.number import (
   RestoreNumber,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, UnitOfTemperature, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import UnitOfTemperature, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -39,7 +39,6 @@ class FellowStaggScheduleTemperature(RestoreNumber):
   _attr_name = "Schedule Temperature"
   _attr_mode = NumberMode.BOX
   _attr_native_step = 1.0
-  _attr_entity_category = EntityCategory.CONFIG
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__()
