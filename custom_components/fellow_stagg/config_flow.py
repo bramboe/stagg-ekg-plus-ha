@@ -77,7 +77,7 @@ def _is_stagg_ble_device(name: str | None) -> bool:
     if not name or not isinstance(name, str):
         return False
     n = name.strip().lower()
-    return any(n.startswith(p) for p in BLE_NAME_PREFIXES)
+    return any(p in n for p in BLE_NAME_PREFIXES)
 
 
 def _has_stagg_service(info: Any) -> bool:
@@ -736,8 +736,9 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else (getattr(discovery_info, "connectable", True) if discovery_info is not None else True)
         )
         # Accept if name starts with EKG/Stagg/Fellow, or if matched by our service UUID (kettle advertises EKG*)
-        if not _is_stagg_ble_device(name) and not _has_stagg_service(discovery_info):
-            return self.async_abort(reason="not_stagg_kettle")
+        # We "loosen up" the check by trusting the manifest.json matchers (Stagg*, EKG*, Fellow*, or UUIDs).
+        # if not _is_stagg_ble_device(name) and not _has_stagg_service(discovery_info):
+        #     return self.async_abort(reason="not_stagg_kettle")
         # Skip discovery if this BLE device is already added (avoid "discovered again" notification)
         normalized_addr = _normalize_ble_address(address)
         entries = self.hass.config_entries.async_entries(DOMAIN)
