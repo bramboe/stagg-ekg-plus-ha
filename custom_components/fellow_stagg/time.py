@@ -6,7 +6,6 @@ from datetime import time
 
 from homeassistant.components.time import TimeEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -36,7 +35,6 @@ class FellowStaggScheduleTimeEntity(
   _attr_name = "Schedule Time"
   _attr_icon = "mdi:clock-edit"
   _attr_should_poll = False
-  _attr_entity_category = EntityCategory.CONFIG
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
