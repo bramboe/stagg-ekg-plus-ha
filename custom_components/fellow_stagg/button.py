@@ -36,7 +36,6 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
 
   _attr_has_entity_name = True
   _attr_name = "Update Schedule"
-  _attr_entity_category = EntityCategory.CONFIG
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
