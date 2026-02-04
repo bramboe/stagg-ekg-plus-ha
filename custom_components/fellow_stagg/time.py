@@ -41,7 +41,7 @@ class FellowStaggScheduleTimeEntity(
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.base_url}_schedule_time"
-    self._attr_device_info = coordinator.device_info
+    self._attr_device_info = coordinator.schedule_device_info
 
   @property
   def native_value(self) -> time | None:
