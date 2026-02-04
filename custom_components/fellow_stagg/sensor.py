@@ -127,7 +127,9 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         # Main – primary status
         FellowStaggSensorEntityDescription(key="current_temp", name="Current Temperature", icon="mdi:thermometer", device_class=SensorDeviceClass.TEMPERATURE),
         FellowStaggSensorEntityDescription(key="kettle_position", name="Kettle position", icon="mdi:coffee-maker"),
-        # Diagnostic – read-only info
+        # Diagnostic – read-only info (Wi-Fi and Bluetooth address first, then rest)
+        FellowStaggSensorEntityDescription(key="wifi_address", name="Wi-Fi address", icon="mdi:wifi", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="bluetooth_address", name="Bluetooth address", icon="mdi:bluetooth", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="power", name="Power", icon="mdi:power", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="hold", name="Hold Mode", icon="mdi:timer", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="clock", name="Clock", icon="mdi:clock-outline", entity_category=EntityCategory.DIAGNOSTIC),
@@ -136,8 +138,6 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="programmed_unit", name="Unit Type", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="dry_boil_detection", name="Dry-Boil Detection", icon="mdi:water-alert", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="firmware_version", name="Firmware Version", icon="mdi:chip", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="wifi_address", name="Wi-Fi address", icon="mdi:wifi", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="bluetooth_address", name="Bluetooth address", icon="mdi:bluetooth", entity_category=EntityCategory.DIAGNOSTIC),
     ]
 
 
