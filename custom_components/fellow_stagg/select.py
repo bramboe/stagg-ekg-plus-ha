@@ -46,7 +46,6 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
   _attr_name = "Schedule Mode"
   _attr_options = MODE_OPTIONS
   _attr_should_poll = False
-  _attr_entity_category = EntityCategory.CONFIG
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
