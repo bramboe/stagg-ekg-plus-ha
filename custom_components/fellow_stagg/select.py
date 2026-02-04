@@ -51,7 +51,7 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.base_url}_schedule_mode"
-    self._attr_device_info = coordinator.device_info
+    self._attr_device_info = coordinator.schedule_device_info
 
   @property
   def current_option(self) -> str | None:
