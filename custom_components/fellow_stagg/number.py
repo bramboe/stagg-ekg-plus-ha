@@ -45,7 +45,7 @@ class FellowStaggScheduleTemperature(RestoreNumber):
     super().__init__()
     self.coordinator = coordinator
     self._attr_unique_id = f"{coordinator.base_url}_schedule_temp"
-    self._attr_device_info = coordinator.device_info
+    self._attr_device_info = coordinator.schedule_device_info
 
   @property
   def native_min_value(self) -> float:
