@@ -41,7 +41,7 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.base_url}_update_schedule"
-    self._attr_device_info = coordinator.device_info
+    self._attr_device_info = coordinator.schedule_device_info
 
   async def async_press(self) -> None:
     if not self.coordinator.data:
