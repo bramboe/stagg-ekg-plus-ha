@@ -38,7 +38,7 @@ class FellowStaggScheduleTemperature(RestoreNumber):
   _attr_has_entity_name = True
   _attr_name = "Schedule Temperature"
   _attr_mode = NumberMode.BOX
-  _attr_native_step = 1.0
+  _attr_native_step = 0.5
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__()
