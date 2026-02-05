@@ -20,9 +20,9 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# Water heater operation states (off / on for kettle)
+# Use standard water_heater states; we translate "electric" to "On" in translations
 STATE_OFF = "off"
-STATE_ON = "on"
+STATE_ELECTRIC = "electric"
 
 
 async def async_setup_entry(
@@ -42,7 +42,8 @@ class FellowStaggWaterHeater(
 
     _attr_has_entity_name = True
     _attr_name = "Kettle"
-    _attr_operation_list = [STATE_OFF, STATE_ON]
+    _attr_operation_list = [STATE_OFF, STATE_ELECTRIC]
+    _attr_translation_key = "kettle"
     _attr_supported_features = (
         WaterHeaterEntityFeature.TARGET_TEMPERATURE
         | WaterHeaterEntityFeature.ON_OFF
@@ -92,8 +93,8 @@ class FellowStaggWaterHeater(
 
     @property
     def current_operation(self) -> str:
-        """Return current operation (off or on)."""
-        return STATE_ON if self.is_on else STATE_OFF
+        """Return current operation (off or electric; electric displays as On)."""
+        return STATE_ELECTRIC if self.is_on else STATE_OFF
 
     @property
     def current_temperature(self) -> float | None:
@@ -144,7 +145,7 @@ class FellowStaggWaterHeater(
             await self.coordinator.async_request_refresh()
 
     async def async_set_operation_mode(self, operation_mode: str) -> None:
-        """Set operation mode (off or on)."""
+        """Set operation mode (off or electric)."""
         if operation_mode == STATE_OFF:
             await self.async_turn_off()
         else:
