@@ -20,9 +20,9 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# Water heater operation states (from homeassistant.components.water_heater)
+# Water heater operation states (off / on for kettle)
 STATE_OFF = "off"
-STATE_ELECTRIC = "electric"
+STATE_ON = "on"
 
 
 async def async_setup_entry(
@@ -42,7 +42,7 @@ class FellowStaggWaterHeater(
 
     _attr_has_entity_name = True
     _attr_name = "Kettle"
-    _attr_operation_list = [STATE_OFF, STATE_ELECTRIC]
+    _attr_operation_list = [STATE_OFF, STATE_ON]
     _attr_supported_features = (
         WaterHeaterEntityFeature.TARGET_TEMPERATURE
         | WaterHeaterEntityFeature.ON_OFF
@@ -70,8 +70,8 @@ class FellowStaggWaterHeater(
 
     @property
     def target_temperature_step(self) -> float:
-        """Return 1.0 degree steps."""
-        return 1.0
+        """Return 0.5 degree steps (kettle supports half degrees)."""
+        return 0.5
 
     @property
     def min_temp(self) -> float:
@@ -92,8 +92,8 @@ class FellowStaggWaterHeater(
 
     @property
     def current_operation(self) -> str:
-        """Return current operation (off or electric)."""
-        return STATE_ELECTRIC if self.is_on else STATE_OFF
+        """Return current operation (off or on)."""
+        return STATE_ON if self.is_on else STATE_OFF
 
     @property
     def current_temperature(self) -> float | None:
@@ -127,22 +127,24 @@ class FellowStaggWaterHeater(
         if temperature is None:
             return
 
+        # Round to nearest 0.5°C (kettle supports half degrees)
         if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
-            temp_to_send = int(round((temperature - 32.0) / 1.8))
+            temp_c = (temperature - 32.0) / 1.8
         else:
-            temp_to_send = int(round(temperature))
+            temp_c = temperature
+        temp_to_send = round(temp_c * 2) / 2
 
         async with self._command_lock:
             await self.coordinator.kettle.async_set_temperature(
                 self.coordinator.session,
-                temp_to_send,
+                float(temp_to_send),
             )
             self.coordinator.notify_command_sent()
             await asyncio.sleep(0.5)
             await self.coordinator.async_request_refresh()
 
     async def async_set_operation_mode(self, operation_mode: str) -> None:
-        """Set operation mode (off or electric)."""
+        """Set operation mode (off or on)."""
         if operation_mode == STATE_OFF:
             await self.async_turn_off()
         else:
