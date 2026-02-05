@@ -74,7 +74,9 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
     if temp_c is None:
       _LOGGER.warning("No schedule temperature set; skipping schedule update")
       return
-    await k.async_set_schedule_temperature(session, int(round(temp_c)))
+    # Round to nearest 0.5°C (kettle supports half degrees)
+    temp_c_send = round(float(temp_c) * 2) / 2
+    await k.async_set_schedule_temperature(session, temp_c_send)
     await asyncio.sleep(0.8)
     await k.async_set_schedule_repeat(session, repeat)
     await asyncio.sleep(0.8)
