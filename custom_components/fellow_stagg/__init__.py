@@ -33,8 +33,7 @@ from .kettle_http import KettleHttpClient
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[str] = [
-  "water_heater",  # Main: Kettle on/off + target temp (HA UI)
-  "climate",       # Same kettle as thermostat for HomeKit (on/off + temp in Apple Home)
+  "climate",       # Main: Kettle on/off + target temp
   "sensor",        # Status (current temp, position) then diagnostic
   "binary_sensor", # Heating, No water
   "select",        # Config: Schedule mode, Clock, Unit, Hold
