@@ -131,9 +131,8 @@ class KettleHttpClient:
     state = "S_Heat" if power_on else "S_Off"
     await self._cli_command(session, f"setstate {state}")
 
-  async def async_set_temperature(self, session: ClientSession, temp_c: float, **_: Any) -> None:
-    """Set target temperature in Celsius (supports 0.5°C steps, e.g. 40.5, 41.5)."""
-    temp_f = round((float(temp_c) * 1.8) + 32.0, 1)
+  async def async_set_temperature(self, session: ClientSession, temp_c: int, **_: Any) -> None:
+    temp_f = round((temp_c * 1.8) + 32.0)
     await self._cli_command(session, f"setsetting settempr {temp_f}")
 
   async def async_set_units(self, session: ClientSession, unit: str) -> None:
@@ -190,9 +189,9 @@ class KettleHttpClient:
     encoded_time = (int(hour) << 8) | int(minute)
     await self._cli_command(session, f"setsetting schtime {encoded_time}")
 
-  async def async_set_schedule_temperature(self, session: ClientSession, temp_c: float) -> None:
-    """Set the schedule temperature in Celsius (supports 0.5°C steps)."""
-    temp_f = round((float(temp_c) * 1.8) + 32.0, 1)
+  async def async_set_schedule_temperature(self, session: ClientSession, temp_c: int) -> None:
+    """Set the schedule temperature (in Celsius)."""
+    temp_f = round((temp_c * 1.8) + 32.0)
     await self._cli_command(session, f"setsetting schtempr {temp_f}")
 
   async def async_set_schedule_enabled(self, session: ClientSession, enabled: bool) -> None:
@@ -457,11 +456,8 @@ class KettleHttpClient:
     return None
 
   def _parse_schedule_temp(self, body: str) -> float | None:
-    m = re.search(r"\bschtempr\s*=\s*(-?\d+(?:\.\d+)?)", body or "", re.IGNORECASE)
-    if not m:
-      return None
-    val = float(m.group(1))
-    return round((val - 32) / 1.8, 1) if 0 < val <= 250 else None
+    m = re.search(r"\bschtempr\s*=\s*(-?\d+)", body or "", re.IGNORECASE)
+    return (float(m.group(1)) - 32) / 1.8 if m and 0 < float(m.group(1)) <= 250 else None
 
   @staticmethod
   def _parse_schedon_value(body: str) -> int | None:
