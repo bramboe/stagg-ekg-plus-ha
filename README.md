@@ -26,7 +26,7 @@ Home Assistant integration for the Fellow Stagg EKG Pro using the kettle’s HTT
 
 ## Functionality
 
-- **Water heater (Kettle):** On/off and target temperature (main entity in HA). **HomeKit:** The Home Assistant HomeKit bridge exposes water heaters as thermostat with temperature only (no on/off). For full on/off + temperature in Apple Home, add the **Kettle (HomeKit)** climate entity to your HomeKit bridge instead.
+- **Climate:** On/off and target temperature (HomeKit-compatible).
 - **Schedule:** Schedule time, mode (off / once / daily), and schedule temperature. Changes are applied only when you press the **Update Schedule** button.
 - **Hold:** Hold duration select (15 / 30 / 45 / 60 min); Hold Mode sensor (Active / Off).
 - **Sensors:** Power, current temperature, kettle position (lifted / on base), clock, current schedule mode (from kettle), current screen, unit type, firmware version, dry-boil detection.
