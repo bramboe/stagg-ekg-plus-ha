@@ -46,6 +46,7 @@ class FellowStaggWaterHeater(
     _attr_supported_features = (
         WaterHeaterEntityFeature.TARGET_TEMPERATURE
         | WaterHeaterEntityFeature.ON_OFF
+        | WaterHeaterEntityFeature.OPERATION_MODE
     )
     _attr_should_poll = False
 
