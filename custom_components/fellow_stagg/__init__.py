@@ -48,7 +48,7 @@ PLATFORMS: list[str] = [
 class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
   """Manage fetching Fellow Stagg data via the HTTP CLI API."""
 
-  def __init__(self, hass: HomeAssistant, base_url: str, ble_address: str | None = None) -> None:
+  def __init__(self, hass: HomeAssistant, base_url: str, ble_address: str | None = None, entry_id: str | None = None) -> None:
     """Initialize the coordinator."""
     super().__init__(
       hass,
@@ -83,6 +83,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.last_target_temp: float | None = None
     self._last_command_sent: datetime | None = None
     self._last_offline_log: datetime | None = None
+    self._entry_id = entry_id or ""
 
   def notify_command_sent(self) -> None:
     """Call after sending a command so polling uses fast interval for a short window."""
@@ -111,6 +112,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     try:
       data = await self.kettle.async_poll(self.session)
       self._last_offline_log = None  # Reset so next offline event is logged
+      # Dismiss offline notification when kettle reconnects
+      _offline_nid = f"fellow_stagg_offline_{self._entry_id}"
+      persistent_notification.async_dismiss(self.hass, _offline_nid)
       _LOGGER.debug("Fetched units: %s", data.get("units"))
       
       if self.last_schedule_time is not None:
@@ -167,15 +171,20 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       ) or "connect" in str(err).lower() or "connection" in str(err).lower()
       if is_connection_error:
         msg = "Kettle appears to be offline or unplugged. Plug it in to reconnect."
-        should_log = (
+        should_notify = (
           self._last_offline_log is None
           or (now - self._last_offline_log).total_seconds() >= _OFFLINE_LOG_THROTTLE_SECONDS
         )
-        if should_log:
-          _LOGGER.warning("%s (%s)", msg, self._base_url)
+        if should_notify:
           self._last_offline_log = now
-        else:
-          _LOGGER.debug("Kettle still offline at %s", self._base_url)
+          _LOGGER.debug("Kettle offline at %s", self._base_url)
+          # Show notification (dismissed automatically when kettle reconnects)
+          persistent_notification.async_create(
+            self.hass,
+            f"**Fellow Stagg kettle** at {self._base_url}\n\n{msg}",
+            title="Kettle offline",
+            notification_id=f"fellow_stagg_offline_{self._entry_id}",
+          )
       else:
         _LOGGER.error("Error polling Fellow Stagg kettle at %s: %s", self._base_url, err)
       return None
@@ -251,7 +260,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.config_entries.async_update_entry(entry, title="Fellow Stagg")
 
   ble_address = (entry.data or {}).get("ble_address")
-  coordinator = FellowStaggDataUpdateCoordinator(hass, base_url, ble_address=ble_address)
+  coordinator = FellowStaggDataUpdateCoordinator(hass, base_url, ble_address=ble_address, entry_id=entry.entry_id)
   await coordinator.async_config_entry_first_refresh()
 
   if DOMAIN not in hass.data:
