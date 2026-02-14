@@ -49,9 +49,3 @@ The integration discovers kettles by requesting `/cli?cmd=state` from each mDNS-
 - Ensure the kettle is reachable (e.g. `curl "http://<kettle-ip>/cli?cmd=state"`).
 - Confirm the kettle’s WiFi is connected and the HTTP CLI is enabled (firmware 1.1.x / 1.2.x with CLI).
 - Check Home Assistant logs for connection or parsing errors.
-
-## Documentation & scripts
-- **docs/CLI_TESTING.md** – HTTP CLI testing, curl examples, `fellow_stagg.send_cli`, and test results.
-- **scripts/watch_calibration.py** – Watch kettle CLI (state, prtsettings, pwmprt) while you run calibration. Run: `pip install aiohttp; python3 scripts/watch_calibration.py http://KETTLE_IP` (Ctrl+C to stop).
-- **scripts/test_ble_discovery.py** – BLE discovery test (scan for Stagg/EKG/Fellow, try to get WiFi IP). Run: `pip install bleak; python scripts/test_ble_discovery.py`
-- **scripts/test_discovery.py** – WiFi/mDNS discovery test (probe IP and `_http._tcp`). Run: `pip install zeroconf aiohttp; python scripts/test_discovery.py`
