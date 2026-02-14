@@ -15,9 +15,9 @@ Home Assistant integration for the Fellow Stagg EKG Pro using the kettle’s HTT
 4. Restart Home Assistant.
 
 ## Add the integration
-- **BLE discovery:** If you have Bluetooth enabled in Home Assistant, the integration can discover Stagg kettles by scanning for BLE devices whose name starts with “Stagg”, “EKG”, or “Fellow”. When one is found, you are asked to enter its HTTP base URL (e.g. `http://192.168.1.86`). The integration may try to retrieve the kettle’s WiFi IP over BLE (connect and read GATT); if that succeeds, the URL is pre-filled.
+- **BLE discovery:** If you have Bluetooth enabled in Home Assistant, the integration can discover Stagg kettles by scanning for BLE devices whose name starts with “Stagg”, “EKG”, or “Fellow”. When one is found, you are asked to enter its HTTP base URL (e.g. `http://192.168.1.xx`). The integration may try to retrieve the kettle’s WiFi IP over BLE (connect and read GATT); if that succeeds, the URL is pre-filled.
 - **mDNS discovery:** The integration also probes mDNS `_http._tcp` services. If your kettle advertises over mDNS, it may appear under Settings → Devices & Services → “Discovered”.
-- **Manual:** Settings → Devices & Services → Add Integration → search “Fellow Stagg EKG Pro (HTTP CLI)” → enter the kettle’s base URL (e.g. `http://192.168.1.32`). The `/cli` path is added automatically.
+- **Manual:** Settings → Devices & Services → Add Integration → search “Fellow Stagg EKG Pro (HTTP CLI)” → enter the kettle’s base URL (e.g. `http://192.168.1.xx`). The `/cli` path is added automatically.
 
 ## Requirements
 - **Device:** Fellow Stagg **EKG Pro** with WiFi. Not for the older EKG+ (BLE-only) model.
