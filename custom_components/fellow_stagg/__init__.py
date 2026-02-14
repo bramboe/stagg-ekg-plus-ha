@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
 
+import aiohttp
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry, SOURCE_IGNORE
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, Platform, UnitOfTemperature
@@ -81,6 +82,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self._last_mode_change: datetime | None = None
     self.last_target_temp: float | None = None
     self._last_command_sent: datetime | None = None
+    self._last_offline_log: datetime | None = None
 
   def notify_command_sent(self) -> None:
     """Call after sending a command so polling uses fast interval for a short window."""
@@ -108,6 +110,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     _LOGGER.debug("Polling Fellow Stagg kettle at %s", self._base_url)
     try:
       data = await self.kettle.async_poll(self.session)
+      self._last_offline_log = None  # Reset so next offline event is logged
       _LOGGER.debug("Fetched units: %s", data.get("units"))
       
       if self.last_schedule_time is not None:
@@ -151,7 +154,30 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         self.update_interval = timedelta(seconds=POLLING_INTERVAL_SECONDS)
       return data
     except Exception as err:
-      _LOGGER.error("Error polling Fellow Stagg kettle at %s: %s", self._base_url, err)
+      now = datetime.now()
+      is_connection_error = isinstance(
+        err,
+        (
+          aiohttp.ClientConnectorError,
+          aiohttp.ServerDisconnectedError,
+          OSError,
+          asyncio.TimeoutError,
+          ConnectionError,
+        ),
+      ) or "connect" in str(err).lower() or "connection" in str(err).lower()
+      if is_connection_error:
+        msg = "Kettle appears to be offline or unplugged. Plug it in to reconnect."
+        should_log = (
+          self._last_offline_log is None
+          or (now - self._last_offline_log).total_seconds() >= _OFFLINE_LOG_THROTTLE_SECONDS
+        )
+        if should_log:
+          _LOGGER.warning("%s (%s)", msg, self._base_url)
+          self._last_offline_log = now
+        else:
+          _LOGGER.debug("Kettle still offline at %s", self._base_url)
+      else:
+        _LOGGER.error("Error polling Fellow Stagg kettle at %s: %s", self._base_url, err)
       return None
 
   async def _maybe_sync_clock(self, data: dict[str, Any]) -> None:
@@ -181,6 +207,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
 # Delay (seconds) before running network discovery scan after HA started
 _NETWORK_DISCOVERY_DELAY = 15
+# Throttle offline/connection errors to avoid log spam (seconds)
+_OFFLINE_LOG_THROTTLE_SECONDS = 300
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
   # Option 2 (network): after HA started, scan for kettles so they show up in Discovered
