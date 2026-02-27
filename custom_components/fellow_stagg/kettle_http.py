@@ -476,3 +476,4 @@ class KettleHttpClient:
 
   def _f_to_c(self, value: float) -> float: return (value - 32) / 1.8
   def _c_to_f(self, value: float) -> float: return (value * 1.8) + 32
+
