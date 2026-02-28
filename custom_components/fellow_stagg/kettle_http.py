@@ -265,7 +265,7 @@ class KettleHttpClient:
     encoded = self._encode_cli_command(command)
     url = f"{self._cli_url}?cmd={encoded}"
     try:
-      async with session.get(url, timeout=10) as resp:
+      async with session.get(url, timeout=15) as resp:
         resp.raise_for_status()
         return await resp.text()
     except ClientResponseError: raise
