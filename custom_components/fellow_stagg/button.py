@@ -169,7 +169,7 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
     k = self.coordinator.kettle
     session = self.coordinator.session
 
-    # Use latest state (same as sensor.fellow_stagg_*_kettle_position)
+    # Use latest state (same as binary_sensor.fellow_stagg_*_on_base)
     await self.coordinator.async_request_refresh()
     is_lifted = bool(self.coordinator.data and self.coordinator.data.get("lifted"))
 
