@@ -24,6 +24,7 @@ class FellowStaggBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Description of a Fellow Stagg binary sensor."""
 
     value_fn: Callable[[dict[str, Any] | None], bool | None] | None = None
+    entity_registry_visible_default: bool = True
 
 
 def _is_heating(data: dict[str, Any] | None) -> bool | None:
@@ -54,6 +55,7 @@ BINARY_SENSORS: tuple[FellowStaggBinarySensorEntityDescription, ...] = (
         icon="mdi:coffee-maker",
         device_class=BinarySensorDeviceClass.PRESENCE,
         value_fn=_is_on_base,
+        entity_registry_visible_default=False,  # Hidden from UI by default; still active for device/state triggers
     ),
     FellowStaggBinarySensorEntityDescription(
         key="heating",
