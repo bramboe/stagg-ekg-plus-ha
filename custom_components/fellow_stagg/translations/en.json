@@ -1,0 +1,10 @@
+{
+  "device_automation": {
+    "trigger": {
+      "type": {
+        "placed_on_base": "Kettle placed on base",
+        "lifted_off_base": "Kettle lifted off base"
+      }
+    }
+  }
+}
