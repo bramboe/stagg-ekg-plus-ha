@@ -14,6 +14,7 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, Platform, UnitOfTem
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 import voluptuous as vol
 
@@ -309,6 +310,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+  # One-time: hide "Kettle on base" binary sensor from UI for existing installations (persists across restarts)
+  if not (entry.data or {}).get("_on_base_hidden_migrated"):
+    base_url = (entry.data or {}).get("base_url")
+    if base_url:
+      ent_reg = er.async_get(hass)
+      entity_id = ent_reg.async_get_entity_id("binary_sensor", DOMAIN, f"{base_url}_on_base")
+      if entity_id:
+        entry_reg = ent_reg.async_get(entity_id)
+        if entry_reg and entry_reg.hidden_by is None:
+          ent_reg.async_update_entity(entity_id, hidden_by=er.RegistryEntryHider.INTEGRATION)
+    hass.config_entries.async_update_entry(entry, data={**(entry.data or {}), "_on_base_hidden_migrated": True})
   return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
