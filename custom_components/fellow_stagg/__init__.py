@@ -179,7 +179,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         self.update_interval = timedelta(seconds=POLLING_INTERVAL_SECONDS)
       return data
     except Exception as err:
-      # Like Shelly: raise UpdateFailed so the coordinator marks unavailable and logs once (no persistent notification)
+      # If we already have data, keep showing it (kettle stays "available" with last state during brief WiFi glitches)
+      if self.data is not None:
+        _LOGGER.debug("Poll failed, keeping last state: %s", err)
+        return self.data
       raise UpdateFailed(f"Error communicating with kettle at {self._base_url}: {err}") from err
 
   async def _maybe_sync_clock(self, data: dict[str, Any]) -> None:
