@@ -297,14 +297,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-  # Unhide "Kettle on base" if we had previously hidden it (so it's visible again)
+  # Unhide "Kettle on base" binary sensor so it's visible in the UI
   base_url = (entry.data or {}).get("base_url")
   if base_url:
     ent_reg = er.async_get(hass)
     entity_id = ent_reg.async_get_entity_id("binary_sensor", DOMAIN, f"{base_url}_on_base")
     if entity_id:
       entry_reg = ent_reg.async_get(entity_id)
-      if entry_reg and entry_reg.hidden_by == er.RegistryEntryHider.INTEGRATION:
+      if entry_reg and entry_reg.hidden_by is not None:
         ent_reg.async_update_entity(entity_id, hidden_by=None)
   return True
 
