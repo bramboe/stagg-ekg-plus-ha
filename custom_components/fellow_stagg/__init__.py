@@ -83,6 +83,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self._last_mode_change: datetime | None = None
     self.last_target_temp: float | None = None
     self._last_command_sent: datetime | None = None
+    self._last_stale_refresh_scheduled: datetime | None = None  # Throttle delayed refresh after stale
     self._entry_id = entry_id or ""
 
   def notify_command_sent(self) -> None:
@@ -136,6 +137,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
           raise last_err
       if data is None:
         return None
+      self._last_stale_refresh_scheduled = None  # Reset so next failure can schedule delayed refresh
       _LOGGER.debug("Fetched units: %s", data.get("units"))
       
       if self.last_schedule_time is not None:
@@ -182,8 +184,21 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       # If we already have data, keep showing it (kettle stays "available" with last state during brief WiFi glitches)
       if self.data is not None:
         _LOGGER.debug("Poll failed, keeping last state: %s", err)
+        # Schedule a quick retry so we pick up physical button changes (on/off) soon (throttle to once per 10s)
+        now = datetime.now()
+        if (
+          self._last_stale_refresh_scheduled is None
+          or (now - self._last_stale_refresh_scheduled).total_seconds() >= 10
+        ):
+          self._last_stale_refresh_scheduled = now
+          self.hass.async_create_task(self._delayed_refresh())
         return self.data
       raise UpdateFailed(f"Error communicating with kettle at {self._base_url}: {err}") from err
+
+  async def _delayed_refresh(self) -> None:
+    """Request a refresh after a short delay (used after returning stale data so we retry and sync with physical state)."""
+    await asyncio.sleep(2)
+    await self.async_request_refresh()
 
   async def _maybe_sync_clock(self, data: dict[str, Any]) -> None:
     if not self.sync_clock_enabled:
