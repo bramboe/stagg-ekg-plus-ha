@@ -83,6 +83,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.last_target_temp: float | None = None
     self._last_command_sent: datetime | None = None
     self._last_offline_log: datetime | None = None
+    self._consecutive_online_count: int = 0  # Only clear offline state after several successes
     self._entry_id = entry_id or ""
 
   def notify_command_sent(self) -> None:
@@ -111,10 +112,14 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     _LOGGER.debug("Polling Fellow Stagg kettle at %s", self._base_url)
     try:
       data = await self.kettle.async_poll(self.session)
-      self._last_offline_log = None  # Reset so next offline event is logged
-      # Dismiss offline notification when kettle reconnects
-      _offline_nid = f"fellow_stagg_offline_{self._entry_id}"
-      persistent_notification.async_dismiss(self.hass, _offline_nid)
+      # Only clear offline state and dismiss notification after several consecutive successes,
+      # so a single transient success doesn't allow the notification to reappear on the next failure.
+      self._consecutive_online_count += 1
+      if self._consecutive_online_count >= _OFFLINE_CLEAR_AFTER_CONSECUTIVE_SUCCESS:
+        self._last_offline_log = None
+        self._consecutive_online_count = _OFFLINE_CLEAR_AFTER_CONSECUTIVE_SUCCESS  # cap
+        _offline_nid = f"fellow_stagg_offline_{self._entry_id}"
+        persistent_notification.async_dismiss(self.hass, _offline_nid)
       _LOGGER.debug("Fetched units: %s", data.get("units"))
       
       if self.last_schedule_time is not None:
@@ -170,6 +175,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         ),
       ) or "connect" in str(err).lower() or "connection" in str(err).lower()
       if is_connection_error:
+        self._consecutive_online_count = 0
         msg = "Kettle appears to be offline or unplugged. Plug it in to reconnect."
         should_notify = (
           self._last_offline_log is None
@@ -178,7 +184,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         if should_notify:
           self._last_offline_log = now
           _LOGGER.debug("Kettle offline at %s", self._base_url)
-          # Show notification (dismissed automatically when kettle reconnects)
+          # Show notification (dismissed when kettle has been back online for several polls)
           persistent_notification.async_create(
             self.hass,
             f"**Fellow Stagg kettle** at {self._base_url}\n\n{msg}",
@@ -218,6 +224,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 _NETWORK_DISCOVERY_DELAY = 15
 # Throttle offline/connection errors to avoid log spam (seconds)
 _OFFLINE_LOG_THROTTLE_SECONDS = 300
+# Consecutive successful polls required before clearing "offline" state and dismissing notification
+_OFFLINE_CLEAR_AFTER_CONSECUTIVE_SUCCESS = 3
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
   # Option 2 (network): after HA started, scan for kettles so they show up in Discovered
