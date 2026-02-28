@@ -29,7 +29,7 @@ Home Assistant integration for the Fellow Stagg EKG Pro using the kettle’s HTT
 - **Climate:** On/off and target temperature (HomeKit-compatible).
 - **Schedule:** Schedule time, mode (off / once / daily), and schedule temperature. Changes are applied only when you press the **Update Schedule** button.
 - **Hold:** Hold duration select (15 / 30 / 45 / 60 min); Hold Mode sensor (Active / Off).
-- **Sensors:** Power, current temperature, kettle position (lifted / on base), clock, current schedule mode (from kettle), current screen, unit type, firmware version, dry-boil detection.
+- **Sensors:** Power, current temperature, clock, current schedule mode (from kettle), current screen, unit type, firmware version, dry-boil detection. **Binary sensors:** Kettle on base (on/off), heating, no water.
 - **Selects:** Schedule mode, clock display mode (off / digital / analog), temperature unit (Celsius / Fahrenheit), hold duration.
 - **Switches:** Sync clock, Pre-boil.
 - **Buttons:** Update Schedule (sends schedule to kettle), Refresh (refresh kettle display), Launch Bricky (only when kettle is lifted; otherwise plays an error chime).
