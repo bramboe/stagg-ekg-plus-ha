@@ -37,7 +37,24 @@ def _is_heating(data: dict[str, Any] | None) -> bool | None:
     return bool(power and not hold)
 
 
+def _is_on_base(data: dict[str, Any] | None) -> bool | None:
+    """True when kettle is on the base (not lifted). Enables device triggers and state options in automations."""
+    if not data:
+        return None
+    lifted = data.get("lifted")
+    if lifted is None:
+        return None
+    return not lifted
+
+
 BINARY_SENSORS: tuple[FellowStaggBinarySensorEntityDescription, ...] = (
+    FellowStaggBinarySensorEntityDescription(
+        key="on_base",
+        name="Kettle on base",
+        icon="mdi:coffee-maker",
+        device_class=BinarySensorDeviceClass.PRESENCE,
+        value_fn=_is_on_base,
+    ),
     FellowStaggBinarySensorEntityDescription(
         key="heating",
         name="Heating",
