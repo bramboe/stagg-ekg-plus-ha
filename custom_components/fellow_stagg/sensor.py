@@ -97,19 +97,8 @@ def get_schedule_config(data: dict[str, Any] | None) -> str | None:
     return " ".join(parts)
 
 
-def get_kettle_position(data: dict[str, Any] | None) -> str | None:
-    """Return kettle position: On base or Lifted."""
-    if not data:
-        return None
-    lifted = data.get("lifted")
-    if lifted is None:
-        return None
-    return "Lifted" if lifted else "On base"
-
-
 VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "power": lambda data: "On" if data and data.get("power") else "Off",
-    "kettle_position": get_kettle_position,
     "current_temp": get_current_temp,
     "hold": get_hold_status,
     "clock": lambda data: data.get("clock") if data else None,
@@ -126,7 +115,6 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
     return [
         # Main – primary status
         FellowStaggSensorEntityDescription(key="current_temp", name="Current Temperature", icon="mdi:thermometer", device_class=SensorDeviceClass.TEMPERATURE),
-        FellowStaggSensorEntityDescription(key="kettle_position", name="Kettle position", icon="mdi:coffee-maker"),
         # Diagnostic – read-only info (Wi-Fi and Bluetooth address first, then rest)
         FellowStaggSensorEntityDescription(key="wifi_address", name="Wi-Fi address", icon="mdi:wifi", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="bluetooth_address", name="Bluetooth address", icon="mdi:bluetooth", entity_category=EntityCategory.DIAGNOSTIC),
