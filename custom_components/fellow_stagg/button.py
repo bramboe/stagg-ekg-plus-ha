@@ -163,6 +163,13 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
     self._attr_icon = "mdi:controller"
     self._attr_entity_category = EntityCategory.CONFIG
 
+  @property
+  def available(self) -> bool:
+    """Only allow pressing when kettle is lifted (not on base)."""
+    if not super().available or not self.coordinator.data:
+      return False
+    return bool(self.coordinator.data.get("lifted"))
+
   async def async_press(self) -> None:
     """Trigger the bricky sequence only if kettle is lifted (same source as Kettle Position sensor).
     When kettle is on base: play error chime only; do NOT send setsetting bricky or reset."""
