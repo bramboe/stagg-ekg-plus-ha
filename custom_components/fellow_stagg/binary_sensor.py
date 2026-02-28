@@ -55,7 +55,6 @@ BINARY_SENSORS: tuple[FellowStaggBinarySensorEntityDescription, ...] = (
         icon="mdi:coffee-maker",
         device_class=BinarySensorDeviceClass.PRESENCE,
         value_fn=_is_on_base,
-        entity_registry_visible_default=False,  # Hidden from UI by default; still active for device/state triggers
     ),
     FellowStaggBinarySensorEntityDescription(
         key="heating",
