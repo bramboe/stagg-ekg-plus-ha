@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 import voluptuous as vol
 
 from .const import (
@@ -223,7 +223,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
           )
       else:
         _LOGGER.error("Error polling Fellow Stagg kettle at %s: %s", self._base_url, err)
-      return None
+      # Raise so coordinator keeps last data → entities stay "available" (no "became unavailable" in Activity)
+      raise UpdateFailed(str(err)) from err
 
   async def _maybe_sync_clock(self, data: dict[str, Any]) -> None:
     if not self.sync_clock_enabled:
