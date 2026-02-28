@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 import voluptuous as vol
 
 from .const import (
@@ -83,9 +83,6 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self._last_mode_change: datetime | None = None
     self.last_target_temp: float | None = None
     self._last_command_sent: datetime | None = None
-    self._last_offline_log: datetime | None = None
-    self._consecutive_online_count: int = 0  # Only clear offline state after many successes
-    self._consecutive_offline_count: int = 0  # Only show notification after several failures (avoids false "offline")
     self._entry_id = entry_id or ""
 
   def notify_command_sent(self) -> None:
@@ -139,15 +136,6 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
           raise last_err
       if data is None:
         return None
-      self._consecutive_offline_count = 0
-      # Only clear offline state and dismiss notification after many consecutive successes,
-      # so a brief reconnect doesn't dismiss and then immediately re-show the notification.
-      self._consecutive_online_count += 1
-      if self._consecutive_online_count >= _OFFLINE_CLEAR_AFTER_CONSECUTIVE_SUCCESS:
-        self._last_offline_log = None
-        self._consecutive_online_count = _OFFLINE_CLEAR_AFTER_CONSECUTIVE_SUCCESS  # cap
-        _offline_nid = f"fellow_stagg_offline_{self._entry_id}"
-        persistent_notification.async_dismiss(self.hass, _offline_nid)
       _LOGGER.debug("Fetched units: %s", data.get("units"))
       
       if self.last_schedule_time is not None:
@@ -191,39 +179,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         self.update_interval = timedelta(seconds=POLLING_INTERVAL_SECONDS)
       return data
     except Exception as err:
-      now = datetime.now()
-      is_connection_error = isinstance(
-        err,
-        (
-          aiohttp.ClientConnectorError,
-          aiohttp.ServerDisconnectedError,
-          OSError,
-          asyncio.TimeoutError,
-          ConnectionError,
-        ),
-      ) or "connect" in str(err).lower() or "connection" in str(err).lower()
-      if is_connection_error:
-        self._consecutive_online_count = 0
-        self._consecutive_offline_count += 1
-        # Only show notification after several consecutive failures (avoids spam on flaky network/single timeouts)
-        enough_failures = self._consecutive_offline_count >= _OFFLINE_NOTIFY_AFTER_CONSECUTIVE_FAILURES
-        throttle_ok = (
-          self._last_offline_log is None
-          or (now - self._last_offline_log).total_seconds() >= _OFFLINE_LOG_THROTTLE_SECONDS
-        )
-        if enough_failures and throttle_ok:
-          self._last_offline_log = now
-          _LOGGER.debug("Kettle offline at %s (after %s failures)", self._base_url, self._consecutive_offline_count)
-          msg = "Kettle appears to be offline or unplugged. Plug it in to reconnect."
-          persistent_notification.async_create(
-            self.hass,
-            f"**Fellow Stagg kettle** at {self._base_url}\n\n{msg}",
-            title="Kettle offline",
-            notification_id=f"fellow_stagg_offline_{self._entry_id}",
-          )
-      else:
-        _LOGGER.error("Error polling Fellow Stagg kettle at %s: %s", self._base_url, err)
-      return None
+      # Like Shelly: raise UpdateFailed so the coordinator marks unavailable and logs once (no persistent notification)
+      raise UpdateFailed(f"Error communicating with kettle at {self._base_url}: {err}") from err
 
   async def _maybe_sync_clock(self, data: dict[str, Any]) -> None:
     if not self.sync_clock_enabled:
@@ -252,13 +209,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
 # Delay (seconds) before running network discovery scan after HA started
 _NETWORK_DISCOVERY_DELAY = 15
-# Throttle offline/connection errors to avoid log spam (seconds)
-_OFFLINE_LOG_THROTTLE_SECONDS = 300
-# Consecutive failures before showing "offline" notification (avoids false alerts on single timeouts)
-_OFFLINE_NOTIFY_AFTER_CONSECUTIVE_FAILURES = 3
-# Consecutive successful polls required before clearing "offline" state and dismissing notification (~1 min at 5s poll)
-_OFFLINE_CLEAR_AFTER_CONSECUTIVE_SUCCESS = 12
-# Poll retries on connection/timeout (try twice before counting one failure)
+# Poll retries on connection/timeout (try twice before marking unavailable, like resilient WiFi devices)
 _POLL_RETRY_ATTEMPTS = 2
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
@@ -343,17 +294,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-  # One-time: hide "Kettle on base" binary sensor from UI for existing installations (persists across restarts)
-  if not (entry.data or {}).get("_on_base_hidden_migrated"):
-    base_url = (entry.data or {}).get("base_url")
-    if base_url:
-      ent_reg = er.async_get(hass)
-      entity_id = ent_reg.async_get_entity_id("binary_sensor", DOMAIN, f"{base_url}_on_base")
-      if entity_id:
-        entry_reg = ent_reg.async_get(entity_id)
-        if entry_reg and entry_reg.hidden_by is None:
-          ent_reg.async_update_entity(entity_id, hidden_by=er.RegistryEntryHider.INTEGRATION)
-    hass.config_entries.async_update_entry(entry, data={**(entry.data or {}), "_on_base_hidden_migrated": True})
+  # Unhide "Kettle on base" if we had previously hidden it (so it's visible again)
+  base_url = (entry.data or {}).get("base_url")
+  if base_url:
+    ent_reg = er.async_get(hass)
+    entity_id = ent_reg.async_get_entity_id("binary_sensor", DOMAIN, f"{base_url}_on_base")
+    if entity_id:
+      entry_reg = ent_reg.async_get(entity_id)
+      if entry_reg and entry_reg.hidden_by == er.RegistryEntryHider.INTEGRATION:
+        ent_reg.async_update_entity(entity_id, hidden_by=None)
   return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
