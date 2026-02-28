@@ -63,15 +63,15 @@ class FellowStaggScheduleTemperature(RestoreNumber):
 
   @property
   def native_value(self) -> float | None:
-    """Return the current scheduled temperature.
+    """Return the current scheduled temperature in the display unit.
 
-    Defaults to 40°C (or the equivalent in the current unit) if the user
-    has not chosen a value yet.
+    Stored internally in Celsius; converted to Fahrenheit for display when needed.
+    Defaults to 40°C (104°F) if the user has not chosen a value yet.
     """
-    if self.coordinator.last_schedule_temp_c is not None:
-      return float(self.coordinator.last_schedule_temp_c)
-    # Default to 40°C on first use; value is stored in Celsius
-    return 40.0
+    temp_c = self.coordinator.last_schedule_temp_c if self.coordinator.last_schedule_temp_c is not None else 40.0
+    if self.coordinator.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+      return round((temp_c * 1.8) + 32.0, 1)
+    return round(temp_c, 1)
 
   async def async_added_to_hass(self) -> None:
     """Restore last value or apply default on first setup."""
@@ -87,8 +87,11 @@ class FellowStaggScheduleTemperature(RestoreNumber):
         restored_value = None
 
     if restored_value is not None:
-      # Use the restored value and keep it in Celsius in the coordinator
-      self.coordinator.last_schedule_temp_c = float(restored_value)
+      # Restored state is in the display unit; convert to Celsius for storage
+      if self.coordinator.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+        self.coordinator.last_schedule_temp_c = (float(restored_value) - 32.0) / 1.8
+      else:
+        self.coordinator.last_schedule_temp_c = float(restored_value)
     else:
       # No previous state: initialize to 40°C by default
       self.coordinator.last_schedule_temp_c = 40.0
@@ -97,6 +100,11 @@ class FellowStaggScheduleTemperature(RestoreNumber):
     self.async_write_ha_state()
 
   async def async_set_native_value(self, value: float) -> None:
+    # Value from HA is in the entity's display unit (F or C); store always in Celsius
+    if self.coordinator.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+      temp_c = (value - 32.0) / 1.8
+    else:
+      temp_c = value
+    self.coordinator.last_schedule_temp_c = float(temp_c)
     _LOGGER.debug("Setting schedule temperature to %s (local only; press Update Schedule to send)", value)
-    self.coordinator.last_schedule_temp_c = float(value)
     self.async_write_ha_state()
