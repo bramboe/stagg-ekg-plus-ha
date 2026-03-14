@@ -16,6 +16,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from .const import (
@@ -206,22 +207,24 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     clock = data.get("clock")
     if not clock:
       return
-    now = datetime.now()
+    # Use HA's configured timezone so the kettle shows the user's local time
+    now = dt_util.now()
     try:
       hour = int(clock.split(":")[0])
       minute = int(clock.split(":")[1])
     except Exception:
       return
 
-    if self._last_clock_sync and (now - self._last_clock_sync).total_seconds() < 3600:
+    drift_minutes = abs((hour * 60 + minute) - (now.hour * 60 + now.minute))
+    # Throttle: don't sync more than once per hour unless drift is large (e.g. kettle was off)
+    if drift_minutes < 10 and self._last_clock_sync and (now - self._last_clock_sync).total_seconds() < 3600:
       return
 
-    drift_minutes = abs((hour * 60 + minute) - (now.hour * 60 + now.minute))
     if drift_minutes >= 2:
       try:
         await self.kettle.async_set_clock(self.session, now.hour, now.minute, now.second)
         self._last_clock_sync = now
-        _LOGGER.debug("Synced kettle clock to %02d:%02d", now.hour, now.minute)
+        _LOGGER.debug("Synced kettle clock to %02d:%02d (HA timezone)", now.hour, now.minute)
       except Exception as err:
         _LOGGER.warning("Failed to sync kettle clock: %s", err)
 
