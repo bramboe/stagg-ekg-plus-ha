@@ -191,15 +191,5 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
 
     _LOGGER.debug("Kettle lifted: launching Bricky.")
     self.coordinator.notify_command_sent()
-    # 1. Enable the bricky flag
     await k.async_set_bricky(session, True)
-    await asyncio.sleep(0.5)
-
-    _LOGGER.debug("Launching Bricky: Sending reset command...")
-    # 2. Reset the kettle. We expect a connection error here because the kettle reboots instantly.
-    try:
-      await k.async_reset(session)
-    except Exception as err:
-      _LOGGER.debug("Kettle reset triggered (ignoring expected connection error: %s)", err)
-
     await self.coordinator.async_request_refresh()
