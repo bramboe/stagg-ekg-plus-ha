@@ -323,7 +323,7 @@ class KettleHttpClient:
   @staticmethod
   def _parse_boil(body: str) -> bool | None:
     """Parse pre-boil setting (0=off, 1=on) from settings output."""
-    m = re.search(r"\boil\s*=?\s*(\d+)", body or "", re.IGNORECASE)
+    m = re.search(r"\bboil\s*=?\s*(\d+)", body or "", re.IGNORECASE)
     if not m:
       return None
     return int(m.group(1)) == 1
