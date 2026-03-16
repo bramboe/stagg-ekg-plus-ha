@@ -35,7 +35,10 @@ class KettleHttpClient:
     fwinfo_body = await self._cli_command(session, "fwinfo")
 
     current_temp, temp_units = self._parse_temp(body)
-    target_temp, target_units = self._parse_target_temp(body)
+    # settempr from prtsettings is the authoritative user-set target.
+    # temprT in state lags behind (stays at boil point while kettle is in standby).
+    target_temp = self._parse_settempr(settings_body)
+    target_units = None
     
     if target_temp is not None and (target_temp < 30 or target_temp > 100): target_temp = None
     if current_temp is not None and (current_temp < 0 or current_temp > 120): current_temp = None
@@ -323,7 +326,7 @@ class KettleHttpClient:
   @staticmethod
   def _parse_boil(body: str) -> bool | None:
     """Parse pre-boil setting (0=off, 1=on) from settings output."""
-    m = re.search(r"\boil\s*=?\s*(\d+)", body or "", re.IGNORECASE)
+    m = re.search(r"\bboil\s*=?\s*(\d+)", body or "", re.IGNORECASE)
     if not m:
       return None
     return int(m.group(1)) == 1
@@ -402,12 +405,6 @@ class KettleHttpClient:
         if res: return res
     return None, None
 
-  def _parse_target_temp(self, body: str) -> tuple[float | None, str | None]:
-    for label in ("temprT", "tempsc", "temps"):
-        res = self._parse_temp_line(body, label)
-        if res: return res
-    return None, None
-
   def _parse_temp_line(self, body: str, label: str) -> tuple[float, str | None] | None:
     m = re.search(rf"\b{re.escape(label)}\s*=\s*([-\w\.]+)\s*([CF])?", body or "", re.IGNORECASE)
     if not m or m.group(1).lower() == "nan": return None
@@ -454,6 +451,20 @@ class KettleHttpClient:
         val = int(m.group(1))
         return {"hour": (val // 256) % 24, "minute": val % 256}
     return None
+
+  @staticmethod
+  def _parse_settempr(body: str) -> float | None:
+    """Parse the immediate target temperature from prtsettings.
+
+    The firmware includes a parenthetical with the Celsius value regardless of unit mode:
+      settempr=185 F (85.000000 C 185.000000 F)   <- Fahrenheit mode device
+      settempr=164 2C (82.000000 C 179.600006 F)  <- Celsius mode device
+    """
+    m = re.search(r"\bsettempr\s*=.*?\((\d+\.\d+)\s*C", body or "")
+    if not m:
+      return None
+    val = float(m.group(1))
+    return val if 30 <= val <= 100 else None
 
   def _parse_schedule_temp(self, body: str) -> float | None:
     m = re.search(r"\bschtempr\s*=\s*(-?\d+)", body or "", re.IGNORECASE)
