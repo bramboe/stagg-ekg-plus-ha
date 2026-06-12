@@ -176,7 +176,16 @@
         "name": "Durée de maintien"
       },
       "language": {
-        "name": "Langue d'affichage"
+        "name": "Langue d'affichage",
+        "state": {
+          "english": "Anglais",
+          "french": "Français",
+          "spanish": "Espagnol",
+          "chinese_simplified": "Chinois (simplifié)",
+          "chinese_traditional": "Chinois (traditionnel)",
+          "korean": "Coréen",
+          "japanese": "Japonais"
+        }
       }
     },
     "number": {
