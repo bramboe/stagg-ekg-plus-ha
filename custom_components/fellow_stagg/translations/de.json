@@ -98,24 +98,59 @@
       }
     },
     "sensor": {
-      "current_temp": { "name": "Aktuelle Temperatur" },
-      "brew_timer": { "name": "Brüh-Timer" },
-      "wifi_address": { "name": "WLAN-Adresse" },
-      "bluetooth_address": { "name": "Bluetooth-Adresse" },
-      "power": { "name": "Betrieb" },
-      "hold": { "name": "Warmhaltemodus" },
-      "clock": { "name": "Uhr" },
-      "schedule_mode": { "name": "Zeitplan" },
-      "screen_name": { "name": "Aktueller Bildschirm" },
-      "programmed_unit": { "name": "Einheit" },
-      "dry_boil_detection": { "name": "Trockenkocherkennung" },
-      "firmware_version": { "name": "Firmware-Version" }
+      "current_temp": {
+        "name": "Aktuelle Temperatur"
+      },
+      "brew_timer": {
+        "name": "Brüh-Timer"
+      },
+      "wifi_address": {
+        "name": "WLAN-Adresse"
+      },
+      "bluetooth_address": {
+        "name": "Bluetooth-Adresse"
+      },
+      "power": {
+        "name": "Betrieb"
+      },
+      "hold": {
+        "name": "Warmhaltemodus"
+      },
+      "clock": {
+        "name": "Uhr"
+      },
+      "schedule_mode": {
+        "name": "Zeitplan"
+      },
+      "screen_name": {
+        "name": "Aktueller Bildschirm"
+      },
+      "programmed_unit": {
+        "name": "Einheit"
+      },
+      "dry_boil_detection": {
+        "name": "Trockenkocherkennung"
+      },
+      "firmware_version": {
+        "name": "Firmware-Version"
+      },
+      "boil_point": {
+        "name": "Siedepunkt"
+      }
     },
     "binary_sensor": {
-      "on_base": { "name": "Wasserkocher auf Basis" },
-      "heating": { "name": "Heizt" },
-      "water_ready": { "name": "Wasser fertig" },
-      "no_water": { "name": "Kein Wasser" }
+      "on_base": {
+        "name": "Wasserkocher auf Basis"
+      },
+      "heating": {
+        "name": "Heizt"
+      },
+      "water_ready": {
+        "name": "Wasser fertig"
+      },
+      "no_water": {
+        "name": "Kein Wasser"
+      }
     },
     "select": {
       "schedule_mode": {
@@ -134,24 +169,47 @@
           "analog": "Analog"
         }
       },
-      "temperature_unit": { "name": "Temperatureinheit" },
-      "hold_duration": { "name": "Warmhaltedauer" },
-      "language": { "name": "Anzeigesprache" }
+      "temperature_unit": {
+        "name": "Temperatureinheit"
+      },
+      "hold_duration": {
+        "name": "Warmhaltedauer"
+      },
+      "language": {
+        "name": "Anzeigesprache"
+      }
     },
     "number": {
-      "schedule_temperature": { "name": "Zeitplantemperatur" },
-      "altitude": { "name": "Höhe" }
+      "schedule_temperature": {
+        "name": "Zeitplantemperatur"
+      },
+      "altitude": {
+        "name": "Höhe"
+      }
     },
     "button": {
-      "update_schedule": { "name": "Zeitplan aktualisieren" },
-      "launch_bricky": { "name": "Bricky starten (Kocher anheben)" }
+      "update_schedule": {
+        "name": "Zeitplan aktualisieren"
+      },
+      "launch_bricky": {
+        "name": "Bricky starten (Kocher anheben)"
+      }
     },
     "switch": {
-      "sync_clock": { "name": "Uhr synchronisieren" },
-      "pre_boil": { "name": "Vorkochen" }
+      "sync_clock": {
+        "name": "Uhr synchronisieren"
+      },
+      "pre_boil": {
+        "name": "Vorkochen"
+      },
+      "chime": {
+        "name": "Signalton bei Fertig"
+      }
     },
     "time": {
-      "schedule_time": { "name": "Zeitplanzeit" }
+      "schedule_time": {
+        "name": "Zeitplanzeit"
+      }
     }
   },
   "services": {

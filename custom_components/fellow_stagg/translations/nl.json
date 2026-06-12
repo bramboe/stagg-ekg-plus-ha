@@ -98,24 +98,59 @@
       }
     },
     "sensor": {
-      "current_temp": { "name": "Huidige temperatuur" },
-      "brew_timer": { "name": "Zettimer" },
-      "wifi_address": { "name": "Wifi-adres" },
-      "bluetooth_address": { "name": "Bluetooth-adres" },
-      "power": { "name": "Voeding" },
-      "hold": { "name": "Warmhoudmodus" },
-      "clock": { "name": "Klok" },
-      "schedule_mode": { "name": "Schema" },
-      "screen_name": { "name": "Huidig scherm" },
-      "programmed_unit": { "name": "Eenheid" },
-      "dry_boil_detection": { "name": "Droogkookdetectie" },
-      "firmware_version": { "name": "Firmwareversie" }
+      "current_temp": {
+        "name": "Huidige temperatuur"
+      },
+      "brew_timer": {
+        "name": "Zettimer"
+      },
+      "wifi_address": {
+        "name": "Wifi-adres"
+      },
+      "bluetooth_address": {
+        "name": "Bluetooth-adres"
+      },
+      "power": {
+        "name": "Voeding"
+      },
+      "hold": {
+        "name": "Warmhoudmodus"
+      },
+      "clock": {
+        "name": "Klok"
+      },
+      "schedule_mode": {
+        "name": "Schema"
+      },
+      "screen_name": {
+        "name": "Huidig scherm"
+      },
+      "programmed_unit": {
+        "name": "Eenheid"
+      },
+      "dry_boil_detection": {
+        "name": "Droogkookdetectie"
+      },
+      "firmware_version": {
+        "name": "Firmwareversie"
+      },
+      "boil_point": {
+        "name": "Kookpunt"
+      }
     },
     "binary_sensor": {
-      "on_base": { "name": "Waterkoker op voet" },
-      "heating": { "name": "Verwarmen" },
-      "water_ready": { "name": "Water klaar" },
-      "no_water": { "name": "Geen water" }
+      "on_base": {
+        "name": "Waterkoker op voet"
+      },
+      "heating": {
+        "name": "Verwarmen"
+      },
+      "water_ready": {
+        "name": "Water klaar"
+      },
+      "no_water": {
+        "name": "Geen water"
+      }
     },
     "select": {
       "schedule_mode": {
@@ -134,24 +169,47 @@
           "analog": "Analoog"
         }
       },
-      "temperature_unit": { "name": "Temperatuureenheid" },
-      "hold_duration": { "name": "Warmhoudduur" },
-      "language": { "name": "Schermtaal" }
+      "temperature_unit": {
+        "name": "Temperatuureenheid"
+      },
+      "hold_duration": {
+        "name": "Warmhoudduur"
+      },
+      "language": {
+        "name": "Schermtaal"
+      }
     },
     "number": {
-      "schedule_temperature": { "name": "Schematemperatuur" },
-      "altitude": { "name": "Hoogte" }
+      "schedule_temperature": {
+        "name": "Schematemperatuur"
+      },
+      "altitude": {
+        "name": "Hoogte"
+      }
     },
     "button": {
-      "update_schedule": { "name": "Schema bijwerken" },
-      "launch_bricky": { "name": "Bricky starten (til de koker op)" }
+      "update_schedule": {
+        "name": "Schema bijwerken"
+      },
+      "launch_bricky": {
+        "name": "Bricky starten (til de koker op)"
+      }
     },
     "switch": {
-      "sync_clock": { "name": "Klok synchroniseren" },
-      "pre_boil": { "name": "Voorkoken" }
+      "sync_clock": {
+        "name": "Klok synchroniseren"
+      },
+      "pre_boil": {
+        "name": "Voorkoken"
+      },
+      "chime": {
+        "name": "Pieptoon bij gereed"
+      }
     },
     "time": {
-      "schedule_time": { "name": "Schematijd" }
+      "schedule_time": {
+        "name": "Schematijd"
+      }
     }
   },
   "services": {

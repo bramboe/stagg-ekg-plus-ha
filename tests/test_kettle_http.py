@@ -11,7 +11,7 @@ STATE_BODY = (
 )
 SETTINGS_BODY = (
     "clockmode=1 hold=15 schedon=1 schtime=0:0 schtempr=176 offset_temp=-66879 "
-    "bricky=0 Repeat_sched=0 boil=1 altitude=100 ft language=0"
+    "bricky=0 Repeat_sched=0 boil=1 altitude=100 m language=0 chime=0"
 )
 
 
@@ -163,14 +163,39 @@ class TestParseFlags:
 
 
 class TestNewParsers:
-    def test_altitude(self):
-        assert KettleHttpClient._parse_altitude(SETTINGS_BODY) == 100.0
-        assert KettleHttpClient._parse_altitude("clockmode=1") is None
+    def test_altitude_meters(self):
+        assert KettleHttpClient._parse_altitude_m(SETTINGS_BODY) == 100.0
+        assert KettleHttpClient._parse_altitude_m("altitude=0 m") == 0.0
+        assert KettleHttpClient._parse_altitude_m("clockmode=1") is None
+
+    def test_altitude_feet_converted_to_meters(self):
+        # Regression: kettle may report feet; entity works in meters
+        # 1000 ft = 304.8 m
+        assert KettleHttpClient._parse_altitude_m("altitude=1000 ft") == 304.8
 
     def test_language(self):
         assert KettleHttpClient._parse_language(SETTINGS_BODY) == 0
         assert KettleHttpClient._parse_language("language=6") == 6
         assert KettleHttpClient._parse_language("") is None
+
+    def test_chime(self):
+        assert KettleHttpClient._parse_chime("chime=0") is False
+        assert KettleHttpClient._parse_chime("chime=1") is True
+        assert KettleHttpClient._parse_chime("chime = 3") is True
+        assert KettleHttpClient._parse_chime("clockmode=1") is None
+
+    def test_boil_point(self):
+        assert KettleHttpClient._parse_boil_point("temprB=100.000000 C") == 100.0
+        assert KettleHttpClient._parse_boil_point("temprB=93.4 C") == 93.4
+        assert KettleHttpClient._parse_boil_point("temprB=nan") is None
+        assert KettleHttpClient._parse_boil_point("mode=S_Off") is None
+
+    def test_ketl_flags(self):
+        flags = KettleHttpClient._parse_ketl_flags(
+            "ketl= ho 0 wd 0 nw 1 ipb 0 bf 0 tr 0"
+        )
+        assert flags == {"ho": 0, "wd": 0, "nw": 1, "ipb": 0, "bf": 0, "tr": 0}
+        assert KettleHttpClient._parse_ketl_flags("mode=S_Off") is None
 
 
 class TestHelpers:

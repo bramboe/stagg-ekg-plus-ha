@@ -15,7 +15,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
-from .const import DOMAIN, MAX_ALTITUDE_FT, MIN_ALTITUDE_FT
+from .const import DOMAIN, MAX_ALTITUDE_M, MIN_ALTITUDE_M
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,16 +33,16 @@ async def async_setup_entry(
 
 
 class FellowStaggAltitude(CoordinatorEntity[FellowStaggDataUpdateCoordinator], NumberEntity):
-  """Number for the kettle's altitude setting (feet; affects boiling point compensation)."""
+  """Number for the kettle's altitude setting (meters; affects boiling point compensation)."""
 
   _attr_has_entity_name = True
   _attr_translation_key = "altitude"
   _attr_mode = NumberMode.BOX
   _attr_icon = "mdi:image-filter-hdr"
-  _attr_native_min_value = MIN_ALTITUDE_FT
-  _attr_native_max_value = MAX_ALTITUDE_FT
-  _attr_native_step = 50
-  _attr_native_unit_of_measurement = "ft"
+  _attr_native_min_value = MIN_ALTITUDE_M
+  _attr_native_max_value = MAX_ALTITUDE_M
+  _attr_native_step = 10
+  _attr_native_unit_of_measurement = "m"
   _attr_entity_category = EntityCategory.CONFIG
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
@@ -52,7 +52,7 @@ class FellowStaggAltitude(CoordinatorEntity[FellowStaggDataUpdateCoordinator], N
 
   @property
   def native_value(self) -> float | None:
-    return (self.coordinator.data or {}).get("altitude_ft")
+    return (self.coordinator.data or {}).get("altitude_m")
 
   async def async_set_native_value(self, value: float) -> None:
     self.coordinator.notify_command_sent()

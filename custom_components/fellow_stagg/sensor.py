@@ -104,6 +104,18 @@ def get_brew_timer(data: dict[str, Any] | None) -> int | None:
     return data.get("timer_remaining_seconds")
 
 
+def get_boil_point(data: dict[str, Any] | None) -> float | None:
+    """Return the altitude-adjusted boiling point in the kettle's display unit."""
+    if not data:
+        return None
+    temp_c = data.get("boil_point_c")
+    if temp_c is None:
+        return None
+    if data.get("units") == "F":
+        return round((temp_c * 1.8) + 32.0, 1)
+    return round(temp_c, 1)
+
+
 VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "power": lambda data: "On" if data and data.get("power") else "Off",
     "current_temp": get_current_temp,
@@ -115,6 +127,7 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "firmware_version": lambda data: data.get("firmware_version") if data else None,
     "dry_boil_detection": lambda data: "Refill Kettle" if data and data.get("no_water") else ("Water Detected" if data is not None else None),
     "brew_timer": get_brew_timer,
+    "boil_point": get_boil_point,
 }
 
 
@@ -134,6 +147,7 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="screen_name", translation_key="screen_name", icon="mdi:monitor", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="programmed_unit", translation_key="programmed_unit", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="dry_boil_detection", translation_key="dry_boil_detection", icon="mdi:water-alert", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="boil_point", translation_key="boil_point", icon="mdi:water-thermometer", device_class=SensorDeviceClass.TEMPERATURE, entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="firmware_version", translation_key="firmware_version", icon="mdi:chip", entity_category=EntityCategory.DIAGNOSTIC),
     ]
 

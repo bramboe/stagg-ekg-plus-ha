@@ -98,24 +98,59 @@
       }
     },
     "sensor": {
-      "current_temp": { "name": "Current temperature" },
-      "brew_timer": { "name": "Brew timer" },
-      "wifi_address": { "name": "Wi-Fi address" },
-      "bluetooth_address": { "name": "Bluetooth address" },
-      "power": { "name": "Power" },
-      "hold": { "name": "Hold mode" },
-      "clock": { "name": "Clock" },
-      "schedule_mode": { "name": "Schedule" },
-      "screen_name": { "name": "Current screen" },
-      "programmed_unit": { "name": "Unit type" },
-      "dry_boil_detection": { "name": "Dry-boil detection" },
-      "firmware_version": { "name": "Firmware version" }
+      "current_temp": {
+        "name": "Current temperature"
+      },
+      "brew_timer": {
+        "name": "Brew timer"
+      },
+      "wifi_address": {
+        "name": "Wi-Fi address"
+      },
+      "bluetooth_address": {
+        "name": "Bluetooth address"
+      },
+      "power": {
+        "name": "Power"
+      },
+      "hold": {
+        "name": "Hold mode"
+      },
+      "clock": {
+        "name": "Clock"
+      },
+      "schedule_mode": {
+        "name": "Schedule"
+      },
+      "screen_name": {
+        "name": "Current screen"
+      },
+      "programmed_unit": {
+        "name": "Unit type"
+      },
+      "dry_boil_detection": {
+        "name": "Dry-boil detection"
+      },
+      "firmware_version": {
+        "name": "Firmware version"
+      },
+      "boil_point": {
+        "name": "Boiling point"
+      }
     },
     "binary_sensor": {
-      "on_base": { "name": "Kettle on base" },
-      "heating": { "name": "Heating" },
-      "water_ready": { "name": "Water ready" },
-      "no_water": { "name": "No water" }
+      "on_base": {
+        "name": "Kettle on base"
+      },
+      "heating": {
+        "name": "Heating"
+      },
+      "water_ready": {
+        "name": "Water ready"
+      },
+      "no_water": {
+        "name": "No water"
+      }
     },
     "select": {
       "schedule_mode": {
@@ -134,24 +169,47 @@
           "analog": "Analog"
         }
       },
-      "temperature_unit": { "name": "Temperature unit" },
-      "hold_duration": { "name": "Hold duration" },
-      "language": { "name": "Display language" }
+      "temperature_unit": {
+        "name": "Temperature unit"
+      },
+      "hold_duration": {
+        "name": "Hold duration"
+      },
+      "language": {
+        "name": "Display language"
+      }
     },
     "number": {
-      "schedule_temperature": { "name": "Schedule temperature" },
-      "altitude": { "name": "Altitude" }
+      "schedule_temperature": {
+        "name": "Schedule temperature"
+      },
+      "altitude": {
+        "name": "Altitude"
+      }
     },
     "button": {
-      "update_schedule": { "name": "Update schedule" },
-      "launch_bricky": { "name": "Launch Bricky (lift kettle)" }
+      "update_schedule": {
+        "name": "Update schedule"
+      },
+      "launch_bricky": {
+        "name": "Launch Bricky (lift kettle)"
+      }
     },
     "switch": {
-      "sync_clock": { "name": "Sync clock" },
-      "pre_boil": { "name": "Pre-boil" }
+      "sync_clock": {
+        "name": "Sync clock"
+      },
+      "pre_boil": {
+        "name": "Pre-boil"
+      },
+      "chime": {
+        "name": "Ready chime"
+      }
     },
     "time": {
-      "schedule_time": { "name": "Schedule time" }
+      "schedule_time": {
+        "name": "Schedule time"
+      }
     }
   },
   "services": {
