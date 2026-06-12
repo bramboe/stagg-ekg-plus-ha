@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.climate import (
+    PRESET_NONE,
     ClimateEntity,
     ClimateEntityFeature,
     HVACAction,
@@ -18,7 +19,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
-from .const import DOMAIN
+from .const import BREW_PRESETS_C, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,10 +45,12 @@ class FellowStaggClimate(
     """
 
     _attr_has_entity_name = True
-    _attr_name = "Kettle"
+    _attr_translation_key = "kettle"
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
+    _attr_preset_modes = [PRESET_NONE, *BREW_PRESETS_C.keys()]
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.PRESET_MODE
         | ClimateEntityFeature.TURN_ON
         | ClimateEntityFeature.TURN_OFF
     )
@@ -56,7 +59,7 @@ class FellowStaggClimate(
     def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
         """Initialize the climate entity."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.base_url}_climate"
+        self._attr_unique_id = f"{coordinator.unique_prefix}_climate"
         self._attr_device_info = coordinator.device_info
         self._command_lock = asyncio.Lock()
 
@@ -150,6 +153,31 @@ class FellowStaggClimate(
         if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
             return round((temp_c * 1.8) + 32.0, 1)
         return round(temp_c, 1)
+
+    @property
+    def preset_mode(self) -> str:
+        """Return the brew preset matching the current target temperature, if any."""
+        temp_c = (self.coordinator.data or {}).get("target_temp")
+        if temp_c is not None:
+            for preset, preset_c in BREW_PRESETS_C.items():
+                if abs(temp_c - preset_c) < 0.5:
+                    return preset
+        return PRESET_NONE
+
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        """Set the target temperature to the chosen brew preset."""
+        if preset_mode == PRESET_NONE:
+            return
+        temp_c = BREW_PRESETS_C.get(preset_mode)
+        if temp_c is None:
+            raise ValueError(f"Unknown preset: {preset_mode}")
+        async with self._command_lock:
+            await self.coordinator.kettle.async_set_temperature(
+                self.coordinator.session, int(temp_c)
+            )
+            self.coordinator.notify_command_sent()
+            await asyncio.sleep(0.5)
+            await self.coordinator.async_request_refresh()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set HVAC mode."""

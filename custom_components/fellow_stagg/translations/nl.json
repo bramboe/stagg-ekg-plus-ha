@@ -1,0 +1,189 @@
+{
+  "config": {
+    "flow_title": "Fellow Stagg ({base_url})",
+    "step": {
+      "user": {
+        "title": "Fellow Stagg-waterkoker toevoegen",
+        "description": "{message}",
+        "data": {
+          "device_or_manual": "Gevonden waterkoker"
+        }
+      },
+      "user_manual": {
+        "title": "URL van de waterkoker invoeren",
+        "description": "{message}",
+        "data": {
+          "base_url": "URL van de waterkoker"
+        }
+      },
+      "bluetooth": {
+        "title": "Waterkoker gevonden ({name})",
+        "description": "{hint}",
+        "data": {
+          "action": "Actie",
+          "base_url": "URL van de waterkoker"
+        }
+      },
+      "bluetooth_configure": {
+        "title": "{name} configureren",
+        "description": "{hint}",
+        "data": {
+          "action": "Actie",
+          "base_url": "URL van de waterkoker"
+        }
+      },
+      "zeroconf": {
+        "title": "Waterkoker gevonden",
+        "description": "Er is een Fellow Stagg-waterkoker gevonden op {base_url}. Toevoegen aan Home Assistant?"
+      },
+      "scan_network_result": {
+        "title": "Resultaten netwerkscan",
+        "data": {
+          "scan_result": "Gevonden waterkokers"
+        }
+      },
+      "reconfigure": {
+        "title": "URL van de waterkoker wijzigen",
+        "description": "Voer de nieuwe URL van de waterkoker in (bijv. na een gewijzigd IP-adres).",
+        "data": {
+          "base_url": "URL van de waterkoker"
+        }
+      }
+    },
+    "error": {
+      "required": "Dit veld is verplicht.",
+      "not_fellow_stagg": "Geen Fellow Stagg-CLI gevonden op deze URL."
+    },
+    "abort": {
+      "already_configured": "Deze waterkoker is al geconfigureerd.",
+      "invalid_host": "Ongeldige host.",
+      "not_fellow_stagg": "Dit apparaat is geen Fellow Stagg-waterkoker.",
+      "invalid_discovery_info": "Ongeldige discovery-informatie.",
+      "ignored": "Discovery genegeerd.",
+      "reconfigure_successful": "De URL van de waterkoker is bijgewerkt.",
+      "unknown": "Onverwachte fout."
+    },
+    "progress": {
+      "scan_network": "Netwerk wordt gescand op Fellow Stagg-waterkokers…"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polling-opties",
+        "data": {
+          "polling_interval_seconds": "Polling-interval (seconden)",
+          "polling_interval_countdown_seconds": "Snel polling-interval bij activiteit (seconden)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "kettle": {
+        "name": "Waterkoker",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "white_tea": "Witte thee (79 °C)",
+              "green_tea": "Groene thee (80 °C)",
+              "oolong_tea": "Oolong-thee (91 °C)",
+              "pour_over_coffee": "Filterkoffie (93 °C)",
+              "french_press": "Cafetière (96 °C)",
+              "black_tea": "Zwarte thee (98 °C)",
+              "boil": "Koken (100 °C)"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "current_temp": { "name": "Huidige temperatuur" },
+      "brew_timer": { "name": "Zettimer" },
+      "wifi_address": { "name": "Wifi-adres" },
+      "bluetooth_address": { "name": "Bluetooth-adres" },
+      "power": { "name": "Voeding" },
+      "hold": { "name": "Warmhoudmodus" },
+      "clock": { "name": "Klok" },
+      "schedule_mode": { "name": "Schema" },
+      "screen_name": { "name": "Huidig scherm" },
+      "programmed_unit": { "name": "Eenheid" },
+      "dry_boil_detection": { "name": "Droogkookdetectie" },
+      "firmware_version": { "name": "Firmwareversie" }
+    },
+    "binary_sensor": {
+      "on_base": { "name": "Waterkoker op voet" },
+      "heating": { "name": "Verwarmen" },
+      "water_ready": { "name": "Water klaar" },
+      "no_water": { "name": "Geen water" }
+    },
+    "select": {
+      "schedule_mode": {
+        "name": "Schemamodus",
+        "state": {
+          "off": "Uit",
+          "once": "Eenmalig",
+          "daily": "Dagelijks"
+        }
+      },
+      "clock_mode": {
+        "name": "Klokweergave",
+        "state": {
+          "off": "Uit",
+          "digital": "Digitaal",
+          "analog": "Analoog"
+        }
+      },
+      "temperature_unit": { "name": "Temperatuureenheid" },
+      "hold_duration": { "name": "Warmhoudduur" },
+      "language": { "name": "Schermtaal" }
+    },
+    "number": {
+      "schedule_temperature": { "name": "Schematemperatuur" },
+      "altitude": { "name": "Hoogte" }
+    },
+    "button": {
+      "update_schedule": { "name": "Schema bijwerken" },
+      "launch_bricky": { "name": "Bricky starten (til de koker op)" }
+    },
+    "switch": {
+      "sync_clock": { "name": "Klok synchroniseren" },
+      "pre_boil": { "name": "Voorkoken" }
+    },
+    "time": {
+      "schedule_time": { "name": "Schematijd" }
+    }
+  },
+  "services": {
+    "set_schedule": {
+      "name": "Schema instellen",
+      "description": "Stel de geplande tijd/temperatuur in en schakel het schema optioneel in."
+    },
+    "disable_schedule": {
+      "name": "Schema uitschakelen",
+      "description": "Schakel de geplande start van de waterkoker uit."
+    },
+    "update_schedule": {
+      "name": "Schema bijwerken",
+      "description": "Stuur de huidige schematijd/-temperatuur/-modus van de entiteiten naar de waterkoker."
+    },
+    "heat_to": {
+      "name": "Verwarmen tot temperatuur",
+      "description": "Stel de doeltemperatuur in en start het verwarmen in één aanroep."
+    },
+    "play_chime": {
+      "name": "Geluidssignaal afspelen",
+      "description": "Speel een geluidssignaal af op de zoemer van de waterkoker."
+    },
+    "send_cli": {
+      "name": "CLI-commando verzenden",
+      "description": "Stuur een ruw HTTP CLI-commando naar de waterkoker (voor testen)."
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "placed_on_base": "Waterkoker op voet geplaatst",
+      "lifted_off_base": "Waterkoker van voet getild"
+    }
+  }
+}

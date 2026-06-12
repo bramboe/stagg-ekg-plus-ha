@@ -1,0 +1,189 @@
+{
+  "config": {
+    "flow_title": "Fellow Stagg ({base_url})",
+    "step": {
+      "user": {
+        "title": "Ajouter une bouilloire Fellow Stagg",
+        "description": "{message}",
+        "data": {
+          "device_or_manual": "Bouilloire découverte"
+        }
+      },
+      "user_manual": {
+        "title": "Saisir l'URL de la bouilloire",
+        "description": "{message}",
+        "data": {
+          "base_url": "URL de la bouilloire"
+        }
+      },
+      "bluetooth": {
+        "title": "Bouilloire découverte ({name})",
+        "description": "{hint}",
+        "data": {
+          "action": "Action",
+          "base_url": "URL de la bouilloire"
+        }
+      },
+      "bluetooth_configure": {
+        "title": "Configurer {name}",
+        "description": "{hint}",
+        "data": {
+          "action": "Action",
+          "base_url": "URL de la bouilloire"
+        }
+      },
+      "zeroconf": {
+        "title": "Bouilloire découverte",
+        "description": "Une bouilloire Fellow Stagg a été trouvée à l'adresse {base_url}. L'ajouter à Home Assistant ?"
+      },
+      "scan_network_result": {
+        "title": "Résultats de l'analyse du réseau",
+        "data": {
+          "scan_result": "Bouilloires trouvées"
+        }
+      },
+      "reconfigure": {
+        "title": "Modifier l'URL de la bouilloire",
+        "description": "Saisissez la nouvelle URL de la bouilloire (p. ex. après un changement d'adresse IP).",
+        "data": {
+          "base_url": "URL de la bouilloire"
+        }
+      }
+    },
+    "error": {
+      "required": "Ce champ est obligatoire.",
+      "not_fellow_stagg": "Aucune CLI Fellow Stagg trouvée à cette URL."
+    },
+    "abort": {
+      "already_configured": "Cette bouilloire est déjà configurée.",
+      "invalid_host": "Hôte non valide.",
+      "not_fellow_stagg": "Cet appareil n'est pas une bouilloire Fellow Stagg.",
+      "invalid_discovery_info": "Informations de découverte non valides.",
+      "ignored": "Découverte ignorée.",
+      "reconfigure_successful": "L'URL de la bouilloire a été mise à jour.",
+      "unknown": "Erreur inattendue."
+    },
+    "progress": {
+      "scan_network": "Analyse du réseau à la recherche de bouilloires Fellow Stagg…"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options d'interrogation",
+        "data": {
+          "polling_interval_seconds": "Intervalle d'interrogation (secondes)",
+          "polling_interval_countdown_seconds": "Intervalle rapide pendant l'activité (secondes)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "kettle": {
+        "name": "Bouilloire",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "white_tea": "Thé blanc (79 °C)",
+              "green_tea": "Thé vert (80 °C)",
+              "oolong_tea": "Thé oolong (91 °C)",
+              "pour_over_coffee": "Café filtre (93 °C)",
+              "french_press": "Cafetière à piston (96 °C)",
+              "black_tea": "Thé noir (98 °C)",
+              "boil": "Ébullition (100 °C)"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "current_temp": { "name": "Température actuelle" },
+      "brew_timer": { "name": "Minuteur d'infusion" },
+      "wifi_address": { "name": "Adresse Wi-Fi" },
+      "bluetooth_address": { "name": "Adresse Bluetooth" },
+      "power": { "name": "Alimentation" },
+      "hold": { "name": "Mode maintien" },
+      "clock": { "name": "Horloge" },
+      "schedule_mode": { "name": "Programmation" },
+      "screen_name": { "name": "Écran actuel" },
+      "programmed_unit": { "name": "Unité" },
+      "dry_boil_detection": { "name": "Détection de chauffe à sec" },
+      "firmware_version": { "name": "Version du micrologiciel" }
+    },
+    "binary_sensor": {
+      "on_base": { "name": "Bouilloire sur la base" },
+      "heating": { "name": "Chauffe" },
+      "water_ready": { "name": "Eau prête" },
+      "no_water": { "name": "Pas d'eau" }
+    },
+    "select": {
+      "schedule_mode": {
+        "name": "Mode de programmation",
+        "state": {
+          "off": "Désactivé",
+          "once": "Une fois",
+          "daily": "Quotidien"
+        }
+      },
+      "clock_mode": {
+        "name": "Affichage de l'horloge",
+        "state": {
+          "off": "Désactivé",
+          "digital": "Numérique",
+          "analog": "Analogique"
+        }
+      },
+      "temperature_unit": { "name": "Unité de température" },
+      "hold_duration": { "name": "Durée de maintien" },
+      "language": { "name": "Langue d'affichage" }
+    },
+    "number": {
+      "schedule_temperature": { "name": "Température programmée" },
+      "altitude": { "name": "Altitude" }
+    },
+    "button": {
+      "update_schedule": { "name": "Mettre à jour la programmation" },
+      "launch_bricky": { "name": "Lancer Bricky (soulever la bouilloire)" }
+    },
+    "switch": {
+      "sync_clock": { "name": "Synchroniser l'horloge" },
+      "pre_boil": { "name": "Pré-ébullition" }
+    },
+    "time": {
+      "schedule_time": { "name": "Heure programmée" }
+    }
+  },
+  "services": {
+    "set_schedule": {
+      "name": "Définir la programmation",
+      "description": "Définir l'heure/la température programmées et activer éventuellement la programmation."
+    },
+    "disable_schedule": {
+      "name": "Désactiver la programmation",
+      "description": "Désactiver le démarrage programmé de la bouilloire."
+    },
+    "update_schedule": {
+      "name": "Mettre à jour la programmation",
+      "description": "Envoyer l'heure/la température/le mode actuels des entités à la bouilloire."
+    },
+    "heat_to": {
+      "name": "Chauffer à la température",
+      "description": "Définir la température cible et démarrer la chauffe en un seul appel."
+    },
+    "play_chime": {
+      "name": "Jouer un signal sonore",
+      "description": "Jouer un signal sonore sur le buzzer de la bouilloire."
+    },
+    "send_cli": {
+      "name": "Envoyer une commande CLI",
+      "description": "Envoyer une commande CLI HTTP brute à la bouilloire (pour les tests)."
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "placed_on_base": "Bouilloire posée sur la base",
+      "lifted_off_base": "Bouilloire soulevée de la base"
+    }
+  }
+}

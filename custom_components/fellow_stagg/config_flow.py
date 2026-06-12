@@ -530,28 +530,26 @@ class FellowStaggOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle Fellow Stagg options (polling intervals)."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
+        # Don't assign to self.config_entry (deprecated since HA 2024.11);
+        # keep our own reference for compatibility with older versions.
+        self._entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage options."""
         if user_input is not None:
-            return self.async_create_entry(
-                title=self.config_entry.title,
-                data=self.config_entry.data,
-                options=user_input,
-            )
+            return self.async_create_entry(title="", data=user_input)
         return self.async_show_form(
             step_id="init",
-            data_schema=_options_schema(self.config_entry),
+            data_schema=_options_schema(self._entry),
         )
 
 
 class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Fellow Stagg integration."""
 
-    VERSION = 1
+    VERSION = 2
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     @staticmethod
@@ -560,6 +558,37 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FellowStaggOptionsFlowHandler:
         """Return the options flow handler."""
         return FellowStaggOptionsFlowHandler(config_entry)
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Let the user change the kettle's base URL (e.g. after a DHCP IP change)."""
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        if entry is None:
+            return self.async_abort(reason="unknown")
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            base_url = (user_input.get("base_url") or "").strip()
+            if not base_url:
+                errors["base_url"] = "required"
+            else:
+                if not base_url.startswith(("http://", "https://")):
+                    base_url = f"http://{base_url}"
+                session = async_get_clientsession(self.hass)
+                if not await _probe_kettle(session, base_url):
+                    errors["base_url"] = "not_fellow_stagg"
+                else:
+                    self.hass.config_entries.async_update_entry(
+                        entry, data={**entry.data, "base_url": base_url}
+                    )
+                    await self.hass.config_entries.async_reload(entry.entry_id)
+                    return self.async_abort(reason="reconfigure_successful")
+        current = (entry.data or {}).get("base_url", "")
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema({vol.Required("base_url", default=current): str}),
+            errors=errors,
+        )
 
     async def async_step_zeroconf(
         self, discovery_info: Any = None

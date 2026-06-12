@@ -8,7 +8,7 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
 )
-from homeassistant.const import UnitOfTemperature, EntityCategory
+from homeassistant.const import UnitOfTemperature, UnitOfTime, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -97,6 +97,13 @@ def get_schedule_config(data: dict[str, Any] | None) -> str | None:
     return " ".join(parts)
 
 
+def get_brew_timer(data: dict[str, Any] | None) -> int | None:
+    """Return remaining brew-timer seconds, or None when no timer is running."""
+    if not data:
+        return None
+    return data.get("timer_remaining_seconds")
+
+
 VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "power": lambda data: "On" if data and data.get("power") else "Off",
     "current_temp": get_current_temp,
@@ -107,6 +114,7 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "programmed_unit": lambda data: "Celsius" if data and data.get("raw_units") == "C" else ("Fahrenheit" if data and data.get("raw_units") == "F" else "Unknown"),
     "firmware_version": lambda data: data.get("firmware_version") if data else None,
     "dry_boil_detection": lambda data: "Refill Kettle" if data and data.get("no_water") else ("Water Detected" if data is not None else None),
+    "brew_timer": get_brew_timer,
 }
 
 
@@ -114,18 +122,19 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
     # Order: main status first (no category), then diagnostic (entity_category=DIAGNOSTIC)
     return [
         # Main – primary status
-        FellowStaggSensorEntityDescription(key="current_temp", name="Current Temperature", icon="mdi:thermometer", device_class=SensorDeviceClass.TEMPERATURE),
+        FellowStaggSensorEntityDescription(key="current_temp", translation_key="current_temp", icon="mdi:thermometer", device_class=SensorDeviceClass.TEMPERATURE),
+        FellowStaggSensorEntityDescription(key="brew_timer", translation_key="brew_timer", icon="mdi:timer-sand", device_class=SensorDeviceClass.DURATION, native_unit_of_measurement=UnitOfTime.SECONDS),
         # Diagnostic – read-only info (Wi-Fi and Bluetooth address first, then rest)
-        FellowStaggSensorEntityDescription(key="wifi_address", name="Wi-Fi address", icon="mdi:wifi", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="bluetooth_address", name="Bluetooth address", icon="mdi:bluetooth", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="power", name="Power", icon="mdi:power", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="hold", name="Hold Mode", icon="mdi:timer", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="clock", name="Clock", icon="mdi:clock-outline", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="schedule_mode", name="Schedule", icon="mdi:calendar-clock", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="screen_name", name="Current Screen", icon="mdi:monitor", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="programmed_unit", name="Unit Type", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="dry_boil_detection", name="Dry-Boil Detection", icon="mdi:water-alert", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="firmware_version", name="Firmware Version", icon="mdi:chip", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="wifi_address", translation_key="wifi_address", icon="mdi:wifi", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="bluetooth_address", translation_key="bluetooth_address", icon="mdi:bluetooth", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="power", translation_key="power", icon="mdi:power", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="hold", translation_key="hold", icon="mdi:timer", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="clock", translation_key="clock", icon="mdi:clock-outline", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="schedule_mode", translation_key="schedule_mode", icon="mdi:calendar-clock", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="screen_name", translation_key="screen_name", icon="mdi:monitor", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="programmed_unit", translation_key="programmed_unit", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="dry_boil_detection", translation_key="dry_boil_detection", icon="mdi:water-alert", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="firmware_version", translation_key="firmware_version", icon="mdi:chip", entity_category=EntityCategory.DIAGNOSTIC),
     ]
 
 
@@ -148,7 +157,7 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
     def __init__(self, coordinator: FellowStaggDataUpdateCoordinator, description: FellowStaggSensorEntityDescription) -> None:
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_unique_id = f"{coordinator.base_url}_{description.key}"
+        self._attr_unique_id = f"{coordinator.unique_prefix}_{description.key}"
         self._attr_device_info = coordinator.device_info
 
     @property
@@ -173,6 +182,11 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
+        if self.entity_description.key == "brew_timer" and self.coordinator.data:
+            return {
+                "display": self.coordinator.data.get("timer_display"),
+                "phase": self.coordinator.data.get("timer_phase"),
+            }
         if self.entity_description.key == "screen_name" and self.coordinator.data:
             return {"raw_screen_name": self.coordinator.data.get("screen_name")}
         if self.entity_description.key == "schedule_mode" and self.coordinator.data:

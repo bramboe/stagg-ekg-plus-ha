@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install aiohttp pytest ruff
+      - name: Ruff (syntax errors and undefined names)
+        run: ruff check --select E9,F custom_components/fellow_stagg
+      - name: Pytest
+        run: pytest tests/ -q

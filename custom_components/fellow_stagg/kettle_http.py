@@ -4,11 +4,22 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import time
 from typing import Any
 
-from aiohttp import ClientResponseError, ClientSession
+from aiohttp import ClientResponseError, ClientSession, ClientTimeout
 
 _LOGGER = logging.getLogger(__name__)
+
+_REQUEST_TIMEOUT = ClientTimeout(total=15)
+
+
+def _first_not_none(*values: Any) -> Any:
+  """Return the first value that is not None (so 0/False from prtsettings wins over stale state)."""
+  for value in values:
+    if value is not None:
+      return value
+  return None
 
 
 class KettleHttpClient:
@@ -28,37 +39,55 @@ class KettleHttpClient:
     else:
       self._cli_url = f"{base}{cli_path if cli_path.startswith('/') else '/' + cli_path}"
 
-  async def async_poll(self, session: ClientSession) -> dict[str, Any]:
-    """Fetch kettle state via CLI commands."""
+    # prtsettings cache so fast (1s) polling doesn't hammer the kettle with extra requests
+    self._settings_body: str | None = None
+    self._settings_fetched_at: float = 0.0
+
+  async def async_get_firmware_version(self, session: ClientSession) -> str | None:
+    """Fetch the firmware version once (it doesn't change between polls)."""
+    body = await self._cli_command(session, "fwinfo")
+    return self._parse_fwinfo(body)
+
+  async def async_poll(self, session: ClientSession, settings_max_age: float = 0.0) -> dict[str, Any]:
+    """Fetch kettle state via CLI commands.
+
+    settings_max_age: reuse the cached prtsettings body if it is younger than this
+    many seconds (0 = always refetch). Used during fast polling to halve request load.
+    """
     body = await self._cli_command(session, "state")
-    settings_body = await self._cli_command(session, "prtsettings")
-    fwinfo_body = await self._cli_command(session, "fwinfo")
+    now = time.monotonic()
+    if (
+      self._settings_body is None
+      or settings_max_age <= 0
+      or now - self._settings_fetched_at > settings_max_age
+    ):
+      self._settings_body = await self._cli_command(session, "prtsettings")
+      self._settings_fetched_at = now
+    settings_body = self._settings_body
 
     current_temp, temp_units = self._parse_temp(body)
     target_temp, target_units = self._parse_target_temp(body)
-    
+
     if target_temp is not None and (target_temp < 30 or target_temp > 100): target_temp = None
     if current_temp is not None and (current_temp < 0 or current_temp > 120): current_temp = None
-    
+
     mode = self._parse_mode(body)
-    clock_mode = self._parse_clock_mode(settings_body) or self._parse_clock_mode(body)
+    clock_mode = _first_not_none(self._parse_clock_mode(settings_body), self._parse_clock_mode(body))
     clock = self._parse_clock(body)
-    sched_time = self._parse_schedule_time(settings_body) or self._parse_schedule_time(body)
-    sched_temp_c = self._parse_schedule_temp(settings_body) or self._parse_schedule_temp(body)
+    sched_time = _first_not_none(self._parse_schedule_time(settings_body), self._parse_schedule_time(body))
+    sched_temp_c = _first_not_none(self._parse_schedule_temp(settings_body), self._parse_schedule_temp(body))
 
-    schedon_settings = self._parse_schedon_value(settings_body)
-    schedon_state = self._parse_schedon_value(body)
-    schedon_value = schedon_settings if schedon_settings is not None else schedon_state
+    schedon_value = _first_not_none(
+      self._parse_schedon_value(settings_body), self._parse_schedon_value(body)
+    )
 
-    sched_enabled_settings = self._parse_schedule_enabled(settings_body)
-    sched_enabled_state = self._parse_schedule_enabled(body)
-    sched_enabled = sched_enabled_settings if sched_enabled_settings is not None else sched_enabled_state
+    sched_repeat = _first_not_none(
+      self._parse_schedule_repeat(settings_body), self._parse_schedule_repeat(body)
+    )
 
-    sched_repeat_settings = self._parse_schedule_repeat(settings_body)
-    sched_repeat_state = self._parse_schedule_repeat(body)
-    sched_repeat = sched_repeat_settings if sched_repeat_settings is not None else sched_repeat_state
-
-    hold_minutes = self._parse_hold_setting(settings_body) or self._parse_hold_setting(body)
+    hold_minutes = _first_not_none(
+      self._parse_hold_setting(settings_body), self._parse_hold_setting(body)
+    )
     # Prefer prtsettings for boil; only use state if settings had no value (None). Avoid "False or parse(body)" overwriting off with stale state.
     boil_settings = self._parse_boil(settings_body)
     boil = boil_settings if boil_settings is not None else self._parse_boil(body)
@@ -83,7 +112,6 @@ class KettleHttpClient:
     units = raw_units or temp_units or target_units or "C"
     units = units.upper()
 
-    firmware_version = self._parse_fwinfo(fwinfo_body)
     countdown_minutes, timer_phase = self._parse_countdown(body)
     timer_display, timer_remaining_seconds = self._parse_timer_time(body)
     _LOGGER.debug(
@@ -97,7 +125,6 @@ class KettleHttpClient:
 
     data: dict[str, Any] = {
       "raw": body,
-      "firmware_version": firmware_version,
       "power": self._parse_power(mode),
       "hold": self._parse_hold(mode),
       "hold_minutes": hold_minutes,
@@ -124,6 +151,8 @@ class KettleHttpClient:
       "timer_phase": timer_phase,
       "timer_display": timer_display,
       "timer_remaining_seconds": timer_remaining_seconds,
+      "altitude_ft": self._parse_altitude(settings_body),
+      "language": self._parse_language(settings_body),
     }
     return data
 
@@ -240,6 +269,25 @@ class KettleHttpClient:
     await asyncio.sleep(0.15)
     await self._cli_command(session, "buz 400 1000 200")
 
+  async def async_play_chime(self, session: ClientSession, beeps: list[tuple[int, int, int]]) -> None:
+    """Play a sequence of beeps (freq_hz, duty_13bit, dur_ms) with short pauses between them."""
+    for index, (freq, duty, dur_ms) in enumerate(beeps):
+      if index:
+        await asyncio.sleep(0.15)
+      await self._cli_command(session, f"buz {int(freq)} {int(duty)} {int(dur_ms)}")
+
+  async def async_play_sos(self, session: ClientSession) -> None:
+    """Play the firmware's built-in SOS buzzer pattern."""
+    await self._cli_command(session, "buz sos")
+
+  async def async_set_altitude(self, session: ClientSession, altitude_ft: float) -> None:
+    """Set the altitude in feet (affects the kettle's boiling point compensation)."""
+    await self._cli_command(session, f"setsettingd altitude {altitude_ft:g}")
+
+  async def async_set_language(self, session: ClientSession, index: int) -> None:
+    """Set the display language (0=en, 1=fr, 2=es, 3=zh-Hans, 4=zh-Hant, 5=ko, 6=ja)."""
+    await self._cli_command(session, f"setsetting language {int(index)}")
+
   async def async_reset(self, session: ClientSession) -> None:
     """Reset the kettle firmware."""
     await self._cli_command(session, "reset")
@@ -265,7 +313,7 @@ class KettleHttpClient:
     encoded = self._encode_cli_command(command)
     url = f"{self._cli_url}?cmd={encoded}"
     try:
-      async with session.get(url, timeout=15) as resp:
+      async with session.get(url, timeout=_REQUEST_TIMEOUT) as resp:
         resp.raise_for_status()
         return await resp.text()
     except ClientResponseError: raise
@@ -323,10 +371,22 @@ class KettleHttpClient:
   @staticmethod
   def _parse_boil(body: str) -> bool | None:
     """Parse pre-boil setting (0=off, 1=on) from settings output."""
-    m = re.search(r"\boil\s*=?\s*(\d+)", body or "", re.IGNORECASE)
+    m = re.search(r"\bboil\s*=?\s*(\d+)", body or "", re.IGNORECASE)
     if not m:
       return None
     return int(m.group(1)) == 1
+
+  @staticmethod
+  def _parse_altitude(body: str) -> float | None:
+    """Parse altitude (feet) from settings output, e.g. 'altitude=100 ft'."""
+    m = re.search(r"\baltitude\s*=?\s*(-?\d+(?:\.\d+)?)", body or "", re.IGNORECASE)
+    return float(m.group(1)) if m else None
+
+  @staticmethod
+  def _parse_language(body: str) -> int | None:
+    """Parse display language index from settings output (0=en .. 6=ja)."""
+    m = re.search(r"\blanguage\s*=?\s*(\d+)", body or "", re.IGNORECASE)
+    return int(m.group(1)) if m else None
 
   @staticmethod
   def _parse_timer_time(body: str) -> tuple[str | None, int | None]:

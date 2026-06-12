@@ -32,13 +32,13 @@ class FellowStaggScheduleTimeEntity(
   """Time entity for scheduled start time (local until Update Schedule is pressed)."""
 
   _attr_has_entity_name = True
-  _attr_name = "Schedule Time"
+  _attr_translation_key = "schedule_time"
   _attr_icon = "mdi:clock-edit"
   _attr_should_poll = False
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
-    self._attr_unique_id = f"{coordinator.base_url}_schedule_time"
+    self._attr_unique_id = f"{coordinator.unique_prefix}_schedule_time"
     self._attr_device_info = coordinator.device_info
 
   @property

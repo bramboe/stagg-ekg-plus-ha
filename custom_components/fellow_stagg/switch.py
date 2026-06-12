@@ -1,15 +1,15 @@
 """Switches for Fellow Stagg EKG Pro over HTTP CLI."""
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.const import EntityCategory
+from homeassistant.const import EntityCategory, STATE_ON
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
@@ -31,19 +31,24 @@ async def async_setup_entry(
   ])
 
 
-class FellowStaggClockSyncSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SwitchEntity):
-  """Switch to enable/disable daily clock sync."""
+class FellowStaggClockSyncSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], RestoreEntity, SwitchEntity):
+  """Switch to enable/disable daily clock sync. State survives HA restarts."""
 
   _attr_has_entity_name = True
-  _attr_name = "Sync Clock"
+  _attr_translation_key = "sync_clock"
   _attr_should_poll = False
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
-    self._attr_unique_id = f"{coordinator.base_url}_sync_clock"
+    self._attr_unique_id = f"{coordinator.unique_prefix}_sync_clock"
     self._attr_device_info = coordinator.device_info
     self._attr_entity_category = EntityCategory.CONFIG
-    _LOGGER.debug("Initialized sync clock switch for %s", coordinator.base_url)
+
+  async def async_added_to_hass(self) -> None:
+    await super().async_added_to_hass()
+    last_state = await self.async_get_last_state()
+    if last_state is not None:
+      self.coordinator.sync_clock_enabled = last_state.state == STATE_ON
 
   @property
   def is_on(self) -> bool | None:
@@ -62,13 +67,13 @@ class FellowStaggPreBoilSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinato
   """Switch for pre-boil (boil setting: 0=off, 1=on)."""
 
   _attr_has_entity_name = True
-  _attr_name = "Pre-Boil"
+  _attr_translation_key = "pre_boil"
   _attr_icon = "mdi:water-boiler"
   _attr_entity_category = EntityCategory.CONFIG
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
-    self._attr_unique_id = f"{coordinator.base_url}_pre_boil"
+    self._attr_unique_id = f"{coordinator.unique_prefix}_pre_boil"
     self._attr_device_info = coordinator.device_info
 
   @property
