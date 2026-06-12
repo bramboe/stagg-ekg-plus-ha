@@ -12,6 +12,7 @@ from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry, SOURCE_IGNORE
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, UnitOfTemperature
 from homeassistant.core import HomeAssistant, SupportsResponse, callback
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers import device_registry as dr, entity_registry as er
@@ -37,6 +38,8 @@ from .const import (
 from .kettle_http import KettleHttpClient
 
 _LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 PLATFORMS: list[str] = [
   "climate",       # Main: Kettle on/off + target temp
