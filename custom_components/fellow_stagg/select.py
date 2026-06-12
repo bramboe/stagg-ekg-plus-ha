@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
-from .const import DOMAIN, LANGUAGE_OPTIONS
+from .const import DOMAIN, LANGUAGE_BY_INDEX, LANGUAGE_INDEX, LANGUAGE_OPTIONS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -193,12 +193,12 @@ class FellowStaggLanguageSelect(CoordinatorEntity[FellowStaggDataUpdateCoordinat
   @property
   def current_option(self) -> str | None:
     index = (self.coordinator.data or {}).get("language")
-    if index is not None and 0 <= int(index) < len(LANGUAGE_OPTIONS):
-      return LANGUAGE_OPTIONS[int(index)]
-    return None
+    if index is None:
+      return None
+    return LANGUAGE_BY_INDEX.get(int(index))
 
   async def async_select_option(self, option: str) -> None:
-    index = LANGUAGE_OPTIONS.index(option)
+    index = LANGUAGE_INDEX[option]
     self.coordinator.notify_command_sent()
     await self.coordinator.kettle.async_set_language(self.coordinator.session, index)
     await self.coordinator.async_request_refresh()

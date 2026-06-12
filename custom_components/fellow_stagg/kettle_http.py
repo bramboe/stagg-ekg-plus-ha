@@ -166,7 +166,10 @@ class KettleHttpClient:
     state = "S_Heat" if power_on else "S_Off"
     await self._cli_command(session, f"setstate {state}")
 
-  async def async_set_temperature(self, session: ClientSession, temp_c: int, **_: Any) -> None:
+  async def async_set_temperature(self, session: ClientSession, temp_c: float, **_: Any) -> None:
+    # The CLI stores the target as whole degrees Fahrenheit (verified live: it does
+    # not accept 0.5 °C or fractional values). Round to the nearest whole °F so a
+    # 0.5 °C request lands on the closest achievable value (~0.56 °C resolution).
     temp_f = round((temp_c * 1.8) + 32.0)
     await self._cli_command(session, f"setsetting settempr {temp_f}")
 

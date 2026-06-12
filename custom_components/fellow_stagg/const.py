@@ -36,9 +36,21 @@ BREW_PRESETS_C = {
   "boil": 100,
 }
 
-# Display language values accepted by `setsetting language <n>`
-# (index = firmware value; order matches the kettle's on-device menu)
-LANGUAGE_OPTIONS = ["en", "fr", "es", "zh-Hans", "zh-Hant", "ko", "ja"]
+# Display languages: select option slug -> firmware index for `setsetting language <n>`.
+# Order matches the kettle's on-device menu. The slug is the entity's stored state;
+# its human-readable, localized label lives in the translation files (entity.select.language.state).
+LANGUAGE_INDEX = {
+  "english": 0,
+  "french": 1,
+  "spanish": 2,
+  "chinese_simplified": 3,
+  "chinese_traditional": 4,
+  "korean": 5,
+  "japanese": 6,
+}
+LANGUAGE_OPTIONS = list(LANGUAGE_INDEX)
+# Reverse lookup: firmware index -> slug
+LANGUAGE_BY_INDEX = {index: slug for slug, index in LANGUAGE_INDEX.items()}
 
 # Altitude limits in meters for `setaltitudem <m>` (the kettle's native unit;
 # 3000 m ≈ 9842 ft, above any inhabited altitude). Use the dedicated

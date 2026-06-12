@@ -76,8 +76,15 @@ class FellowStaggClimate(
 
     @property
     def target_temperature_step(self) -> float:
-        """Return 1.0 degree steps."""
-        return 1.0
+        """Return the step size for the current unit.
+
+        The kettle's CLI stores the target in whole degrees Fahrenheit. In °F that
+        is a clean 1° step; in °C we offer 0.5° so the user gets finer-than-1°
+        control (each request maps to the nearest whole °F, ~0.56 °C apart).
+        """
+        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+            return 1.0
+        return 0.5
 
     @property
     def min_temp(self) -> float:
@@ -192,16 +199,18 @@ class FellowStaggClimate(
         if temperature is None:
             return
 
-        # Simple unit conversion based on current state
+        # Convert the requested temperature to Celsius without rounding to a whole
+        # degree — async_set_temperature rounds at the °F step, preserving the 0.5 °C
+        # selection as the nearest achievable Fahrenheit value.
         if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
-            temp_to_send = int(round((temperature - 32.0) / 1.8))
+            temp_c = (temperature - 32.0) / 1.8
         else:
-            temp_to_send = int(round(temperature))
+            temp_c = temperature
 
         async with self._command_lock:
             await self.coordinator.kettle.async_set_temperature(
                 self.coordinator.session,
-                temp_to_send,
+                temp_c,
             )
             self.coordinator.notify_command_sent()
             await asyncio.sleep(0.5)

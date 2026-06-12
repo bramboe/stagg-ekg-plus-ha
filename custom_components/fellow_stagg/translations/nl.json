@@ -176,7 +176,16 @@
         "name": "Warmhoudduur"
       },
       "language": {
-        "name": "Schermtaal"
+        "name": "Schermtaal",
+        "state": {
+          "english": "Engels",
+          "french": "Frans",
+          "spanish": "Spaans",
+          "chinese_simplified": "Chinees (vereenvoudigd)",
+          "chinese_traditional": "Chinees (traditioneel)",
+          "korean": "Koreaans",
+          "japanese": "Japans"
+        }
       }
     },
     "number": {

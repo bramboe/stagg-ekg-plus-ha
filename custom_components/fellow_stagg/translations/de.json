@@ -176,7 +176,16 @@
         "name": "Warmhaltedauer"
       },
       "language": {
-        "name": "Anzeigesprache"
+        "name": "Anzeigesprache",
+        "state": {
+          "english": "Englisch",
+          "french": "Französisch",
+          "spanish": "Spanisch",
+          "chinese_simplified": "Chinesisch (vereinfacht)",
+          "chinese_traditional": "Chinesisch (traditionell)",
+          "korean": "Koreanisch",
+          "japanese": "Japanisch"
+        }
       }
     },
     "number": {

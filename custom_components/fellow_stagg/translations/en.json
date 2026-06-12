@@ -176,7 +176,16 @@
         "name": "Hold duration"
       },
       "language": {
-        "name": "Display language"
+        "name": "Display language",
+        "state": {
+          "english": "English",
+          "french": "French",
+          "spanish": "Spanish",
+          "chinese_simplified": "Chinese (Simplified)",
+          "chinese_traditional": "Chinese (Traditional)",
+          "korean": "Korean",
+          "japanese": "Japanese"
+        }
       }
     },
     "number": {
