@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
-from .const import DOMAIN
+from .const import DOMAIN, LANGUAGE_OPTIONS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ async def async_setup_entry(
       FellowStaggClockModeSelect(coordinator),
       FellowStaggTemperatureUnitSelect(coordinator),
       FellowStaggHoldDurationSelect(coordinator),
+      FellowStaggLanguageSelect(coordinator),
     ]
   )
 
@@ -43,13 +44,13 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
   """Select for schedule mode (off/once/daily). Local only — no command is sent to the kettle until the user presses Update Schedule."""
 
   _attr_has_entity_name = True
-  _attr_name = "Schedule Mode"
+  _attr_translation_key = "schedule_mode"
   _attr_options = MODE_OPTIONS
   _attr_should_poll = False
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
-    self._attr_unique_id = f"{coordinator.base_url}_schedule_mode"
+    self._attr_unique_id = f"{coordinator.unique_prefix}_schedule_mode"
     self._attr_device_info = coordinator.device_info
 
   @property
@@ -75,14 +76,14 @@ class FellowStaggClockModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoordina
   """Select for display clock mode (off/digital/analog)."""
 
   _attr_has_entity_name = True
-  _attr_name = "Clock Display Mode"
+  _attr_translation_key = "clock_mode"
   _attr_options = CLOCK_MODE_OPTIONS
   _attr_should_poll = False
   _attr_entity_category = EntityCategory.CONFIG
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
-    self._attr_unique_id = f"{coordinator.base_url}_clock_mode"
+    self._attr_unique_id = f"{coordinator.unique_prefix}_clock_mode"
     self._attr_device_info = coordinator.device_info
 
   @property
@@ -108,7 +109,7 @@ class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCo
   """Select for temperature units (Celsius/Fahrenheit)."""
 
   _attr_has_entity_name = True
-  _attr_name = "Temperature Unit"
+  _attr_translation_key = "temperature_unit"
   _attr_options = UNIT_OPTIONS
   _attr_icon = "mdi:temperature-celsius"
   _attr_should_poll = False
@@ -116,7 +117,7 @@ class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCo
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
-    self._attr_unique_id = f"{coordinator.base_url}_temp_unit_select"
+    self._attr_unique_id = f"{coordinator.unique_prefix}_temp_unit_select"
     self._attr_device_info = coordinator.device_info
 
   @property
@@ -143,7 +144,7 @@ class FellowStaggHoldDurationSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
   """Select for hold duration (15/30/45/60 min)."""
 
   _attr_has_entity_name = True
-  _attr_name = "Hold Duration"
+  _attr_translation_key = "hold_duration"
   _attr_options = HOLD_OPTIONS
   _attr_icon = "mdi:timer-cog"
   _attr_should_poll = False
@@ -151,7 +152,7 @@ class FellowStaggHoldDurationSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
-    self._attr_unique_id = f"{coordinator.base_url}_hold_duration_select"
+    self._attr_unique_id = f"{coordinator.unique_prefix}_hold_duration_select"
     self._attr_device_info = coordinator.device_info
 
   @property
@@ -171,4 +172,33 @@ class FellowStaggHoldDurationSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
         minutes = int(option.split(" ")[0])
     self.coordinator.notify_command_sent()
     await self.coordinator.kettle.async_set_hold_duration(self.coordinator.session, minutes)
+    await self.coordinator.async_request_refresh()
+
+
+class FellowStaggLanguageSelect(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SelectEntity):
+  """Select for the kettle's display language (setsetting language 0..6)."""
+
+  _attr_has_entity_name = True
+  _attr_translation_key = "language"
+  _attr_options = LANGUAGE_OPTIONS
+  _attr_icon = "mdi:translate"
+  _attr_should_poll = False
+  _attr_entity_category = EntityCategory.CONFIG
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.unique_prefix}_language"
+    self._attr_device_info = coordinator.device_info
+
+  @property
+  def current_option(self) -> str | None:
+    index = (self.coordinator.data or {}).get("language")
+    if index is not None and 0 <= int(index) < len(LANGUAGE_OPTIONS):
+      return LANGUAGE_OPTIONS[int(index)]
+    return None
+
+  async def async_select_option(self, option: str) -> None:
+    index = LANGUAGE_OPTIONS.index(option)
+    self.coordinator.notify_command_sent()
+    await self.coordinator.kettle.async_set_language(self.coordinator.session, index)
     await self.coordinator.async_request_refresh()

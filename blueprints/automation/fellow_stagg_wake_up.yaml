@@ -1,0 +1,90 @@
+blueprint:
+  name: "Fellow Stagg: wake-up kettle"
+  description: >
+    Heat your Fellow Stagg EKG Pro to a chosen temperature at a wake-up time
+    (from a datetime helper), optionally only on weekdays, and optionally play
+    a chime when the water is ready.
+  domain: automation
+  source_url: https://github.com/bramboe/stagg-ekg-plus-ha/blob/main/blueprints/automation/fellow_stagg_wake_up.yaml
+  input:
+    wake_time:
+      name: Wake-up time
+      description: A datetime helper (input_datetime with time) that holds your wake-up time.
+      selector:
+        entity:
+          domain: input_datetime
+    kettle:
+      name: Kettle
+      description: The Fellow Stagg climate entity.
+      selector:
+        entity:
+          domain: climate
+          integration: fellow_stagg
+    temperature:
+      name: Target temperature (°C)
+      default: 96
+      selector:
+        number:
+          min: 40
+          max: 100
+          unit_of_measurement: "°C"
+    weekdays_only:
+      name: Weekdays only
+      description: Only run Monday through Friday.
+      default: false
+      selector:
+        boolean:
+    chime_when_ready:
+      name: Chime when ready
+      description: Play a chime on the kettle when the water reaches the target temperature.
+      default: true
+      selector:
+        boolean:
+
+mode: single
+
+triggers:
+  - trigger: time
+    at: !input wake_time
+
+conditions:
+  - condition: or
+    conditions:
+      - condition: template
+        value_template: "{{ not (weekdays_only | default(false)) }}"
+      - condition: time
+        weekday: [mon, tue, wed, thu, fri]
+
+variables:
+  weekdays_only: !input weekdays_only
+  chime_when_ready: !input chime_when_ready
+  kettle_entity: !input kettle
+
+actions:
+  - action: climate.set_temperature
+    target:
+      entity_id: !input kettle
+    data:
+      temperature: !input temperature
+  - delay:
+      seconds: 1
+  - action: climate.set_hvac_mode
+    target:
+      entity_id: !input kettle
+    data:
+      hvac_mode: heat
+  - if:
+      - condition: template
+        value_template: "{{ chime_when_ready }}"
+    then:
+      - wait_template: >-
+          {{ state_attr(kettle_entity, 'current_temperature') is not none
+             and state_attr(kettle_entity, 'temperature') is not none
+             and state_attr(kettle_entity, 'current_temperature')
+                 >= state_attr(kettle_entity, 'temperature') - 0.5 }}
+        timeout:
+          minutes: 15
+        continue_on_timeout: false
+      - action: fellow_stagg.play_chime
+        data:
+          pattern: double_beep

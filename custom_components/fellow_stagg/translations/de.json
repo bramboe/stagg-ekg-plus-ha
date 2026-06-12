@@ -1,0 +1,189 @@
+{
+  "config": {
+    "flow_title": "Fellow Stagg ({base_url})",
+    "step": {
+      "user": {
+        "title": "Fellow Stagg Wasserkocher hinzufügen",
+        "description": "{message}",
+        "data": {
+          "device_or_manual": "Gefundener Wasserkocher"
+        }
+      },
+      "user_manual": {
+        "title": "URL des Wasserkochers eingeben",
+        "description": "{message}",
+        "data": {
+          "base_url": "URL des Wasserkochers"
+        }
+      },
+      "bluetooth": {
+        "title": "Wasserkocher gefunden ({name})",
+        "description": "{hint}",
+        "data": {
+          "action": "Aktion",
+          "base_url": "URL des Wasserkochers"
+        }
+      },
+      "bluetooth_configure": {
+        "title": "{name} konfigurieren",
+        "description": "{hint}",
+        "data": {
+          "action": "Aktion",
+          "base_url": "URL des Wasserkochers"
+        }
+      },
+      "zeroconf": {
+        "title": "Wasserkocher gefunden",
+        "description": "Ein Fellow Stagg Wasserkocher wurde unter {base_url} gefunden. Zu Home Assistant hinzufügen?"
+      },
+      "scan_network_result": {
+        "title": "Ergebnisse des Netzwerkscans",
+        "data": {
+          "scan_result": "Gefundene Wasserkocher"
+        }
+      },
+      "reconfigure": {
+        "title": "URL des Wasserkochers ändern",
+        "description": "Gib die neue URL des Wasserkochers ein (z. B. nach einer IP-Adressänderung).",
+        "data": {
+          "base_url": "URL des Wasserkochers"
+        }
+      }
+    },
+    "error": {
+      "required": "Dieses Feld ist erforderlich.",
+      "not_fellow_stagg": "Unter dieser URL wurde keine Fellow Stagg CLI gefunden."
+    },
+    "abort": {
+      "already_configured": "Dieser Wasserkocher ist bereits konfiguriert.",
+      "invalid_host": "Ungültiger Host.",
+      "not_fellow_stagg": "Dieses Gerät ist kein Fellow Stagg Wasserkocher.",
+      "invalid_discovery_info": "Ungültige Discovery-Informationen.",
+      "ignored": "Discovery ignoriert.",
+      "reconfigure_successful": "Die URL des Wasserkochers wurde aktualisiert.",
+      "unknown": "Unerwarteter Fehler."
+    },
+    "progress": {
+      "scan_network": "Netzwerk wird nach Fellow Stagg Wasserkochern durchsucht…"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Abfrageoptionen",
+        "data": {
+          "polling_interval_seconds": "Abfrageintervall (Sekunden)",
+          "polling_interval_countdown_seconds": "Schnelles Abfrageintervall bei Aktivität (Sekunden)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "kettle": {
+        "name": "Wasserkocher",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "white_tea": "Weißer Tee (79 °C)",
+              "green_tea": "Grüner Tee (80 °C)",
+              "oolong_tea": "Oolong-Tee (91 °C)",
+              "pour_over_coffee": "Filterkaffee (93 °C)",
+              "french_press": "French Press (96 °C)",
+              "black_tea": "Schwarzer Tee (98 °C)",
+              "boil": "Kochen (100 °C)"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "current_temp": { "name": "Aktuelle Temperatur" },
+      "brew_timer": { "name": "Brüh-Timer" },
+      "wifi_address": { "name": "WLAN-Adresse" },
+      "bluetooth_address": { "name": "Bluetooth-Adresse" },
+      "power": { "name": "Betrieb" },
+      "hold": { "name": "Warmhaltemodus" },
+      "clock": { "name": "Uhr" },
+      "schedule_mode": { "name": "Zeitplan" },
+      "screen_name": { "name": "Aktueller Bildschirm" },
+      "programmed_unit": { "name": "Einheit" },
+      "dry_boil_detection": { "name": "Trockenkocherkennung" },
+      "firmware_version": { "name": "Firmware-Version" }
+    },
+    "binary_sensor": {
+      "on_base": { "name": "Wasserkocher auf Basis" },
+      "heating": { "name": "Heizt" },
+      "water_ready": { "name": "Wasser fertig" },
+      "no_water": { "name": "Kein Wasser" }
+    },
+    "select": {
+      "schedule_mode": {
+        "name": "Zeitplanmodus",
+        "state": {
+          "off": "Aus",
+          "once": "Einmalig",
+          "daily": "Täglich"
+        }
+      },
+      "clock_mode": {
+        "name": "Uhranzeige",
+        "state": {
+          "off": "Aus",
+          "digital": "Digital",
+          "analog": "Analog"
+        }
+      },
+      "temperature_unit": { "name": "Temperatureinheit" },
+      "hold_duration": { "name": "Warmhaltedauer" },
+      "language": { "name": "Anzeigesprache" }
+    },
+    "number": {
+      "schedule_temperature": { "name": "Zeitplantemperatur" },
+      "altitude": { "name": "Höhe" }
+    },
+    "button": {
+      "update_schedule": { "name": "Zeitplan aktualisieren" },
+      "launch_bricky": { "name": "Bricky starten (Kocher anheben)" }
+    },
+    "switch": {
+      "sync_clock": { "name": "Uhr synchronisieren" },
+      "pre_boil": { "name": "Vorkochen" }
+    },
+    "time": {
+      "schedule_time": { "name": "Zeitplanzeit" }
+    }
+  },
+  "services": {
+    "set_schedule": {
+      "name": "Zeitplan festlegen",
+      "description": "Geplante Zeit/Temperatur festlegen und den Zeitplan optional aktivieren."
+    },
+    "disable_schedule": {
+      "name": "Zeitplan deaktivieren",
+      "description": "Den geplanten Start des Wasserkochers deaktivieren."
+    },
+    "update_schedule": {
+      "name": "Zeitplan aktualisieren",
+      "description": "Aktuelle Zeitplanzeit/-temperatur/-modus aus den Entitäten an den Wasserkocher senden."
+    },
+    "heat_to": {
+      "name": "Auf Temperatur erhitzen",
+      "description": "Zieltemperatur festlegen und das Erhitzen in einem Aufruf starten."
+    },
+    "play_chime": {
+      "name": "Signalton abspielen",
+      "description": "Einen Signalton auf dem Summer des Wasserkochers abspielen."
+    },
+    "send_cli": {
+      "name": "CLI-Befehl senden",
+      "description": "Einen rohen HTTP-CLI-Befehl an den Wasserkocher senden (zum Testen)."
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "placed_on_base": "Wasserkocher auf Basis gestellt",
+      "lifted_off_base": "Wasserkocher von Basis genommen"
+    }
+  }
+}

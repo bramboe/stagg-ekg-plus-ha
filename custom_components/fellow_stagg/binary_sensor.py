@@ -48,24 +48,48 @@ def _is_on_base(data: dict[str, Any] | None) -> bool | None:
     return not lifted
 
 
+def _is_water_ready(data: dict[str, Any] | None) -> bool | None:
+    """True when the water has reached the target temperature (hold active or target reached)."""
+    if not data:
+        return None
+    if data.get("hold"):
+        return True
+    power = data.get("power")
+    current = data.get("current_temp")
+    target = data.get("target_temp")
+    if power is None:
+        return None
+    if not power:
+        return False
+    if current is None or target is None:
+        return None
+    return current >= target - 0.5
+
+
 BINARY_SENSORS: tuple[FellowStaggBinarySensorEntityDescription, ...] = (
     FellowStaggBinarySensorEntityDescription(
         key="on_base",
-        name="Kettle on base",
+        translation_key="on_base",
         icon="mdi:coffee-maker",
         device_class=BinarySensorDeviceClass.PRESENCE,
         value_fn=_is_on_base,
     ),
     FellowStaggBinarySensorEntityDescription(
         key="heating",
-        name="Heating",
+        translation_key="heating",
         icon="mdi:fire",
         device_class=BinarySensorDeviceClass.RUNNING,
         value_fn=_is_heating,
     ),
     FellowStaggBinarySensorEntityDescription(
+        key="water_ready",
+        translation_key="water_ready",
+        icon="mdi:cup-water",
+        value_fn=_is_water_ready,
+    ),
+    FellowStaggBinarySensorEntityDescription(
         key="no_water",
-        name="No water",
+        translation_key="no_water",
         icon="mdi:water-alert",
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -101,7 +125,7 @@ class FellowStaggBinarySensor(
     ) -> None:
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_unique_id = f"{coordinator.base_url}_{description.key}"
+        self._attr_unique_id = f"{coordinator.unique_prefix}_{description.key}"
         self._attr_device_info = coordinator.device_info
 
     @property

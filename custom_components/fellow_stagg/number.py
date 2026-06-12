@@ -1,9 +1,7 @@
 """Number platform for Fellow Stagg EKG Pro over HTTP CLI."""
 from __future__ import annotations
 
-import asyncio
 import logging
-from typing import Any
 
 from homeassistant.components.number import (
   NumberEntity,
@@ -11,12 +9,13 @@ from homeassistant.components.number import (
   RestoreNumber,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTemperature, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import EntityCategory, UnitOfTemperature, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
-from .const import DOMAIN
+from .const import DOMAIN, MAX_ALTITUDE_FT, MIN_ALTITUDE_FT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,21 +28,50 @@ async def async_setup_entry(
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
   async_add_entities([
     FellowStaggScheduleTemperature(coordinator),
+    FellowStaggAltitude(coordinator),
   ])
+
+
+class FellowStaggAltitude(CoordinatorEntity[FellowStaggDataUpdateCoordinator], NumberEntity):
+  """Number for the kettle's altitude setting (feet; affects boiling point compensation)."""
+
+  _attr_has_entity_name = True
+  _attr_translation_key = "altitude"
+  _attr_mode = NumberMode.BOX
+  _attr_icon = "mdi:image-filter-hdr"
+  _attr_native_min_value = MIN_ALTITUDE_FT
+  _attr_native_max_value = MAX_ALTITUDE_FT
+  _attr_native_step = 50
+  _attr_native_unit_of_measurement = "ft"
+  _attr_entity_category = EntityCategory.CONFIG
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.unique_prefix}_altitude"
+    self._attr_device_info = coordinator.device_info
+
+  @property
+  def native_value(self) -> float | None:
+    return (self.coordinator.data or {}).get("altitude_ft")
+
+  async def async_set_native_value(self, value: float) -> None:
+    self.coordinator.notify_command_sent()
+    await self.coordinator.kettle.async_set_altitude(self.coordinator.session, value)
+    await self.coordinator.async_request_refresh()
 
 
 class FellowStaggScheduleTemperature(RestoreNumber):
   """Number to set scheduled target temperature."""
 
   _attr_has_entity_name = True
-  _attr_name = "Schedule Temperature"
+  _attr_translation_key = "schedule_temperature"
   _attr_mode = NumberMode.BOX
   _attr_native_step = 1.0
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__()
     self.coordinator = coordinator
-    self._attr_unique_id = f"{coordinator.base_url}_schedule_temp"
+    self._attr_unique_id = f"{coordinator.unique_prefix}_schedule_temp"
     self._attr_device_info = coordinator.device_info
 
   @property
