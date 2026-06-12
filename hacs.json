@@ -1,6 +1,5 @@
 {
   "name": "Fellow Stagg EKG Pro (HTTP CLI)",
-  "domain": "fellow_stagg",
   "homeassistant": "2024.4.0",
   "render_readme": true
 }
