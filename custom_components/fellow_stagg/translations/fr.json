@@ -98,24 +98,59 @@
       }
     },
     "sensor": {
-      "current_temp": { "name": "Température actuelle" },
-      "brew_timer": { "name": "Minuteur d'infusion" },
-      "wifi_address": { "name": "Adresse Wi-Fi" },
-      "bluetooth_address": { "name": "Adresse Bluetooth" },
-      "power": { "name": "Alimentation" },
-      "hold": { "name": "Mode maintien" },
-      "clock": { "name": "Horloge" },
-      "schedule_mode": { "name": "Programmation" },
-      "screen_name": { "name": "Écran actuel" },
-      "programmed_unit": { "name": "Unité" },
-      "dry_boil_detection": { "name": "Détection de chauffe à sec" },
-      "firmware_version": { "name": "Version du micrologiciel" }
+      "current_temp": {
+        "name": "Température actuelle"
+      },
+      "brew_timer": {
+        "name": "Minuteur d'infusion"
+      },
+      "wifi_address": {
+        "name": "Adresse Wi-Fi"
+      },
+      "bluetooth_address": {
+        "name": "Adresse Bluetooth"
+      },
+      "power": {
+        "name": "Alimentation"
+      },
+      "hold": {
+        "name": "Mode maintien"
+      },
+      "clock": {
+        "name": "Horloge"
+      },
+      "schedule_mode": {
+        "name": "Programmation"
+      },
+      "screen_name": {
+        "name": "Écran actuel"
+      },
+      "programmed_unit": {
+        "name": "Unité"
+      },
+      "dry_boil_detection": {
+        "name": "Détection de chauffe à sec"
+      },
+      "firmware_version": {
+        "name": "Version du micrologiciel"
+      },
+      "boil_point": {
+        "name": "Point d'ébullition"
+      }
     },
     "binary_sensor": {
-      "on_base": { "name": "Bouilloire sur la base" },
-      "heating": { "name": "Chauffe" },
-      "water_ready": { "name": "Eau prête" },
-      "no_water": { "name": "Pas d'eau" }
+      "on_base": {
+        "name": "Bouilloire sur la base"
+      },
+      "heating": {
+        "name": "Chauffe"
+      },
+      "water_ready": {
+        "name": "Eau prête"
+      },
+      "no_water": {
+        "name": "Pas d'eau"
+      }
     },
     "select": {
       "schedule_mode": {
@@ -134,24 +169,47 @@
           "analog": "Analogique"
         }
       },
-      "temperature_unit": { "name": "Unité de température" },
-      "hold_duration": { "name": "Durée de maintien" },
-      "language": { "name": "Langue d'affichage" }
+      "temperature_unit": {
+        "name": "Unité de température"
+      },
+      "hold_duration": {
+        "name": "Durée de maintien"
+      },
+      "language": {
+        "name": "Langue d'affichage"
+      }
     },
     "number": {
-      "schedule_temperature": { "name": "Température programmée" },
-      "altitude": { "name": "Altitude" }
+      "schedule_temperature": {
+        "name": "Température programmée"
+      },
+      "altitude": {
+        "name": "Altitude"
+      }
     },
     "button": {
-      "update_schedule": { "name": "Mettre à jour la programmation" },
-      "launch_bricky": { "name": "Lancer Bricky (soulever la bouilloire)" }
+      "update_schedule": {
+        "name": "Mettre à jour la programmation"
+      },
+      "launch_bricky": {
+        "name": "Lancer Bricky (soulever la bouilloire)"
+      }
     },
     "switch": {
-      "sync_clock": { "name": "Synchroniser l'horloge" },
-      "pre_boil": { "name": "Pré-ébullition" }
+      "sync_clock": {
+        "name": "Synchroniser l'horloge"
+      },
+      "pre_boil": {
+        "name": "Pré-ébullition"
+      },
+      "chime": {
+        "name": "Signal sonore prêt"
+      }
     },
     "time": {
-      "schedule_time": { "name": "Heure programmée" }
+      "schedule_time": {
+        "name": "Heure programmée"
+      }
     }
   },
   "services": {

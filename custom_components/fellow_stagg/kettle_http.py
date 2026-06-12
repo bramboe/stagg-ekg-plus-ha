@@ -13,6 +13,9 @@ _LOGGER = logging.getLogger(__name__)
 
 _REQUEST_TIMEOUT = ClientTimeout(total=15)
 
+# Feet per meter, for normalizing a kettle that is set to feet back to meters
+FEET_PER_METER = 3.28084
+
 
 def _first_not_none(*values: Any) -> Any:
   """Return the first value that is not None (so 0/False from prtsettings wins over stale state)."""
@@ -151,8 +154,11 @@ class KettleHttpClient:
       "timer_phase": timer_phase,
       "timer_display": timer_display,
       "timer_remaining_seconds": timer_remaining_seconds,
-      "altitude_ft": self._parse_altitude(settings_body),
+      "altitude_m": self._parse_altitude_m(settings_body),
       "language": self._parse_language(settings_body),
+      "chime": self._parse_chime(settings_body),
+      "boil_point_c": self._parse_boil_point(body),
+      "ketl_flags": self._parse_ketl_flags(body),
     }
     return data
 
@@ -280,9 +286,17 @@ class KettleHttpClient:
     """Play the firmware's built-in SOS buzzer pattern."""
     await self._cli_command(session, "buz sos")
 
-  async def async_set_altitude(self, session: ClientSession, altitude_ft: float) -> None:
-    """Set the altitude in feet (affects the kettle's boiling point compensation)."""
-    await self._cli_command(session, f"setsettingd altitude {altitude_ft:g}")
+  async def async_set_altitude(self, session: ClientSession, altitude_m: float) -> None:
+    """Set the altitude in meters (affects the kettle's boiling point compensation).
+
+    Uses the dedicated `setaltitudem` command so the unit is unambiguous —
+    `setsettingd altitude` inherits whatever unit was last set.
+    """
+    await self._cli_command(session, f"setaltitudem {int(round(altitude_m))}")
+
+  async def async_set_chime(self, session: ClientSession, on: bool) -> None:
+    """Turn the kettle's ready-chime on (1) or off (0)."""
+    await self._cli_command(session, f"setsetting chime {1 if on else 0}")
 
   async def async_set_language(self, session: ClientSession, index: int) -> None:
     """Set the display language (0=en, 1=fr, 2=es, 3=zh-Hans, 4=zh-Hant, 5=ko, 6=ja)."""
@@ -377,10 +391,53 @@ class KettleHttpClient:
     return int(m.group(1)) == 1
 
   @staticmethod
-  def _parse_altitude(body: str) -> float | None:
-    """Parse altitude (feet) from settings output, e.g. 'altitude=100 ft'."""
-    m = re.search(r"\baltitude\s*=?\s*(-?\d+(?:\.\d+)?)", body or "", re.IGNORECASE)
-    return float(m.group(1)) if m else None
+  def _parse_altitude_m(body: str) -> float | None:
+    """Parse altitude from settings output as meters.
+
+    The kettle reports either 'altitude=100 m' or 'altitude=1000 ft' depending on
+    which command last set it; normalize both to meters.
+    """
+    m = re.search(r"\baltitude\s*=?\s*(-?\d+(?:\.\d+)?)\s*(m|ft)?", body or "", re.IGNORECASE)
+    if not m:
+      return None
+    value = float(m.group(1))
+    unit = (m.group(2) or "m").lower()
+    if unit == "ft":
+      return round(value / FEET_PER_METER, 1)
+    return value
+
+  @staticmethod
+  def _parse_chime(body: str) -> bool | None:
+    """Parse the ready-chime setting (0=off, non-zero=on) from settings output."""
+    m = re.search(r"\bchime\s*=?\s*(\d+)", body or "", re.IGNORECASE)
+    return int(m.group(1)) != 0 if m else None
+
+  @staticmethod
+  def _parse_boil_point(body: str) -> float | None:
+    """Parse the altitude-adjusted boiling point (temprB) in Celsius from state."""
+    m = re.search(r"\btemprB\s*=\s*([-\d.]+)", body or "", re.IGNORECASE)
+    if not m or m.group(1).lower() == "nan":
+      return None
+    return round(float(m.group(1)), 1)
+
+  @staticmethod
+  def _parse_ketl_flags(body: str) -> dict[str, int] | None:
+    """Parse the structured 'ketl=' flag field into a dict.
+
+    Example: 'ketl= ho 0 wd 0 nw 0 ipb 0 bf 0 tr 0'. Exposed for diagnostics;
+    ipb (lift) and the other flags are not yet wired into entity behavior.
+    """
+    m = re.search(r"\bketl\s*=\s*([a-z0-9 ]+)", body or "", re.IGNORECASE)
+    if not m:
+      return None
+    tokens = m.group(1).split()
+    flags: dict[str, int] = {}
+    for i in range(0, len(tokens) - 1, 2):
+      name = tokens[i]
+      value = tokens[i + 1]
+      if name.isalpha() and value.lstrip("-").isdigit():
+        flags[name.lower()] = int(value)
+    return flags or None
 
   @staticmethod
   def _parse_language(body: str) -> int | None:

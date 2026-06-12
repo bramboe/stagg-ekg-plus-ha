@@ -40,9 +40,12 @@ BREW_PRESETS_C = {
 # (index = firmware value; order matches the kettle's on-device menu)
 LANGUAGE_OPTIONS = ["en", "fr", "es", "zh-Hans", "zh-Hant", "ko", "ja"]
 
-# Altitude limits in feet for `setsettingd altitude <ft>` (kettle stores feet)
-MIN_ALTITUDE_FT = 0
-MAX_ALTITUDE_FT = 10000
+# Altitude limits in meters for `setaltitudem <m>` (the kettle's native unit;
+# 3000 m ≈ 9842 ft, above any inhabited altitude). Use the dedicated
+# setaltitudem/setaltitudef commands — `setsettingd altitude` inherits whatever
+# unit was last set, so it is unreliable.
+MIN_ALTITUDE_M = 0
+MAX_ALTITUDE_M = 3000
 
 # Chime presets for the play_chime service: name -> list of (freq_hz, duty_13bit, dur_ms);
 # "sos" is handled by the firmware's own `buz sos` pattern.

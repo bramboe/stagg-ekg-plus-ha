@@ -28,6 +28,7 @@ async def async_setup_entry(
   async_add_entities([
     FellowStaggClockSyncSwitch(coordinator),
     FellowStaggPreBoilSwitch(coordinator),
+    FellowStaggChimeSwitch(coordinator),
   ])
 
 
@@ -90,4 +91,34 @@ class FellowStaggPreBoilSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinato
   async def async_turn_off(self, **kwargs: Any) -> None:
     self.coordinator.notify_command_sent()
     await self.coordinator.kettle.async_set_boil(self.coordinator.session, False)
+    await self.coordinator.async_request_refresh()
+
+
+class FellowStaggChimeSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SwitchEntity):
+  """Switch for the kettle's ready-chime (setsetting chime 0/1)."""
+
+  _attr_has_entity_name = True
+  _attr_translation_key = "chime"
+  _attr_icon = "mdi:bell-ring"
+  _attr_entity_category = EntityCategory.CONFIG
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.unique_prefix}_chime"
+    self._attr_device_info = coordinator.device_info
+
+  @property
+  def is_on(self) -> bool | None:
+    if self.coordinator.data is None:
+      return None
+    return bool(self.coordinator.data.get("chime"))
+
+  async def async_turn_on(self, **kwargs: Any) -> None:
+    self.coordinator.notify_command_sent()
+    await self.coordinator.kettle.async_set_chime(self.coordinator.session, True)
+    await self.coordinator.async_request_refresh()
+
+  async def async_turn_off(self, **kwargs: Any) -> None:
+    self.coordinator.notify_command_sent()
+    await self.coordinator.kettle.async_set_chime(self.coordinator.session, False)
     await self.coordinator.async_request_refresh()
