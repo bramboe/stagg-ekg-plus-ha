@@ -85,13 +85,13 @@
         "state_attributes": {
           "preset_mode": {
             "state": {
-              "white_tea": "Thé blanc (79 °C)",
-              "green_tea": "Thé vert (80 °C)",
-              "oolong_tea": "Thé oolong (91 °C)",
-              "pour_over_coffee": "Café filtre (93 °C)",
-              "french_press": "Cafetière à piston (96 °C)",
-              "black_tea": "Thé noir (98 °C)",
-              "boil": "Ébullition (100 °C)"
+              "white_tea": "Thé blanc",
+              "green_tea": "Thé vert",
+              "oolong_tea": "Thé oolong",
+              "pour_over_coffee": "Café filtre",
+              "french_press": "Cafetière à piston",
+              "black_tea": "Thé noir",
+              "boil": "Ébullition"
             }
           }
         }

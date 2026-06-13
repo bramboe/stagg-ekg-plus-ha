@@ -85,13 +85,13 @@
         "state_attributes": {
           "preset_mode": {
             "state": {
-              "white_tea": "Witte thee (79 °C)",
-              "green_tea": "Groene thee (80 °C)",
-              "oolong_tea": "Oolong-thee (91 °C)",
-              "pour_over_coffee": "Filterkoffie (93 °C)",
-              "french_press": "Cafetière (96 °C)",
-              "black_tea": "Zwarte thee (98 °C)",
-              "boil": "Koken (100 °C)"
+              "white_tea": "Witte thee",
+              "green_tea": "Groene thee",
+              "oolong_tea": "Oolong-thee",
+              "pour_over_coffee": "Filterkoffie",
+              "french_press": "Cafetière",
+              "black_tea": "Zwarte thee",
+              "boil": "Koken"
             }
           }
         }
