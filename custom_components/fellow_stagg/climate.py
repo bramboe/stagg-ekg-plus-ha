@@ -150,24 +150,37 @@ class FellowStaggClimate(
 
     @property
     def target_temperature(self) -> float | None:
-        """Return target temperature in native units."""
+        """Return target temperature in native units, snapped to the step grid.
+
+        The kettle stores the target in whole °F, so a request like 79 °C comes
+        back as 78.9 °C. Snapping the displayed value to the entity's step (0.5 °C
+        or 1 °F) keeps it on-grid and makes brew presets show their exact value.
+        """
         if not self.coordinator.data:
             return None
         temp_c = self.coordinator.data.get("target_temp")
         if temp_c is None:
             return None
-            
+
         if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
-            return round((temp_c * 1.8) + 32.0, 1)
-        return round(temp_c, 1)
+            display = (temp_c * 1.8) + 32.0
+        else:
+            display = temp_c
+        step = self.target_temperature_step
+        return round(round(display / step) * step, 1)
 
     @property
     def preset_mode(self) -> str:
-        """Return the brew preset matching the current target temperature, if any."""
+        """Return the brew preset matching the current target temperature, if any.
+
+        Compares against the target snapped to the 0.5 °C grid so an °F-rounded
+        value (e.g. 78.9) still matches its preset (79).
+        """
         temp_c = (self.coordinator.data or {}).get("target_temp")
         if temp_c is not None:
+            snapped = round(temp_c / 0.5) * 0.5
             for preset, preset_c in BREW_PRESETS_C.items():
-                if abs(temp_c - preset_c) < 0.5:
+                if abs(snapped - preset_c) < 0.25:
                     return preset
         return PRESET_NONE
 
