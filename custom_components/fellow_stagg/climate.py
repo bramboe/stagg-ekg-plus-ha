@@ -62,6 +62,10 @@ class FellowStaggClimate(
         self._attr_unique_id = f"{coordinator.unique_prefix}_climate"
         self._attr_device_info = coordinator.device_info
         self._command_lock = asyncio.Lock()
+        # Brew preset is a stored selection, not derived from temperature, so the
+        # user can explicitly pick "none". Cleared when the target temp is changed
+        # manually; defaults to none on startup.
+        self._attr_preset_mode = PRESET_NONE
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -169,24 +173,14 @@ class FellowStaggClimate(
         step = self.target_temperature_step
         return round(round(display / step) * step, 1)
 
-    @property
-    def preset_mode(self) -> str:
-        """Return the brew preset matching the current target temperature, if any.
-
-        Compares against the target snapped to the 0.5 °C grid so an °F-rounded
-        value (e.g. 78.9) still matches its preset (79).
-        """
-        temp_c = (self.coordinator.data or {}).get("target_temp")
-        if temp_c is not None:
-            snapped = round(temp_c / 0.5) * 0.5
-            for preset, preset_c in BREW_PRESETS_C.items():
-                if abs(snapped - preset_c) < 0.25:
-                    return preset
-        return PRESET_NONE
-
     async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set the target temperature to the chosen brew preset."""
+        """Select a brew preset (stored), setting the target temperature to match.
+
+        Selecting 'none' just clears the stored preset and leaves the temperature.
+        """
         if preset_mode == PRESET_NONE:
+            self._attr_preset_mode = PRESET_NONE
+            self.async_write_ha_state()
             return
         temp_c = BREW_PRESETS_C.get(preset_mode)
         if temp_c is None:
@@ -195,7 +189,9 @@ class FellowStaggClimate(
             await self.coordinator.kettle.async_set_temperature(
                 self.coordinator.session, int(temp_c)
             )
+            self._attr_preset_mode = preset_mode
             self.coordinator.notify_command_sent()
+            self.async_write_ha_state()
             await asyncio.sleep(0.5)
             await self.coordinator.async_request_refresh()
 
@@ -221,11 +217,14 @@ class FellowStaggClimate(
             temp_c = temperature
 
         async with self._command_lock:
+            # A manual temperature change clears the stored brew preset.
+            self._attr_preset_mode = PRESET_NONE
             await self.coordinator.kettle.async_set_temperature(
                 self.coordinator.session,
                 temp_c,
             )
             self.coordinator.notify_command_sent()
+            self.async_write_ha_state()
             await asyncio.sleep(0.5)
             await self.coordinator.async_request_refresh()
 
