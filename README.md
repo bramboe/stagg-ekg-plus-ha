@@ -67,3 +67,9 @@ The kettle’s HTTP CLI endpoint is **completely unauthenticated**: anyone on yo
 - Parser unit tests: `pip install aiohttp pytest && pytest tests/`
 - Lint: `ruff check --select E9,F custom_components/fellow_stagg`
 - CI runs hassfest, HACS validation, ruff and pytest on every push.
+
+## Support
+
+If this integration is useful to you, consider buying me a coffee ☕
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/bramboe)
