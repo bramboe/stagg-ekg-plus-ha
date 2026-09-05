@@ -553,7 +553,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     @staticmethod
-    async def async_get_options_flow(
+    def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> FellowStaggOptionsFlowHandler:
         """Return the options flow handler."""
