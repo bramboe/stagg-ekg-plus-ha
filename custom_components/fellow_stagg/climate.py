@@ -121,7 +121,9 @@ class FellowStaggClimate(
         if not self.coordinator.data:
             return None
         
-        mode = self.coordinator.data.get("mode", "S_OFF").upper()
+        # "mode" can be present but None (e.g. before the first successful poll),
+        # in which case dict.get's default is not used.
+        mode = (self.coordinator.data.get("mode") or "S_OFF").upper()
         
         # Explicit heating modes from the kettle
         if mode in ("S_HEAT", "S_STARTUPTOTEMPR", "S_BOIL"):
