@@ -2,12 +2,12 @@
 
 The kettle exposes an HTTP CLI at `http://<KETTLE_IP>/cli`. Commands are sent as a GET query: `?cmd=<command>`, with spaces encoded as `+`.
 
-> **Firmware 1.2.24 (Sep 30 2026):** `/cli?cmd=<anything>` now returns only the empty form page, so nothing below returns output on that firmware ([#5](https://github.com/bramboe/stagg-ekg-plus-ha/issues/5)). The commands still seem to run: `logprt` holds the response ~1.3 s, `help` ~0.4 s and `heapprt` ~0.2 s longer than an empty command, consistently. Encodings, parameter names, headers and the new `/api` endpoint (always `400 cannot parse`) gave nothing. To repeat the checks:
+> **Firmware 1.2.24 (Sep 30 2026):** `/cli?cmd=<anything>` now returns only the empty form page, so nothing below returns output on that firmware ([#5](https://github.com/bramboe/stagg-ekg-plus-ha/issues/5)). Commands still execute, only the output is gone: `buz` still beeps, and `logprt` holds the response ~1.3 s, `help` ~0.4 s and `heapprt` ~0.2 s longer than an empty command, consistently. Writes work blind; reads need another channel. Encodings, parameter names, headers and the new `/api` endpoint (always `400 cannot parse`) gave nothing. To repeat the checks:
 >
 > ```bash
 > python3 tools/probe_cli.py KETTLE_IP              # read-only sweep (110 probes)
 > python3 tools/probe_cli.py KETTLE_IP --timing 6   # response time per command
-> python3 tools/probe_cli.py KETTLE_IP --write-test # beeps; tells you if commands still execute
+> python3 tools/probe_cli.py KETTLE_IP --write-test # short beeps; listen to confirm commands execute
 > ```
 
 ## Sending commands from the terminal
