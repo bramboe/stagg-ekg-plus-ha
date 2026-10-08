@@ -70,12 +70,38 @@
   "options": {
     "step": {
       "init": {
+        "title": "Options Fellow Stagg",
+        "menu_options": {
+          "polling": "Intervalles d'interrogation",
+          "switch_firmware": "Changer de firmware"
+        }
+      },
+      "polling": {
         "title": "Options d'interrogation",
         "data": {
           "polling_interval_seconds": "Intervalle d'interrogation (secondes)",
           "polling_interval_countdown_seconds": "Intervalle rapide pendant l'activité (secondes)"
         }
+      },
+      "switch_firmware": {
+        "title": "Changer de firmware",
+        "description": "La bouilloire utilise **{running_version}** ({running_partition}). Cette action passe à **{target_version}** ({target_partition}), déjà présent sur la bouilloire, et la redémarre. Cela prend environ 10 secondes.\n\nBloquez d'abord l'accès Internet de la bouilloire, sinon elle risque de se mettre de nouveau à jour.",
+        "data": {
+          "confirm": "Oui, changer le firmware de la bouilloire"
+        }
       }
+    },
+    "progress": {
+      "switching": "Passage de la bouilloire à {target_version} ; attente du redémarrage…"
+    },
+    "error": {
+      "not_confirmed": "Cochez la case pour confirmer.",
+      "kettle_heating": "La bouilloire est en train de chauffer. Changez de firmware lorsqu'elle est inactive."
+    },
+    "abort": {
+      "no_other_firmware": "La bouilloire n'a pas d'autre firmware valide vers lequel basculer.",
+      "firmware_switched": "Terminé : la bouilloire utilise maintenant {target_version}.",
+      "firmware_switch_failed": "La bouilloire n'est pas revenue sur {target_version} en moins d'une minute. Vérifiez dans un instant le capteur **Version du micrologiciel** ; si le changement n'a pas abouti, la bouilloire conserve son firmware précédent."
     }
   },
   "entity": {
@@ -202,9 +228,6 @@
       },
       "launch_bricky": {
         "name": "Lancer Bricky (soulever la bouilloire)"
-      },
-      "switch_firmware": {
-        "name": "Changer de firmware"
       }
     },
     "switch": {
@@ -218,7 +241,7 @@
         "name": "Signal sonore prêt"
       },
       "revert_firmware_updates": {
-        "name": "Annuler les mises à jour du firmware"
+        "name": "Verrouiller le firmware"
       }
     },
     "time": {
@@ -262,7 +285,7 @@
   "issues": {
     "cli_muted": {
       "title": "Le firmware {version} de la bouilloire ne transmet plus de données",
-      "description": "La bouilloire utilise le firmware {version}, qui ne renvoie plus aucune mesure via le Wi-Fi ; la plupart des entités affichent donc *inconnu*. Les commandes fonctionnent toujours.\n\nLe firmware précédent ({other_version}) est toujours sur la bouilloire. Pour y revenir :\n1. Bloquez l'accès Internet de la bouilloire dans votre routeur (le Wi-Fi local reste actif), sinon elle se mettra de nouveau à jour.\n2. Appuyez sur **Changer de firmware** sur la page de l'appareil.\n\nActivez ensuite éventuellement **Annuler les mises à jour du firmware**, pour que Home Assistant revienne en arrière si la bouilloire se met de nouveau à jour."
+      "description": "La bouilloire utilise le firmware {version}, qui ne renvoie plus aucune mesure via le Wi-Fi ; la plupart des entités affichent donc *inconnu*. Les commandes fonctionnent toujours.\n\nLe firmware précédent ({other_version}) est toujours sur la bouilloire. Pour y revenir :\n1. Bloquez l'accès Internet de la bouilloire dans votre routeur (le Wi-Fi local reste actif), sinon elle se mettra de nouveau à jour.\n2. Ouvrez l'intégration Fellow Stagg, choisissez **Configurer**, puis **Changer de firmware**.\n\nActivez ensuite éventuellement **Verrouiller le firmware**, pour que Home Assistant revienne en arrière si la bouilloire se met de nouveau à jour."
     }
   }
 }

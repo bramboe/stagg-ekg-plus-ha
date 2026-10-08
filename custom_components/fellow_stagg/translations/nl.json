@@ -70,12 +70,38 @@
   "options": {
     "step": {
       "init": {
+        "title": "Fellow Stagg-opties",
+        "menu_options": {
+          "polling": "Pollingintervallen",
+          "switch_firmware": "Firmware wisselen"
+        }
+      },
+      "polling": {
         "title": "Polling-opties",
         "data": {
           "polling_interval_seconds": "Polling-interval (seconden)",
           "polling_interval_countdown_seconds": "Snel polling-interval bij activiteit (seconden)"
         }
+      },
+      "switch_firmware": {
+        "title": "Firmware wisselen",
+        "description": "De waterkoker draait **{running_version}** ({running_partition}). Dit schakelt over naar **{target_version}** ({target_partition}), die al op de waterkoker staat, en herstart hem. Dat duurt ongeveer 10 seconden.\n\nBlokkeer eerst de internettoegang van de waterkoker, anders werkt hij zichzelf mogelijk opnieuw bij.",
+        "data": {
+          "confirm": "Ja, wissel de firmware van de waterkoker"
+        }
       }
+    },
+    "progress": {
+      "switching": "De waterkoker schakelt over naar {target_version}; wachten tot hij herstart is…"
+    },
+    "error": {
+      "not_confirmed": "Vink het vakje aan om te bevestigen.",
+      "kettle_heating": "De waterkoker is aan het verwarmen. Wissel de firmware als hij niet in gebruik is."
+    },
+    "abort": {
+      "no_other_firmware": "De waterkoker heeft geen andere geldige firmware om naar over te schakelen.",
+      "firmware_switched": "Klaar: de waterkoker draait nu {target_version}.",
+      "firmware_switch_failed": "De waterkoker is niet binnen een minuut teruggekomen op {target_version}. Kijk zo meteen naar de sensor **Firmwareversie**; als het wisselen niet gelukt is, houdt de waterkoker zijn vorige firmware."
     }
   },
   "entity": {
@@ -202,9 +228,6 @@
       },
       "launch_bricky": {
         "name": "Bricky starten (til de koker op)"
-      },
-      "switch_firmware": {
-        "name": "Firmware wisselen"
       }
     },
     "switch": {
@@ -218,7 +241,7 @@
         "name": "Pieptoon bij gereed"
       },
       "revert_firmware_updates": {
-        "name": "Firmware-updates terugdraaien"
+        "name": "Firmware vergrendelen"
       }
     },
     "time": {
@@ -262,7 +285,7 @@
   "issues": {
     "cli_muted": {
       "title": "Waterkoker-firmware {version} deelt geen gegevens meer",
-      "description": "De waterkoker draait firmware {version}, die via wifi geen metingen meer teruggeeft, dus de meeste entiteiten staan op *onbekend*. Opdrachten werken nog wel.\n\nDe vorige firmware ({other_version}) staat nog op de waterkoker. Zo ga je terug:\n1. Blokkeer de internettoegang van de waterkoker in je router (lokale wifi blijft werken), anders werkt hij zichzelf opnieuw bij.\n2. Druk op **Firmware wisselen** op de apparaatpagina van de waterkoker.\n\nZet daarna eventueel **Firmware-updates terugdraaien** aan, zodat Home Assistant terugschakelt als de waterkoker zichzelf opnieuw bijwerkt."
+      "description": "De waterkoker draait firmware {version}, die via wifi geen metingen meer teruggeeft, dus de meeste entiteiten staan op *onbekend*. Opdrachten werken nog wel.\n\nDe vorige firmware ({other_version}) staat nog op de waterkoker. Zo ga je terug:\n1. Blokkeer de internettoegang van de waterkoker in je router (lokale wifi blijft werken), anders werkt hij zichzelf opnieuw bij.\n2. Open de Fellow Stagg-integratie, kies **Configureren** en dan **Firmware wisselen**.\n\nZet daarna eventueel **Firmware vergrendelen** aan, zodat Home Assistant terugschakelt als de waterkoker zichzelf opnieuw bijwerkt."
     }
   }
 }

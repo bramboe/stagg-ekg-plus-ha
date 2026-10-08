@@ -70,12 +70,38 @@
   "options": {
     "step": {
       "init": {
+        "title": "Fellow Stagg Optionen",
+        "menu_options": {
+          "polling": "Abfrageintervalle",
+          "switch_firmware": "Firmware wechseln"
+        }
+      },
+      "polling": {
         "title": "Abfrageoptionen",
         "data": {
           "polling_interval_seconds": "Abfrageintervall (Sekunden)",
           "polling_interval_countdown_seconds": "Schnelles Abfrageintervall bei Aktivität (Sekunden)"
         }
+      },
+      "switch_firmware": {
+        "title": "Firmware wechseln",
+        "description": "Der Wasserkocher läuft mit **{running_version}** ({running_partition}). Dies wechselt zu **{target_version}** ({target_partition}), die bereits auf dem Wasserkocher gespeichert ist, und startet ihn neu. Das dauert etwa 10 Sekunden.\n\nSperre zuerst den Internetzugang des Wasserkochers, sonst aktualisiert er sich womöglich erneut.",
+        "data": {
+          "confirm": "Ja, Firmware des Wasserkochers wechseln"
+        }
       }
+    },
+    "progress": {
+      "switching": "Der Wasserkocher wechselt zu {target_version}; warte auf den Neustart…"
+    },
+    "error": {
+      "not_confirmed": "Setze das Häkchen zur Bestätigung.",
+      "kettle_heating": "Der Wasserkocher heizt gerade. Wechsle die Firmware, wenn er nicht in Betrieb ist."
+    },
+    "abort": {
+      "no_other_firmware": "Der Wasserkocher hat keine andere gültige Firmware zum Wechseln.",
+      "firmware_switched": "Fertig: Der Wasserkocher läuft jetzt mit {target_version}.",
+      "firmware_switch_failed": "Der Wasserkocher ist nicht innerhalb einer Minute mit {target_version} zurückgekommen. Prüfe gleich den Sensor **Firmware-Version**; hat der Wechsel nicht geklappt, behält der Wasserkocher seine bisherige Firmware."
     }
   },
   "entity": {
@@ -202,9 +228,6 @@
       },
       "launch_bricky": {
         "name": "Bricky starten (Kocher anheben)"
-      },
-      "switch_firmware": {
-        "name": "Firmware wechseln"
       }
     },
     "switch": {
@@ -218,7 +241,7 @@
         "name": "Signalton bei Fertig"
       },
       "revert_firmware_updates": {
-        "name": "Firmware-Updates rückgängig machen"
+        "name": "Firmware sperren"
       }
     },
     "time": {
@@ -262,7 +285,7 @@
   "issues": {
     "cli_muted": {
       "title": "Wasserkocher-Firmware {version} liefert keine Daten mehr",
-      "description": "Der Wasserkocher läuft mit Firmware {version}, die über WLAN keine Messwerte mehr zurückgibt, daher zeigen die meisten Entitäten *unbekannt*. Befehle funktionieren weiterhin.\n\nDie vorherige Firmware ({other_version}) ist noch auf dem Wasserkocher. So wechselst du zurück:\n1. Sperre den Internetzugang des Wasserkochers in deinem Router (lokales WLAN bleibt aktiv), sonst aktualisiert er sich erneut.\n2. Drücke auf der Geräteseite des Wasserkochers **Firmware wechseln**.\n\nSchalte danach optional **Firmware-Updates rückgängig machen** ein, damit Home Assistant zurückwechselt, falls sich der Wasserkocher erneut aktualisiert."
+      "description": "Der Wasserkocher läuft mit Firmware {version}, die über WLAN keine Messwerte mehr zurückgibt, daher zeigen die meisten Entitäten *unbekannt*. Befehle funktionieren weiterhin.\n\nDie vorherige Firmware ({other_version}) ist noch auf dem Wasserkocher. So wechselst du zurück:\n1. Sperre den Internetzugang des Wasserkochers in deinem Router (lokales WLAN bleibt aktiv), sonst aktualisiert er sich erneut.\n2. Öffne die Fellow Stagg-Integration, wähle **Konfigurieren** und dann **Firmware wechseln**.\n\nSchalte danach optional **Firmware sperren** ein, damit Home Assistant zurückwechselt, falls sich der Wasserkocher erneut aktualisiert."
     }
   }
 }

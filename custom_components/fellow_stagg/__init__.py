@@ -106,7 +106,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     # Root page: running version/partition and the firmware in each OTA slot
     self.firmware: dict[str, Any] | None = None
     self._firmware_fetched_at: float | None = None
-    # "Revert firmware updates": partition to stay on (None = off), set by the switch
+    # "Lock firmware": partition to stay on (None = off), set by the switch
     self.guard_partition: str | None = None
     self._last_partition_switch: float | None = None
     self._guard_reverts: list[float] = []
@@ -181,8 +181,33 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     # Read the root page again shortly after the reboot
     self._firmware_fetched_at = monotonic() - _FIRMWARE_PAGE_REFRESH_SECONDS + 30
 
+  def firmware_switch_target(self) -> tuple[str, str] | None:
+    """The other OTA partition and its version, if it holds valid firmware."""
+    name = other_ota_slot(self.firmware)
+    slot = ((self.firmware or {}).get("slots") or {}).get(name) if name else None
+    if not slot or slot.get("state") != "valid":
+      return None
+    return name, slot.get("version") or "?"
+
+  async def async_switch_partition_and_wait(self, partition: str, timeout: float = 60) -> bool:
+    """Switch partitions, then wait until the kettle is back and running from that partition."""
+    await self.async_switch_partition(partition)
+    deadline = monotonic() + timeout
+    while monotonic() < deadline:
+      await asyncio.sleep(3)
+      try:
+        firmware = await self.kettle.async_get_partitions(self.session)
+      except Exception:  # noqa: BLE001 - still rebooting
+        continue
+      if firmware and firmware.get("running") == partition:
+        self.firmware = firmware
+        self._firmware_fetched_at = monotonic()
+        await self.async_request_refresh()
+        return True
+    return False
+
   async def _maybe_revert_firmware(self) -> None:
-    """If "Revert firmware updates" is on and the kettle booted another partition, switch back."""
+    """If "Lock firmware" is on and the kettle booted another partition, switch back."""
     pinned = self.guard_partition
     firmware = self.firmware
     if not pinned or not firmware or firmware.get("running") == pinned:
@@ -203,8 +228,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
           self.hass,
           f"The kettle updated itself to {firmware.get('current_version')} again. "
           f"It was switched back {len(self._guard_reverts)} times in the last 24 hours, so Home "
-          "Assistant stopped reverting it. Block the kettle's internet access, then press "
-          "**Switch firmware**.",
+          "Assistant stopped reverting it. Block the kettle's internet access, then open the "
+          "integration's **Configure** dialog and choose **Switch firmware**.",
           title="Fellow Stagg keeps updating",
           notification_id=notification_id,
         )
@@ -478,7 +503,7 @@ _NETWORK_DISCOVERY_DELAY = 15
 _POLL_RETRY_ATTEMPTS = 2
 # Firmware page (root URL) is re-read this often; the kettle only changes it on an update or switch
 _FIRMWARE_PAGE_REFRESH_SECONDS = 120
-# "Revert firmware updates": wait after any partition switch, and give up after this many per day
+# "Lock firmware": wait after any partition switch, and give up after this many per day
 _FIRMWARE_SWITCH_COOLDOWN_SECONDS = 600
 _FIRMWARE_MAX_REVERTS_PER_DAY = 3
 # Consecutive form-only CLI answers before raising the Repairs issue

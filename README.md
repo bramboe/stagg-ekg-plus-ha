@@ -38,8 +38,8 @@ If the kettle’s IP address changes later, use **Reconfigure** on the integrati
 - **Binary sensors:** Kettle on base, heating, **water ready**, no water.
 - **Selects:** Schedule mode, clock display mode (off / digital / analog), temperature unit (°C / °F), hold duration, **display language**.
 - **Numbers:** Schedule temperature, **altitude** (boiling-point compensation, in feet).
-- **Switches:** Sync clock (survives restarts), pre-boil, ready chime, **Revert firmware updates** (beta).
-- **Buttons:** Update Schedule, Launch Bricky (only when kettle is lifted; otherwise plays an error chime), **Switch firmware** (beta).
+- **Switches:** Sync clock (survives restarts), pre-boil, ready chime, **Lock firmware** (beta).
+- **Buttons:** Update Schedule, Launch Bricky (only when kettle is lifted; otherwise plays an error chime).
 - **Services:** `heat_to` (set temperature + start in one call), `play_chime` (beep patterns on the kettle’s buzzer), `set_schedule`, `update_schedule`, `disable_schedule`, `send_cli` (raw CLI commands, supports response data).
 - **Device triggers:** kettle placed on / lifted off base.
 - **Diagnostics:** downloadable diagnostics dump (network details redacted).
@@ -53,8 +53,8 @@ Polling interval is 5 seconds by default (1 second while heating); both are conf
 The kettle updates itself over the internet, and firmware 1.2.24 (Sep 2026) stopped returning CLI output, so the integration can't read the kettle anymore ([#5](https://github.com/bramboe/stagg-ekg-plus-ha/issues/5)). The kettle keeps the previous firmware in its other partition, and this integration (0.5.0 beta) can switch back to it:
 
 1. **Block the kettle's internet access** on your router (keep local Wi-Fi). Otherwise it updates itself again within about 30 minutes.
-2. Press **Switch firmware** on the kettle's device page. Its attributes show which version it switches to. The kettle reboots in a few seconds.
-3. Optional: turn on **Revert firmware updates**. If the kettle updates itself anyway, Home Assistant switches it back (at most 3 times a day; after that it tells you to block the internet access instead).
+2. Open the integration, choose **Configure** → **Switch firmware**. It shows the version the kettle runs and the one it switches to, and asks you to confirm. The kettle restarts in about 10 seconds; the dialog waits and tells you when it's back on the new version.
+3. Optional: turn on the **Lock firmware** switch. It keeps the kettle on the version it runs when you turn it on: if the kettle updates itself anyway, Home Assistant switches it back (at most 3 times a day; after that it tells you to block the internet access instead).
 
 Home Assistant shows a **Repairs** notice when the kettle runs firmware that hides its data. The **Firmware version** sensor lists the version in each partition. The kettle itself can't be told to skip updates over the CLI, so blocking its internet access is the only reliable way to stay on a version. Manual steps and background are in [docs/CLI_TESTING.md](docs/CLI_TESTING.md#rolling-back-from-1224).
 

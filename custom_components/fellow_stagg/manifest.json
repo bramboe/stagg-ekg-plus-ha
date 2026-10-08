@@ -42,7 +42,7 @@
   "requirements": [
     "bleak-retry-connector>=4.0.0"
   ],
-  "version": "0.5.0b2",
+  "version": "0.5.0b3",
   "zeroconf": [
     "_http._tcp.local."
   ]

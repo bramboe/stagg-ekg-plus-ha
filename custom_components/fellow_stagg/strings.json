@@ -70,12 +70,38 @@
   "options": {
     "step": {
       "init": {
+        "title": "Fellow Stagg options",
+        "menu_options": {
+          "polling": "Polling intervals",
+          "switch_firmware": "Switch firmware"
+        }
+      },
+      "polling": {
         "title": "Polling options",
         "data": {
           "polling_interval_seconds": "Polling interval (seconds)",
           "polling_interval_countdown_seconds": "Fast polling interval when active (seconds)"
         }
+      },
+      "switch_firmware": {
+        "title": "Switch firmware",
+        "description": "The kettle runs **{running_version}** ({running_partition}). This switches it to **{target_version}** ({target_partition}), which is already stored on the kettle, and restarts it. That takes about 10 seconds.\n\nBlock the kettle's internet access first, or it may update itself again.",
+        "data": {
+          "confirm": "Yes, switch the kettle's firmware"
+        }
       }
+    },
+    "progress": {
+      "switching": "Switching the kettle to {target_version} and waiting for it to restart…"
+    },
+    "error": {
+      "not_confirmed": "Tick the box to confirm the switch.",
+      "kettle_heating": "The kettle is heating. Switch firmware when it's idle."
+    },
+    "abort": {
+      "no_other_firmware": "The kettle has no other valid firmware to switch to.",
+      "firmware_switched": "Done: the kettle now runs {target_version}.",
+      "firmware_switch_failed": "The kettle didn't come back on {target_version} within a minute. Check the **Firmware version** sensor in a moment; if the switch didn't take, the kettle keeps its previous firmware."
     }
   },
   "entity": {
@@ -202,9 +228,6 @@
       },
       "launch_bricky": {
         "name": "Launch Bricky (lift kettle)"
-      },
-      "switch_firmware": {
-        "name": "Switch firmware"
       }
     },
     "switch": {
@@ -218,7 +241,7 @@
         "name": "Ready chime"
       },
       "revert_firmware_updates": {
-        "name": "Revert firmware updates"
+        "name": "Lock firmware"
       }
     },
     "time": {
@@ -262,7 +285,7 @@
   "issues": {
     "cli_muted": {
       "title": "Kettle firmware {version} stopped sharing its data",
-      "description": "The kettle is running firmware {version}, which no longer returns any readings over Wi-Fi, so most of its entities show *unknown*. Commands still work.\n\nThe previous firmware ({other_version}) is still on the kettle. To go back:\n1. Block the kettle's internet access on your router (keep local Wi-Fi), or it will update itself again.\n2. Press **Switch firmware** on the kettle's device page.\n\nOptionally turn on **Revert firmware updates** afterwards, so Home Assistant switches back if the kettle updates itself again."
+      "description": "The kettle is running firmware {version}, which no longer returns any readings over Wi-Fi, so most of its entities show *unknown*. Commands still work.\n\nThe previous firmware ({other_version}) is still on the kettle. To go back:\n1. Block the kettle's internet access on your router (keep local Wi-Fi), or it will update itself again.\n2. Open the Fellow Stagg integration, choose **Configure**, then **Switch firmware**.\n\nOptionally turn on **Lock firmware** afterwards, so Home Assistant switches back if the kettle updates itself again."
     }
   }
 }

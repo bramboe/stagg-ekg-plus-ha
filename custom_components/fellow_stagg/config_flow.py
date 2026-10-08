@@ -528,22 +528,106 @@ def _options_schema(entry: config_entries.ConfigEntry) -> vol.Schema:
 
 
 class FellowStaggOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle Fellow Stagg options (polling intervals)."""
+    """Handle Fellow Stagg options (polling intervals) and switching the kettle's firmware."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         # Don't assign to self.config_entry (deprecated since HA 2024.11);
         # keep our own reference for compatibility with older versions.
         self._entry = config_entry
+        self._target: tuple[str, str] | None = None  # (partition, version) being switched to
+        self._switch_task: asyncio.Task | None = None
+
+    def _coordinator(self) -> Any:
+        return (self.hass.data.get(DOMAIN) or {}).get(self._entry.entry_id)
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Manage options."""
+        """Offer firmware switching when the kettle holds other firmware; else polling options."""
+        coordinator = self._coordinator()
+        if coordinator is not None and coordinator.firmware_switch_target() is not None:
+            return self.async_show_menu(step_id="init", menu_options=["polling", "switch_firmware"])
+        return await self.async_step_polling(user_input)
+
+    async def async_step_polling(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Polling intervals."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
         return self.async_show_form(
-            step_id="init",
+            step_id="polling",
             data_schema=_options_schema(self._entry),
+        )
+
+    async def async_step_switch_firmware(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Confirm booting the firmware in the kettle's other partition (setpart + reset)."""
+        coordinator = self._coordinator()
+        target = coordinator.firmware_switch_target() if coordinator is not None else None
+        if target is None:
+            return self.async_abort(reason="no_other_firmware")
+        firmware = coordinator.firmware or {}
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            data = coordinator.data or {}
+            if not user_input.get("confirm"):
+                errors["base"] = "not_confirmed"
+            elif data.get("power") and not data.get("cli_muted"):
+                errors["base"] = "kettle_heating"
+            else:
+                self._target = target
+                return await self.async_step_switching()
+        return self.async_show_form(
+            step_id="switch_firmware",
+            data_schema=vol.Schema({vol.Required("confirm", default=False): bool}),
+            description_placeholders={
+                "running_version": firmware.get("current_version") or "?",
+                "running_partition": firmware.get("running") or "?",
+                "target_version": target[1],
+                "target_partition": target[0],
+            },
+            errors=errors,
+        )
+
+    async def async_step_switching(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Switch and wait for the kettle to come back on the target firmware."""
+        partition, version = self._target
+        if self._switch_task is None:
+            self._switch_task = self.hass.async_create_task(
+                self._coordinator().async_switch_partition_and_wait(partition)
+            )
+        if not self._switch_task.done():
+            return self.async_show_progress(
+                step_id="switching",
+                progress_action="switching",
+                progress_task=self._switch_task,
+                description_placeholders={"target_version": version},
+            )
+        try:
+            switched = self._switch_task.result()
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Switching the Fellow Stagg firmware failed")
+            switched = False
+        return self.async_show_progress_done(
+            next_step_id="switch_done" if switched else "switch_failed"
+        )
+
+    async def async_step_switch_done(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        return self.async_abort(
+            reason="firmware_switched", description_placeholders={"target_version": self._target[1]}
+        )
+
+    async def async_step_switch_failed(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        return self.async_abort(
+            reason="firmware_switch_failed", description_placeholders={"target_version": self._target[1]}
         )
 
 
