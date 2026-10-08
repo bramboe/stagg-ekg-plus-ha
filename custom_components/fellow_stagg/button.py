@@ -3,16 +3,19 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Any
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.const import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
 from .const import DOMAIN
+from .kettle_http import other_ota_slot
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,6 +30,7 @@ async def async_setup_entry(
   async_add_entities([
     FellowStaggUpdateScheduleButton(coordinator),
     FellowStaggBrickyButton(coordinator),
+    FellowStaggSwitchFirmwareButton(coordinator),
   ])
 
 
@@ -115,3 +119,57 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
     except Exception as err:
       _LOGGER.debug("Kettle reset triggered (ignoring expected connection error: %s)", err)
     await self.coordinator.async_request_refresh()
+
+
+class FellowStaggSwitchFirmwareButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator], ButtonEntity):
+  """Boot the firmware in the kettle's other OTA partition (e.g. back to 1.1.76SSP from 1.2.24).
+
+  The kettle keeps the previous firmware after an update; `setpart` + `reset` switches to it.
+  Firmware 1.2.24 still executes both even though it no longer returns CLI output.
+  """
+
+  _attr_has_entity_name = True
+  _attr_translation_key = "switch_firmware"
+  _attr_icon = "mdi:swap-horizontal-circle"
+  _attr_entity_category = EntityCategory.CONFIG
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.unique_prefix}_switch_firmware"
+    self._attr_device_info = coordinator.device_info
+
+  def _target(self) -> tuple[str, dict[str, Any]] | None:
+    """The other OTA partition and its slot info, if it holds valid firmware."""
+    firmware = self.coordinator.firmware
+    name = other_ota_slot(firmware)
+    slot = (firmware or {}).get("slots", {}).get(name) if name else None
+    if not slot or slot.get("state") != "valid":
+      return None
+    return name, slot
+
+  @property
+  def available(self) -> bool:
+    return super().available and self._target() is not None
+
+  @property
+  def extra_state_attributes(self) -> dict[str, Any] | None:
+    firmware = self.coordinator.firmware or {}
+    target = self._target()
+    return {
+      "running_version": firmware.get("current_version"),
+      "running_partition": firmware.get("running"),
+      "target_version": target[1].get("version") if target else None,
+      "target_partition": target[0] if target else None,
+    }
+
+  async def async_press(self) -> None:
+    target = self._target()
+    if target is None:
+      raise HomeAssistantError("The kettle has no other valid firmware to switch to")
+    data = self.coordinator.data or {}
+    if data.get("power") and not data.get("cli_muted"):
+      raise HomeAssistantError("The kettle is heating; switch firmware when it is idle")
+    name, slot = target
+    _LOGGER.info("Switching Fellow Stagg firmware to %s (%s)", slot.get("version"), name)
+    await self.coordinator.async_switch_partition(name)
+    self.async_write_ha_state()

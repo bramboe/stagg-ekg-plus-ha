@@ -202,6 +202,9 @@
       },
       "launch_bricky": {
         "name": "Launch Bricky (lift kettle)"
+      },
+      "switch_firmware": {
+        "name": "Switch firmware"
       }
     },
     "switch": {
@@ -213,6 +216,9 @@
       },
       "chime": {
         "name": "Ready chime"
+      },
+      "revert_firmware_updates": {
+        "name": "Revert firmware updates"
       }
     },
     "time": {
@@ -251,6 +257,12 @@
     "trigger_type": {
       "placed_on_base": "Kettle placed on base",
       "lifted_off_base": "Kettle lifted off base"
+    }
+  },
+  "issues": {
+    "cli_muted": {
+      "title": "Kettle firmware {version} stopped sharing its data",
+      "description": "The kettle is running firmware {version}, which no longer returns any readings over Wi-Fi, so most of its entities show *unknown*. Commands still work.\n\nThe previous firmware ({other_version}) is still on the kettle. To go back:\n1. Block the kettle's internet access on your router (keep local Wi-Fi), or it will update itself again.\n2. Press **Switch firmware** on the kettle's device page.\n\nOptionally turn on **Revert firmware updates** afterwards, so Home Assistant switches back if the kettle updates itself again."
     }
   }
 }

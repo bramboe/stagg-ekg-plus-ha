@@ -8,6 +8,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import EntityCategory, STATE_ON
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -29,6 +30,7 @@ async def async_setup_entry(
     FellowStaggClockSyncSwitch(coordinator),
     FellowStaggPreBoilSwitch(coordinator),
     FellowStaggChimeSwitch(coordinator),
+    FellowStaggRevertFirmwareUpdatesSwitch(coordinator),
   ])
 
 
@@ -122,3 +124,53 @@ class FellowStaggChimeSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator]
     self.coordinator.notify_command_sent()
     await self.coordinator.kettle.async_set_chime(self.coordinator.session, False)
     await self.coordinator.async_request_refresh()
+
+
+class FellowStaggRevertFirmwareUpdatesSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], RestoreEntity, SwitchEntity):
+  """Pin the running OTA partition; if the kettle updates itself, switch it back.
+
+  The kettle can't be told to skip updates (its update URL is a signed setting), but an update
+  always lands in the partition it isn't running, so switching back keeps the pinned firmware.
+  The coordinator does the reverting (with a cooldown and a daily limit).
+  """
+
+  _attr_has_entity_name = True
+  _attr_translation_key = "revert_firmware_updates"
+  _attr_icon = "mdi:backup-restore"
+  _attr_entity_category = EntityCategory.CONFIG
+  _attr_should_poll = False
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.unique_prefix}_revert_firmware_updates"
+    self._attr_device_info = coordinator.device_info
+
+  async def async_added_to_hass(self) -> None:
+    await super().async_added_to_hass()
+    last_state = await self.async_get_last_state()
+    if last_state is not None and last_state.state == STATE_ON:
+      self.coordinator.guard_partition = last_state.attributes.get("pinned_partition") or None
+
+  @property
+  def is_on(self) -> bool | None:
+    return self.coordinator.guard_partition is not None
+
+  @property
+  def extra_state_attributes(self) -> dict[str, Any] | None:
+    pinned = self.coordinator.guard_partition
+    slots = (self.coordinator.firmware or {}).get("slots") or {}
+    return {
+      "pinned_partition": pinned,
+      "pinned_version": (slots.get(pinned) or {}).get("version") if pinned else None,
+    }
+
+  async def async_turn_on(self, **kwargs: Any) -> None:
+    running = (self.coordinator.firmware or {}).get("running")
+    if not running:
+      raise HomeAssistantError("The kettle's firmware page hasn't been read yet; try again in a minute")
+    self.coordinator.guard_partition = running
+    self.async_write_ha_state()
+
+  async def async_turn_off(self, **kwargs: Any) -> None:
+    self.coordinator.guard_partition = None
+    self.async_write_ha_state()

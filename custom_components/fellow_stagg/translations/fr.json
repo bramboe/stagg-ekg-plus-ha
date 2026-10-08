@@ -202,6 +202,9 @@
       },
       "launch_bricky": {
         "name": "Lancer Bricky (soulever la bouilloire)"
+      },
+      "switch_firmware": {
+        "name": "Changer de firmware"
       }
     },
     "switch": {
@@ -213,6 +216,9 @@
       },
       "chime": {
         "name": "Signal sonore prêt"
+      },
+      "revert_firmware_updates": {
+        "name": "Annuler les mises à jour du firmware"
       }
     },
     "time": {
@@ -251,6 +257,12 @@
     "trigger_type": {
       "placed_on_base": "Bouilloire posée sur la base",
       "lifted_off_base": "Bouilloire soulevée de la base"
+    }
+  },
+  "issues": {
+    "cli_muted": {
+      "title": "Le firmware {version} de la bouilloire ne transmet plus de données",
+      "description": "La bouilloire utilise le firmware {version}, qui ne renvoie plus aucune mesure via le Wi-Fi ; la plupart des entités affichent donc *inconnu*. Les commandes fonctionnent toujours.\n\nLe firmware précédent ({other_version}) est toujours sur la bouilloire. Pour y revenir :\n1. Bloquez l'accès Internet de la bouilloire dans votre routeur (le Wi-Fi local reste actif), sinon elle se mettra de nouveau à jour.\n2. Appuyez sur **Changer de firmware** sur la page de l'appareil.\n\nActivez ensuite éventuellement **Annuler les mises à jour du firmware**, pour que Home Assistant revienne en arrière si la bouilloire se met de nouveau à jour."
     }
   }
 }

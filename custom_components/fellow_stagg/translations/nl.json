@@ -202,6 +202,9 @@
       },
       "launch_bricky": {
         "name": "Bricky starten (til de koker op)"
+      },
+      "switch_firmware": {
+        "name": "Firmware wisselen"
       }
     },
     "switch": {
@@ -213,6 +216,9 @@
       },
       "chime": {
         "name": "Pieptoon bij gereed"
+      },
+      "revert_firmware_updates": {
+        "name": "Firmware-updates terugdraaien"
       }
     },
     "time": {
@@ -251,6 +257,12 @@
     "trigger_type": {
       "placed_on_base": "Waterkoker op voet geplaatst",
       "lifted_off_base": "Waterkoker van voet getild"
+    }
+  },
+  "issues": {
+    "cli_muted": {
+      "title": "Waterkoker-firmware {version} deelt geen gegevens meer",
+      "description": "De waterkoker draait firmware {version}, die via wifi geen metingen meer teruggeeft, dus de meeste entiteiten staan op *onbekend*. Opdrachten werken nog wel.\n\nDe vorige firmware ({other_version}) staat nog op de waterkoker. Zo ga je terug:\n1. Blokkeer de internettoegang van de waterkoker in je router (lokale wifi blijft werken), anders werkt hij zichzelf opnieuw bij.\n2. Druk op **Firmware wisselen** op de apparaatpagina van de waterkoker.\n\nZet daarna eventueel **Firmware-updates terugdraaien** aan, zodat Home Assistant terugschakelt als de waterkoker zichzelf opnieuw bijwerkt."
     }
   }
 }

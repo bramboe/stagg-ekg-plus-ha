@@ -25,6 +25,17 @@ def _first_not_none(*values: Any) -> Any:
   return None
 
 
+def other_ota_slot(firmware: dict[str, Any] | None) -> str | None:
+  """Return the OTA partition the kettle is not running from (ota_0 <-> ota_1), if it exists."""
+  if not firmware:
+    return None
+  running = firmware.get("running")
+  for name in (firmware.get("slots") or {}):
+    if name.startswith("ota_") and name != running:
+      return name
+  return None
+
+
 class KettleHttpClient:
   """Lightweight client around the kettle's HTTP CLI API."""
 
@@ -41,6 +52,7 @@ class KettleHttpClient:
       self._cli_url = base
     else:
       self._cli_url = f"{base}{cli_path if cli_path.startswith('/') else '/' + cli_path}"
+    self._root_url = self._cli_url.rsplit("/", 1)[0] + "/"
 
     # prtsettings cache so fast (1s) polling doesn't hammer the kettle with extra requests
     self._settings_body: str | None = None
@@ -50,6 +62,21 @@ class KettleHttpClient:
     """Fetch the firmware version once (it doesn't change between polls)."""
     body = await self._cli_command(session, "fwinfo")
     return self._parse_fwinfo(body)
+
+  async def async_get_partitions(self, session: ClientSession) -> dict[str, Any] | None:
+    """Read the kettle's root page: running version/partition and the firmware in each slot.
+
+    Unlike the CLI, this page still answers on firmware 1.2.24, so it works on every version.
+    """
+    async with session.get(self._root_url, timeout=_REQUEST_TIMEOUT) as resp:
+      resp.raise_for_status()
+      return self._parse_partitions(await resp.text())
+
+  async def async_set_boot_partition(self, session: ClientSession, partition: str) -> None:
+    """Select the OTA partition to boot from (takes effect after a reset)."""
+    if not re.fullmatch(r"ota_\d", partition):
+      raise ValueError(f"Not an OTA partition: {partition}")
+    await self._cli_command(session, f"setpart {partition}")
 
   async def async_poll(self, session: ClientSession, settings_max_age: float = 0.0) -> dict[str, Any]:
     """Fetch kettle state via CLI commands.
@@ -159,6 +186,7 @@ class KettleHttpClient:
       "chime": self._parse_chime(settings_body),
       "boil_point_c": self._parse_boil_point(body),
       "ketl_flags": self._parse_ketl_flags(body),
+      "cli_muted": self._cli_output_missing(body),
     }
     return data
 
@@ -360,6 +388,36 @@ class KettleHttpClient:
       return m.group(1).strip()
     m = re.search(r"fw version\s+([^\s\n]+)", body, re.IGNORECASE)
     return m.group(1).strip() if m else None
+
+  @staticmethod
+  def _parse_partitions(body: str) -> dict[str, Any] | None:
+    """Parse the root page (Current version, Boot/Running partition, one line per partition)."""
+    text = re.sub(r"<br\s*/?>", "\n", body or "", flags=re.IGNORECASE)
+    current = re.search(r"Current version:\s*([^\s<]+)", text)
+    running = re.search(r"Running partition:\s*(\w+)", text)
+    if not current or not running:
+      return None
+    boot = re.search(r"Boot partition:\s*(\w+)", text)
+    slots = {
+      m.group(1): {"state": m.group(2), "version": m.group(3)}
+      for m in re.finditer(
+        r"partition\s+'(\w+)'\s+at\s+\S+\s+size\s+\S+\s+encr\s+\d+\s+state\s+(\S+)\s+fw version\s+([^\s<]+)",
+        text,
+      )
+    }
+    return {
+      "current_version": current.group(1),
+      "running": running.group(1),
+      "boot": boot.group(1) if boot else None,
+      "slots": slots,
+    }
+
+  @staticmethod
+  def _cli_output_missing(body: str) -> bool:
+    """True when the CLI answers with only its input form (firmware 1.2.24 hides all output)."""
+    if not body or "CLI Command" not in body:
+      return False
+    return not re.sub(r"<form.*?</form>", "", body, flags=re.DOTALL | re.IGNORECASE).strip()
 
   @staticmethod
   def _parse_units_flag(body: str) -> str | None:

@@ -202,6 +202,9 @@
       },
       "launch_bricky": {
         "name": "Bricky starten (Kocher anheben)"
+      },
+      "switch_firmware": {
+        "name": "Firmware wechseln"
       }
     },
     "switch": {
@@ -213,6 +216,9 @@
       },
       "chime": {
         "name": "Signalton bei Fertig"
+      },
+      "revert_firmware_updates": {
+        "name": "Firmware-Updates rückgängig machen"
       }
     },
     "time": {
@@ -251,6 +257,12 @@
     "trigger_type": {
       "placed_on_base": "Wasserkocher auf Basis gestellt",
       "lifted_off_base": "Wasserkocher von Basis genommen"
+    }
+  },
+  "issues": {
+    "cli_muted": {
+      "title": "Wasserkocher-Firmware {version} liefert keine Daten mehr",
+      "description": "Der Wasserkocher läuft mit Firmware {version}, die über WLAN keine Messwerte mehr zurückgibt, daher zeigen die meisten Entitäten *unbekannt*. Befehle funktionieren weiterhin.\n\nDie vorherige Firmware ({other_version}) ist noch auf dem Wasserkocher. So wechselst du zurück:\n1. Sperre den Internetzugang des Wasserkochers in deinem Router (lokales WLAN bleibt aktiv), sonst aktualisiert er sich erneut.\n2. Drücke auf der Geräteseite des Wasserkochers **Firmware wechseln**.\n\nSchalte danach optional **Firmware-Updates rückgängig machen** ein, damit Home Assistant zurückwechselt, falls sich der Wasserkocher erneut aktualisiert."
     }
   }
 }

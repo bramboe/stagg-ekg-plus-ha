@@ -2,7 +2,7 @@
 
 Sample bodies are based on live CLI output captured in docs/CLI_TESTING.md.
 """
-from kettle_http import KettleHttpClient, _first_not_none
+from kettle_http import KettleHttpClient, _first_not_none, other_ota_slot
 
 # Live-captured style bodies
 STATE_BODY = (
@@ -217,3 +217,78 @@ class TestHelpers:
 
     def test_screen_name(self):
         assert KettleHttpClient._parse_screen_name(STATE_BODY) == "wnd"
+
+    def test_root_url(self):
+        assert KettleHttpClient("http://192.168.1.86/")._root_url == "http://192.168.1.86/"
+        assert KettleHttpClient("http://192.168.1.86/cli")._root_url == "http://192.168.1.86/"
+
+
+# Root page of a kettle running 1.1.76SSP with 1.2.24 in the other slot (live capture, Oct 2026)
+ROOT_PAGE_OLD = (
+    "<h1>EKG</h1>Current version: 1.1.76SSP CLI<br>Build time: 14:03:33<br>"
+    "Build date: May  9 2024<br>Boot partition: ota_0<br>Running partition: ota_0<br>"
+    "Last invalid partition: <br>"
+    "partition 'factory' at 0x10000 size 0x200000 encr 0 state ?? fw version 1.1.14SSB<br>"
+    "partition 'ota_0' at 0x210000 size 0x200000 encr 0 state valid fw version 1.1.76SSP<br>"
+    "partition 'ota_1' at 0x410000 size 0x200000 encr 0 state valid fw version 1.2.24<br>\n\n"
+    '            <form action="cli" method="GET">\n'
+    '            <label for="x">CLI Command:</label><br>\n'
+    '            <input type="text" id="cli" name="cmd"><br>\n'
+    "            </form>"
+)
+# Same page on 1.2.24 as quoted in issue #5 (line breaks, padded columns)
+ROOT_PAGE_NEW = (
+    "<h1>EKG</h1>Current version: 1.2.24 CLI\nBuild time: 20:50:09\nBuild date: Sep 30 2026\n"
+    "Boot partition: ota_0\nRunning partition: ota_0\nLast invalid partition:\n"
+    "partition 'factory' at 0x10000 size 0x200000 encr 0 state ?? fw version 1.1.14SSB\n"
+    "partition 'ota_0'   at 0x210000 size 0x200000 encr 0 state valid fw version 1.2.24\n"
+    "partition 'ota_1'   at 0x410000 size 0x200000 encr 0 state valid fw version 1.1.76SSP\n"
+)
+CLI_FORM_ONLY = (
+    '\n            <form action="cli" method="GET">\n'
+    '            <label for="x">CLI Command:</label><br>\n'
+    '            <input type="text" id="cli" name="cmd"><br>\n'
+    "            </form>\n            "
+)
+
+
+class TestFirmwarePage:
+    def test_parse_old_firmware_page(self):
+        fw = KettleHttpClient._parse_partitions(ROOT_PAGE_OLD)
+        assert fw["current_version"] == "1.1.76SSP"
+        assert fw["running"] == "ota_0"
+        assert fw["boot"] == "ota_0"
+        assert fw["slots"]["ota_0"] == {"state": "valid", "version": "1.1.76SSP"}
+        assert fw["slots"]["ota_1"] == {"state": "valid", "version": "1.2.24"}
+        assert fw["slots"]["factory"] == {"state": "??", "version": "1.1.14SSB"}
+
+    def test_parse_new_firmware_page(self):
+        fw = KettleHttpClient._parse_partitions(ROOT_PAGE_NEW)
+        assert fw["current_version"] == "1.2.24"
+        assert fw["running"] == "ota_0"
+        assert fw["slots"]["ota_1"]["version"] == "1.1.76SSP"
+
+    def test_parse_unrelated_page(self):
+        assert KettleHttpClient._parse_partitions("This URI does not exist") is None
+        assert KettleHttpClient._parse_partitions("") is None
+
+    def test_other_ota_slot(self):
+        assert other_ota_slot(KettleHttpClient._parse_partitions(ROOT_PAGE_OLD)) == "ota_1"
+        assert other_ota_slot(KettleHttpClient._parse_partitions(ROOT_PAGE_NEW)) == "ota_1"
+        assert other_ota_slot({"running": "ota_1", "slots": {"factory": {}, "ota_0": {}, "ota_1": {}}}) == "ota_0"
+        assert other_ota_slot({"running": "ota_0", "slots": {"ota_0": {}}}) is None
+        assert other_ota_slot(None) is None
+
+
+class TestCliMuted:
+    def test_form_only_is_muted(self):
+        # Firmware 1.2.24: every command answers with just the input form
+        assert KettleHttpClient._cli_output_missing(CLI_FORM_ONLY) is True
+
+    def test_form_with_output_is_not_muted(self):
+        body = CLI_FORM_ONLY + "I (25071) Cli: cmd len 5: 'state'\nmode=S_Off\ntempr=nan C\n"
+        assert KettleHttpClient._cli_output_missing(body) is False
+
+    def test_empty_or_plain_body_is_not_muted(self):
+        assert KettleHttpClient._cli_output_missing("") is False
+        assert KettleHttpClient._cli_output_missing(STATE_BODY) is False

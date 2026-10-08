@@ -203,6 +203,15 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
             }
         if self.entity_description.key == "screen_name" and self.coordinator.data:
             return {"raw_screen_name": self.coordinator.data.get("screen_name")}
+        if self.entity_description.key == "firmware_version" and self.coordinator.firmware:
+            firmware = self.coordinator.firmware
+            attrs = {"running_partition": firmware.get("running"), "boot_partition": firmware.get("boot")}
+            for name, slot in (firmware.get("slots") or {}).items():
+                attrs[f"{name}_version"] = slot.get("version")
+                attrs[f"{name}_state"] = slot.get("state")
+            if self.coordinator.data is not None:
+                attrs["cli_output"] = not self.coordinator.data.get("cli_muted")
+            return attrs
         if self.entity_description.key == "schedule_mode" and self.coordinator.data:
             data = self.coordinator.data
             attrs: dict[str, Any] = {"mode": data.get("schedule_mode") or "off"}
