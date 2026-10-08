@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" aria-label="Fellow Coffee">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="64" height="64" aria-label="Fellow Coffee">
   <defs>
     <style>
+      path { fill: #8a8a8a; }
       .cls-1 { fill: none; }
     </style>
   </defs>
