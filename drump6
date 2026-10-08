@@ -1,0 +1,168 @@
+Last login: Thu Oct  8 20:31:03 on ttys000
+ fellow-analysis % grep -n -B30 -A60 "firmwareVersionQuery" hermes-disassembly.txt
+680583-==> 0000006e: <Call1>: <Reg8: 5, Reg8: 2, Reg8: 5>
+680584-==> 00000072: <GetById>: <Reg8: 6, Reg8: 7, UInt8: 6, string_id: 19039>  # String: 'plus' (Identifier)
+680585-==> 00000078: <LoadFromEnvironment>: <Reg8: 2, Reg8: 1, UInt8: 3>
+680586-==> 0000007c: <Call2>: <Reg8: 2, Reg8: 6, Reg8: 7, Reg8: 2>
+680587-==> 00000081: <JLess>: <Addr8: 6, Reg8: 5, Reg8: 2>  # Address: 00000087
+680588-==> 00000085: <Ret>: <Reg8: 0>
+680589-==> 00000087: <LoadFromEnvironment>: <Reg8: 2, Reg8: 1, UInt8: 0>
+680590-==> 0000008b: <LoadFromEnvironment>: <Reg8: 1, Reg8: 1, UInt8: 1>
+680591-==> 0000008f: <GetByVal>: <Reg8: 1, Reg8: 1, Reg8: 4>
+680592-==> 00000093: <Call2>: <Reg8: 1, Reg8: 2, Reg8: 3, Reg8: 1>
+680593-==> 00000098: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 1, string_id: 30055>  # String: 'FirmwareStatusEnum' (Identifier)
+680594-==> 0000009e: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 7, string_id: 17211>  # String: 'UPDATING' (Identifier)
+680595-==> 000000a4: <Ret>: <Reg8: 1>
+680596-==> 000000a6: <Ret>: <Reg8: 0>
+680597-
+680598-
+680599-===============
+680600-
+680601-=> [Function #17988 "" of 37 bytes]: 1 params, frame size=12, strict=0, exc handler=0, debug info=0  @ offset 0x003c3749
+680602-
+680603-Bytecode listing:
+680604-
+680605-==> 00000000: <CreateEnvironment>: <Reg8: 0>
+680606-==> 00000002: <GetEnvironment>: <Reg8: 1, UInt8: 0>
+680607-==> 00000005: <LoadFromEnvironment>: <Reg8: 1, Reg8: 1, UInt8: 2>
+680608-==> 00000009: <GetByIdShort>: <Reg8: 3, Reg8: 1, UInt8: 1, string_id: 129>  # String: 'default' (Identifier)
+680609-==> 0000000e: <LoadConstUndefined>: <Reg8: 2>
+680610-==> 00000010: <CreateGeneratorClosure>: <Reg8: 1, Reg8: 0, function_id: 17989>  # Function: [#17989  of 9 bytes]: 3 params @ offset 0x003c376e
+680611-==> 00000015: <Call2>: <Reg8: 1, Reg8: 3, Reg8: 2, Reg8: 1>
+680612-==> 0000001a: <StoreToEnvironment>: <Reg8: 0, UInt8: 0, Reg8: 1>
+680613:==> 0000001e: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 17991>  # Function: [#17991 firmwareVersionQuery of 29 bytes]: 3 params @ offset 0x0024faed
+680614-==> 00000023: <Ret>: <Reg8: 0>
+680615-
+680616-
+680617-===============
+680618-
+680619-=> [Function #17989 "" of 9 bytes]: 3 params, frame size=1, strict=0, exc handler=0, debug info=0  @ offset 0x003c376e
+680620-
+680621-Bytecode listing:
+680622-
+680623-==> 00000000: <CreateEnvironment>: <Reg8: 0>
+680624-==> 00000002: <CreateGenerator>: <Reg8: 0, Reg8: 0, function_id: 17990>  # Function: [#17990 ?anon_0_ of 166 bytes]: 3 params @ offset 0x003c3777
+680625-==> 00000007: <Ret>: <Reg8: 0>
+680626-
+680627-
+680628-===============
+680629-
+680630-=> [Function #17990 "?anon_0_" of 166 bytes]: 3 params, frame size=19, strict=0, exc handler=0, debug info=0  @ offset 0x003c3777
+680631-
+680632-Bytecode listing:
+680633-
+680634-==> 00000000: <StartGenerator>: <>
+680635-==> 00000001: <ResumeGenerator>: <Reg8: 0, Reg8: 1>
+680636-==> 00000004: <JmpTrueLong>: <Addr32: 159, Reg8: 1>  # Address: 000000a3
+680637-==> 0000000a: <NewObject>: <Reg8: 7>
+680638-==> 0000000c: <LoadParam>: <Reg8: 1, UInt8: 1>
+680639-==> 0000000f: <PutNewOwnById>: <Reg8: 7, Reg8: 1, string_id: 18089>  # String: 'mac' (Identifier)
+680640-==> 00000014: <GetEnvironment>: <Reg8: 2, UInt8: 2>
+680641-==> 00000017: <LoadFromEnvironment>: <Reg8: 3, Reg8: 2, UInt8: 0>
+680642-==> 0000001b: <LoadFromEnvironment>: <Reg8: 8, Reg8: 2, UInt8: 1>
+680643-==> 0000001f: <LoadConstUInt8>: <Reg8: 1, UInt8: 4>
+680644-==> 00000022: <GetByVal>: <Reg8: 4, Reg8: 8, Reg8: 1>
+680645-==> 00000026: <LoadConstUndefined>: <Reg8: 5>
+680646-==> 00000028: <Call2>: <Reg8: 4, Reg8: 3, Reg8: 5, Reg8: 4>
+680647-==> 0000002d: <GetById>: <Reg8: 6, Reg8: 4, UInt8: 1, string_id: 27212>  # String: 'axios' (Identifier)
+680648-==> 00000033: <GetByIdShort>: <Reg8: 4, Reg8: 6, UInt8: 2, string_id: 156>  # String: 'get' (Identifier)
+680649-==> 00000038: <GetByVal>: <Reg8: 1, Reg8: 8, Reg8: 1>
+680650-==> 0000003c: <Call2>: <Reg8: 1, Reg8: 3, Reg8: 5, Reg8: 1>
+680651-==> 00000041: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 3, string_id: 21580>  # String: 'Endpoints' (Identifier)
+680652-==> 00000047: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 4, string_id: 24343>  # String: 'GetFirmwareVersion' (Identifier)
+680653-==> 0000004d: <NewObject>: <Reg8: 1>
+680654-==> 0000004f: <PutNewOwnByIdShort>: <Reg8: 1, Reg8: 7, string_id: 161>  # String: 'headers' (Identifier)
+680655-==> 00000053: <Call3>: <Reg8: 1, Reg8: 4, Reg8: 6, Reg8: 3, Reg8: 1>
+680656-==> 00000059: <SaveGenerator>: <Addr8: 4>  # Address: 0000005d
+680657-==> 0000005b: <Ret>: <Reg8: 1>
+680658-==> 0000005d: <ResumeGenerator>: <Reg8: 1, Reg8: 3>
+680659-==> 00000060: <JmpTrue>: <Addr8: 64, Reg8: 3>  # Address: 000000a0
+680660-==> 00000063: <GetByIdShort>: <Reg8: 4, Reg8: 1, UInt8: 5, string_id: 127>  # String: 'data' (Identifier)
+680661-==> 00000068: <LoadConstZero>: <Reg8: 3>
+680662-==> 0000006a: <GetByVal>: <Reg8: 6, Reg8: 4, Reg8: 3>
+680663-==> 0000006e: <LoadFromEnvironment>: <Reg8: 4, Reg8: 2, UInt8: 4>
+680664-==> 00000072: <GetById>: <Reg8: 3, Reg8: 6, UInt8: 6, string_id: 35347>  # String: 'currentState' (Identifier)
+680665-==> 00000078: <LoadParam>: <Reg8: 2, UInt8: 2>
+680666-==> 0000007b: <Call3>: <Reg8: 2, Reg8: 4, Reg8: 5, Reg8: 3, Reg8: 2>
+680667-==> 00000081: <GetGlobalObject>: <Reg8: 3>
+680668-==> 00000083: <TryGetById>: <Reg8: 5, Reg8: 3, UInt8: 7, string_id: 28>  # String: 'Object' (Identifier)
+680669-==> 00000089: <GetByIdShort>: <Reg8: 4, Reg8: 5, UInt8: 8, string_id: 24>  # String: 'assign' (Identifier)
+680670-==> 0000008e: <NewObject>: <Reg8: 3>
+680671-==> 00000090: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 2, string_id: 224>  # String: 'status' (Identifier)
+680672-==> 00000094: <NewObject>: <Reg8: 2>
+680673-==> 00000096: <Call4>: <Reg8: 2, Reg8: 4, Reg8: 5, Reg8: 2, Reg8: 6, Reg8: 3>
+680674-==> 0000009d: <CompleteGenerator>: <>
+680675-==> 0000009e: <Ret>: <Reg8: 2>
+680676-==> 000000a0: <CompleteGenerator>: <>
+680677-==> 000000a1: <Ret>: <Reg8: 1>
+680678-==> 000000a3: <CompleteGenerator>: <>
+680679-==> 000000a4: <Ret>: <Reg8: 0>
+680680-
+680681-
+680682-===============
+680683-
+680684:=> [Function #17991 "firmwareVersionQuery" of 29 bytes]: 3 params, frame size=13, strict=0, exc handler=0, debug info=0  @ offset 0x0024faed
+680685-
+680686-Bytecode listing:
+680687-
+680688-==> 00000000: <LoadConstUndefined>: <Reg8: 0>
+680689-==> 00000002: <GetEnvironment>: <Reg8: 1, UInt8: 0>
+680690-==> 00000005: <LoadFromEnvironment>: <Reg8: 3, Reg8: 1, UInt8: 0>
+680691-==> 00000009: <GetByIdShort>: <Reg8: 2, Reg8: 3, UInt8: 1, string_id: 73>  # String: 'apply' (Identifier)
+680692-==> 0000000e: <ReifyArguments>: <Reg8: 0>
+680693-==> 00000010: <Mov>: <Reg8: 1, Reg8: 0>
+680694-==> 00000013: <LoadThisNS>: <Reg8: 0>
+680695-==> 00000015: <Call3>: <Reg8: 0, Reg8: 2, Reg8: 3, Reg8: 0, Reg8: 1>
+680696-==> 0000001b: <Ret>: <Reg8: 0>
+680697-
+680698-
+680699-===============
+680700-
+680701-=> [Function #17992 "useFirmwareVersionQuery" of 123 bytes]: 3 params, frame size=18, strict=0, exc handler=0, debug info=0  @ offset 0x003c381d
+680702-
+680703-Bytecode listing:
+680704-
+680705-==> 00000000: <CreateEnvironment>: <Reg8: 0>
+680706-==> 00000002: <LoadParam>: <Reg8: 1, UInt8: 1>
+680707-==> 00000005: <StoreToEnvironment>: <Reg8: 0, UInt8: 0, Reg8: 1>
+680708-==> 00000009: <LoadParam>: <Reg8: 2, UInt8: 2>
+680709-==> 0000000c: <StoreToEnvironment>: <Reg8: 0, UInt8: 1, Reg8: 2>
+680710-==> 00000010: <GetEnvironment>: <Reg8: 2, UInt8: 0>
+680711-==> 00000013: <LoadFromEnvironment>: <Reg8: 5, Reg8: 2, UInt8: 3>
+680712-==> 00000017: <GetById>: <Reg8: 4, Reg8: 5, UInt8: 1, string_id: 16860>  # String: 'as' (Identifier)
+680713-==> 0000001d: <LoadConstString>: <Reg8: 3, string_id: 37471>  # String: 'milliseconds' (Identifier)
+680714-==> 00000021: <Call2>: <Reg8: 5, Reg8: 4, Reg8: 5, Reg8: 3>
+680715-==> 00000026: <LoadFromEnvironment>: <Reg8: 6, Reg8: 2, UInt8: 0>
+680716-==> 0000002a: <LoadFromEnvironment>: <Reg8: 7, Reg8: 2, UInt8: 1>
+680717-==> 0000002e: <LoadConstUInt8>: <Reg8: 2, UInt8: 5>
+680718-==> 00000031: <GetByVal>: <Reg8: 2, Reg8: 7, Reg8: 2>
+680719-==> 00000035: <LoadConstUndefined>: <Reg8: 4>
+680720-==> 00000037: <Call2>: <Reg8: 2, Reg8: 6, Reg8: 4, Reg8: 2>
+680721-==> 0000003c: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 2, string_id: 38067>  # String: 'useQuery' (Identifier)
+680722-==> 00000042: <LoadConstUInt8>: <Reg8: 2, UInt8: 4>
+680723-==> 00000045: <GetByVal>: <Reg8: 2, Reg8: 7, Reg8: 2>
+680724-==> 00000049: <Call2>: <Reg8: 2, Reg8: 6, Reg8: 4, Reg8: 2>
+680725-==> 0000004e: <GetById>: <Reg8: 2, Reg8: 2, UInt8: 3, string_id: 31712>  # String: 'QueryKeys' (Identifier)
+680726-==> 00000054: <GetById>: <Reg8: 6, Reg8: 2, UInt8: 4, string_id: 18858>  # String: 'KettleFirmwareVersion' (Identifier)
+680727-==> 0000005a: <NewArray>: <Reg8: 2, UInt16: 2>
+680728-==> 0000005e: <PutOwnByIndex>: <Reg8: 2, Reg8: 6, UInt8: 0>
+680729-==> 00000062: <PutOwnByIndex>: <Reg8: 2, Reg8: 1, UInt8: 1>
+680730-==> 00000066: <NewObject>: <Reg8: 1>
+680731-==> 00000068: <PutNewOwnById>: <Reg8: 1, Reg8: 5, string_id: 27269>  # String: 'refetchInterval' (Identifier)
+680732-==> 0000006d: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 17993>  # Function: [#17993  of 28 bytes]: 1 params @ offset 0x003c3898
+680733-==> 00000072: <Call4>: <Reg8: 0, Reg8: 3, Reg8: 4, Reg8: 2, Reg8: 0, Reg8: 1>
+680734-==> 00000079: <Ret>: <Reg8: 0>
+680735-
+680736-
+680737-===============
+680738-
+680739-=> [Function #17993 "" of 28 bytes]: 1 params, frame size=13, strict=0, exc handler=0, debug info=0  @ offset 0x003c3898
+680740-
+680741-Bytecode listing:
+680742-
+680743-==> 00000000: <GetEnvironment>: <Reg8: 0, UInt8: 1>
+680744-==> 00000003: <LoadFromEnvironment>: <Reg8: 3, Reg8: 0, UInt8: 5>
+ fellow-analysis % grep -n "firmwareVersionQuery" hermes-disassembly.txt
+680613:==> 0000001e: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 17991>  # Function: [#17991 firmwareVersionQuery of 29 bytes]: 3 params @ offset 0x0024faed
+680684:=> [Function #17991 "firmwareVersionQuery" of 29 bytes]: 3 params, frame size=13, strict=0, exc handler=0, debug info=0  @ offset 0x0024faed
+ fellow-analysis % 
