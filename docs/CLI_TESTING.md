@@ -10,6 +10,21 @@ The kettle exposes an HTTP CLI at `http://<KETTLE_IP>/cli`. Commands are sent as
 > python3 tools/probe_cli.py KETTLE_IP --write-test # short beeps; listen to confirm commands execute
 > ```
 
+### Rolling back from 1.2.24
+
+The kettle keeps the previous firmware in its other OTA partition, and 1.2.24 still executes `setpart` (set boot partition) and `reset`. Tested on 8 Oct 2026: the kettle came back on 1.1.76SSP within seconds, the CLI returned output again and all settings survived.
+
+1. **Block the kettle's internet access first** (a firewall rule on your router; keep local Wi-Fi). Otherwise the old firmware's next update check (about every 30 minutes, `waitsec` in `state`) downloads 1.2.24 again. The update server is `qhderznbzup.firmware.fellowproducts.com`.
+2. Open `http://KETTLE_IP/` and note which partition holds 1.1.76SSP: `ota_0` or `ota_1`. It differs per kettle.
+3. Switch to it and reboot (the `reset` request drops the connection; that's expected):
+   ```bash
+   curl "http://KETTLE_IP/cli?cmd=setpart+ota_0"   # the partition from step 2
+   curl "http://KETTLE_IP/cli?cmd=reset"
+   ```
+4. `http://KETTLE_IP/` should now show `Running partition` with 1.1.76SSP, and `cli?cmd=state` returns output again. Reload the integration in Home Assistant.
+
+Don't send `eraseotherpart` (deletes the other partition, so you lose the way back) or `clrsettings` (wipes settings). With the kettle offline, keep **Sync clock** on so Home Assistant sets its clock.
+
 ## Sending commands from the terminal
 
 Replace `KETTLE_IP` with your kettle's IP (e.g. `192.168.1.86`).
