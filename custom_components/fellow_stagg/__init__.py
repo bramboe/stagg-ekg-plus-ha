@@ -220,6 +220,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     """
     self.notify_command_sent()
     self._last_partition_switch = monotonic()  # share the revert-guard cooldown
+    # The upload flashes the inactive partition and boots it, so the running partition flips.
+    before_running = (self.firmware or {}).get("running")
     try:
       await self.kettle.async_upload_firmware(self.session, data)
     except FirmwareImageError:
@@ -234,7 +236,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         firmware = await self.kettle.async_get_partitions(self.session)
       except Exception:  # noqa: BLE001 - still rebooting/flashing
         continue
-      if firmware:
+      # Wait for the reboot onto the newly flashed partition, so the version we report is the new
+      # one (if we never knew the old partition, accept the first page we get back).
+      if firmware and (before_running is None or firmware.get("running") != before_running):
         self.firmware = firmware
         self._firmware_fetched_at = monotonic()
         await self.async_request_refresh()
