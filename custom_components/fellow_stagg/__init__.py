@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
+from time import monotonic  # not "import time": the time.py platform would shadow it
 from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
@@ -154,7 +154,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
   async def _async_refresh_firmware_page(self) -> None:
     """Re-read the root page every few minutes; it answers even when the CLI output is gone."""
-    now = time.monotonic()
+    now = monotonic()
     if self._firmware_fetched_at is not None and now - self._firmware_fetched_at < _FIRMWARE_PAGE_REFRESH_SECONDS:
       return
     self._firmware_fetched_at = now
@@ -169,7 +169,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
   async def async_switch_partition(self, partition: str) -> None:
     """Boot the kettle from another OTA partition: setpart, then reset (which drops the connection)."""
     self.notify_command_sent()
-    self._last_partition_switch = time.monotonic()
+    self._last_partition_switch = monotonic()
     await self.kettle.async_set_boot_partition(self.session, partition)
     await asyncio.sleep(1)
     try:
@@ -179,7 +179,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     if self.guard_partition is not None:
       self.guard_partition = partition  # a deliberate switch moves the pin with it
     # Read the root page again shortly after the reboot
-    self._firmware_fetched_at = time.monotonic() - _FIRMWARE_PAGE_REFRESH_SECONDS + 30
+    self._firmware_fetched_at = monotonic() - _FIRMWARE_PAGE_REFRESH_SECONDS + 30
 
   async def _maybe_revert_firmware(self) -> None:
     """If "Revert firmware updates" is on and the kettle booted another partition, switch back."""
@@ -190,7 +190,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     slot = (firmware.get("slots") or {}).get(pinned) or {}
     if slot.get("state") != "valid":
       return
-    now = time.monotonic()
+    now = monotonic()
     if self._last_partition_switch is not None and now - self._last_partition_switch < _FIRMWARE_SWITCH_COOLDOWN_SECONDS:
       return
     self._guard_reverts = [t for t in self._guard_reverts if now - t < 86400]
