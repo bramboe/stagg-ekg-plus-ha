@@ -1,349 +1,293 @@
-Last login: Thu Oct  8 20:20:03 on ttys009
+Last login: Thu Oct  8 20:21:36 on ttys010
  fellow-analysis % cd ~/Desktop/fellow-analysis
 
-~/Library/Python/3.14/bin/hbc-disassembler \
+~/Library/Python/3.14/bin/hbc-file-parser \
+  jadx-out/resources/assets/index.android.bundle \
+  > hbc-parse.txt
+ fellow-analysis % grep -niE \
+'GetFirmwareVersion|ShouldBlock|OTA update|UpdateCount|UpdatedAt|initialUpdaterRunning|RNFSManager' \
+hbc-parse.txt
+11103:=> <StringKind.String: 0>: 'Trigger OTA update'
+11104:=> <StringKind.String: 0>: 'Trigger OTA update command error'
+17473:=> <StringKind.Identifier: 1>: 'RNFSManager'
+20885:=> <StringKind.Identifier: 1>: 'dataUpdatedAt'
+24395:=> <StringKind.Identifier: 1>: 'errorUpdateCount'
+24397:=> <StringKind.Identifier: 1>: 'GetFirmwareVersion'
+24398:=> <StringKind.Identifier: 1>: 'onShouldBlockNativeResponder'
+24401:=> <StringKind.Identifier: 1>: 'errorUpdatedAt'
+28182:=> <StringKind.Identifier: 1>: 'pendingScrollUpdateCount'
+35426:=> <StringKind.Identifier: 1>: 'dataUpdateCount'
+36967:=> <StringKind.Identifier: 1>: 'initialDataUpdatedAt'
+38103:=> <StringKind.Identifier: 1>: 'updatedAt'
+ fellow-analysis % grep -niE \
+'firmware|ota|download|execute-api|amazonaws|\.bin' \
+hbc-parse.txt | head -200
+268:=> <StringKind.Identifier: 1>: 'rotate'
+317:=> <StringKind.String: 0>: 'function createMapperRegistry_reactNativeReanimated_mappersTs1(){const{IS_JEST,isSharedValue}=this.__closure;const mappers=new Map();let sortedMappers=[];let runRequested=false;let processingMappers=false;function updateMappersOrder(){const pre=new Map();mappers.forEach(function(mapper){if(mapper.outputs){for(const output of mapper.outputs){const preMappers=pre.get(output);if(preMappers===undefined){pre.set(output,[mapper]);}else{preMappers.push(mapper);}}}});const visited=new Set();const newOrder=[];function dfs(mapper){visited.add(mapper);for(const input of mapper.inputs){const preMappers=pre.get(input);if(preMappers){for(const preMapper of preMappers){if(!visited.has(preMapper)){dfs(preMapper);}}}}newOrder.push(mapper);}mappers.forEach(function(mapper){if(!visited.has(mapper)){dfs(mapper);}});sortedMappers=newOrder;}function mapperRun(){runRequested=false;if(processingMappers){return;}try{processingMappers=true;if(mappers.size!==sortedMappers.length){updateMappersOrder();}for(const mapper of sortedMappers){if(mapper.dirty){mapper.dirty=false;mapper.worklet();}}}finally{processingMappers=false;}}function maybeRequestUpdates(){if(IS_JEST){mapperRun();}else if(!runRequested){if(processingMappers){requestAnimationFrame(mapperRun);}else{queueMicrotask(mapperRun);}runRequested=true;}}function extractInputs(inputs,resultArray){if(Array.isArray(inputs)){for(const input of inputs){input&&extractInputs(input,resultArray);}}else if(isSharedValue(inputs)){resultArray.push(inputs);}else if(Object.getPrototypeOf(inputs)===Object.prototype){for(const element of Object.values(inputs)){element&&extractInputs(element,resultArray);}}return resultArray;}return{start:function(mapperID,worklet,inputs,outputs){const mapper={id:mapperID,dirty:true,worklet:worklet,inputs:extractInputs(inputs,[]),outputs:outputs};mappers.set(mapper.id,mapper);sortedMappers=[];for(const sv of mapper.inputs){sv.addListener(mapper.id,function(){mapper.dirty=true;maybeRequestUpdates();});}maybeRequestUpdates();},stop:function(mapperID){const mapper=mappers.get(mapperID);if(mapper){mappers.delete(mapper.id);sortedMappers=[];for(const sv of mapper.inputs){sv.removeListener(mapper.id);}}}};}'
+365:=> <StringKind.String: 0>: 'function valueUnpacker_reactNativeReanimated_valueUnpackerTs1(objectToUnpack,category,remoteFunctionName){let workletsCache=global.__workletsCache;let handleCache=global.__handleCache;if(workletsCache===undefined){workletsCache=global.__workletsCache=new Map();handleCache=global.__handleCache=new WeakMap();}const workletHash=objectToUnpack.__workletHash;if(workletHash!==undefined){let workletFun=workletsCache.get(workletHash);if(workletFun===undefined){const initData=objectToUnpack.__initData;if(global.evalWithSourceMap){workletFun=global.evalWithSourceMap(\'(\'+initData.code+\'\\n)\',initData.location,initData.sourceMap);}else if(global.evalWithSourceUrl){workletFun=global.evalWithSourceUrl(\'(\'+initData.code+\'\\n)\',"worklet_"+workletHash);}else{workletFun=eval(\'(\'+initData.code+\'\\n)\');}workletsCache.set(workletHash,workletFun);}const functionInstance=workletFun.bind(objectToUnpack);objectToUnpack._recur=functionInstance;return functionInstance;}else if(objectToUnpack.__init!==undefined){let value=handleCache.get(objectToUnpack);if(value===undefined){value=objectToUnpack.__init();handleCache.set(objectToUnpack,value);}return value;}else if(category===\'RemoteFunction\'){const fun=function(){const label=remoteFunctionName?"function `"+remoteFunctionName+"`":\'anonymous function\';throw new Error("[Reanimated] Tried to synchronously call a non-worklet "+label+" on the UI thread.\\nSee https://docs.swmansion.com/react-native-reanimated/docs/guides/troubleshooting#tried-to-synchronously-call-a-non-worklet-function-on-the-ui-thread for more details.");};fun.__remoteFunction=objectToUnpack;return fun;}else{throw new Error("[Reanimated] Data type in category \\""+category+"\\" not recognized by value unpacker: \\""+_toString(objectToUnpack)+"\\".");}}'
+468:=> <StringKind.String: 0>: 'downloadFile: Invalid value for property `background`'
+903:=> <StringKind.String: 0>: 'rotationChange'
+929:=> <StringKind.String: 0>: 'Firmware v2.1 includes general bug fixes as well as the following feature upgrades:\n\nFeature\nFeature\nFeature'
+1129:=> <StringKind.String: 0>: '<blur()> | <brightness()> | <contrast()> | <drop-shadow()> | <grayscale()> | <hue-rotate()> | <invert()> | <opacity()> | <saturate()> | <sepia()>'
+1165:=> <StringKind.String: 0>: '@stylistic | @historical-forms | @styleset | @character-variant | @swash | @ornaments | @annotation'
+1166:=> <StringKind.String: 0>: 'annotation-xml'
+1198:=> <StringKind.String: 0>: '<matrix()> | <translate()> | <translateX()> | <translateY()> | <scale()> | <scaleX()> | <scaleY()> | <rotate()> | <skew()> | <skewX()> | <skewY()> | <matrix3d()> | <translate3d()> | <translateZ()> | <scale3d()> | <scaleZ()> | <rotate3d()> | <rotateX()> | <rotateY()> | <rotateZ()> | <perspective()>'
+2272:=> <StringKind.String: 0>: 'QuotaExceededError'
+3363:=> <StringKind.String: 0>: 'function gramSchmidtAlgorithm_reactNativeReanimated_matrixUtilsTsx18(matrix){const{subtractVectors,projection,scaleVector,innerProduct,transposeMatrix}=this.__closure;const[a0,a1,a2,a3]=matrix;const u0=a0;const u1=subtractVectors(a1,projection(u0,a1));const u2=subtractVectors(subtractVectors(a2,projection(u0,a2)),projection(u1,a2));const u3=subtractVectors(subtractVectors(subtractVectors(a3,projection(u0,a3)),projection(u1,a3)),projection(u2,a3));const[e0,e1,e2,e3]=[u0,u1,u2,u3].map(function(u){return scaleVector(u,1/Math.sqrt(innerProduct(u,u)));});const rotationMatrix=[[e0[0],e1[0],e2[0],e3[0]],[e0[1],e1[1],e2[1],e3[1]],[e0[2],e1[2],e2[2],e3[2]],[e0[3],e1[3],e2[3],e3[3]]];const skewMatrix=[[innerProduct(e0,a0),innerProduct(e0,a1),innerProduct(e0,a2),innerProduct(e0,a3)],[0,innerProduct(e1,a1),innerProduct(e1,a2),innerProduct(e1,a3)],[0,0,innerProduct(e2,a2),innerProduct(e2,a3)],[0,0,0,innerProduct(e3,a3)]];return{rotationMatrix:transposeMatrix(rotationMatrix),skewMatrix:transposeMatrix(skewMatrix)};}'
+3679:=> <StringKind.String: 0>: '&Iota;'
+4383:=> <StringKind.String: 0>: '&iiota;'
+4402:=> <StringKind.String: 0>: '&iota;'
+5095:=> <StringKind.String: 0>: 'function reactNativeReanimated_SharedTransitionTs2(values){const{animationFactory,SUPPORTED_PROPS,withTiming,reduceMotion,transitionDuration}=this.__closure;let animations={};const initialValues={};if(animationFactory){animations=animationFactory(values);for(const key in animations){if(!SUPPORTED_PROPS.includes(key)){throw new Error("[Reanimated] The prop \'"+key+"\' is not supported yet.");}}}else{for(const propName of SUPPORTED_PROPS){if(propName===\'transform\'){const matrix=values.targetTransformMatrix;animations.transformMatrix=withTiming(matrix,{reduceMotion:reduceMotion,duration:transitionDuration});}else{const capitalizedPropName=""+propName.charAt(0).toUpperCase()+propName.slice(1);const keyToTargetValue="target"+capitalizedPropName;animations[propName]=withTiming(values[keyToTargetValue],{reduceMotion:reduceMotion,duration:transitionDuration});}}}for(const propName in animations){if(propName===\'transform\'){initialValues.transformMatrix=values.currentTransformMatrix;}else{const capitalizedPropName=propName.charAt(0).toUpperCase()+propName.slice(1);const keyToCurrentValue="current"+capitalizedPropName;initialValues[propName]=values[keyToCurrentValue];}}return{initialValues:initialValues,animations:animations};}'
+5205:=> <StringKind.String: 0>: "SELECT name FROM sqlite_master WHERE type='table' AND name <> '__WebKitDatabaseInfoTable__'"
+5535:=> <StringKind.String: 0>: 'JSTimers.callReactNativeMicrotasks()'
+6367:=> <StringKind.String: 0>: ", re-run pod install and rebuild your iOS app. If you're not using Pods then make sure you've have downloaded the necessary Firebase iOS SDK dependencies for this API."
+6405:=> <StringKind.String: 0>: "function reactNativeReanimated_RollTs1(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{transform:[{translateX:delayFunction(delay,animation(0,config))},{rotate:delayFunction(delay,animation('0deg',config))}]},initialValues:{transform:[{translateX:-values.windowWidth},{rotate:'-180deg'}],...initialValues},callback:callback};}"
+6443:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs2(targetValues){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateY:'-90deg'},{translateX:-targetValues.targetWidth}],...initialValues},animations:{transform:[{perspective:delayFunction(delay,animation(500,config))},{rotateY:delayFunction(delay,animation('0deg',config))},{translateX:delayFunction(delay,animation(0,config))}]},callback:callback};}"
+6547:=> <StringKind.String: 0>: '/firmware_version_check'
+7159:=> <StringKind.String: 0>: "[ <'offset-position'>? [ <'offset-path'> [ <'offset-distance'> || <'offset-rotate'> ]? ]? ]! [ / <'offset-anchor'> ]?"
+7214:=> <StringKind.String: 0>: "Your kettle hasn't checked in for a while. In order to keep it updated with the latest firmware, please make sure it's connected to power and WiFi at all times"
+7678:=> <StringKind.String: 0>: 'Actualizaciones de Firmware'
+7679:=> <StringKind.String: 0>: 'Firmware'
+7680:=> <StringKind.String: 0>: 'Firmware %s'
+7716:=> <StringKind.String: 0>: 'isDocumentDotAll'
+7763:=> <StringKind.String: 0>: 'downloadFile: Invalid value for property `headers`'
+7766:=> <StringKind.String: 0>: 'downloadFile: Invalid value for property `progressInterval`'
+7842:=> <StringKind.String: 0>: 'RootApp'
+8215:=> <StringKind.String: 0>: 'NS_ERROR_DOM_QUOTA_REACHED'
+8334:=> <StringKind.String: 0>: 'rubyAnnotationsContainers'
+8748:=> <StringKind.String: 0>: '_getTotalCount'
+8902:=> <StringKind.String: 0>: 'DownloadBegin'
+8907:=> <StringKind.String: 0>: 'DownloadProgress'
+8908:=> <StringKind.String: 0>: 'DownloadResumable'
+9034:=> <StringKind.String: 0>: 'notAnimatable'
+9120:=> <StringKind.String: 0>: 'downloadFile: Invalid value for property `connectionTimeout`'
+9264:=> <StringKind.String: 0>: 'Firmware Updates'
+9316:=> <StringKind.String: 0>: 'downloadFile: Invalid value for property `progressDivider`'
+9354:=> <StringKind.String: 0>: 'Firmware v2.1 Available'
+9400:=> <StringKind.String: 0>: 'Function.prototype.bind called on incompatible '
+9615:=> <StringKind.String: 0>: 'downloadFile: Invalid value for property `toFile`'
+9759:=> <StringKind.String: 0>: 'Just a moment while we get your kettle updated with the latest and greatest firmware and features.'
+10416:=> <StringKind.String: 0>: '_callReactNativeMicrotasksPass'
+10657:=> <StringKind.String: 0>: 'downloadFile: Invalid value for property `backgroundTimeout`'
+10975:=> <StringKind.String: 0>: 'The argument to queueMicrotask must be a function.'
+11103:=> <StringKind.String: 0>: 'Trigger OTA update'
+11104:=> <StringKind.String: 0>: 'Trigger OTA update command error'
+11114:=> <StringKind.String: 0>: 'Turning on automatic updates will ensure your Kettle always has the latest firmware. We will deliver these quietly at night so as to not impact your schedules.'
+11744:=> <StringKind.String: 0>: "function decomposeMatrix_reactNativeReanimated_matrixUtilsTsx19(unknownTypeMatrix){const{maybeFlattenMatrix,norm3d,gramSchmidtAlgorithm}=this.__closure;const matrix=maybeFlattenMatrix(unknownTypeMatrix);if(matrix[15]===0){throw new Error('[Reanimated] Invalid transform matrix.');}matrix.forEach(function(_,i){return matrix[i]/=matrix[15];});const translationMatrix=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[matrix[12],matrix[13],matrix[14],1]];const sx=matrix[15]*norm3d(matrix[0],matrix[4],matrix[8]);const sy=matrix[15]*norm3d(matrix[1],matrix[5],matrix[9]);const sz=matrix[15]*norm3d(matrix[2],matrix[6],matrix[10]);const scaleMatrix=[[sx,0,0,0],[0,sy,0,0],[0,0,sz,0],[0,0,0,1]];const rotationAndSkewMatrix=[[matrix[0]/sx,matrix[1]/sx,matrix[2]/sx,0],[matrix[4]/sy,matrix[5]/sy,matrix[6]/sy,0],[matrix[8]/sz,matrix[9]/sz,matrix[10]/sz,0],[0,0,0,1]];const{rotationMatrix:rotationMatrix,skewMatrix:skewMatrix}=gramSchmidtAlgorithm(rotationAndSkewMatrix);return{translationMatrix:translationMatrix,scaleMatrix:scaleMatrix,rotationMatrix:rotationMatrix,skewMatrix:skewMatrix};}"
+11878:=> <StringKind.String: 0>: "[Spotlight] Sentry SDK can't connect to Spotlight is it running? See https://spotlightjs.com to download it."
+12036:=> <StringKind.String: 0>: '[react-native-device-info] getTotalDiskCapacitySync not supported - please use getTotalDiskCapacity'
+12651:=> <StringKind.String: 0>: 'rotateZ( [ <angle> | <zero> ] )'
+12772:=> <StringKind.String: 0>: '_getTotalDiskCapacityOld'
+13011:=> <StringKind.String: 0>: 'downloadFile: Invalid value for argument `options`'
+13015:=> <StringKind.String: 0>: 'downloadFile: Invalid value for property `readTimeout`'
+13019:=> <StringKind.String: 0>: 'downloadFile: Invalid value for property `fromUrl`'
+13135:=> <StringKind.String: 0>: 'function adjustRotationToInterfaceOrientation_reactNativeReanimated_useAnimatedSensorTs2(data){const{InterfaceOrientation,eulerToQuaternion}=this.__closure;const{interfaceOrientation:interfaceOrientation,pitch:pitch,roll:roll,yaw:yaw}=data;if(interfaceOrientation===InterfaceOrientation.ROTATION_90){data.pitch=roll;data.roll=-pitch;data.yaw=yaw-Math.PI/2;}else if(interfaceOrientation===InterfaceOrientation.ROTATION_270){data.pitch=-roll;data.roll=pitch;data.yaw=yaw+Math.PI/2;}else if(interfaceOrientation===InterfaceOrientation.ROTATION_180){data.pitch*=-1;data.roll*=-1;data.yaw*=-1;}const q=eulerToQuaternion(data.pitch,data.roll,data.yaw);data.qx=q[0];data.qy=q[1];data.qz=q[2];data.qw=q[3];return data;}'
+13136:=> <StringKind.String: 0>: 'adjustRotationToInterfaceOrientation_reactNativeReanimated_useAnimatedSensorTs2'
+13138:=> <StringKind.String: 0>: 'function adjustVectorToInterfaceOrientation_reactNativeReanimated_useAnimatedSensorTs3(data){const{InterfaceOrientation}=this.__closure;const{interfaceOrientation:interfaceOrientation,x:x,y:y}=data;if(interfaceOrientation===InterfaceOrientation.ROTATION_90){data.x=-y;data.y=x;}else if(interfaceOrientation===InterfaceOrientation.ROTATION_270){data.x=y;data.y=-x;}else if(interfaceOrientation===InterfaceOrientation.ROTATION_180){data.x*=-1;data.y*=-1;}return data;}'
+13167:=> <StringKind.String: 0>: 'referToTotalPathLength'
+13280:=> <StringKind.String: 0>: "function decorateAnimation_reactNativeReanimated_utilTs7(animation){const{getReduceMotionFromConfig,recognizePrefixSuffix,isColor,toLinearSpace,convertToRGBA,rgbaArrayToRGBAColor,toGammaSpace,decomposeMatrixIntoMatricesAndAngles,applyProgressToMatrix,applyProgressToNumber,getRotationMatrix,multiplyMatrices,flatten,isAffineMatrixFlat}=this.__closure;const baseOnStart=animation.onStart;const baseOnFrame=animation.onFrame;if(animation.isHigherOrder){animation.onStart=function(animation,value,timestamp,previousAnimation){if(animation.reduceMotion===undefined){animation.reduceMotion=getReduceMotionFromConfig();}return baseOnStart(animation,value,timestamp,previousAnimation);};return;}const animationCopy=Object.assign({},animation);delete animationCopy.callback;const prefNumberSuffOnStart=function(animation,value,timestamp,previousAnimation){var _animation$__prefix,_animation$__suffix;const{prefix:prefix,suffix:suffix,strippedValue:strippedValue}=recognizePrefixSuffix(value);animation.__prefix=prefix;animation.__suffix=suffix;animation.strippedCurrent=strippedValue;const{strippedValue:strippedToValue}=recognizePrefixSuffix(animation.toValue);animation.current=strippedValue;animation.startValue=strippedValue;animation.toValue=strippedToValue;if(previousAnimation&&previousAnimation!==animation){const{prefix:paPrefix,suffix:paSuffix,strippedValue:paStrippedValue}=recognizePrefixSuffix(previousAnimation.current);previousAnimation.current=paStrippedValue;previousAnimation.__prefix=paPrefix;previousAnimation.__suffix=paSuffix;}baseOnStart(animation,strippedValue,timestamp,previousAnimation);animation.current=((_animation$__prefix=animation.__prefix)!==null&&_animation$__prefix!==void 0?_animation$__prefix:'')+animation.current+((_animation$__suffix=animation.__suffix)!==null&&_animation$__suffix!==void 0?_animation$__suffix:'');if(previousAnimation&&previousAnimation!==animation){var _previousAnimation$__,_previousAnimation$__2;previousAnimation.current=((_previousAnimation$__=previousAnimation.__prefix)!==null&&_previousAnimation$__!==void 0?_previousAnimation$__:'')+previousAnimation.current+((_previousAnimation$__2=previousAnimation.__suffix)!==null&&_previousAnimation$__2!==void 0?_previousAnimation$__2:'');}};const prefNumberSuffOnFrame=function(animation,timestamp){var _animation$__prefix2,_animation$__suffix2;animation.current=animation.strippedCurrent;const res=baseOnFrame(animation,timestamp);animation.strippedCurrent=animation.current;animation.current=((_animation$__prefix2=animation.__prefix)!==null&&_animation$__prefix2!==void 0?_animation$__prefix2:'')+animation.current+((_animation$__suffix2=animation.__suffix)!==null&&_animation$__suffix2!==void 0?_animation$__suffix2:'');return res;};const tab=['R','G','B','A'];const colorOnStart=function(animation,value,timestamp,previousAnimation){let RGBAValue;let RGBACurrent;let RGBAToValue;const res=[];if(isColor(value)){RGBACurrent=toLinearSpace(convertToRGBA(animation.current));RGBAValue=toLinearSpace(convertToRGBA(value));if(animation.toValue){RGBAToValue=toLinearSpace(convertToRGBA(animation.toValue));}}tab.forEach(function(i,index){animation[i]=Object.assign({},animationCopy);animation[i].current=RGBACurrent[index];animation[i].toValue=RGBAToValue?RGBAToValue[index]:undefined;animation[i].onStart(animation[i],RGBAValue[index],timestamp,previousAnimation?previousAnimation[i]:undefined);res.push(animation[i].current);});animation.current=rgbaArrayToRGBAColor(toGammaSpace(res));};const colorOnFrame=function(animation,timestamp){const RGBACurrent=toLinearSpace(convertToRGBA(animation.current));const res=[];let finished=true;tab.forEach(function(i,index){animation[i].current=RGBACurrent[index];const result=animation[i].onFrame(animation[i],timestamp);finished=finished&&result;res.push(animation[i].current);});animation.current=rgbaArrayToRGBAColor(toGammaSpace(res));return finished;};const transformationMatrixOnStart=function(animation,value,timestamp,previousAnimation){const toValue=animation.toValue;animation.startMatrices=decomposeMatrixIntoMatricesAndAngles(value);animation.stopMatrices=decomposeMatrixIntoMatricesAndAngles(toValue);animation[0]=Object.assign({},animationCopy);animation[0].current=0;animation[0].toValue=100;animation[0].onStart(animation[0],0,timestamp,previousAnimation?previousAnimation[0]:undefined);animation.current=value;};const transformationMatrixOnFrame=function(animation,timestamp){let finished=true;const result=animation[0].onFrame(animation[0],timestamp);finished=finished&&result;const progress=animation[0].current/100;const transforms=['translationMatrix','scaleMatrix','skewMatrix'];const mappedTransforms=[];transforms.forEach(function(key,_){return mappedTransforms.push(applyProgressToMatrix(progress,animation.startMatrices[key],animation.stopMatrices[key]));});const[currentTranslation,currentScale,skewMatrix]=mappedTransforms;const rotations=['x','y','z'];const mappedRotations=[];rotations.forEach(function(key,_){const angle=applyProgressToNumber(progress,animation.startMatrices['r'+key],animation.stopMatrices['r'+key]);mappedRotations.push(getRotationMatrix(angle,key));});const[rotationMatrixX,rotationMatrixY,rotationMatrixZ]=mappedRotations;const rotationMatrix=multiplyMatrices(rotationMatrixX,multiplyMatrices(rotationMatrixY,rotationMatrixZ));const updated=flatten(multiplyMatrices(multiplyMatrices(currentScale,multiplyMatrices(skewMatrix,rotationMatrix)),currentTranslation));animation.current=updated;return finished;};const arrayOnStart=function(animation,value,timestamp,previousAnimation){value.forEach(function(v,i){animation[i]=Object.assign({},animationCopy);animation[i].current=v;animation[i].toValue=animation.toValue[i];animation[i].onStart(animation[i],v,timestamp,previousAnimation?previousAnimation[i]:undefined);});animation.current=value;};const arrayOnFrame=function(animation,timestamp){let finished=true;animation.current.forEach(function(_,i){const result=animation[i].onFrame(animation[i],timestamp);finished=finished&&result;animation.current[i]=animation[i].current;});return finished;};const objectOnStart=function(animation,value,timestamp,previousAnimation){for(const key in value){animation[key]=Object.assign({},animationCopy);animation[key].onStart=animation.onStart;animation[key].current=value[key];animation[key].toValue=animation.toValue[key];animation[key].onStart(animation[key],value[key],timestamp,previousAnimation?previousAnimation[key]:undefined);}animation.current=value;};const objectOnFrame=function(animation,timestamp){let finished=true;const newObject={};for(const key in animation.current){const result=animation[key].onFrame(animation[key],timestamp);finished=finished&&result;newObject[key]=animation[key].current;}animation.current=newObject;return finished;};animation.onStart=function(animation,value,timestamp,previousAnimation){if(animation.reduceMotion===undefined){animation.reduceMotion=getReduceMotionFromConfig();}if(animation.reduceMotion){if(animation.toValue!==undefined){animation.current=animation.toValue;}else{baseOnStart(animation,value,timestamp,previousAnimation);}animation.startTime=0;animation.onFrame=function(){return true;};return;}if(isColor(value)){colorOnStart(animation,value,timestamp,previousAnimation);animation.onFrame=colorOnFrame;return;}else if(isAffineMatrixFlat(value)){transformationMatrixOnStart(animation,value,timestamp,previousAnimation);animation.onFrame=transformationMatrixOnFrame;return;}else if(Array.isArray(value)){arrayOnStart(animation,value,timestamp,previousAnimation);animation.onFrame=arrayOnFrame;return;}else if(typeof value==='string'){prefNumberSuffOnStart(animation,value,timestamp,previousAnimation);animation.onFrame=prefNumberSuffOnFrame;return;}else if(typeof value==='object'&&value!==null){objectOnStart(animation,value,timestamp,previousAnimation);animation.onFrame=objectOnFrame;return;}baseOnStart(animation,value,timestamp,previousAnimation);};}"
+13645:=> <StringKind.String: 0>: 'function callMicrotasksOnUIThread_reactNativeReanimated_threadsTs2(){global.__callMicrotasks();}'
+13646:=> <StringKind.String: 0>: 'callMicrotasksOnUIThread_reactNativeReanimated_threadsTs2'
+14054:=> <StringKind.String: 0>: 'function decomposeMatrixIntoMatricesAndAngles_reactNativeReanimated_matrixUtilsTsx20(matrix){const{decomposeMatrix}=this.__closure;const{scaleMatrix:scaleMatrix,rotationMatrix:rotationMatrix,translationMatrix:translationMatrix,skewMatrix:skewMatrix}=decomposeMatrix(matrix);const sinRy=-rotationMatrix[0][2];const ry=Math.asin(sinRy);let rx;let rz;if(sinRy===1||sinRy===-1){rz=0;rx=Math.atan2(sinRy*rotationMatrix[0][1],sinRy*rotationMatrix[0][2]);}else{rz=Math.atan2(rotationMatrix[0][1],rotationMatrix[0][0]);rx=Math.atan2(rotationMatrix[1][2],rotationMatrix[2][2]);}return{scaleMatrix:scaleMatrix,rotationMatrix:rotationMatrix,translationMatrix:translationMatrix,skewMatrix:skewMatrix,rx:rx||0,ry:ry||0,rz:rz||0};}'
+14293:=> <StringKind.String: 0>: 'https://qhderznbzup.firmware.fellowproducts.com/get_ota_device_firmware'
+14294:=> <StringKind.String: 0>: 'firmwareVersionQuery'
+14376:=> <StringKind.String: 0>: "function getRotationMatrix_reactNativeReanimated_matrixUtilsTsx10(angle,axis='z'){const cos=Math.cos(angle);const sin=Math.sin(angle);switch(axis){case'z':return[[cos,sin,0,0],[-sin,cos,0,0],[0,0,1,0],[0,0,0,1]];case'y':return[[cos,0,-sin,0],[0,1,0,0],[sin,0,cos,0],[0,0,0,1]];case'x':return[[1,0,0,0],[0,cos,sin,0],[0,-sin,cos,0],[0,0,0,1]];}}"
+14377:=> <StringKind.String: 0>: 'getRotationMatrix_reactNativeReanimated_matrixUtilsTsx10'
+14463:=> <StringKind.String: 0>: 'function indexTsx2(){const{interpolate,translateX,endOfTrack,Extrapolate}=this.__closure;const rotationValue=interpolate(translateX.value,[0,endOfTrack],[0,360],Extrapolate.CLAMP);return{transform:[{rotateZ:rotationValue+"deg"}]};}'
+14594:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs1(targetValues){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateX:'90deg'},{translateY:-targetValues.targetHeight}],...initialValues},animations:{transform:[{perspective:500},{rotateX:delayFunction(delay,animation('0deg',config))},{translateY:delayFunction(delay,animation(0,config))}]},callback:callback};}"
+14596:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs10(targetValues){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateY:'0deg'},{translateX:0}],...initialValues},animations:{transform:[{perspective:delayFunction(delay,animation(500,config))},{rotateY:delayFunction(delay,animation('90deg',config))},{translateX:delayFunction(delay,animation(targetValues.currentWidth,config))}]},callback:callback};}"
+14598:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs11(){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateX:'0deg'}],...initialValues},animations:{transform:[{perspective:delayFunction(delay,animation(500,config))},{rotateX:delayFunction(delay,animation('90deg',config))}]},callback:callback};}"
+14600:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs12(){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateY:'0deg'}],...initialValues},animations:{transform:[{perspective:delayFunction(delay,animation(500,config))},{rotateY:delayFunction(delay,animation('90deg',config))}]},callback:callback};}"
+14602:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs3(targetValues){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateX:'-90deg'},{translateY:targetValues.targetHeight}],...initialValues},animations:{transform:[{perspective:delayFunction(delay,animation(500,config))},{rotateX:delayFunction(delay,animation('0deg',config))},{translateY:delayFunction(delay,animation(0,config))}]},callback:callback};}"
+14604:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs4(targetValues){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateY:'90deg'},{translateX:targetValues.targetWidth}],...initialValues},animations:{transform:[{perspective:delayFunction(delay,animation(500,config))},{rotateY:delayFunction(delay,animation('0deg',config))},{translateX:delayFunction(delay,animation(0,config))}]},callback:callback};}"
+14606:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs5(){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateX:'90deg'}],...initialValues},animations:{transform:[{perspective:delayFunction(delay,animation(500,config))},{rotateX:delayFunction(delay,animation('0deg',config))}]},callback:callback};}"
+14608:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs6(){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateY:'90deg'}],...initialValues},animations:{transform:[{perspective:delayFunction(delay,animation(500,config))},{rotateY:delayFunction(delay,animation('0deg',config))}]},callback:callback};}"
+14610:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs7(targetValues){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateX:'0deg'},{translateY:0}],...initialValues},animations:{transform:[{perspective:delayFunction(delay,animation(500,config))},{rotateX:delayFunction(delay,animation('90deg',config))},{translateY:delayFunction(delay,animation(-targetValues.currentHeight,config))}]},callback:callback};}"
+14612:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs8(targetValues){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateY:'0deg'},{translateX:0}],...initialValues},animations:{transform:[{perspective:delayFunction(delay,animation(500,config))},{rotateY:delayFunction(delay,animation('-90deg',config))},{translateX:delayFunction(delay,animation(-targetValues.currentWidth,config))}]},callback:callback};}"
+14614:=> <StringKind.String: 0>: "function reactNativeReanimated_FlipTs9(targetValues){const{initialValues,delayFunction,delay,animation,config,callback}=this.__closure;return{initialValues:{transform:[{perspective:500},{rotateX:'0deg'},{translateY:0}],...initialValues},animations:{transform:[{perspective:delayFunction(delay,animation(500,config))},{rotateX:delayFunction(delay,animation('-90deg',config))},{translateY:delayFunction(delay,animation(targetValues.currentHeight,config))}]},callback:callback};}"
+14640:=> <StringKind.String: 0>: "function reactNativeReanimated_PinwheelTs1(){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{opacity:delayFunction(delay,animation(1,config)),transform:[{scale:delayFunction(delay,animation(1,config))},{rotate:delayFunction(delay,animation('0',config))}]},initialValues:{opacity:0,transform:[{scale:0},{rotate:'5'}],...initialValues},callback:callback};}"
+14642:=> <StringKind.String: 0>: "function reactNativeReanimated_PinwheelTs2(){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{opacity:delayFunction(delay,animation(0,config)),transform:[{scale:delayFunction(delay,animation(0,config))},{rotate:delayFunction(delay,animation('5',config))}]},initialValues:{opacity:1,transform:[{scale:1},{rotate:'0'}],...initialValues},callback:callback};}"
+14660:=> <StringKind.String: 0>: "function reactNativeReanimated_RollTs2(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{transform:[{translateX:delayFunction(delay,animation(0,config))},{rotate:delayFunction(delay,animation('0deg',config))}]},initialValues:{transform:[{translateX:values.windowWidth},{rotate:'180deg'}],...initialValues},callback:callback};}"
+14662:=> <StringKind.String: 0>: "function reactNativeReanimated_RollTs3(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{transform:[{translateX:delayFunction(delay,animation(-values.windowWidth,config))},{rotate:delayFunction(delay,animation('-180deg',config))}]},initialValues:{transform:[{translateX:0},{rotate:'0deg'}],...initialValues},callback:callback};}"
+14664:=> <StringKind.String: 0>: "function reactNativeReanimated_RollTs4(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{transform:[{translateX:delayFunction(delay,animation(values.windowWidth,config))},{rotate:delayFunction(delay,animation('180deg',config))}]},initialValues:{transform:[{translateX:0},{rotate:'0deg'}],...initialValues},callback:callback};}"
+14666:=> <StringKind.String: 0>: "function reactNativeReanimated_RotateTs1(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{opacity:delayFunction(delay,animation(1,config)),transform:[{rotate:delayFunction(delay,animation('0deg',config))},{translateX:delayFunction(delay,animation(0,config))},{translateY:delayFunction(delay,animation(0,config))}]},initialValues:{opacity:0,transform:[{rotate:'-90deg'},{translateX:values.targetWidth/2-values.targetHeight/2},{translateY:-(values.targetWidth/2-values.targetHeight/2)}],...initialValues},callback:callback};}"
+14667:=> <StringKind.String: 0>: 'reactNativeReanimated_RotateTs1'
+14668:=> <StringKind.String: 0>: "function reactNativeReanimated_RotateTs2(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{opacity:delayFunction(delay,animation(1,config)),transform:[{rotate:delayFunction(delay,animation('0deg',config))},{translateX:delayFunction(delay,animation(0,config))},{translateY:delayFunction(delay,animation(0,config))}]},initialValues:{opacity:0,transform:[{rotate:'90deg'},{translateX:-(values.targetWidth/2-values.targetHeight/2)},{translateY:-(values.targetWidth/2-values.targetHeight/2)}],...initialValues},callback:callback};}"
+14669:=> <StringKind.String: 0>: 'reactNativeReanimated_RotateTs2'
+14670:=> <StringKind.String: 0>: "function reactNativeReanimated_RotateTs3(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{opacity:delayFunction(delay,animation(1,config)),transform:[{rotate:delayFunction(delay,animation('0deg',config))},{translateX:delayFunction(delay,animation(0,config))},{translateY:delayFunction(delay,animation(0,config))}]},initialValues:{opacity:0,transform:[{rotate:'90deg'},{translateX:values.targetWidth/2-values.targetHeight/2},{translateY:values.targetWidth/2-values.targetHeight/2}],...initialValues},callback:callback};}"
+14671:=> <StringKind.String: 0>: 'reactNativeReanimated_RotateTs3'
+14672:=> <StringKind.String: 0>: "function reactNativeReanimated_RotateTs4(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{opacity:delayFunction(delay,animation(1,config)),transform:[{rotate:delayFunction(delay,animation('0deg',config))},{translateX:delayFunction(delay,animation(0,config))},{translateY:delayFunction(delay,animation(0,config))}]},initialValues:{opacity:0,transform:[{rotate:'-90deg'},{translateX:-(values.targetWidth/2-values.targetHeight/2)},{translateY:values.targetWidth/2-values.targetHeight/2}],...initialValues},callback:callback};}"
+14673:=> <StringKind.String: 0>: 'reactNativeReanimated_RotateTs4'
+14674:=> <StringKind.String: 0>: "function reactNativeReanimated_RotateTs5(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{opacity:delayFunction(delay,animation(0,config)),transform:[{rotate:delayFunction(delay,animation('90deg',config))},{translateX:delayFunction(delay,animation(values.currentWidth/2-values.currentHeight/2,config))},{translateY:delayFunction(delay,animation(values.currentWidth/2-values.currentHeight/2,config))}]},initialValues:{opacity:1,transform:[{rotate:'0deg'},{translateX:0},{translateY:0}],...initialValues},callback:callback};}"
+14675:=> <StringKind.String: 0>: 'reactNativeReanimated_RotateTs5'
+14676:=> <StringKind.String: 0>: "function reactNativeReanimated_RotateTs6(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{opacity:delayFunction(delay,animation(0,config)),transform:[{rotate:delayFunction(delay,animation('-90deg',config))},{translateX:delayFunction(delay,animation(-(values.currentWidth/2-values.currentHeight/2),config))},{translateY:delayFunction(delay,animation(values.currentWidth/2-values.currentHeight/2,config))}]},initialValues:{opacity:1,transform:[{rotate:'0deg'},{translateX:0},{translateY:0}],...initialValues},callback:callback};}"
+14677:=> <StringKind.String: 0>: 'reactNativeReanimated_RotateTs6'
+14678:=> <StringKind.String: 0>: "function reactNativeReanimated_RotateTs7(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{opacity:delayFunction(delay,animation(0,config)),transform:[{rotate:delayFunction(delay,animation('-90deg',config))},{translateX:delayFunction(delay,animation(values.currentWidth/2-values.currentHeight/2,config))},{translateY:delayFunction(delay,animation(-(values.currentWidth/2-values.currentHeight/2),config))}]},initialValues:{opacity:1,transform:[{rotate:'0deg'},{translateX:0},{translateY:0}],...initialValues},callback:callback};}"
+14679:=> <StringKind.String: 0>: 'reactNativeReanimated_RotateTs7'
+14680:=> <StringKind.String: 0>: "function reactNativeReanimated_RotateTs8(values){const{delayFunction,delay,animation,config,initialValues,callback}=this.__closure;return{animations:{opacity:delayFunction(delay,animation(0,config)),transform:[{rotate:delayFunction(delay,animation('90deg',config))},{translateX:delayFunction(delay,animation(-(values.currentWidth/2-values.currentHeight/2),config))},{translateY:delayFunction(delay,animation(-(values.currentWidth/2-values.currentHeight/2),config))}]},initialValues:{opacity:1,transform:[{rotate:'0deg'},{translateX:0},{translateY:0}],...initialValues},callback:callback};}"
+14681:=> <StringKind.String: 0>: 'reactNativeReanimated_RotateTs8'
+14716:=> <StringKind.String: 0>: 'function reactNativeReanimated_UpdatePropsTs3(){const operations=[];return{update:function(viewDescriptors,updates){var _this=this;viewDescriptors.value.forEach(function(viewDescriptor){operations.push({shadowNodeWrapper:viewDescriptor.shadowNodeWrapper,updates:updates});if(operations.length===1){queueMicrotask(_this.flush);}});},flush:function(){global._updatePropsFabric(operations);operations.length=0;}};}'
+14718:=> <StringKind.String: 0>: "function reactNativeReanimated_UpdatePropsTs4(){const operations=[];return{update:function(viewDescriptors,updates){var _this=this;viewDescriptors.value.forEach(function(viewDescriptor){operations.push({tag:viewDescriptor.tag,name:viewDescriptor.name||'RCTView',updates:updates});if(operations.length===1){queueMicrotask(_this.flush);}});},flush:function(){global._updatePropsPaper(operations);operations.length=0;}};}"
+14728:=> <StringKind.String: 0>: "function reactNativeReanimated_ZoomTs10(){const{delayFunction,delay,animation,config,rotate,initialValues,callback}=this.__closure;return{animations:{transform:[{scale:delayFunction(delay,animation(0,config))},{rotate:delayFunction(delay,animation(rotate,config))}]},initialValues:{transform:[{scale:1},{rotate:'0'}],...initialValues},callback:callback};}"
+14742:=> <StringKind.String: 0>: 'function reactNativeReanimated_ZoomTs2(){const{delayFunction,delay,animation,config,rotate,initialValues,callback}=this.__closure;return{animations:{transform:[{scale:delayFunction(delay,animation(1,config))},{rotate:delayFunction(delay,animation(0,config))}]},initialValues:{transform:[{scale:0},{rotate:rotate}],...initialValues},callback:callback};}'
+14768:=> <StringKind.String: 0>: 'function reactNativeReanimated_initializersTs5(){const{setupCallGuard,setupConsole,SHOULD_BE_USE_WEB,setupMicrotasks,setupRequestAnimationFrame}=this.__closure;setupCallGuard();setupConsole();if(!SHOULD_BE_USE_WEB){setupMicrotasks();setupRequestAnimationFrame();}}'
+14857:=> <StringKind.String: 0>: 'function reactNativeReanimated_threadsTs5(){const{queue,callMicrotasks}=this.__closure;queue.forEach(function([worklet,args]){worklet(...args);});callMicrotasks();}'
+14875:=> <StringKind.String: 0>: 'function reactNativeReanimated_useAnimatedSensorTs4(data){const{adjustToInterfaceOrientation,sensorType,SensorType,adjustRotationToInterfaceOrientation,adjustVectorToInterfaceOrientation,sensorData,callMicrotasks}=this.__closure;if(adjustToInterfaceOrientation){if(sensorType===SensorType.ROTATION){data=adjustRotationToInterfaceOrientation(data);}else{data=adjustVectorToInterfaceOrientation(data);}}sensorData.value=data;callMicrotasks();}'
+14905:=> <StringKind.String: 0>: 'function runOnJS_reactNativeReanimated_threadsTs9(fun){const runOnJS_reactNativeReanimated_threadsTs9=this._recur;const{SHOULD_BE_USE_WEB,isWorkletFunction,runWorkletOnJS,makeShareableCloneOnUIRecursive}=this.__closure;if(SHOULD_BE_USE_WEB||!_WORKLET){return function(...args){return queueMicrotask(args.length?function(){return fun(...args);}:fun);};}if(isWorkletFunction(fun)){return function(...args){return runOnJS_reactNativeReanimated_threadsTs9(runWorkletOnJS)(fun,...args);};}if(fun.__remoteFunction){fun=fun.__remoteFunction;}return function(...args){global._scheduleOnJS(fun,args.length>0?makeShareableCloneOnUIRecursive(args):undefined);};}'
+14907:=> <StringKind.String: 0>: "function runOnUIImmediately_reactNativeReanimated_threadsTs7(worklet){const{__DEV__,SHOULD_BE_USE_WEB,isWorkletFunction,NativeReanimatedModule,makeShareableCloneRecursive}=this.__closure;if(__DEV__&&!SHOULD_BE_USE_WEB&&_WORKLET){throw new Error('[Reanimated] `runOnUIImmediately` cannot be called on the UI runtime. Please call the function synchronously or use `queueMicrotask` or `requestAnimationFrame` instead.');}if(__DEV__&&!SHOULD_BE_USE_WEB&&!isWorkletFunction(worklet)){throw new Error('[Reanimated] `runOnUIImmediately` can only be used on worklets.');}return function(...args){NativeReanimatedModule.scheduleOnUI(makeShareableCloneRecursive(function(){'worklet';worklet(...args);}));};}"
+14909:=> <StringKind.String: 0>: "function runOnUI_reactNativeReanimated_threadsTs3(worklet){const{__DEV__,SHOULD_BE_USE_WEB,isWorkletFunction,IS_JEST,NativeReanimatedModule,makeShareableCloneRecursive,callMicrotasks}=this.__closure;if(__DEV__&&!SHOULD_BE_USE_WEB&&_WORKLET){throw new Error('[Reanimated] `runOnUI` cannot be called on the UI runtime. Please call the function synchronously or use `queueMicrotask` or `requestAnimationFrame` instead.');}if(__DEV__&&!SHOULD_BE_USE_WEB&&!isWorkletFunction(worklet)){throw new Error('[Reanimated] `runOnUI` can only be used on worklets.');}return function(...args){if(IS_JEST){NativeReanimatedModule.scheduleOnUI(makeShareableCloneRecursive(function(){'worklet';worklet(...args);}));return;}if(__DEV__){makeShareableCloneRecursive(worklet);makeShareableCloneRecursive(args);}_runOnUIQueue.push([worklet,args]);if(_runOnUIQueue.length===1){queueMicrotask(function(){const queue=_runOnUIQueue;_runOnUIQueue=[];NativeReanimatedModule.scheduleOnUI(makeShareableCloneRecursive(function(){'worklet';queue.forEach(function([worklet,args]){worklet(...args);});callMicrotasks();}));});}};}"
+14927:=> <StringKind.String: 0>: 'function setupMicrotasks_reactNativeReanimated_threadsTs1(){let microtasksQueue=[];let isExecutingMicrotasksQueue=false;global.queueMicrotask=function(callback){microtasksQueue.push(callback);};global.__callMicrotasks=function(){if(isExecutingMicrotasksQueue){return;}try{isExecutingMicrotasksQueue=true;for(let index=0;index<microtasksQueue.length;index+=1){microtasksQueue[index]();}microtasksQueue=[];global._maybeFlushUIUpdatesQueue();}finally{isExecutingMicrotasksQueue=false;}};}'
+14928:=> <StringKind.String: 0>: 'setupMicrotasks_reactNativeReanimated_threadsTs1'
+14929:=> <StringKind.String: 0>: 'function setupRequestAnimationFrame_reactNativeReanimated_initializersTs4(){const{callMicrotasks}=this.__closure;const nativeRequestAnimationFrame=global.requestAnimationFrame;let animationFrameCallbacks=[];let lastNativeAnimationFrameTimestamp=-1;global.__flushAnimationFrame=function(frameTimestamp){const currentCallbacks=animationFrameCallbacks;animationFrameCallbacks=[];currentCallbacks.forEach(function(f){return f(frameTimestamp);});callMicrotasks();};global.requestAnimationFrame=function(callback){animationFrameCallbacks.push(callback);if(animationFrameCallbacks.length===1){nativeRequestAnimationFrame(function(timestamp){if(lastNativeAnimationFrameTimestamp>=timestamp){return;}lastNativeAnimationFrameTimestamp=timestamp;global.__frameTimestamp=timestamp;global.__flushAnimationFrame(timestamp);global.__frameTimestamp=undefined;});}return-1;};}'
+15600:=> <StringKind.String: 0>: 'https://developer.mozilla.org/docs/Web/CSS/offset-rotate'
+15601:=> <StringKind.String: 0>: 'rotate( [ <angle> | <zero> ] )'
+15633:=> <StringKind.String: 0>: 'https://developer.mozilla.org/docs/Web/CSS/rotate'
+15634:=> <StringKind.String: 0>: 'rotate3d( <number> , <number> , <number> , [ <angle> | <zero> ] )'
+15668:=> <StringKind.String: 0>: 'stopRotation'
+15722:=> <StringKind.String: 0>: 'https://drafts.csswg.org/css-gcpm/#element-syntax & https://drafts.csswg.org/css-images-4/#element-notation'
+15744:=> <StringKind.String: 0>: 'hue-rotate( <angle> )'
+16139:=> <StringKind.String: 0>: 'normal | [ stylistic( <feature-value-name> ) || historical-forms || styleset( <feature-value-name># ) || character-variant( <feature-value-name># ) || swash( <feature-value-name> ) || ornaments( <feature-value-name> ) || annotation( <feature-value-name> ) ]'
+16147:=> <StringKind.String: 0>: 'normal | none | [ <common-lig-values> || <discretionary-lig-values> || <historical-lig-values> || <contextual-alt-values> || stylistic( <feature-value-name> ) || historical-forms || styleset( <feature-value-name># ) || character-variant( <feature-value-name># ) || swash( <feature-value-name> ) || ornaments( <feature-value-name> ) || annotation( <feature-value-name> ) || [ small-caps | all-small-caps | petite-caps | all-petite-caps | unicase | titling-caps ] || <numeric-figure-values> || <numeric-spacing-values> || <numeric-fraction-values> || ordinal || slashed-zero || <east-asian-variant-values> || <east-asian-width-values> || ruby ]'
+16149:=> <StringKind.String: 0>: 'normal | none | [ <common-lig-values> || <discretionary-lig-values> || <historical-lig-values> || <contextual-alt-values> || stylistic(<feature-value-name>) || historical-forms || styleset(<feature-value-name>#) || character-variant(<feature-value-name>#) || swash(<feature-value-name>) || ornaments(<feature-value-name>) || annotation(<feature-value-name>) || [ small-caps | all-small-caps | petite-caps | all-petite-caps | unicase | titling-caps ] || <numeric-figure-values> || <numeric-spacing-values> || <numeric-fraction-values> || ordinal || slashed-zero || <east-asian-variant-values> || <east-asian-width-values> || ruby ]'
+16211:=> <StringKind.String: 0>: 'peg$parserotate'
+16212:=> <StringKind.String: 0>: 'rotateFromVector'
+16274:=> <StringKind.String: 0>: 'queueMicrotask must be called with at least one argument (a function to call)'
+16339:=> <StringKind.String: 0>: 'rotateX( [ <angle> | <zero> ] )'
+16340:=> <StringKind.String: 0>: 'rotateY( [ <angle> | <zero> ] )'
+16342:=> <StringKind.String: 0>: 'rubyBasesAnnotationsBaseAnnotationContainers'
+16557:=> <StringKind.String: 0>: 'Activar las actualizaciones automáticas asegurará que su Tetera siempre tenga el firmware más reciente. Las actualizaciones se realizaran por la noche para que no afecten sus horarios.'
+16593:=> <StringKind.String: 0>: 'Espere un momento mientras actualizamos su hervidor con el último y mejor firmware y funciones'
+16644:=> <StringKind.String: 0>: 'Su tetera no se ha registrado por un tiempo. Para mantenerlo actualizado con el firmware más reciente, asegúrese de que esté conectado a la alimentación y WiFi en todo momento'
+17000:=> <StringKind.Identifier: 1>: 'progress-download'
+17451:=> <StringKind.Identifier: 1>: '3d-rotation'
+17699:=> <StringKind.Identifier: 1>: 'hue-rotate()'
+17700:=> <StringKind.Identifier: 1>: 'rotate()'
+17812:=> <StringKind.Identifier: 1>: 'rotate3d()'
+17813:=> <StringKind.Identifier: 1>: 'rotateX'
+17814:=> <StringKind.Identifier: 1>: 'rotateX()'
+17815:=> <StringKind.Identifier: 1>: 'rotateY'
+17816:=> <StringKind.Identifier: 1>: 'rotateY()'
+17817:=> <StringKind.Identifier: 1>: 'rotateZ'
+17818:=> <StringKind.Identifier: 1>: 'rotateZ()'
+18394:=> <StringKind.Identifier: 1>: 'axis-x-rotate-clockwise'
+18395:=> <StringKind.Identifier: 1>: 'selectTotal'
+18453:=> <StringKind.Identifier: 1>: 'ROTATION_0'
+18912:=> <StringKind.Identifier: 1>: 'KettleFirmwareVersion'
+19169:=> <StringKind.Identifier: 1>: 'ZoomInRotate'
+19170:=> <StringKind.Identifier: 1>: 'RotateIn'
+19171:=> <StringKind.Identifier: 1>: 'RotateInData'
+19223:=> <StringKind.Identifier: 1>: 'firmwareLabelCurr'
+19560:=> <StringKind.Identifier: 1>: 'callReactNativeMicrotasks'
+19668:=> <StringKind.Identifier: 1>: 'download'
+19837:=> <StringKind.Identifier: 1>: 'axis-y-rotate-clockwise'
+19848:=> <StringKind.Identifier: 1>: 'axis-y-rotate-counterclockwise'
+20067:=> <StringKind.Identifier: 1>: 'ZoomOutRotate'
+20068:=> <StringKind.Identifier: 1>: 'RotateInDownLeft'
+20124:=> <StringKind.Identifier: 1>: 'NOTATION_NODE'
+20168:=> <StringKind.Identifier: 1>: 'offset-rotate'
+20587:=> <StringKind.Identifier: 1>: 'STALL_TOTAL_TIME'
+20784:=> <StringKind.Identifier: 1>: 'getTotalMemory'
+20785:=> <StringKind.Identifier: 1>: 'getTotalMemorySync'
+20914:=> <StringKind.Identifier: 1>: 'text-rotation-angleup'
+21352:=> <StringKind.Identifier: 1>: 'text-rotate-vertical'
+21518:=> <StringKind.Identifier: 1>: 'totalMemory'
+21889:=> <StringKind.Identifier: 1>: 'resumeDownload'
+21891:=> <StringKind.Identifier: 1>: 'onDownloadProgress'
+21893:=> <StringKind.Identifier: 1>: 'stopDownload'
+21940:=> <StringKind.Identifier: 1>: 'OTA_UPDATE_TRIGGER_COMMAND'
+22200:=> <StringKind.Identifier: 1>: 'ROTATION_CHANGE'
+22310:=> <StringKind.Identifier: 1>: 'currFirmware'
+22338:=> <StringKind.Identifier: 1>: 'format-text-rotation-down'
+22339:=> <StringKind.Identifier: 1>: 'format-text-rotation-down-vertical'
+22340:=> <StringKind.Identifier: 1>: 'text-rotation-down'
+22354:=> <StringKind.Identifier: 1>: 'stall_total_time'
+22355:=> <StringKind.Identifier: 1>: 'total_time_spent'
+22376:=> <StringKind.Identifier: 1>: 'axis-z-rotate-counterclockwise'
+22379:=> <StringKind.Identifier: 1>: 'rotate-left'
+22380:=> <StringKind.Identifier: 1>: 'rotate-left-variant'
+22603:=> <StringKind.Identifier: 1>: 'QUOTA_ERR'
+22803:=> <StringKind.Identifier: 1>: 'rotateV'
+22845:=> <StringKind.Identifier: 1>: 'download-multiple'
+23296:=> <StringKind.Identifier: 1>: 'RNFSDownloadDirectoryPath'
+23297:=> <StringKind.Identifier: 1>: 'DownloadDirectoryPath'
+23673:=> <StringKind.Identifier: 1>: '__callReactNativeMicrotasks'
+23778:=> <StringKind.Identifier: 1>: 'LABEL.firmware'
+23779:=> <StringKind.Identifier: 1>: 'LABEL.firmwareUpdates'
+23931:=> <StringKind.Identifier: 1>: 'font-download'
+24051:=> <StringKind.Identifier: 1>: 'firmwareLabelLatest'
+24239:=> <StringKind.Identifier: 1>: 'queueMicrotask'
+24397:=> <StringKind.Identifier: 1>: 'GetFirmwareVersion'
+24781:=> <StringKind.Identifier: 1>: 'rotate-right'
+24782:=> <StringKind.Identifier: 1>: 'rotate-right-variant'
+24909:=> <StringKind.Identifier: 1>: '_bucketsTotalWeight'
+24928:=> <StringKind.Identifier: 1>: 'getTotalDiskCapacity'
+24929:=> <StringKind.Identifier: 1>: 'getTotalDiskCapacitySync'
+ fellow-analysis % ~/Library/Python/3.14/bin/hbc-disassembler \
   jadx-out/resources/assets/index.android.bundle \
   hermes-disassembly.txt
 
 [+] Disassembly output wrote to "hermes-disassembly.txt"
 
- fellow-analysis % ls -lh hermes-disassembly.txt
-head -30 hermes-disassembly.txt
--rw-r--r--  1 bram.boersma  staff    59M  8 Oct 20:21 hermes-disassembly.txt
-=> [Function #0 "global" of 84305 bytes]: 1 params, frame size=19, strict=0, exc handler=1, debug info=0  @ offset 0x001bcb6c
-  [Exception handlers: [start=0xcf, end=0x11c, target=0x11e] ]
-
-Bytecode listing:
-
-==> 00000000: <DeclareGlobalVar>: <string_id: 24925>  # String: '__BUNDLE_START_TIME__' (Identifier)
-==> 00000005: <DeclareGlobalVar>: <string_id: 25987>  # String: '__DEV__' (Identifier)
-==> 0000000a: <DeclareGlobalVar>: <string_id: 207>  # String: 'process' (Identifier)
-==> 0000000f: <DeclareGlobalVar>: <string_id: 23937>  # String: '__METRO_GLOBAL_PREFIX__' (Identifier)
-==> 00000014: <DeclareGlobalVar>: <string_id: 32948>  # String: '_sentryDebugIds' (Identifier)
-==> 00000019: <DeclareGlobalVar>: <string_id: 22602>  # String: '_sentryDebugIdIdentifier' (Identifier)
-==> 0000001e: <DeclareGlobalVar>: <string_id: 17458>  # String: 'stack' (Identifier)
-==> 00000023: <CreateEnvironment>: <Reg8: 3>
-==> 00000025: <LoadThisNS>: <Reg8: 5>
-==> 00000027: <GetById>: <Reg8: 1, Reg8: 5, UInt8: 1, string_id: 19868>  # String: 'nativePerformanceNow' (Identifier)
-==> 0000002d: <GetGlobalObject>: <Reg8: 0>
-==> 0000002f: <JmpTrue>: <Addr8: 20, Reg8: 1>  # Address: 00000043
-==> 00000032: <TryGetById>: <Reg8: 2, Reg8: 0, UInt8: 2, string_id: 10>  # String: 'Date' (Identifier)
-==> 00000038: <GetByIdShort>: <Reg8: 1, Reg8: 2, UInt8: 3, string_id: 195>  # String: 'now' (Identifier)
-==> 0000003d: <Call1>: <Reg8: 1, Reg8: 1, Reg8: 2>
-==> 00000041: <Jmp>: <Addr8: 14>  # Address: 0000004f
-==> 00000043: <TryGetById>: <Reg8: 4, Reg8: 0, UInt8: 1, string_id: 19868>  # String: 'nativePerformanceNow' (Identifier)
-==> 00000049: <LoadConstUndefined>: <Reg8: 2>
-==> 0000004b: <Call1>: <Reg8: 1, Reg8: 4, Reg8: 2>
-==> 0000004f: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 24925>  # String: '__BUNDLE_START_TIME__' (Identifier)
-==> 00000055: <LoadConstFalse>: <Reg8: 1>
-==> 00000057: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 25987>  # String: '__DEV__' (Identifier)
-==> 0000005d: <GetByIdShort>: <Reg8: 1, Reg8: 5, UInt8: 4, string_id: 207>  # String: 'process' (Identifier)
-==> 00000062: <JmpTrue>: <Addr8: 5, Reg8: 1>  # Address: 00000067
-==> 00000065: <NewObject>: <Reg8: 1>
  fellow-analysis % grep -niE \
-'firmware|FIRMWARE|ota|download|updater|RNFS|versioning|\.bin|amazonaws|execute-api' \
-hermes-disassembly.txt | head -200
-16291:==> 00000285: <LoadConstString>: <Reg8: 7, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
-16675:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
-18863:==> 0000002c: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 4, string_id: 21983>  # String: 'updater' (Identifier)
-18895:==> 0000002c: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 4, string_id: 21983>  # String: 'updater' (Identifier)
-19495:==> 0000001f: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 1, string_id: 21983>  # String: 'updater' (Identifier)
-19520:==> 00000003: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 1, string_id: 21983>  # String: 'updater' (Identifier)
-25505:==> 00000115: <LoadConstString>: <Reg8: 5, string_id: 28107>  # String: 'setReactNativeMicrotasksCallback' (Identifier)
-25507:==> 0000011d: <CreateClosure>: <Reg8: 5, Reg8: 1, function_id: 431>  # Function: [#431 setReactNativeMicrotasksCallback of 16 bytes]: 2 params @ offset 0x001d9ea4
-25523:==> 0000015a: <LoadConstString>: <Reg8: 5, string_id: 23619>  # String: '__callReactNativeMicrotasks' (Identifier)
-25525:==> 00000162: <CreateClosure>: <Reg8: 5, Reg8: 1, function_id: 434>  # Function: [#434 __callReactNativeMicrotasks of 125 bytes]: 1 params @ offset 0x001d9f31
-25599:==> 000000ae: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 8, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
-25732:==> 00000007: <GetById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 23619>  # String: '__callReactNativeMicrotasks' (Identifier)
-25999:=> [Function #431 "setReactNativeMicrotasksCallback" of 16 bytes]: 2 params, frame size=2, strict=1, exc handler=0, debug info=0  @ offset 0x001d9ea4
-26005:==> 00000006: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
-26065:=> [Function #434 "__callReactNativeMicrotasks" of 125 bytes]: 1 params, frame size=15, strict=1, exc handler=1, debug info=0  @ offset 0x001d9f31
-26079:==> 00000022: <LoadConstString>: <Reg8: 0, string_id: 5481>  # String: 'JSTimers.callReactNativeMicrotasks()' (String)
-26081:==> 0000002b: <GetById>: <Reg8: 5, Reg8: 2, UInt8: 2, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
-26084:==> 00000037: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 2, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
-29912:==> 00000493: <CreateClosure>: <Reg8: 33, Reg8: 1, function_id: 700>  # Function: [#700 updateReducer of 575 bytes]: 2 params @ offset 0x001e3610
-29932:==> 000004f7: <CreateClosure>: <Reg8: 24, Reg8: 1, function_id: 712>  # Function: [#712 updateRef of 21 bytes]: 1 params @ offset 0x001e3ca6
-35762:==> 000000bf: <PutById>: <Reg8: 0, Reg8: 5, UInt8: 2, string_id: 21983>  # String: 'updater' (Identifier)
-37928:=> [Function #700 "updateReducer" of 575 bytes]: 2 params, frame size=32, strict=1, exc handler=0, debug info=0  @ offset 0x001e3610
-38437:=> [Function #712 "updateRef" of 21 bytes]: 1 params, frame size=9, strict=1, exc handler=0, debug info=0  @ offset 0x001e3ca6
-49426:==> 000009b5: <PutById>: <Reg8: 3, Reg8: 10, UInt8: 12, string_id: 21983>  # String: 'updater' (Identifier)
-51573:==> 000000a2: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
-52269:==> 0000008e: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 6, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
-54331:==> 00000034: <LoadConstString>: <Reg8: 5, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
-54366:==> 00000032: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 3, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
-54367:==> 00000038: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 33046>  # String: '_totalJSHeapSize' (Identifier)
-54391:==> 00000002: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 33046>  # String: '_totalJSHeapSize' (Identifier)
-60379:==> 0000019c: <LoadConstString>: <Reg8: 5, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
-60383:==> 000001ad: <LoadConstString>: <Reg8: 2, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
-60477:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
-60494:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 34853>  # String: 'clearReactNativeMicrotask' (Identifier)
-60551:==> 00000032: <CreateClosure>: <Reg8: 0, Reg8: 3, function_id: 1232>  # Function: [#1232 _callReactNativeMicrotasksPass of 91 bytes]: 1 params @ offset 0x001f5627
-60596:==> 000000ed: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1242>  # Function: [#1242 queueReactNativeMicrotask of 134 bytes]: 2 params @ offset 0x001f5934
-60597:==> 000000f2: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
-60608:==> 00000129: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1251>  # Function: [#1251 clearReactNativeMicrotask of 62 bytes]: 2 params @ offset 0x001f5bcf
-60609:==> 0000012e: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 34853>  # String: 'clearReactNativeMicrotask' (Identifier)
-60616:==> 00000151: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1258>  # Function: [#1258 callReactNativeMicrotasks of 62 bytes]: 1 params @ offset 0x001f5da0
-60617:==> 00000156: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
-60630:==> 0000018c: <GetById>: <Reg8: 6, Reg8: 1, UInt8: 4, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
-60631:==> 00000192: <PutNewOwnById>: <Reg8: 3, Reg8: 6, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
-60632:==> 00000197: <GetById>: <Reg8: 6, Reg8: 1, UInt8: 5, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
-60633:==> 0000019d: <PutNewOwnById>: <Reg8: 3, Reg8: 6, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
-60638:==> 000001b1: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 6, string_id: 28107>  # String: 'setReactNativeMicrotasksCallback' (Identifier)
-60639:==> 000001b7: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 4, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
-60744:==> 000000bb: <LoadConstString>: <Reg8: 4, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
-60812:=> [Function #1232 "_callReactNativeMicrotasksPass" of 91 bytes]: 1 params, frame size=16, strict=0, exc handler=0, debug info=0  @ offset 0x001f5627
-60882:==> 00000037: <LoadConstString>: <Reg8: 3, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
-61113:=> [Function #1242 "queueReactNativeMicrotask" of 134 bytes]: 2 params, frame size=18, strict=0, exc handler=0, debug info=0  @ offset 0x001f5934
-61148:==> 0000006c: <LoadConstString>: <Reg8: 0, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
-61374:=> [Function #1251 "clearReactNativeMicrotask" of 62 bytes]: 2 params, frame size=14, strict=0, exc handler=0, debug info=0  @ offset 0x001f5bcf
-61561:=> [Function #1258 "callReactNativeMicrotasks" of 62 bytes]: 1 params, frame size=12, strict=0, exc handler=0, debug info=0  @ offset 0x001f5da0
-61870:==> 000000a8: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 5, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
-61950:==> 00000025: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 1270>  # Function: [#1270 queueMicrotask of 160 bytes]: 2 params @ offset 0x001f61f5
-61958:=> [Function #1270 "queueMicrotask" of 160 bytes]: 2 params, frame size=14, strict=1, exc handler=0, debug info=0  @ offset 0x001f61f5
-61991:==> 0000006d: <LoadConstString>: <Reg8: 6, string_id: 10921>  # String: 'The argument to queueMicrotask must be a function.' (String)
-62000:==> 0000008f: <LoadConstString>: <Reg8: 6, string_id: 16220>  # String: 'queueMicrotask must be called with at least one argument (a function to call)' (String)
-63211:==> 00000031: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 33047>  # String: 'total' (Identifier)
-63361:==> 00000036: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 33047>  # String: 'total' (Identifier)
-67895:==> 0000003f: <PutNewOwnById>: <Reg8: 0, Reg8: 5, string_id: 30256>  # String: 'totalTime' (Identifier)
-68000:==> 00000033: <GetById>: <Reg8: 8, Reg8: 10, UInt8: 2, string_id: 30256>  # String: 'totalTime' (Identifier)
-68306:==> 00000098: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 3, string_id: 30256>  # String: 'totalTime' (Identifier)
-87476:==> 000002a7: <NewObjectWithBuffer>: <Reg8: 7, UInt16: 103, UInt16: 103, UInt16: 4259, UInt16: 1136>  # Object: {'backgroundColor': null, 'transform': true, 'transformOrigin': true, 'opacity': true, 'elevation': true, 'shadowColor': null, 'zIndex': true, 'renderToHardwareTextureAndroid': true, 'testID': true, 'nativeID': true, 'accessibilityLabelledBy': true, 'accessibilityLabel': true, 'accessibilityHint': true, 'accessibilityRole': true, 'accessibilityCollection': true, 'accessibilityCollectionItem': true, 'accessibilityState': true, 'accessibilityActions': true, 'accessibilityValue': true, 'importantForAccessibility': true, 'role': true, 'rotation': true, 'scaleX': true, 'scaleY': true, 'translateX': true, 'translateY': true, 'accessibilityLiveRegion': true, 'width': true, 'minWidth': true, 'collapsable': true, 'maxWidth': true, 'height': true, 'minHeight': true, 'maxHeight': true, 'flex': true, 'flexGrow': true, 'rowGap': true, 'columnGap': true, 'gap': true, 'flexShrink': true, 'flexBasis': true, 'aspectRatio': true, 'flexDirection': true, 'flexWrap': true, 'alignSelf': true, 'alignItems': true, 'alignContent': true, 'justifyContent': true, 'overflow': true, 'display': true, 'margin': true, 'marginBlock': true, 'marginBlockEnd': true, 'marginBlockStart': true, 'marginBottom': true, 'marginEnd': true, 'marginHorizontal': true, 'marginInline': true, 'marginInlineEnd': true, 'marginInlineStart': true, 'marginLeft': true, 'marginRight': true, 'marginStart': true, 'marginTop': true, 'marginVertical': true, 'padding': true, 'paddingBlock': true, 'paddingBlockEnd': true, 'paddingBlockStart': true, 'paddingBottom': true, 'paddingEnd': true, 'paddingHorizontal': true, 'paddingInline': true, 'paddingInlineEnd': true, 'paddingInlineStart': true, 'paddingLeft': true, 'paddingRight': true, 'paddingStart': true, 'paddingTop': true, 'paddingVertical': true, 'borderWidth': true, 'borderStartWidth': true, 'borderEndWidth': true, 'borderTopWidth': true, 'borderBottomWidth': true, 'borderLeftWidth': true, 'borderRightWidth': true, 'start': true, 'end': true, 'left': true, 'right': true, 'top': true, 'bottom': true, 'inset': true, 'insetBlock': true, 'insetBlockEnd': true, 'insetBlockStart': true, 'insetInline': true, 'insetInlineEnd': true, 'insetInlineStart': true, 'position': true, 'style': null, 'experimental_layoutConformance': true}
-96261:==> 00000163: <PutById>: <Reg8: 4, Reg8: 8, UInt8: 17, string_id: 20070>  # String: 'NOTATION_NODE' (Identifier)
-100713:==> 000004ad: <CreateClosure>: <Reg8: 35, Reg8: 4, function_id: 2518>  # Function: [#2518 updateReducer of 575 bytes]: 2 params @ offset 0x00218210
-100733:==> 00000511: <CreateClosure>: <Reg8: 26, Reg8: 4, function_id: 2530>  # Function: [#2530 updateRef of 21 bytes]: 1 params @ offset 0x002188a5
-106637:==> 000000bf: <PutById>: <Reg8: 0, Reg8: 5, UInt8: 2, string_id: 21983>  # String: 'updater' (Identifier)
-108803:=> [Function #2518 "updateReducer" of 575 bytes]: 2 params, frame size=32, strict=1, exc handler=0, debug info=0  @ offset 0x00218210
-109312:=> [Function #2530 "updateRef" of 21 bytes]: 1 params, frame size=9, strict=1, exc handler=0, debug info=0  @ offset 0x002188a5
-120752:==> 000009b3: <PutById>: <Reg8: 3, Reg8: 10, UInt8: 12, string_id: 21983>  # String: 'updater' (Identifier)
-127893:==> 0000007a: <PutNewOwnByIdShort>: <Reg8: 7, Reg8: 13, string_id: 214>  # String: 'rotate' (Identifier)
-127903:==> 000000a6: <PutNewOwnById>: <Reg8: 7, Reg8: 13, string_id: 17759>  # String: 'rotateX' (Identifier)
-127913:==> 000000d3: <PutNewOwnById>: <Reg8: 7, Reg8: 13, string_id: 17761>  # String: 'rotateY' (Identifier)
-127923:==> 00000100: <PutNewOwnById>: <Reg8: 7, Reg8: 13, string_id: 17763>  # String: 'rotateZ' (Identifier)
-133663:==> 000002d0: <NewObjectWithBuffer>: <Reg8: 8, UInt16: 13, UInt16: 12, UInt16: 5148, UInt16: 1152>  # Object: {'translateX': true, 'translateY': true, 'scale': true, 'scaleX': true, 'scaleY': true, 'rotate': true, 'rotateX': true, 'rotateY': true, 'rotateZ': true, 'perspective': true, 'skewX': true, 'skewY': true}
-135638:==> 00000024: <GetById>: <Reg8: 1, Reg8: 2, UInt8: 3, string_id: 30081>  # String: '__onAnimatedValueUpdateReceived' (Identifier)
-137177:==> 000000e9: <LoadConstString>: <Reg8: 6, string_id: 30081>  # String: '__onAnimatedValueUpdateReceived' (Identifier)
-137179:==> 000000f1: <CreateClosure>: <Reg8: 6, Reg8: 5, function_id: 3131>  # Function: [#3131 __onAnimatedValueUpdateReceived of 24 bytes]: 2 params @ offset 0x0022f493
-137518:=> [Function #3131 "__onAnimatedValueUpdateReceived" of 24 bytes]: 2 params, frame size=13, strict=1, exc handler=0, debug info=0  @ offset 0x0022f493
-141140:==> 00000148: <LoadConstString>: <Reg8: 5, string_id: 30081>  # String: '__onAnimatedValueUpdateReceived' (Identifier)
-141142:==> 00000150: <CreateClosure>: <Reg8: 5, Reg8: 4, function_id: 3265>  # Function: [#3265 __onAnimatedValueUpdateReceived of 21 bytes]: 2 params @ offset 0x0023202f
-141464:==> 00000021: <GetById>: <Reg8: 1, Reg8: 2, UInt8: 3, string_id: 30081>  # String: '__onAnimatedValueUpdateReceived' (Identifier)
-141475:=> [Function #3265 "__onAnimatedValueUpdateReceived" of 21 bytes]: 2 params, frame size=11, strict=1, exc handler=0, debug info=0  @ offset 0x0023202f
-160446:==> 0000004d: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 9, string_id: 22301>  # String: 'total_time_spent' (Identifier)
-160613:==> 00000064: <PutNewOwnById>: <Reg8: 4, Reg8: 3, string_id: 22301>  # String: 'total_time_spent' (Identifier)
-198929:==> 0000007a: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 6, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
-199141:==> 00000417: <LoadConstString>: <Reg8: 5, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
-199147:==> 0000042f: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 6, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
-210915:==> 00000adc: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 127, string_id: 38040>  # String: 'updateRateLimits' (Identifier)
-210916:==> 00000ae2: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 125, string_id: 38040>  # String: 'updateRateLimits' (Identifier)
-223500:==> 00000075: <CreateClosure>: <Reg8: 1, Reg8: 1, function_id: 5372>  # Function: [#5372 updateRateLimits of 523 bytes]: 3 params @ offset 0x00270c22
-223501:==> 0000007a: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 5, string_id: 38040>  # String: 'updateRateLimits' (Identifier)
-223601:=> [Function #5372 "updateRateLimits" of 523 bytes]: 3 params, frame size=38, strict=0, exc handler=1, debug info=0  @ offset 0x00270c22
-243392:==> 0000004c: <PutById>: <Reg8: 2, Reg8: 4, UInt8: 3, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
-243581:==> 00000219: <GetById>: <Reg8: 6, Reg8: 2, UInt8: 19, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
-243585:==> 0000022f: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
-243586:==> 00000235: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 19, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
-243694:==> 000000e5: <GetById>: <Reg8: 13, Reg8: 1, UInt8: 12, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
-243698:==> 000000fb: <PutById>: <Reg8: 1, Reg8: 12, UInt8: 1, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
-243725:==> 0000015c: <PutById>: <Reg8: 1, Reg8: 2, UInt8: 1, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
-244881:==> 000000a7: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 7, string_id: 38040>  # String: 'updateRateLimits' (Identifier)
-283201:==> 00000075: <LoadConstString>: <Reg8: 0, string_id: 19614>  # String: 'download' (Identifier)
-288856:==> 00000009: <GetById>: <Reg8: 4, Reg8: 0, UInt8: 2, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
-288870:==> 0000004b: <PutNewOwnById>: <Reg8: 2, Reg8: 4, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
-289738:==> 0000023d: <GetById>: <Reg8: 14, Reg8: 15, UInt8: 21, string_id: 38040>  # String: 'updateRateLimits' (Identifier)
-290075:==> 00000043: <CreateClosure>: <Reg8: 1, Reg8: 0, function_id: 7178>  # Function: [#7178 _getTotalCount of 52 bytes]: 1 params @ offset 0x002a2e98
-290123:=> [Function #7178 "_getTotalCount" of 52 bytes]: 1 params, frame size=13, strict=0, exc handler=0, debug info=0  @ offset 0x002a2e98
-296429:==> 00000025: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
-296533:==> 00000024: <GetById>: <Reg8: 1, Reg8: 2, UInt8: 4, string_id: 33049>  # String: '_totalSize' (Identifier)
-296535:==> 0000002e: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 33049>  # String: '_totalSize' (Identifier)
-296536:==> 00000034: <GetById>: <Reg8: 5, Reg8: 2, UInt8: 4, string_id: 33049>  # String: '_totalSize' (Identifier)
-296608:==> 0000000f: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
-297062:==> 00000044: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 3, string_id: 33049>  # String: '_totalSize' (Identifier)
-297140:==> 00000044: <GetById>: <Reg8: 5, Reg8: 4, UInt8: 5, string_id: 33049>  # String: '_totalSize' (Identifier)
-297143:==> 00000053: <PutById>: <Reg8: 4, Reg8: 2, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
-297144:==> 00000059: <GetById>: <Reg8: 5, Reg8: 4, UInt8: 5, string_id: 33049>  # String: '_totalSize' (Identifier)
-297184:==> 0000000d: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
-297315:==> 00000033: <PutById>: <Reg8: 3, Reg8: 2, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
-317558:==> 00000008: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 2, string_id: 22549>  # String: 'QUOTA_ERR' (Identifier)
-318315:==> 0000000b: <LoadConstString>: <Reg8: 9, string_id: 5151>  # String: "SELECT name FROM sqlite_master WHERE type='table' AND name <> '__WebKitDatabaseInfoTable__'" (String)
-319278:==> 00000056: <LoadConstString>: <Reg8: 1, string_id: 2218>  # String: 'QuotaExceededError' (String)
-319282:==> 00000066: <LoadConstString>: <Reg8: 1, string_id: 8161>  # String: 'NS_ERROR_DOM_QUOTA_REACHED' (String)
-342703:==> 00000048: <PutById>: <Reg8: 1, Reg8: 5, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
-343028:==> 00000235: <GetById>: <Reg8: 8, Reg8: 7, UInt8: 23, string_id: 20533>  # String: 'STALL_TOTAL_TIME' (Identifier)
-343029:==> 0000023b: <GetById>: <Reg8: 7, Reg8: 1, UInt8: 24, string_id: 22300>  # String: 'stall_total_time' (Identifier)
-343032:==> 0000024c: <GetById>: <Reg8: 7, Reg8: 7, UInt8: 24, string_id: 22300>  # String: 'stall_total_time' (Identifier)
-343036:==> 00000261: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 24, string_id: 22300>  # String: 'stall_total_time' (Identifier)
-343227:==> 00000020: <GetById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
-343231:==> 00000033: <PutNewOwnById>: <Reg8: 0, Reg8: 1, string_id: 22300>  # String: 'stall_total_time' (Identifier)
-343338:==> 0000000a: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
-343382:==> 0000006f: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 5, string_id: 33050>  # String: '_totalStallTime' (Identifier)
-343384:==> 00000079: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
-343516:==> 0000003d: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 5, string_id: 20533>  # String: 'STALL_TOTAL_TIME' (Identifier)
-343523:==> 00000061: <LoadConstString>: <Reg8: 1, string_id: 22300>  # String: 'stall_total_time' (Identifier)
-343524:==> 00000065: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 5, string_id: 20533>  # String: 'STALL_TOTAL_TIME' (Identifier)
-344453:==> 00000168: <GetById>: <Reg8: 7, Reg8: 6, UInt8: 12, string_id: 26849>  # String: 'totalFrames' (Identifier)
-344454:==> 0000016e: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 12, string_id: 26849>  # String: 'totalFrames' (Identifier)
-344459:==> 00000185: <PutNewOwnById>: <Reg8: 1, Reg8: 2, string_id: 33045>  # String: 'frames_total' (Identifier)
-344481:==> 000001ea: <GetById>: <Reg8: 2, Reg8: 1, UInt8: 18, string_id: 33045>  # String: 'frames_total' (Identifier)
-348763:==> 0000009a: <NewObjectWithBuffer>: <Reg8: 1, UInt16: 12, UInt16: 12, UInt16: 4773, UInt16: 25389>  # Object: {'NUMBER_OF_POINTERS': 'numberOfPointers', 'NUMBER_OF_TOUCHES': 'numberOfTouches', 'FORCE': 'force', 'FORCE_CHANGE': 'forceChange', 'ROTATION': 'rotation', 'ROTATION_CHANGE': 'rotationChange', 'SCALE': 'scale', 'SCALE_CHANGE': 'scaleChange', 'DURATION': 'duration', 'VELOCITY': 'velocity', 'VELOCITY_X': 'velocityX', 'VELOCITY_Y': 'velocityY'}
-351415:==> 000000c3: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 8930>  # Function: [#8930 RootApp of 221 bytes]: 2 params @ offset 0x002cf7a9
-351421:=> [Function #8930 "RootApp" of 221 bytes]: 2 params, frame size=25, strict=0, exc handler=0, debug info=0  @ offset 0x002cf7a9
-356121:==> 00000065: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 6, string_id: 21464>  # String: 'totalMemory' (Identifier)
-361422:==> 00000094: <LoadConstString>: <Reg8: 1, string_id: 11824>  # String: "[Spotlight] Sentry SDK can't connect to Spotlight is it running? See https://spotlightjs.com to download it." (String)
-362434:==> 000001b0: <GetById>: <Reg8: 7, Reg8: 7, UInt8: 14, string_id: 18441>  # String: 'UPDATER_APP_BOOT' (Identifier)
-362436:==> 000001ba: <PutNewOwnById>: <Reg8: 5, Reg8: 7, string_id: 30182>  # String: 'bootUpdaterApp' (Identifier)
-362438:==> 000001c4: <GetById>: <Reg8: 7, Reg8: 7, UInt8: 15, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
-362439:==> 000001ca: <PutNewOwnById>: <Reg8: 5, Reg8: 7, string_id: 35773>  # String: 'firmwareVersioningApiHost' (Identifier)
-367732:==> 0000010e: <LoadConstString>: <Reg8: 0, string_id: 9346>  # String: 'Function.prototype.bind called on incompatible ' (String)
-369224:==> 00000171: <CreateClosure>: <Reg8: 4, Reg8: 1, function_id: 9407>  # Function: [#9407 isDocumentDotAll of 4 bytes]: 1 params @ offset 0x001d5a7c
-369238:==> 000001b6: <CreateClosure>: <Reg8: 3, Reg8: 1, function_id: 9408>  # Function: [#9408 isDocumentDotAll of 162 bytes]: 2 params @ offset 0x002dcea3
-369319:=> [Function #9407 "isDocumentDotAll" of 4 bytes]: 1 params, frame size=1, strict=1, exc handler=0, debug info=0  @ offset 0x001d5a7c
-369329:=> [Function #9408 "isDocumentDotAll" of 162 bytes]: 2 params, frame size=18, strict=1, exc handler=1, debug info=0  @ offset 0x002dcea3
-370554:==> 00000164: <CreateClosure>: <Reg8: 1, Reg8: 3, function_id: 9475>  # Function: [#9475 scheduleMicrotask of 52 bytes]: 2 params @ offset 0x002de5a6
-370555:==> 00000169: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 27, string_id: 25887>  # String: 'scheduleMicrotask' (Identifier)
-371415:=> [Function #9475 "scheduleMicrotask" of 52 bytes]: 2 params, frame size=11, strict=1, exc handler=0, debug info=0  @ offset 0x002de5a6
-374629:==> 00000031: <GetById>: <Reg8: 3, Reg8: 3, UInt8: 2, string_id: 25887>  # String: 'scheduleMicrotask' (Identifier)
-374742:==> 0000003d: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 3, string_id: 25887>  # String: 'scheduleMicrotask' (Identifier)
-378705:==> 000000f8: <CreateClosure>: <Reg8: 3, Reg8: 1, function_id: 9776>  # Function: [#9776 updateRefetchInterval of 163 bytes]: 2 params @ offset 0x002e3d52
-378706:==> 000000fd: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 20, string_id: 24340>  # String: 'updateRefetchInterval' (Identifier)
-378719:==> 00000145: <CreateClosure>: <Reg8: 3, Reg8: 1, function_id: 9787>  # Function: [#9787 updateResult of 207 bytes]: 2 params @ offset 0x002e4523
-378720:==> 0000014a: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 27, string_id: 38041>  # String: 'updateResult' (Identifier)
-378922:==> 000000b8: <GetById>: <Reg8: 5, Reg8: 2, UInt8: 10, string_id: 38041>  # String: 'updateResult' (Identifier)
-378949:==> 0000013d: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 15, string_id: 24340>  # String: 'updateRefetchInterval' (Identifier)
-379293:==> 00000007: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 1, string_id: 38041>  # String: 'updateResult' (Identifier)
-379398:==> 0000001a: <GetById>: <Reg8: 0, Reg8: 1, UInt8: 3, string_id: 38041>  # String: 'updateResult' (Identifier)
-379435:=> [Function #9776 "updateRefetchInterval" of 163 bytes]: 2 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x002e3d52
-379518:==> 0000000d: <GetById>: <Reg8: 1, Reg8: 2, UInt8: 2, string_id: 24340>  # String: 'updateRefetchInterval' (Identifier)
-380036:=> [Function #9787 "updateResult" of 207 bytes]: 2 params, frame size=19, strict=1, exc handler=0, debug info=0  @ offset 0x002e4523
-380157:==> 00000060: <GetById>: <Reg8: 0, Reg8: 1, UInt8: 4, string_id: 38041>  # String: 'updateResult' (Identifier)
-381505:==> 00000074: <CreateClosure>: <Reg8: 3, Reg8: 1, function_id: 9850>  # Function: [#9850 updateResult of 187 bytes]: 1 params @ offset 0x002e57c6
-381506:==> 00000079: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 8, string_id: 38041>  # String: 'updateResult' (Identifier)
-381532:==> 0000003b: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 4, string_id: 38041>  # String: 'updateResult' (Identifier)
-381599:==> 00000006: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 1, string_id: 38041>  # String: 'updateResult' (Identifier)
-381639:==> 0000000b: <GetById>: <Reg8: 1, Reg8: 3, UInt8: 1, string_id: 38041>  # String: 'updateResult' (Identifier)
-381696:=> [Function #9850 "updateResult" of 187 bytes]: 1 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x002e57c6
-383712:==> 00000065: <GetById>: <Reg8: 1, Reg8: 2, UInt8: 5, string_id: 38041>  # String: 'updateResult' (Identifier)
-400865:==> 0000004c: <LoadConstString>: <Reg8: 1, string_id: 6313>  # String: ", re-run pod install and rebuild your iOS app. If you're not using Pods then make sure you've have downloaded the necessary Firebase iOS SDK dependencies for this API." (String)
-405555:==> 0000008e: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 7, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
-405556:==> 00000094: <PutNewOwnById>: <Reg8: 3, Reg8: 5, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
-405561:==> 000000ae: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 9, string_id: 18441>  # String: 'UPDATER_APP_BOOT' (Identifier)
-405562:==> 000000b4: <PutNewOwnById>: <Reg8: 3, Reg8: 4, string_id: 18441>  # String: 'UPDATER_APP_BOOT' (Identifier)
-424061:==> 00000051: <PutNewOwnById>: <Reg8: 0, Reg8: 7, string_id: 18341>  # String: 'selectTotal' (Identifier)
-424077:==> 0000009f: <PutNewOwnById>: <Reg8: 0, Reg8: 6, string_id: 18341>  # String: 'selectTotal' (Identifier)
-528632:==> 000002d8: <NewArrayWithBuffer>: <Reg8: 1, UInt16: 17, UInt16: 17, UInt16: 45849>  # Array: ['rotate', 'rotateX', 'rotateY', 'rotateZ', 'skewX', 'skewY', 'transformMatrix', 'backgroundColor', 'borderColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor', 'shadowColor', 'color', 'textDecorationColor', 'tintColor']
-530678:==> 00000058: <NewArrayWithBuffer>: <Reg8: 1, UInt16: 12, UInt16: 12, UInt16: 45896>  # Array: ['perspective', 'rotate', 'rotateX', 'rotateY', 'rotateZ', 'scale', 'scaleX', 'scaleY', 'skewX', 'skewY', 'translateX', 'translateY']
-530896:==> 0000003c: <LoadConstString>: <Reg8: 0, string_id: 214>  # String: 'rotate' (Identifier)
-532095:==> 0000003d: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 5, string_id: 214>  # String: 'rotate' (Identifier)
-532189:==> 000001f3: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 4, string_id: 214>  # String: 'rotate' (Identifier)
-532193:==> 00000201: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
-532197:==> 00000210: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
-532201:==> 0000021f: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
-532205:==> 0000022e: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
-532207:==> 00000236: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 5, string_id: 214>  # String: 'rotate' (Identifier)
-532247:==> 000002c8: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 4, string_id: 214>  # String: 'rotate' (Identifier)
-532251:==> 000002d6: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
-532255:==> 000002e5: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
-532259:==> 000002f4: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
- fellow-analysis % grep -niE \
-'https?://|execute-api|amazonaws|cloudfront' \
+'GetFirmwareVersion|ShouldBlock|OTA update|UpdateCount|UpdatedAt|initialUpdaterRunning|RNFSManager' \
 hermes-disassembly.txt | head -100
-20593:==> 0000001d: <LoadConstString>: <Reg8: 0, string_id: 10486>  # String: "ProgressBarAndroid has been extracted from react-native core and will be removed in a future release. It can now be installed and imported from '@react-native-community/progress-bar-android' instead of 'react-native'. See https://github.com/react-native-progress-view/progress-bar-android" (String)
-20987:==> 0000001d: <LoadConstString>: <Reg8: 0, string_id: 8472>  # String: "Clipboard has been extracted from react-native core and will be removed in a future release. It can now be installed and imported from '@react-native-clipboard/clipboard' instead of 'react-native'. See https://github.com/react-native-clipboard/clipboard" (String)
-21290:==> 0000001d: <LoadConstString>: <Reg8: 0, string_id: 1056>  # String: "PushNotificationIOS has been extracted from react-native core and will be removed in a future release. It can now be installed and imported from '@react-native-community/push-notification-ios' instead of 'react-native'. See https://github.com/react-native-push-notification-ios/push-notification-ios" (String)
-35941:==> 00000052: <LoadConstString>: <Reg8: 4, string_id: 6287>  # String: ") but no owner was set. This could happen for one of the following reasons:\n1. You may be adding a ref to a function component\n2. You may be adding a ref to a component that was not created inside a component's render method\n3. You have multiple copies of React loaded\nSee https://react.dev/link/refs-must-have-owner for more information." (String)
-35988:==> 00000107: <LoadConstString>: <Reg8: 0, string_id: 1166>  # String: 'Function components cannot have string refs. We recommend using useRef() instead. Learn more about using refs safely here: https://react.dev/link/strict-mode-string-ref' (String)
-37705:==> 0000000a: <LoadConstString>: <Reg8: 0, string_id: 9625>  # String: 'Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem.' (String)
-106816:==> 00000052: <LoadConstString>: <Reg8: 4, string_id: 6287>  # String: ") but no owner was set. This could happen for one of the following reasons:\n1. You may be adding a ref to a function component\n2. You may be adding a ref to a component that was not created inside a component's render method\n3. You have multiple copies of React loaded\nSee https://react.dev/link/refs-must-have-owner for more information." (String)
-106863:==> 00000107: <LoadConstString>: <Reg8: 0, string_id: 1166>  # String: 'Function components cannot have string refs. We recommend using useRef() instead. Learn more about using refs safely here: https://react.dev/link/strict-mode-string-ref' (String)
-108580:==> 0000000a: <LoadConstString>: <Reg8: 0, string_id: 9625>  # String: 'Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem.' (String)
-126359:==> 00000030: <LoadConstString>: <Reg8: 4, string_id: 1173>  # String: 'Calling PropTypes validators directly is not supported by the `prop-types` package. Use PropTypes.checkPropTypes() to call them. Read more at http://fb.me/use-check-prop-types' (String)
-134061:==> 0000004f: <LoadConstString>: <Reg8: 3, string_id: 967>  # String: 'Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md' (String)
-198845:==> 00000059: <LoadConstString>: <Reg8: 6, string_id: 7032>  # String: "react-native-gesture-handler module was not found. Make sure you're running your app on the native platform and your code is linked properly (cd ios && pod install && cd ..).\n\n    For installation instructions, please refer to https://docs.swmansion.com/react-native-gesture-handler/docs/#installation" (String)
-217597:==> 0000003a: <LoadConstString>: <Reg8: 4, string_id: 13726>  # String: 'http://www.example.com' (String)
-221412:==> 00000054: <LoadConstString>: <Reg8: 1, string_id: 15138>  # String: 'http://dogs.are.great' (String)
-286618:==> 0000004c: <LoadConstString>: <Reg8: 1, string_id: 1299>  # String: 'http://' (String)
-286622:==> 00000061: <LoadConstString>: <Reg8: 1, string_id: 385>  # String: 'https://' (String)
-305029:==> 00000203: <LoadConstString>: <Reg8: 4, string_id: 15006>  # String: 'http://www.w3.org/2000/svg' (String)
-306996:==> 00000128: <NewObjectWithBuffer>: <Reg8: 0, UInt16: 5, UInt16: 5, UInt16: 18249, UInt16: 25252>  # Object: {'className': 'brand-link', 'target': '_blank', 'href': 'https://sentry.io/welcome/', 'title': 'Powered by Sentry', 'rel': 'noopener noreferrer'}
-319894:==> 0000003c: <LoadConstString>: <Reg8: 16, string_id: 8636>  # String: 'Custom driver not compliant; see https://mozilla.github.io/localForage/#definedriver' (String)
-335252:==> 0000002a: <LoadConstString>: <Reg8: 2, string_id: 6509>  # String: 'http://localhost:8081/' (String)
-360159:==> 0000005b: <LoadConstString>: <Reg8: 3, string_id: 1785>  # String: 'You appear to have multiple versions of the "promise" package installed. This may cause unexpected behavior like undefined `Promise.allSettled`. Please install the `promise` package manually using the exact version as the React Native package. See https://docs.sentry.io/platforms/react-native/troubleshooting/ for more details.' (String)
-360187:==> 000000d1: <LoadConstString>: <Reg8: 1, string_id: 11148>  # String: 'Unhandled promise rejections will not be caught by Sentry. See https://docs.sentry.io/platforms/react-native/troubleshooting/ for more details.' (String)
-360199:==> 000000ff: <LoadConstString>: <Reg8: 1, string_id: 11148>  # String: 'Unhandled promise rejections will not be caught by Sentry. See https://docs.sentry.io/platforms/react-native/troubleshooting/ for more details.' (String)
-361422:==> 00000094: <LoadConstString>: <Reg8: 1, string_id: 11824>  # String: "[Spotlight] Sentry SDK can't connect to Spotlight is it running? See https://spotlightjs.com to download it." (String)
-361460:==> 00000063: <LoadConstString>: <Reg8: 1, string_id: 1299>  # String: 'http://' (String)
-361465:==> 00000075: <LoadConstString>: <Reg8: 0, string_id: 3047>  # String: 'http://localhost:8969/stream' (String)
-402665:==> 000000ef: <LoadConstString>: <Reg8: 1, string_id: 1298>  # String: '\r\n\r\nSee http://invertase.link/android for full setup instructions.' (String)
-402675:==> 0000011a: <LoadConstString>: <Reg8: 0, string_id: 1305>  # String: '\r\n\r\nSee http://invertase.link/ios for full setup instructions.' (String)
-427831:==> 00000089: <LoadConstString>: <Reg8: 0, string_id: 1498>  # String: '. Find the full error at: https://bit.ly/3cXEKWf' (String)
-432903:==> 0000000b: <LoadConstString>: <Reg8: 0, string_id: 6370>  # String: '; visit https://redux.js.org/Errors?code=' (String)
-451898:==> 0000002c: <LoadConstString>: <Reg8: 4, string_id: 11204>  # String: 'Unsupported core-js use. Try https://npms.io/search?q=ponyfill.' (String)
-460491:==> 00000099: <LoadConstString>: <Reg8: 5, string_id: 6508>  # String: 'http://localhost' (String)
-460496:==> 000000ad: <LoadConstString>: <Reg8: 0, string_id: 2658>  # String: 'http://10.0.2.2' (String)
-460504:==> 000000d3: <LoadConstString>: <Reg8: 5, string_id: 6751>  # String: 'http://127.0.0.1' (String)
-460510:==> 000000ea: <LoadConstString>: <Reg8: 0, string_id: 2658>  # String: 'http://10.0.2.2' (String)
-493153:==> 00000182: <LoadConstString>: <Reg8: 1, string_id: 7763>  # String: 'Another navigator is already registered for this container. You likely have multiple navigators under a single "NavigationContainer" or "Screen". Make sure each navigator is under a separate "Screen" container. See https://reactnavigation.org/docs/nesting-navigators for a guide on nesting.' (String)
-494204:==> 00000011: <LoadConstString>: <Reg8: 3, string_id: 8589>  # String: "Couldn't find a navigation context. Have you wrapped your app with 'NavigationContainer'? See https://reactnavigation.org/docs/getting-started for setup instructions." (String)
-494221:==> 00000011: <LoadConstString>: <Reg8: 3, string_id: 8589>  # String: "Couldn't find a navigation context. Have you wrapped your app with 'NavigationContainer'? See https://reactnavigation.org/docs/getting-started for setup instructions." (String)
-494238:==> 00000011: <LoadConstString>: <Reg8: 3, string_id: 8589>  # String: "Couldn't find a navigation context. Have you wrapped your app with 'NavigationContainer'? See https://reactnavigation.org/docs/getting-started for setup instructions." (String)
-494255:==> 00000011: <LoadConstString>: <Reg8: 3, string_id: 8589>  # String: "Couldn't find a navigation context. Have you wrapped your app with 'NavigationContainer'? See https://reactnavigation.org/docs/getting-started for setup instructions." (String)
-494272:==> 00000011: <LoadConstString>: <Reg8: 3, string_id: 8589>  # String: "Couldn't find a navigation context. Have you wrapped your app with 'NavigationContainer'? See https://reactnavigation.org/docs/getting-started for setup instructions." (String)
-496300:==> 0000007b: <LoadConstString>: <Reg8: 1, string_id: 7524>  # String: "The 'navigation' object hasn't been initialized yet. This might happen if you don't have a navigator mounted, or if the navigator hasn't finished mounting. See https://reactnavigation.org/docs/navigating-without-navigation-prop#handling-initialization for more details." (String)
-497078:==> 00000067: <LoadConstString>: <Reg8: 7, string_id: 7708>  # String: 'You need to specify name or key when calling navigate with an object as the argument. See https://reactnavigation.org/docs/navigation-actions#navigate for usage.' (String)
-500701:==> 0000004e: <LoadConstString>: <Reg8: 3, string_id: 8617>  # String: "Creating a navigator doesn't take an argument. Maybe you are trying to use React Navigation 4 API? See https://reactnavigation.org/docs/hello-react-navigation for the latest API and guides." (String)
-504739:==> 000000d8: <LoadConstString>: <Reg8: 9, string_id: 383>  # String: '\n\nSee https://reactnavigation.org/docs/configuring-links for more details on how to specify a linking configuration.' (String)
-507703:==> 00000039: <LoadConstString>: <Reg8: 3, string_id: 1155>  # String: "You passed a second argument to 'useFocusEffect', but it only accepts one argument. If you want to pass a dependency array, you can use 'React.useCallback':\n\nuseFocusEffect(\n  React.useCallback(() => {\n    // Your code here\n  }, [depA, depB])\n);\n\nSee usage guide: https://reactnavigation.org/docs/use-focus-effect" (String)
-518220:==> 0000011d: <LoadConstString>: <Reg8: 1, string_id: 1076>  # String: "The navigation state parsed from the URL contains routes not present in the root navigator. This usually means that the linking configuration doesn't match the navigation structure. See https://reactnavigation.org/docs/configuring-links for more details on how to specify a linking configuration." (String)
-566387:==> 00000000: <NewObjectWithBuffer>: <Reg8: 1, UInt16: 4, UInt16: 4, UInt16: 20964, UInt16: 26019>  # Object: {'fwp': '0.0.76', 'fwurl': 'https://qhderznbzup.firmware.fellowproducts.com/get_ota_device_firmware', 'fwcert': 'AAEAbgEmMGwxCzAJBgNVBAYTAlVTMRUw EwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAX BgNVBAsTEHd3dy5kaWdpY2VydC5jb20x KzApBgNVBAMTIkRpZ2lDZXJ0IEhpZ2gg QXNzdXJhbmNlIEVWIFJvb3QgQ0EwggEi MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK AoIBAQDGzOVz5vvUu+UtLTKm3+WBP8nN JUm2cSrD1ZQ0Z6IKHLBfaaZAscS3so/Q mKSpQVk609yU1jzbdDikSsxNJYL3SqVT Ejju80ltcZF+Y7arpl/DpIT4T2JRvvjF 7Ns4kuMG5QiRDMQoQVX7y1qJFX5x6DW/ TXIJPb46OFBbdzEbjbPHJEWap6xtABRa BLe6E+tRCphBQSJOZWGHgUFQpnlcid4Z SlfVLuZdHFMsfpjNGgYWpGhz0DQEE1yh cdNafFXbXmThN4cwVgTlEbQpgBLxeTmI ogIRfCdmt4i3ePLKCqg4qwpkwr9mXZWE waElHoddGlALIBLMQbtuC1E4uEvLAgMB AAE=', 'sign': 'A3NpMMLqSP3aw+gxzFFaJGBFiZX6eLma s6/3RijTUQl+MvjzN+zdIpOTnJ2tlAO1 S2Is75f5QxehDqImZr/Xwr+E8aeoyJhD +/BFaVP/mUyhOVMKkzE2OyObdlSn+fCe C8gMqV2zcP7Nr7vH1oBc01jaq4tYXGOn f/yNcIl1gP6XMRIM0x9X7C8HOi8Y5PGq gZ6F+pnvoyDxk1n7WqKRX/mhFO85J5ix 6MCafSLgaA5FNMPP63y3fIR/tGWn334e Bw0HbtJoRzbLkf4PWwBVlPoc6ExXhIUh y3MmaKxTe5i+NsQlVCLDcp/5gRqYDI0E LfoR/PvS8wiSV6AW9Dm82ZOVvfEiEP5e 2khlEb6q484OwVdw/Gr6txCA+nPTUiA+ S1lKK9AokgJw2T4Omauo/E0wauRSIQb6 BVrMXzUOipobwfpAMJTi/D7cIoGkic6+ enaDp4XKcZeEanspa+enRujH7BRjR/Lu fTdCa0CLr9nB1m0DFdNWoRTgd8xDoOBG'}
-578622:==> 000002a8: <LoadConstString>: <Reg8: 19, string_id: 16572>  # String: 'react-native-permissions: NativeModule.RNPermissions is null. To fix this issue try these steps:\n• If you are using CocoaPods on iOS, run `pod install` in the `ios` directory and then clean, rebuild and re-run the app. You may also need to re-open Xcode to get the new pods.\n• If you are getting this error while unit testing you need to mock the native module. You can use this to get started: https://github.com/zoontek/react-native-permissions/blob/master/mock.js\nIf none of these fix the issue, please open an issue on the Github repository: https://github.com/zoontek/react-native-permissions' (String)
-586076:==> 000000ce: <LoadConstString>: <Reg8: 12, string_id: 16531>  # String: 'react-native-device-info: NativeModule.RNDeviceInfo is null. To fix this issue try these steps:\n  • For react-native <= 0.59: Run `react-native link react-native-device-info` in the project root.\n  • Rebuild and re-run the app.\n  • If you are using CocoaPods on iOS, run `pod install` in the `ios` directory and then rebuild and re-run the app. You may also need to re-open Xcode to get the new pods.\n  If none of these fix the issue, please open an issue on the Github repository: https://github.com/react-native-device-info/react-native-device-info' (String)
-589169:==> 0000017c: <NewObjectWithBuffer>: <Reg8: 4, UInt16: 5, UInt16: 5, UInt16: 21239, UInt16: 29903>  # Object: {'xmlns': 'http://www.w3.org/2000/svg', 'width': 321, 'height': 239, 'fill': 'none', 'viewBox': '0 0 321 239'}
-629997:==> 00000087: <LoadConstString>: <Reg8: 2, string_id: 9989>  # String: 'Maximum iteration number exceeded (please fill an issue on https://github.com/csstree/csstree/issues)' (String)
-637043:==> 00000038: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30380>  # Object: {'comment': 'deprecated syntax in old Firefox, https://developer.mozilla.org/en/docs/Web/CSS/background-clip', 'syntax': 'padding | border'}
-637045:==> 00000047: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30385>  # Object: {'comment': 'https://developer.mozilla.org/en-US/docs/Web/CSS/border-bottom-left-radius', 'syntax': "<'border-bottom-left-radius'>"}
-637047:==> 00000056: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30390>  # Object: {'comment': 'https://developer.mozilla.org/en-US/docs/Web/CSS/border-bottom-right-radius', 'syntax': "<'border-bottom-right-radius'>"}
-637049:==> 00000065: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30395>  # Object: {'comment': 'https://developer.mozilla.org/en-US/docs/Web/CSS/border-top-left-radius', 'syntax': "<'border-top-left-radius'>"}
-637051:==> 00000074: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30390>  # Object: {'comment': 'https://developer.mozilla.org/en-US/docs/Web/CSS/border-bottom-right-radius', 'syntax': "<'border-bottom-right-radius'>"}
-637053:==> 00000083: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30400>  # Object: {'comment': 'firefox specific keywords, https://bugzilla.mozilla.org/show_bug.cgi?id=947588', 'syntax': 'visible | hidden'}
-637055:==> 00000092: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30405>  # Object: {'comment': 'misssed old syntax https://developer.mozilla.org/en-US/docs/Web/CSS/font-smooth', 'syntax': 'auto | grayscale'}
-637057:==> 000000a1: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30410>  # Object: {'comment': 'https://developer.mozilla.org/en-US/docs/Web/CSS/user-select', 'syntax': 'none | text | all | -moz-none'}
-637059:==> 000000b0: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30415>  # Object: {'comment': 'misssed old syntax implemented in IE, https://www.w3.org/TR/2012/WD-css3-flexbox-20120322/#flex-align', 'syntax': 'start | end | center | baseline | stretch'}
-637061:==> 000000bf: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30420>  # Object: {'comment': 'misssed old syntax implemented in IE, https://www.w3.org/TR/2012/WD-css3-flexbox-20120322/#flex-align', 'syntax': 'auto | start | end | center | baseline | stretch'}
-637063:==> 000000ce: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30425>  # Object: {'comment': 'misssed old syntax implemented in IE, https://www.w3.org/TR/2012/WD-css3-flexbox-20120322/#flex-line-pack', 'syntax': 'start | end | center | justify | distribute | stretch'}
-637067:==> 000000ec: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30435>  # Object: {'comment': 'misssed old syntax implemented in IE, https://www.w3.org/TR/2012/WD-css3-flexbox-20120322/#flex-pack', 'syntax': 'start | end | center | justify | distribute'}
-637069:==> 000000fb: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30440>  # Object: {'comment': 'misssed old syntax implemented in IE; https://msdn.microsoft.com/en-us/library/jj127303(v=vs.85).aspx', 'syntax': '<integer>'}
-637075:==> 00000128: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30455>  # Object: {'comment': 'https://msdn.microsoft.com/en-us/library/ff521095(v=vs.85).aspx', 'syntax': 'nearest-neighbor | bicubic'}
-637077:==> 00000137: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30460>  # Object: {'comment': 'add this property first since it uses as fallback for flexbox, https://msdn.microsoft.com/en-us/library/windows/apps/hh466338.aspx', 'syntax': 'start | end | center | stretch'}
-637079:==> 00000146: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30465>  # Object: {'comment': 'add this property first since it uses as fallback for flexbox, https://msdn.microsoft.com/en-us/library/windows/apps/hh466348.aspx', 'syntax': 'start | end | center | stretch'}
-637081:==> 00000155: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30470>  # Object: {'comment': 'misssed old syntax implemented in IE; https://www.w3.org/TR/css-text-4/#hyphenate-line-limits', 'syntax': 'none | always | column | page | spread'}
-637084:==> 0000016e: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46209>  # Array: ['http://css-infos.net/property/-webkit-appearance']
-637087:==> 00000181: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30482>  # Object: {'comment': 'https://developer.mozilla.org/en/docs/Web/CSS/background-clip', 'syntax': '[ <box> | border | padding | content | text ]#'}
-637089:==> 00000190: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30494>  # Object: {'comment': 'added, http://help.dottoro.com/lcrthhhv.php', 'syntax': 'always | auto | avoid'}
-637091:==> 0000019f: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30499>  # Object: {'comment': 'added, http://help.dottoro.com/lcxquvkf.php', 'syntax': 'always | auto | avoid'}
-637093:==> 000001ae: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30504>  # Object: {'comment': 'added, http://help.dottoro.com/lclhnthl.php', 'syntax': 'always | auto | avoid'}
-637095:==> 000001bd: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30509>  # Object: {'comment': 'https://developer.mozilla.org/en-US/docs/Web/CSS/font-smooth', 'syntax': 'auto | none | antialiased | subpixel-antialiased'}
-637097:==> 000001cc: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30514>  # Object: {'comment': 'missed; https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-mask-box-image', 'syntax': '[ <url> | <gradient> | none ] [ <length-percentage>{4} <-webkit-mask-box-repeat>{2} ]?'}
-637100:==> 000001e5: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46212>  # Array: ['https://developer.mozilla.org/en/docs/Web/CSS/-webkit-print-color-adjust']
-637103:==> 000001f8: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30526>  # Object: {'comment': 'missed; http://help.dottoro.com/lcbkewgt.php', 'syntax': 'none | circle | disc | square'}
-637105:==> 00000207: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30531>  # Object: {'comment': 'missed; http://help.dottoro.com/lcbixvwm.php', 'syntax': 'none | element | auto'}
-637107:==> 00000216: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30536>  # Object: {'comment': 'auto is supported by old webkit, https://developer.mozilla.org/en-US/docs/Web/CSS/user-select', 'syntax': 'auto | none | text | all'}
-637110:==> 0000022f: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46215>  # Array: ['https://www.w3.org/TR/SVG/text.html#AlignmentBaselineProperty']
-637114:==> 0000024c: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46218>  # Array: ['https://www.w3.org/TR/SVG/text.html#BaselineShiftProperty']
-637117:==> 0000025f: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30555>  # Object: {'comment': 'added old IE property https://msdn.microsoft.com/en-us/library/ms530723(v=vs.85).aspx', 'syntax': '<url>+'}
-637120:==> 00000278: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46221>  # Array: ['https://www.w3.org/TR/SVG/masking.html#ClipRuleProperty']
-637123:==> 0000028b: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30567>  # Object: {'comment': 'https://www.w3.org/TR/css3-speech/#property-index', 'syntax': "<'cue-before'> <'cue-after'>?"}
-637125:==> 0000029a: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30572>  # Object: {'comment': 'https://www.w3.org/TR/css3-speech/#property-index', 'syntax': '<url> <decibel>? | none'}
-637127:==> 000002a9: <NewObjectWithBuffer>: <Reg8: 2, UInt16: 2, UInt16: 2, UInt16: 22782, UInt16: 30572>  # Object: {'comment': 'https://www.w3.org/TR/css3-speech/#property-index', 'syntax': '<url> <decibel>? | none'}
-637130:==> 000002c2: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46224>  # Array: ['https://www.sitepoint.com/css3-cursor-styles/']
-637138:==> 000002fd: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46227>  # Array: ['https://www.w3.org/TR/SVG/text.html#DominantBaselineProperty']
-637142:==> 0000031a: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 2, UInt16: 2, UInt16: 46230>  # Array: ['https://developer.mozilla.org/en/docs/Web/CSS/image-rendering', 'https://www.w3.org/TR/SVG/painting.html#ImageRenderingProperty']
-637146:==> 00000337: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46235>  # Array: ['https://www.w3.org/TR/SVG/painting.html#FillProperty']
-637150:==> 00000353: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46235>  # Array: ['https://www.w3.org/TR/SVG/painting.html#FillProperty']
-637154:==> 00000370: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46235>  # Array: ['https://www.w3.org/TR/SVG/painting.html#FillProperty']
-637160:==> 0000039b: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46238>  # Array: ['https://www.w3.org/TR/SVG/text.html#GlyphOrientationHorizontalProperty']
-637164:==> 000003b8: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46241>  # Array: ['https://www.w3.org/TR/SVG/text.html#GlyphOrientationVerticalProperty']
-637168:==> 000003d5: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46244>  # Array: ['https://www.w3.org/TR/SVG/text.html#KerningProperty']
-637172:==> 000003f2: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46247>  # Array: ['https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/letter-spacing']
-637176:==> 0000040f: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46250>  # Array: ['https://www.w3.org/TR/SVG/painting.html#MarkerProperties']
-637180:==> 0000042c: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46250>  # Array: ['https://www.w3.org/TR/SVG/painting.html#MarkerProperties']
-637184:==> 00000449: <NewArrayWithBuffer>: <Reg8: 4, UInt16: 1, UInt16: 1, UInt16: 46250>  # Array: ['https://www.w3.org/TR/SVG/painting.html#MarkerProperties']
+87498:==> 0000030c: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 28, UInt16: 28, UInt16: 4471, UInt16: 1151>  # Object: {'onLayout': true, 'onMoveShouldSetResponder': true, 'onMoveShouldSetResponderCapture': true, 'onStartShouldSetResponder': true, 'onStartShouldSetResponderCapture': true, 'onResponderGrant': true, 'onResponderReject': true, 'onResponderStart': true, 'onResponderEnd': true, 'onResponderRelease': true, 'onResponderMove': true, 'onResponderTerminate': true, 'onResponderTerminationRequest': true, 'onShouldBlockNativeResponder': true, 'onTouchStart': true, 'onTouchMove': true, 'onTouchEnd': true, 'onTouchCancel': true, 'onPointerEnter': true, 'onPointerEnterCapture': true, 'onPointerLeave': true, 'onPointerLeaveCapture': true, 'onPointerMove': true, 'onPointerMoveCapture': true, 'onPointerOut': true, 'onPointerOutCapture': true, 'onPointerOver': true, 'onPointerOverCapture': true}
+155971:==> 000003d9: <PutNewOwnById>: <Reg8: 1, Reg8: 2, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+156549:==> 00000214: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 29, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+156607:==> 00000005: <GetById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+156610:==> 00000012: <PutNewOwnById>: <Reg8: 0, Reg8: 1, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+156847:==> 00000019: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 3, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+159015:==> 0000002f: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 9, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+159337:==> 0000001b: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 2, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+159708:==> 00000154: <GetById>: <Reg8: 4, Reg8: 0, UInt8: 15, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+159714:==> 00000169: <PutNewOwnById>: <Reg8: 1, Reg8: 2, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+192916:==> 000000c4: <GetById>: <Reg8: 2, Reg8: 0, UInt8: 7, string_id: 24344>  # String: 'onShouldBlockNativeResponder' (Identifier)
+192922:==> 000000d9: <GetById>: <Reg8: 2, Reg8: 3, UInt8: 7, string_id: 24344>  # String: 'onShouldBlockNativeResponder' (Identifier)
+373347:==> 000000ae: <GetById>: <Reg8: 4, Reg8: 5, UInt8: 10, string_id: 38049>  # String: 'updatedAt' (Identifier)
+373348:==> 000000b4: <PutNewOwnById>: <Reg8: 1, Reg8: 4, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+373497:==> 00000016: <GetById>: <Reg8: 2, Reg8: 2, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+373536:==> 00000021: <GetById>: <Reg8: 2, Reg8: 2, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+373547:==> 0000004f: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+373776:==> 00000022: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+374238:==> 00000039: <GetById>: <Reg8: 0, Reg8: 6, UInt8: 2, string_id: 36913>  # String: 'initialDataUpdatedAt' (Identifier)
+374241:==> 00000046: <GetById>: <Reg8: 0, Reg8: 6, UInt8: 2, string_id: 36913>  # String: 'initialDataUpdatedAt' (Identifier)
+374243:==> 0000004e: <GetById>: <Reg8: 5, Reg8: 6, UInt8: 2, string_id: 36913>  # String: 'initialDataUpdatedAt' (Identifier)
+374248:==> 00000062: <NewObjectWithBuffer>: <Reg8: 0, UInt16: 12, UInt16: 11, UInt16: 18580, UInt16: 604>  # Object: {'data': null, 'dataUpdateCount': 0, 'dataUpdatedAt': null, 'error': null, 'errorUpdateCount': 0, 'errorUpdatedAt': 0, 'fetchFailureCount': 0, 'fetchMeta': null, 'isFetching': false, 'isInvalidated': false, 'isPaused': false}
+374259:==> 00000091: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+374331:==> 000000ec: <GetById>: <Reg8: 8, Reg8: 4, UInt8: 8, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+374334:==> 000000f9: <PutNewOwnById>: <Reg8: 6, Reg8: 8, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+374339:==> 0000010f: <PutNewOwnById>: <Reg8: 6, Reg8: 8, string_id: 24347>  # String: 'errorUpdatedAt' (Identifier)
+374359:==> 00000163: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 9, UInt16: 9, UInt16: 3875, UInt16: 241>  # Object: {'data': null, 'dataUpdateCount': null, 'dataUpdatedAt': null, 'error': null, 'fetchFailureCount': 0, 'isFetching': false, 'isInvalidated': false, 'isPaused': false, 'status': 'success'}
+374362:==> 00000178: <GetById>: <Reg8: 2, Reg8: 4, UInt8: 13, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+374365:==> 00000185: <PutById>: <Reg8: 3, Reg8: 1, UInt8: 2, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+374366:==> 0000018b: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 14, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+374373:==> 000001a8: <PutById>: <Reg8: 3, Reg8: 1, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+374388:==> 000001e9: <GetById>: <Reg8: 0, Reg8: 4, UInt8: 14, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+378530:==> 0000001a: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+378558:==> 0000001d: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 2, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379371:==> 00000091: <GetById>: <Reg8: 4, Reg8: 3, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379610:==> 0000005d: <GetById>: <Reg8: 12, Reg8: 9, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379612:==> 00000068: <GetById>: <Reg8: 7, Reg8: 9, UInt8: 11, string_id: 24347>  # String: 'errorUpdatedAt' (Identifier)
+379650:==> 000000f0: <GetById>: <Reg8: 9, Reg8: 9, UInt8: 17, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+379661:==> 0000011a: <GetById>: <Reg8: 15, Reg8: 8, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379868:==> 0000044b: <PutNewOwnById>: <Reg8: 0, Reg8: 15, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379870:==> 00000454: <PutNewOwnById>: <Reg8: 0, Reg8: 7, string_id: 24347>  # String: 'errorUpdatedAt' (Identifier)
+379874:==> 00000467: <GetById>: <Reg8: 13, Reg8: 7, UInt8: 32, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+379875:==> 0000046d: <PutNewOwnById>: <Reg8: 0, Reg8: 13, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+379876:==> 00000472: <GetById>: <Reg8: 13, Reg8: 7, UInt8: 17, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+379881:==> 00000484: <GetById>: <Reg8: 15, Reg8: 15, UInt8: 32, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+379885:==> 00000496: <GetById>: <Reg8: 15, Reg8: 13, UInt8: 17, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+379886:==> 0000049c: <GetById>: <Reg8: 13, Reg8: 14, UInt8: 17, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+379890:==> 000004ac: <GetById>: <Reg8: 15, Reg8: 15, UInt8: 32, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+379891:==> 000004b2: <GetById>: <Reg8: 14, Reg8: 14, UInt8: 32, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+379901:==> 000004db: <GetById>: <Reg8: 11, Reg8: 11, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379907:==> 000004f7: <GetById>: <Reg8: 6, Reg8: 6, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+382193:==> 00000097: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+382195:==> 000000a2: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+576408:==> 0000029d: <LoadConstString>: <Reg8: 3, string_id: 11050>  # String: 'Trigger OTA update command error' (String)
+577008:==> 0000027c: <LoadConstString>: <Reg8: 4, string_id: 11050>  # String: 'Trigger OTA update command error' (String)
+673361:==> 0000005f: <PutById>: <Reg8: 3, Reg8: 4, UInt8: 4, string_id: 24343>  # String: 'GetFirmwareVersion' (Identifier)
+680652:==> 00000047: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 4, string_id: 24343>  # String: 'GetFirmwareVersion' (Identifier)
+778826:==> 00000068: <LoadConstString>: <Reg8: 2, string_id: 11049>  # String: 'Trigger OTA update' (String)
+889470:==> 00000035: <GetById>: <Reg8: 3, Reg8: 3, UInt8: 2, string_id: 17419>  # String: 'RNFSManager' (Identifier)
  fellow-analysis % 
