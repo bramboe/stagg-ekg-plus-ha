@@ -73,7 +73,8 @@
         "title": "Options Fellow Stagg",
         "menu_options": {
           "polling": "Intervalles d'interrogation",
-          "switch_firmware": "Changer de firmware"
+          "switch_firmware": "Changer de firmware",
+          "upload_firmware": "Téléverser le firmware (récupération)"
         }
       },
       "polling": {
@@ -89,19 +90,32 @@
         "data": {
           "confirm": "Oui, changer le firmware de la bouilloire"
         }
+      },
+      "upload_firmware": {
+        "title": "Téléverser le firmware",
+        "description": "Choisissez un fichier firmware .img à flasher sur la bouilloire. Outil de récupération si le firmware précédent a disparu. La bouilloire vérifie la signature de l'image et rejette un fichier erroné ou corrompu ; elle ne peut donc pas être « brickée ». Bloquez d'abord l'accès Internet de la bouilloire. La bouilloire redémarre sur le firmware téléversé.",
+        "data": {
+          "firmware_file": "Fichier firmware .img"
+        }
       }
     },
     "progress": {
-      "switching": "Passage de la bouilloire à {target_version} ; attente du redémarrage…"
+      "switching": "Passage de la bouilloire à {target_version} ; attente du redémarrage…",
+      "uploading": "Téléversement du firmware {version} ; attente du redémarrage de la bouilloire…"
     },
     "error": {
       "not_confirmed": "Cochez la case pour confirmer.",
-      "kettle_heating": "La bouilloire est en train de chauffer. Changez de firmware lorsqu'elle est inactive."
+      "kettle_heating": "La bouilloire est en train de chauffer. Changez de firmware lorsqu'elle est inactive.",
+      "invalid_firmware": "Ce fichier n'est pas une image firmware valide pour la bouilloire Fellow Stagg.",
+      "read_failed": "Impossible de lire le fichier téléversé. Veuillez réessayer."
     },
     "abort": {
       "no_other_firmware": "La bouilloire n'a pas d'autre firmware valide vers lequel basculer.",
       "firmware_switched": "Terminé : la bouilloire utilise maintenant {target_version}.",
-      "firmware_switch_failed": "La bouilloire n'est pas revenue sur {target_version} en moins d'une minute. Vérifiez dans un instant le capteur **Version du micrologiciel** ; si le changement n'a pas abouti, la bouilloire conserve son firmware précédent."
+      "firmware_switch_failed": "La bouilloire n'est pas revenue sur {target_version} en moins d'une minute. Vérifiez dans un instant le capteur **Version du micrologiciel** ; si le changement n'a pas abouti, la bouilloire conserve son firmware précédent.",
+      "firmware_uploaded": "Terminé : la bouilloire a redémarré sur le firmware {version}.",
+      "firmware_upload_failed": "La bouilloire n'est pas revenue à temps après le téléversement du firmware {version}. Vérifiez le capteur de version du firmware ; si cela n'a pas abouti, la bouilloire conserve son firmware précédent.",
+      "not_loaded": "La bouilloire n'est pas encore chargée ; réessayez dans un instant."
     }
   },
   "entity": {

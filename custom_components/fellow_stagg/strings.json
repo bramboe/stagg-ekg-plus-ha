@@ -73,7 +73,8 @@
         "title": "Fellow Stagg options",
         "menu_options": {
           "polling": "Polling intervals",
-          "switch_firmware": "Switch firmware"
+          "switch_firmware": "Switch firmware",
+          "upload_firmware": "Upload firmware (recovery)"
         }
       },
       "polling": {
@@ -89,19 +90,32 @@
         "data": {
           "confirm": "Yes, switch the kettle's firmware"
         }
+      },
+      "upload_firmware": {
+        "title": "Upload firmware",
+        "description": "Pick a firmware .img file to flash onto the kettle. Recovery tool for when the kettle's previous firmware is gone. The kettle verifies the image's signature and rejects a wrong or corrupt file, so it can't be bricked. Block the kettle's internet access first. The kettle restarts into the uploaded firmware.",
+        "data": {
+          "firmware_file": "Firmware .img file"
+        }
       }
     },
     "progress": {
-      "switching": "Switching the kettle to {target_version} and waiting for it to restart…"
+      "switching": "Switching the kettle to {target_version} and waiting for it to restart…",
+      "uploading": "Uploading firmware {version} and waiting for the kettle to restart…"
     },
     "error": {
       "not_confirmed": "Tick the box to confirm the switch.",
-      "kettle_heating": "The kettle is heating. Switch firmware when it's idle."
+      "kettle_heating": "The kettle is heating. Switch firmware when it's idle.",
+      "invalid_firmware": "That file is not a valid Fellow Stagg kettle firmware image.",
+      "read_failed": "Could not read the uploaded file. Please try again."
     },
     "abort": {
       "no_other_firmware": "The kettle has no other valid firmware to switch to.",
       "firmware_switched": "Done: the kettle now runs {target_version}.",
-      "firmware_switch_failed": "The kettle didn't come back on {target_version} within a minute. Check the **Firmware version** sensor in a moment; if the switch didn't take, the kettle keeps its previous firmware."
+      "firmware_switch_failed": "The kettle didn't come back on {target_version} within a minute. Check the **Firmware version** sensor in a moment; if the switch didn't take, the kettle keeps its previous firmware.",
+      "firmware_uploaded": "Done: the kettle restarted on firmware {version}.",
+      "firmware_upload_failed": "The kettle didn't come back after the firmware {version} upload within the time limit. Check the Firmware version sensor; if it didn't take, the kettle keeps its previous firmware.",
+      "not_loaded": "The kettle isn't loaded yet; try again in a moment."
     }
   },
   "entity": {

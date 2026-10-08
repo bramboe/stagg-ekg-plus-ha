@@ -212,6 +212,35 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         return True
     return False
 
+  async def async_install_firmware_and_wait(self, data: bytes, timeout: float = 120) -> bool:
+    """Flash a firmware image and wait for the kettle to come back on its web server.
+
+    The kettle validates and installs the image, then reboots into it. A rejected image raises
+    FirmwareImageError (surfaced to the user); a dropped connection is the expected reboot.
+    """
+    self.notify_command_sent()
+    self._last_partition_switch = monotonic()  # share the revert-guard cooldown
+    try:
+      await self.kettle.async_upload_firmware(self.session, data)
+    except FirmwareImageError:
+      raise  # the kettle refused the image; let the flow report it
+    except Exception as err:  # noqa: BLE001 - connection drops when the kettle reboots to flash
+      _LOGGER.debug("Firmware upload connection ended (kettle rebooting): %s", err)
+    self._firmware_fetched_at = None
+    deadline = monotonic() + timeout
+    while monotonic() < deadline:
+      await asyncio.sleep(3)
+      try:
+        firmware = await self.kettle.async_get_partitions(self.session)
+      except Exception:  # noqa: BLE001 - still rebooting/flashing
+        continue
+      if firmware:
+        self.firmware = firmware
+        self._firmware_fetched_at = monotonic()
+        await self.async_request_refresh()
+        return True
+    return False
+
   async def _maybe_revert_firmware(self) -> None:
     """If "Lock firmware" is on and the kettle booted another partition, switch back."""
     pinned = self.guard_partition

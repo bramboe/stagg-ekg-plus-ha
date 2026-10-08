@@ -73,7 +73,8 @@
         "title": "Fellow Stagg-opties",
         "menu_options": {
           "polling": "Pollingintervallen",
-          "switch_firmware": "Firmware wisselen"
+          "switch_firmware": "Firmware wisselen",
+          "upload_firmware": "Firmware uploaden (herstel)"
         }
       },
       "polling": {
@@ -89,19 +90,32 @@
         "data": {
           "confirm": "Ja, wissel de firmware van de waterkoker"
         }
+      },
+      "upload_firmware": {
+        "title": "Firmware uploaden",
+        "description": "Kies een firmware-.img-bestand om naar de waterkoker te flashen. Hersteltool voor als de vorige firmware van de waterkoker weg is. De waterkoker controleert de handtekening van het image en weigert een verkeerd of beschadigd bestand, dus bricken kan niet. Blokkeer eerst de internettoegang van de waterkoker. De waterkoker herstart in de geüploade firmware.",
+        "data": {
+          "firmware_file": "Firmware-.img-bestand"
+        }
       }
     },
     "progress": {
-      "switching": "De waterkoker schakelt over naar {target_version}; wachten tot hij herstart is…"
+      "switching": "De waterkoker schakelt over naar {target_version}; wachten tot hij herstart is…",
+      "uploading": "Firmware {version} wordt geüpload; wachten tot de waterkoker herstart…"
     },
     "error": {
       "not_confirmed": "Vink het vakje aan om te bevestigen.",
-      "kettle_heating": "De waterkoker is aan het verwarmen. Wissel de firmware als hij niet in gebruik is."
+      "kettle_heating": "De waterkoker is aan het verwarmen. Wissel de firmware als hij niet in gebruik is.",
+      "invalid_firmware": "Dat bestand is geen geldig firmware-image voor de Fellow Stagg-waterkoker.",
+      "read_failed": "Kon het geüploade bestand niet lezen. Probeer het opnieuw."
     },
     "abort": {
       "no_other_firmware": "De waterkoker heeft geen andere geldige firmware om naar over te schakelen.",
       "firmware_switched": "Klaar: de waterkoker draait nu {target_version}.",
-      "firmware_switch_failed": "De waterkoker is niet binnen een minuut teruggekomen op {target_version}. Kijk zo meteen naar de sensor **Firmwareversie**; als het wisselen niet gelukt is, houdt de waterkoker zijn vorige firmware."
+      "firmware_switch_failed": "De waterkoker is niet binnen een minuut teruggekomen op {target_version}. Kijk zo meteen naar de sensor **Firmwareversie**; als het wisselen niet gelukt is, houdt de waterkoker zijn vorige firmware.",
+      "firmware_uploaded": "Klaar: de waterkoker is herstart op firmware {version}.",
+      "firmware_upload_failed": "De waterkoker is na het uploaden van firmware {version} niet op tijd teruggekomen. Controleer de firmwareversie-sensor; als het niet gelukt is, houdt de waterkoker zijn vorige firmware.",
+      "not_loaded": "De waterkoker is nog niet geladen; probeer het zo opnieuw."
     }
   },
   "entity": {
