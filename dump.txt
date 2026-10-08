@@ -1,497 +1,228 @@
-Last login: Thu Oct  8 20:12:41 on ttys002
- fellow-analysis % cd ~/Desktop/fellow-analysis
+Last login: Thu Oct  8 20:15:56 on ttys006
+ fellow-analysis % ~/Library/Python/3.14/bin/hbc-disassembler --help
+usage: hbc-disassembler [-h] [-V] input_file [output_file]
 
-grep -RniE \
-'Updater|Firmware|firmware|RNFS|Download|Resource|BuildConfig|FIRMWARE' \
-jadx-out/sources/com/fellowApp \
-| head -300
-jadx-out/sources/com/fellowApp/R.java:408:        public static final int actualImageResource = 0x7f030025;
-jadx-out/sources/com/fellowApp/R.java:10361:        public static int FIRMWARE_VERSIONING_API_HOST = 0x7f0e0005;
-jadx-out/sources/com/fellowApp/R.java:10365:        public static int UPDATER_APP_BOOT = 0x7f0e0009;
-jadx-out/sources/com/fellowApp/BuildConfig.java:4:public final class BuildConfig {
-jadx-out/sources/com/fellowApp/BuildConfig.java:13:    public static final String FIRMWARE_VERSIONING_API_HOST = "https://5iuo52bmuc.execute-api.us-west-2.amazonaws.com/";
-jadx-out/sources/com/fellowApp/BuildConfig.java:20:    public static final String UPDATER_APP_BOOT = "true";
- fellow-analysis % find jadx-out/sources -type f | \
-grep -Ei 'firmware|updat|download|config|native|resource'
-jadx-out/sources/androidx/webkit/ProxyConfig.java
-jadx-out/sources/androidx/webkit/TracingConfig.java
-jadx-out/sources/androidx/webkit/WebResourceErrorCompat.java
-jadx-out/sources/androidx/webkit/internal/WebResourceRequestAdapter.java
-jadx-out/sources/androidx/webkit/internal/WebResourceErrorImpl.java
-jadx-out/sources/androidx/webkit/WebResourceRequestCompat.java
-jadx-out/sources/androidx/room/Update.java
-jadx-out/sources/androidx/room/EntityDeletionOrUpdateAdapter.java
-jadx-out/sources/androidx/room/DatabaseConfiguration.java
-jadx-out/sources/androidx/core/content/res/ResourcesCompat.java
-jadx-out/sources/androidx/core/content/res/ConfigurationHelper.java
-jadx-out/sources/androidx/core/content/res/FontResourcesParserCompat.java
-jadx-out/sources/androidx/core/content/OnConfigurationChangedProvider.java
-jadx-out/sources/androidx/core/view/ViewConfigurationCompat.java
-jadx-out/sources/androidx/core/view/ViewPropertyAnimatorUpdateListener.java
-jadx-out/sources/androidx/core/os/ConfigurationCompat.java
-jadx-out/sources/androidx/emoji2/text/DefaultEmojiCompatConfig.java
-jadx-out/sources/androidx/emoji2/text/FontRequestEmojiCompatConfig.java
-jadx-out/sources/androidx/resourceinspection/annotation/AppCompatShadowedAttributes.java
-jadx-out/sources/androidx/resourceinspection/annotation/Attribute.java
-jadx-out/sources/androidx/vectordrawable/graphics/drawable/AndroidResources.java
-jadx-out/sources/androidx/preference/AndroidResources.java
-jadx-out/sources/androidx/cursoradapter/widget/ResourceCursorAdapter.java
-jadx-out/sources/androidx/fragment/app/FragmentManagerNonConfig.java
-jadx-out/sources/androidx/recyclerview/widget/AsyncDifferConfig.java
-jadx-out/sources/androidx/recyclerview/widget/ListUpdateCallback.java
-jadx-out/sources/androidx/recyclerview/widget/BatchingListUpdateCallback.java
-jadx-out/sources/androidx/recyclerview/widget/AdapterListUpdateCallback.java
-jadx-out/sources/androidx/work/impl/background/systemalarm/ConstraintProxyUpdateReceiver.java
-jadx-out/sources/androidx/work/impl/WorkerUpdater.java
-jadx-out/sources/androidx/work/impl/utils/WorkForegroundUpdater.java
-jadx-out/sources/androidx/work/impl/utils/WorkProgressUpdater.java
-jadx-out/sources/androidx/work/ForegroundUpdater.java
-jadx-out/sources/androidx/work/Configuration.java
-jadx-out/sources/androidx/work/ProgressUpdater.java
-jadx-out/sources/androidx/appcompat/app/ResourcesFlusher.java
-jadx-out/sources/androidx/appcompat/widget/EmojiCompatConfigurationView.java
-jadx-out/sources/androidx/appcompat/widget/TintResources.java
-jadx-out/sources/androidx/appcompat/widget/ResourcesWrapper.java
-jadx-out/sources/androidx/appcompat/widget/VectorEnabledTintResources.java
-jadx-out/sources/androidx/appcompat/widget/ResourceManagerInternal.java
-jadx-out/sources/androidx/appcompat/resources/Compatibility.java
-jadx-out/sources/androidx/appcompat/resources/R.java
-jadx-out/sources/androidx/appcompat/content/res/AppCompatResources.java
-jadx-out/sources/org/chromium/support_lib_boundary/WebResourceErrorBoundaryInterface.java
-jadx-out/sources/org/chromium/support_lib_boundary/WebResourceRequestBoundaryInterface.java
-jadx-out/sources/org/greenrobot/eventbus/util/ExceptionToResourceMapping.java
-jadx-out/sources/org/greenrobot/eventbus/android/BuildConfig.java
-jadx-out/sources/kotlinx/coroutines/flow/SharingConfig.java
-jadx-out/sources/it/innove/BuildConfig.java
-jadx-out/sources/io/invertase/notifee/BuildConfig.java
-jadx-out/sources/io/invertase/firebase/app/ReactNativeFirebaseAppPackage.java
-jadx-out/sources/io/invertase/firebase/app/ReactNativeFirebaseAppRegistrar.java
-jadx-out/sources/io/invertase/firebase/app/ReactNativeFirebaseAppModule.java
-jadx-out/sources/io/invertase/firebase/app/ReactNativeFirebaseVersion.java
-jadx-out/sources/io/invertase/firebase/app/ReactNativeFirebaseApp.java
-jadx-out/sources/io/invertase/firebase/app/ReactNativeFirebaseAppInitProvider.java
-jadx-out/sources/io/invertase/firebase/auth/ReactNativeFirebaseAuthPackage.java
-jadx-out/sources/io/invertase/firebase/auth/ReactNativeFirebaseAuthModule.java
-jadx-out/sources/io/invertase/firebase/auth/BuildConfig.java
-jadx-out/sources/io/invertase/firebase/utils/ReactNativeFirebaseUtilsModule.java
-jadx-out/sources/io/invertase/firebase/common/ReactNativeFirebaseInitProvider.java
-jadx-out/sources/io/invertase/firebase/common/ReactNativeFirebasePreferences.java
-jadx-out/sources/io/invertase/firebase/common/ReactNativeFirebaseEvent.java
-jadx-out/sources/io/invertase/firebase/common/ReactNativeFirebaseMeta.java
-jadx-out/sources/io/invertase/firebase/common/ReactNativeFirebaseModule.java
-jadx-out/sources/io/invertase/firebase/common/ReactNativeFirebaseEventEmitter.java
-jadx-out/sources/io/invertase/firebase/common/ReactNativeFirebaseJSON.java
-jadx-out/sources/io/invertase/firebase/messaging/ReactNativeFirebaseMessagingService.java
-jadx-out/sources/io/invertase/firebase/messaging/ReactNativeFirebaseMessagingModule.java
-jadx-out/sources/io/invertase/firebase/messaging/ReactNativeFirebaseMessagingStoreHelper.java
-jadx-out/sources/io/invertase/firebase/messaging/ReactNativeFirebaseMessagingStoreImpl.java
-jadx-out/sources/io/invertase/firebase/messaging/ReactNativeFirebaseMessagingReceiver.java
-jadx-out/sources/io/invertase/firebase/messaging/ReactNativeFirebaseMessagingStore.java
-jadx-out/sources/io/invertase/firebase/messaging/ReactNativeFirebaseMessagingPackage.java
-jadx-out/sources/io/invertase/firebase/messaging/ReactNativeFirebaseMessagingHeadlessService.java
-jadx-out/sources/io/invertase/firebase/messaging/BuildConfig.java
-jadx-out/sources/io/invertase/firebase/messaging/ReactNativeFirebaseMessagingSerializer.java
-jadx-out/sources/io/invertase/firebase/BuildConfig.java
-jadx-out/sources/io/invertase/firebase/interfaces/NativeError.java
-jadx-out/sources/io/invertase/firebase/interfaces/NativeEvent.java
-jadx-out/sources/io/sentry/config/PropertiesProviderFactory.java
-jadx-out/sources/io/sentry/config/SimplePropertiesProvider.java
-jadx-out/sources/io/sentry/config/AbstractPropertiesProvider.java
-jadx-out/sources/io/sentry/config/SystemPropertyPropertiesProvider.java
-jadx-out/sources/io/sentry/config/CompositePropertiesProvider.java
-jadx-out/sources/io/sentry/config/EnvironmentVariablePropertiesProvider.java
-jadx-out/sources/io/sentry/config/ClasspathPropertiesLoader.java
-jadx-out/sources/io/sentry/config/PropertiesProvider.java
-jadx-out/sources/io/sentry/config/PropertiesLoader.java
-jadx-out/sources/io/sentry/config/FilesystemPropertiesLoader.java
-jadx-out/sources/io/sentry/internal/debugmeta/ResourcesDebugMetaLoader.java
-jadx-out/sources/io/sentry/internal/modules/ResourcesModulesLoader.java
-jadx-out/sources/io/sentry/MonitorConfig.java
-jadx-out/sources/io/sentry/android/core/BuildConfig.java
-jadx-out/sources/io/sentry/android/ndk/INativeScope.java
-jadx-out/sources/io/sentry/android/ndk/NativeScope.java
-jadx-out/sources/io/sentry/android/ndk/NativeModuleListLoader.java
-jadx-out/sources/io/sentry/android/ndk/BuildConfig.java
-jadx-out/sources/io/sentry/android/replay/video/MuxerConfig.java
-jadx-out/sources/io/sentry/android/replay/ScreenshotRecorderConfig.java
-jadx-out/sources/io/sentry/android/replay/BuildConfig.java
-jadx-out/sources/io/sentry/react/BuildConfig.java
-jadx-out/sources/io/sentry/BuildConfig.java
-jadx-out/sources/de/patwoz/rn/bluetoothstatemanager/BuildConfig.java
-jadx-out/sources/fr/bamlab/rnimageresizer/BuildConfig.java
-jadx-out/sources/espressif/WifiConfig.java
-jadx-out/sources/com/reactnativeespprovisioning/EspProvisioningPackage.java
-jadx-out/sources/com/reactnativeespprovisioning/R.java
-jadx-out/sources/com/reactnativeespprovisioning/BuildConfig.java
-jadx-out/sources/com/babisoft/ReactNativeLocalization/ReactNativeLocalization.java
-jadx-out/sources/com/babisoft/ReactNativeLocalization/R.java
-jadx-out/sources/com/babisoft/ReactNativeLocalization/ReactNativeLocalizationPackage.java
-jadx-out/sources/com/babisoft/ReactNativeLocalization/BuildConfig.java
-jadx-out/sources/com/reactcommunity/rndatetimepicker/BuildConfig.java
-jadx-out/sources/com/reactnativegooglesignin/Utils.java
-jadx-out/sources/com/reactnativegooglesignin/PendingAuthRecovery.java
-jadx-out/sources/com/reactnativegooglesignin/R.java
-jadx-out/sources/com/reactnativegooglesignin/RNGoogleSigninButtonViewManager.java
-jadx-out/sources/com/reactnativegooglesignin/RNGoogleSigninPackage.java
-jadx-out/sources/com/reactnativegooglesignin/PromiseWrapper.java
-jadx-out/sources/com/reactnativegooglesignin/RNGoogleSigninModule.java
-jadx-out/sources/com/reactnativegooglesignin/BuildConfig.java
-jadx-out/sources/com/th3rdwave/safeareacontext/BuildConfig.java
-jadx-out/sources/com/horcrux/svg/BuildConfig.java
-jadx-out/sources/com/horcrux/rnsvg/NativeSvgRenderableModuleSpec.java
-jadx-out/sources/com/horcrux/rnsvg/NativeSvgViewModuleSpec.java
-jadx-out/sources/com/fellowApp/BuildConfig.java
-jadx-out/sources/com/lugg/ReactNativeConfig/ReactNativeConfigModule.java
-jadx-out/sources/com/lugg/ReactNativeConfig/R.java
-jadx-out/sources/com/lugg/ReactNativeConfig/ReactNativeConfigPackage.java
-jadx-out/sources/com/lugg/ReactNativeConfig/BuildConfig.java
-jadx-out/sources/com/imagepicker/BuildConfig.java
-jadx-out/sources/com/oblador/vectoricons/BuildConfig.java
-jadx-out/sources/com/reactnativecommunity/picker/ReactPickerManager.java
-jadx-out/sources/com/reactnativecommunity/picker/ReactDialogPickerManager.java
-jadx-out/sources/com/reactnativecommunity/picker/PickerFocusEvent.java
-jadx-out/sources/com/reactnativecommunity/picker/TextViewImpl.java
-jadx-out/sources/com/reactnativecommunity/picker/RNCPickerPackage.java
-jadx-out/sources/com/reactnativecommunity/picker/ReactDropdownPickerManager.java
-jadx-out/sources/com/reactnativecommunity/picker/ReactPicker.java
-jadx-out/sources/com/reactnativecommunity/picker/PickerItemSelectEvent.java
-jadx-out/sources/com/reactnativecommunity/picker/ReactPickerShadowNode.java
-jadx-out/sources/com/reactnativecommunity/picker/R.java
-jadx-out/sources/com/reactnativecommunity/picker/CheckedTextViewImpl.java
-jadx-out/sources/com/reactnativecommunity/picker/PickerBlurEvent.java
-jadx-out/sources/com/reactnativecommunity/picker/ReactPickerLocalData.java
-jadx-out/sources/com/reactnativecommunity/picker/BuildConfig.java
-jadx-out/sources/com/reactnativecommunity/webview/URLUtil.java
-jadx-out/sources/com/reactnativecommunity/webview/BasicAuthCredential.java
-jadx-out/sources/com/reactnativecommunity/webview/RNCWebViewModule.java
-jadx-out/sources/com/reactnativecommunity/webview/WebViewConfig.java
-jadx-out/sources/com/reactnativecommunity/webview/RNCWebViewFileProvider.java
-jadx-out/sources/com/reactnativecommunity/webview/RNCWebViewPackage.java
-jadx-out/sources/com/reactnativecommunity/webview/R.java
-jadx-out/sources/com/reactnativecommunity/webview/events/TopRenderProcessGoneEvent.java
-jadx-out/sources/com/reactnativecommunity/webview/events/TopShouldStartLoadWithRequestEvent.java
-jadx-out/sources/com/reactnativecommunity/webview/events/TopMessageEvent.java
-jadx-out/sources/com/reactnativecommunity/webview/events/TopLoadingStartEvent.java
-jadx-out/sources/com/reactnativecommunity/webview/events/TopLoadingFinishEvent.java
-jadx-out/sources/com/reactnativecommunity/webview/events/TopLoadingErrorEvent.java
-jadx-out/sources/com/reactnativecommunity/webview/events/TopLoadingProgressEvent.java
-jadx-out/sources/com/reactnativecommunity/webview/events/TopHttpErrorEvent.java
-jadx-out/sources/com/reactnativecommunity/webview/RNCWebViewManager.java
-jadx-out/sources/com/reactnativecommunity/webview/BuildConfig.java
-jadx-out/sources/com/reactnativecommunity/slider/ReactSlider.java
-jadx-out/sources/com/reactnativecommunity/slider/ReactSliderPackage.java
-jadx-out/sources/com/reactnativecommunity/slider/R.java
-jadx-out/sources/com/reactnativecommunity/slider/ReactSliderManager.java
-jadx-out/sources/com/reactnativecommunity/slider/ReactSliderEvent.java
-jadx-out/sources/com/reactnativecommunity/slider/ReactSlidingCompleteEvent.java
-jadx-out/sources/com/reactnativecommunity/slider/BuildConfig.java
-jadx-out/sources/com/reactnativecommunity/slider/ReactSlidingStartEvent.java
-jadx-out/sources/com/reactnativecommunity/geolocation/GeolocationPackage.java
-jadx-out/sources/com/reactnativecommunity/geolocation/R.java
-jadx-out/sources/com/reactnativecommunity/geolocation/PositionError.java
-jadx-out/sources/com/reactnativecommunity/geolocation/GeolocationModule.java
-jadx-out/sources/com/reactnativecommunity/geolocation/BuildConfig.java
-jadx-out/sources/com/google/crypto/tink/aead/AeadConfig.java
-jadx-out/sources/com/google/crypto/tink/prf/PrfConfig.java
-jadx-out/sources/com/google/crypto/tink/proto/RegistryConfig.java
-jadx-out/sources/com/google/crypto/tink/proto/Config.java
-jadx-out/sources/com/google/crypto/tink/proto/RegistryConfigOrBuilder.java
-jadx-out/sources/com/google/crypto/tink/signature/SignatureConfig.java
-jadx-out/sources/com/google/crypto/tink/streamingaead/StreamingAeadConfig.java
-jadx-out/sources/com/google/crypto/tink/config/TinkFipsStatus.java
-jadx-out/sources/com/google/crypto/tink/config/TinkConfig.java
-jadx-out/sources/com/google/crypto/tink/config/TinkFips.java
-jadx-out/sources/com/google/crypto/tink/config/TinkFipsDisabled.java
-jadx-out/sources/com/google/crypto/tink/mac/MacConfig.java
-jadx-out/sources/com/google/crypto/tink/daead/DeterministicAeadConfig.java
-jadx-out/sources/com/google/crypto/tink/Config.java
-jadx-out/sources/com/google/crypto/tink/hybrid/HybridConfig.java
-jadx-out/sources/com/google/gson/internal/GsonBuildConfig.java
-jadx-out/sources/com/google/firebase/datatransport/BuildConfig.java
-jadx-out/sources/com/google/firebase/internal/DataCollectionConfigStorage.java
-jadx-out/sources/com/google/firebase/installations/interop/BuildConfig.java
-jadx-out/sources/com/google/firebase/installations/BuildConfig.java
-jadx-out/sources/com/google/firebase/components/BuildConfig.java
-jadx-out/sources/com/google/firebase/encoders/config/EncoderConfig.java
-jadx-out/sources/com/google/firebase/encoders/config/Configurator.java
-jadx-out/sources/com/google/firebase/encoders/json/BuildConfig.java
-jadx-out/sources/com/google/firebase/messaging/ImageDownload.java
-jadx-out/sources/com/google/firebase/messaging/BuildConfig.java
-jadx-out/sources/com/google/firebase/BuildConfig.java
-jadx-out/sources/com/google/android/datatransport/runtime/scheduling/jobscheduling/SchedulerConfig.java
-jadx-out/sources/com/google/android/datatransport/runtime/scheduling/jobscheduling/AutoValue_SchedulerConfig.java
-jadx-out/sources/com/google/android/datatransport/runtime/scheduling/jobscheduling/AutoValue_SchedulerConfig_ConfigValue.java
-jadx-out/sources/com/google/android/datatransport/runtime/scheduling/SchedulingConfigModule.java
-jadx-out/sources/com/google/android/datatransport/runtime/scheduling/persistence/EventStoreConfig.java
-jadx-out/sources/com/google/android/datatransport/runtime/scheduling/persistence/AutoValue_EventStoreConfig.java
-jadx-out/sources/com/google/android/datatransport/runtime/scheduling/persistence/EventStoreModule_StoreConfigFactory.java
-jadx-out/sources/com/google/android/datatransport/runtime/scheduling/SchedulingConfigModule_ConfigFactory.java
-jadx-out/sources/com/google/android/datatransport/runtime/BuildConfig.java
-jadx-out/sources/com/google/android/datatransport/backend/cct/BuildConfig.java
-jadx-out/sources/com/google/android/datatransport/BuildConfig.java
-jadx-out/sources/com/google/android/gms/tasks/NativeOnCompleteListener.java
-jadx-out/sources/com/google/android/gms/auth/api/signin/internal/SignInConfiguration.java
-jadx-out/sources/com/google/android/gms/auth/api/credentials/CredentialPickerConfig.java
-jadx-out/sources/com/google/android/gms/phenotype/Configuration.java
-jadx-out/sources/com/google/android/gms/common/config/zza.java
-jadx-out/sources/com/google/android/gms/common/config/GservicesValue.java
-jadx-out/sources/com/google/android/gms/common/config/zzd.java
-jadx-out/sources/com/google/android/gms/common/config/zze.java
-jadx-out/sources/com/google/android/gms/common/config/zzb.java
-jadx-out/sources/com/google/android/gms/common/config/zzc.java
-jadx-out/sources/com/google/android/gms/common/internal/ConnectionTelemetryConfiguration.java
-jadx-out/sources/com/google/android/gms/common/internal/RootTelemetryConfigManager.java
-jadx-out/sources/com/google/android/gms/common/internal/StringResourceValueReader.java
-jadx-out/sources/com/google/android/gms/common/internal/ResourceUtils.java
-jadx-out/sources/com/google/android/gms/common/internal/RootTelemetryConfiguration.java
-jadx-out/sources/com/google/android/material/color/ColorResourcesTableCreator.java
-jadx-out/sources/com/google/android/material/color/ColorResourcesLoaderCreator.java
-jadx-out/sources/com/google/android/material/resources/TypefaceUtils.java
-jadx-out/sources/com/google/android/material/resources/TextAppearanceConfig.java
-jadx-out/sources/com/google/android/material/resources/CancelableFontCallback.java
-jadx-out/sources/com/google/android/material/resources/TextAppearance.java
-jadx-out/sources/com/google/android/material/resources/TextAppearanceFontCallback.java
-jadx-out/sources/com/google/android/material/resources/MaterialAttributes.java
-jadx-out/sources/com/google/android/material/resources/MaterialResources.java
-jadx-out/sources/com/artemzin/rxjavaproguardrules/BuildConfig.java
-jadx-out/sources/com/swmansion/reanimated/layoutReanimation/NativeMethodsHolder.java
-jadx-out/sources/com/swmansion/reanimated/layoutReanimation/ReanimatedNativeHierarchyManager.java
-jadx-out/sources/com/swmansion/reanimated/ReactNativeUtils.java
-jadx-out/sources/com/swmansion/reanimated/NativeProxy.java
-jadx-out/sources/com/swmansion/reanimated/nativeProxy/NoopEventHandler.java
-jadx-out/sources/com/swmansion/reanimated/nativeProxy/EventHandler.java
-jadx-out/sources/com/swmansion/reanimated/nativeProxy/NativeProxyCommon.java
-jadx-out/sources/com/swmansion/reanimated/nativeProxy/AnimationFrameCallback.java
-jadx-out/sources/com/swmansion/reanimated/nativeProxy/SensorSetter.java
-jadx-out/sources/com/swmansion/reanimated/NativeMethodsHelper.java
-jadx-out/sources/com/swmansion/reanimated/NativeReanimatedModuleSpec.java
-jadx-out/sources/com/swmansion/reanimated/BuildConfig.java
-jadx-out/sources/com/swmansion/gesturehandler/NativeViewGestureHandler.java
-jadx-out/sources/com/swmansion/gesturehandler/ViewConfigurationHelper.java
-jadx-out/sources/com/swmansion/gesturehandler/PointerEventsConfig.java
-jadx-out/sources/com/swmansion/gesturehandler/react/RNViewConfigurationHelper.java
-jadx-out/sources/com/swmansion/gesturehandler/react/BuildConfig.java
-jadx-out/sources/com/swmansion/rnscreens/NativeScreensModuleSpec.java
-jadx-out/sources/com/swmansion/rnscreens/ScreenStackHeaderConfig.java
-jadx-out/sources/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.java
-jadx-out/sources/com/swmansion/rnscreens/BuildConfig.java
-jadx-out/sources/com/rnfs/DownloadParams.java
-jadx-out/sources/com/rnfs/DownloadResult.java
-jadx-out/sources/com/rnfs/BuildConfig.java
-jadx-out/sources/com/rnfs/Downloader.java
-jadx-out/sources/com/budiyev/android/codescanner/BuildConfig.java
-jadx-out/sources/com/sha256lib/BuildConfig.java
-jadx-out/sources/com/facebook/imagepipeline/producers/QualifiedResourceFetchProducer.java
-jadx-out/sources/com/facebook/imagepipeline/producers/LocalResourceFetchProducer.java
-jadx-out/sources/com/facebook/imagepipeline/core/ImagePipelineConfigInterface.java
-jadx-out/sources/com/facebook/imagepipeline/core/NativeCodeSetup.java
-jadx-out/sources/com/facebook/imagepipeline/core/ImagePipelineConfig.java
-jadx-out/sources/com/facebook/imagepipeline/memory/DefaultNativeMemoryChunkPoolParams.java
-jadx-out/sources/com/facebook/imagepipeline/memory/PoolConfig.java
-jadx-out/sources/com/facebook/imagepipeline/memory/BitmapCounterConfig.java
-jadx-out/sources/com/facebook/imagepipeline/memory/NativeMemoryChunkPool.java
-jadx-out/sources/com/facebook/imagepipeline/memory/NativeMemoryChunk.java
-jadx-out/sources/com/facebook/imagepipeline/cache/NativeMemoryCacheTrimStrategy.java
-jadx-out/sources/com/facebook/imagepipeline/backends/okhttp3/OkHttpImagePipelineConfigFactory.java
-jadx-out/sources/com/facebook/imagepipeline/backends/okhttp3/BuildConfig.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/Bitmaps.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/NativeCodeInitializer.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/ImagePipelineNativeLoader.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/WebpTranscoder.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/NativeJpegTranscoderFactory.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/WebpTranscoderFactory.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/NativeJpegTranscoder.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/R.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/DalvikPurgeableDecoder.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/NativeJpegTranscoderSoLoader.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/NativeRoundingFilter.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/NativeFiltersLoader.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/BuildConfig.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/NativeImageTranscoderFactory.java
-jadx-out/sources/com/facebook/imagepipeline/nativecode/NativeBlurFilter.java
-jadx-out/sources/com/facebook/imagepipeline/decoder/ImageDecoderConfig.java
-jadx-out/sources/com/facebook/imagepipeline/decoder/ProgressiveJpegConfig.java
-jadx-out/sources/com/facebook/imagepipeline/decoder/SimpleProgressiveJpegConfig.java
-jadx-out/sources/com/facebook/imagepipeline/BuildConfig.java
-jadx-out/sources/com/facebook/fbcore/BuildConfig.java
-jadx-out/sources/com/facebook/yoga/YogaConfigJNIBase.java
-jadx-out/sources/com/facebook/yoga/YogaNative.java
-jadx-out/sources/com/facebook/yoga/YogaConfig.java
-jadx-out/sources/com/facebook/yoga/YogaConfigFactory.java
-jadx-out/sources/com/facebook/yoga/YogaConfigJNIFinalizer.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeToastAndroidSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeDevMenuSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeBugReportingSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeExceptionsManagerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeNetworkingAndroidSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeAlertManagerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeFileReaderModuleSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeJSCSamplingProfilerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeWebSocketModuleSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeDeviceInfoSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeAccessibilityInfoSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeHeadlessJsTaskSupportSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeKeyboardObserverSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeIntentAndroidSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeModalManagerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeJSCHeapCaptureSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeRedBoxSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeImageEditorSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeClipboardSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeAccessibilityManagerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeFrameRateLoggerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeDevToolsSettingsManagerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeActionSheetManagerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeStatusBarManagerAndroidSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeTimingSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeAppearanceSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeAppStateSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativePlatformConstantsAndroidSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeAnimatedModuleSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeImageStoreAndroidSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeSourceCodeSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeDeviceEventManagerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeAnimationsDebugModuleSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativePermissionsAndroidSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeSoundManagerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeAnimatedTurboModuleSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeI18nManagerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeDevSettingsSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeDialogManagerAndroidSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeLogBoxSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeLinkingManagerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeShareModuleSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeBlobModuleSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeSettingsManagerSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeDevLoadingViewSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeImageLoaderAndroidSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeSegmentFetcherSpec.java
-jadx-out/sources/com/facebook/fbreact/specs/NativeVibrationSpec.java
-jadx-out/sources/com/facebook/memory/config/MemorySpikeConfig.java
-jadx-out/sources/com/facebook/cache/disk/DiskCacheConfig.java
-jadx-out/sources/com/facebook/binaryresource/ByteArrayBinaryResource.java
-jadx-out/sources/com/facebook/binaryresource/FileBinaryResource.java
-jadx-out/sources/com/facebook/binaryresource/BinaryResource.java
-jadx-out/sources/com/facebook/fresco/ui/common/BuildConfig.java
-jadx-out/sources/com/facebook/fresco/soloader/BuildConfig.java
-jadx-out/sources/com/facebook/fresco/memorytypes/ashmem/BuildConfig.java
-jadx-out/sources/com/facebook/fresco/memorytypes/nativememory/R.java
-jadx-out/sources/com/facebook/fresco/memorytypes/nativememory/BuildConfig.java
-jadx-out/sources/com/facebook/fresco/memorytypes/simple/BuildConfig.java
-jadx-out/sources/com/facebook/fresco/common/middleware/BuildConfig.java
-jadx-out/sources/com/facebook/soloader/NativeDeps.java
-jadx-out/sources/com/facebook/soloader/NativeDepsUnpacker.java
-jadx-out/sources/com/facebook/soloader/NativeLibrary.java
-jadx-out/sources/com/facebook/soloader/NativeLoaderToSoLoaderDelegate.java
-jadx-out/sources/com/facebook/soloader/nativeloader/NativeLoaderDelegate.java
-jadx-out/sources/com/facebook/soloader/nativeloader/NativeLoader.java
-jadx-out/sources/com/facebook/soloader/nativeloader/SystemDelegate.java
-jadx-out/sources/com/facebook/imagepipelinebase/BuildConfig.java
-jadx-out/sources/com/facebook/drawee/backends/pipeline/DraweeConfig.java
-jadx-out/sources/com/facebook/drawee/backends/pipeline/BuildConfig.java
-jadx-out/sources/com/facebook/drawee/BuildConfig.java
-jadx-out/sources/com/facebook/perftest/PerfTestConfig.java
-jadx-out/sources/com/facebook/nativefilters/R.java
-jadx-out/sources/com/facebook/nativefilters/BuildConfig.java
-jadx-out/sources/com/facebook/common/references/ResourceReleaser.java
-jadx-out/sources/com/facebook/nativeimagetranscoder/R.java
-jadx-out/sources/com/facebook/nativeimagetranscoder/BuildConfig.java
-jadx-out/sources/com/facebook/fbjni/BuildConfig.java
-jadx-out/sources/com/facebook/hermes/reactexecutor/RuntimeConfig.java
-jadx-out/sources/com/facebook/hermes/BuildConfig.java
-jadx-out/sources/com/facebook/jni/NativeRunnable.java
-jadx-out/sources/com/facebook/react/config/ReactFeatureFlags.java
-jadx-out/sources/com/facebook/react/ReactNativeHost.java
-jadx-out/sources/com/facebook/react/NativeModuleRegistryBuilder.java
-jadx-out/sources/com/facebook/react/shell/MainPackageConfig.java
-jadx-out/sources/com/facebook/react/bridge/NativeArgumentsParseException.java
-jadx-out/sources/com/facebook/react/bridge/NativeArrayInterface.java
-jadx-out/sources/com/facebook/react/bridge/ReadableNativeArray.java
-jadx-out/sources/com/facebook/react/bridge/ReadableNativeMap.java
-jadx-out/sources/com/facebook/react/bridge/NativeModule.java
-jadx-out/sources/com/facebook/react/bridge/NativeArray.java
-jadx-out/sources/com/facebook/react/bridge/JSApplicationCausedNativeException.java
-jadx-out/sources/com/facebook/react/bridge/NativeMap.java
-jadx-out/sources/com/facebook/react/bridge/WritableNativeArray.java
-jadx-out/sources/com/facebook/react/bridge/queue/ReactQueueConfigurationSpec.java
-jadx-out/sources/com/facebook/react/bridge/queue/ReactQueueConfigurationImpl.java
-jadx-out/sources/com/facebook/react/bridge/queue/ReactQueueConfiguration.java
-jadx-out/sources/com/facebook/react/bridge/NativeModuleRegistry.java
-jadx-out/sources/com/facebook/react/bridge/UnexpectedNativeTypeException.java
-jadx-out/sources/com/facebook/react/bridge/WritableNativeMap.java
-jadx-out/sources/com/facebook/react/viewmanagers/TraceUpdateOverlayManagerInterface.java
-jadx-out/sources/com/facebook/react/viewmanagers/UnimplementedNativeViewManagerInterface.java
-jadx-out/sources/com/facebook/react/viewmanagers/TraceUpdateOverlayManagerDelegate.java
-jadx-out/sources/com/facebook/react/viewmanagers/RNSScreenStackHeaderConfigManagerDelegate.java
-jadx-out/sources/com/facebook/react/viewmanagers/RNSScreenStackHeaderConfigManagerInterface.java
-jadx-out/sources/com/facebook/react/viewmanagers/UnimplementedNativeViewManagerDelegate.java
-jadx-out/sources/com/facebook/react/turbomodule/core/NativeModuleSoLoader.java
-jadx-out/sources/com/facebook/react/turbomodule/core/NativeMethodCallInvokerHolderImpl.java
-jadx-out/sources/com/facebook/react/turbomodule/core/interfaces/NativeMethodCallInvokerHolder.java
-jadx-out/sources/com/facebook/react/devsupport/BundleDownloader.java
-jadx-out/sources/com/facebook/react/devsupport/interfaces/DevBundleDownloadListener.java
-jadx-out/sources/com/facebook/react/defaults/DefaultReactNativeHost.java
-jadx-out/sources/com/facebook/react/common/annotations/UnstableReactNativeAPI.java
-jadx-out/sources/com/facebook/react/common/build/ReactBuildConfig.java
-jadx-out/sources/com/facebook/react/jstasks/HeadlessJsTaskConfig.java
-jadx-out/sources/com/facebook/react/perflogger/NativeModulePerfLogger.java
-jadx-out/sources/com/facebook/react/fabric/ReactNativeConfig.java
-jadx-out/sources/com/facebook/react/fabric/EmptyReactNativeConfig.java
-jadx-out/sources/com/facebook/react/modules/core/RCTNativeAppEventEmitter.java
-jadx-out/sources/com/facebook/react/modules/systeminfo/ReactNativeVersion.java
-jadx-out/sources/com/facebook/react/modules/debug/DidJSUpdateUiDuringFrameDetector.java
-jadx-out/sources/com/facebook/react/views/image/ReactImageDownloadListener.java
-jadx-out/sources/com/facebook/react/views/text/ReactTextUpdate.java
-jadx-out/sources/com/facebook/react/views/imagehelper/ResourceDrawableIdHelper.java
-jadx-out/sources/com/facebook/react/views/traceupdateoverlay/TraceUpdateOverlay.java
-jadx-out/sources/com/facebook/react/views/traceupdateoverlay/TraceUpdateOverlayManager.java
-jadx-out/sources/com/facebook/react/BuildConfig.java
-jadx-out/sources/com/facebook/react/animated/AnimatedNodeWithUpdateableConfig.java
-jadx-out/sources/com/facebook/react/animated/NativeAnimatedModule.java
-jadx-out/sources/com/facebook/react/animated/NativeAnimatedNodesManager.java
-jadx-out/sources/com/facebook/react/uimanager/ReactYogaConfigProvider.java
-jadx-out/sources/com/facebook/react/uimanager/NativeKind.java
-jadx-out/sources/com/facebook/react/uimanager/NativeViewHierarchyOptimizer.java
-jadx-out/sources/com/facebook/react/uimanager/ViewManagerPropertyUpdater.java
-jadx-out/sources/com/facebook/react/uimanager/layoutanimation/LayoutUpdateAnimation.java
-jadx-out/sources/com/facebook/react/uimanager/NativeViewHierarchyManager.java
-jadx-out/sources/com/facebook/react/uimanager/NoSuchNativeViewException.java
-jadx-out/sources/com/facebook/react/uimanager/events/NativeGestureUtil.java
-jadx-out/sources/com/facebook/react/uimanager/debug/NotThreadSafeViewHierarchyUpdateDebugListener.java
-jadx-out/sources/com/ammarahmed/mmkv/BuildConfig.java
-jadx-out/sources/com/polidea/rxandroidble/internal/connection/NativeCallbackDispatcher_Factory.java
-jadx-out/sources/com/polidea/rxandroidble/internal/connection/NativeCallbackDispatcher.java
-jadx-out/sources/com/polidea/rxandroidble/internal/scan/ScanRecordImplNativeWrapper.java
-jadx-out/sources/com/polidea/rxandroidble/internal/operations/TimeoutConfiguration.java
-jadx-out/sources/com/polidea/rxandroidble/BuildConfig.java
-jadx-out/sources/com/polidea/multiplatformbleadapter/BuildConfig.java
-jadx-out/sources/com/polidea/reactnativeble/converter/DeviceToJsObjectConverter.java
-jadx-out/sources/com/polidea/reactnativeble/converter/ScanResultToJsObjectConverter.java
-jadx-out/sources/com/polidea/reactnativeble/converter/BleErrorToJsObjectConverter.java
-jadx-out/sources/com/polidea/reactnativeble/converter/JSObjectConverter.java
-jadx-out/sources/com/polidea/reactnativeble/converter/CharacteristicToJsObjectConverter.java
-jadx-out/sources/com/polidea/reactnativeble/converter/DescriptorToJsObjectConverter.java
-jadx-out/sources/com/polidea/reactnativeble/converter/ServiceToJsObjectConverter.java
-jadx-out/sources/com/polidea/reactnativeble/utils/ReadableArrayConverter.java
-jadx-out/sources/com/polidea/reactnativeble/utils/Base64Converter.java
-jadx-out/sources/com/polidea/reactnativeble/utils/SafePromise.java
-jadx-out/sources/com/polidea/reactnativeble/utils/UUIDConverter.java
-jadx-out/sources/com/polidea/reactnativeble/BlePackage.java
-jadx-out/sources/com/polidea/reactnativeble/Event.java
-jadx-out/sources/com/polidea/reactnativeble/R.java
-jadx-out/sources/com/polidea/reactnativeble/BleClientManager.java
-jadx-out/sources/com/polidea/reactnativeble/BuildConfig.java
-jadx-out/sources/com/zoontek/rnpermissions/BuildConfig.java
-jadx-out/sources/com/zoontek/rnbootsplash/BuildConfig.java
-jadx-out/sources/com/learnium/RNDeviceInfo/BuildConfig.java
-jadx-out/sources/com/espressif/provisioning/BuildConfig.java
- fellow-analysis % grep -RniE \
-'FIRMWARE_VERSIONING_API_HOST|initialUpdaterRunning|firmware_version|FirmwareVersion' \
-jadx-out/sources jadx-out/resources \
-| head -300
-jadx-out/sources/com/fellowApp/R.java:10361:        public static int FIRMWARE_VERSIONING_API_HOST = 0x7f0e0005;
-jadx-out/sources/com/fellowApp/BuildConfig.java:13:    public static final String FIRMWARE_VERSIONING_API_HOST = "https://5iuo52bmuc.execute-api.us-west-2.amazonaws.com/";
-jadx-out/resources/res/values/public.xml:3450:    <public type="string" name="FIRMWARE_VERSIONING_API_HOST" id="0x7f0e0005" />
-jadx-out/resources/res/values/strings.xml:8:    <string name="FIRMWARE_VERSIONING_API_HOST">https://5iuo52bmuc.execute-api.us-west-2.amazonaws.com/</string>
-Binary file jadx-out/resources/assets/index.android.bundle matches
- fellow-analysis % 
+positional arguments:
+  input_file
+  output_file
+
+options:
+  -h, --help     show this help message and exit
+  -V, --version
+ fellow-analysis % ~/Library/Python/3.14/bin/hbc-disassembler \
+  jadx-out/resources/assets/index.android.bundle \
+  > hermes-disassembly.txt
+ fellow-analysis % ls -lh hermes-disassembly.txt
+-rw-r--r--  1 bram.boersma  staff    59M  8 Oct 20:18 hermes-disassembly.txt
+ fellow-analysis % grep -niE \
+'FIRMWARE_VERSIONING|firmware_version|firmwareUpdates|initialUpdaterRunning|RNFSManager|\.bin|download|ota' \
+hermes-disassembly.txt | head -200
+16291:==> 00000285: <LoadConstString>: <Reg8: 7, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+16675:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+25505:==> 00000115: <LoadConstString>: <Reg8: 5, string_id: 28107>  # String: 'setReactNativeMicrotasksCallback' (Identifier)
+25507:==> 0000011d: <CreateClosure>: <Reg8: 5, Reg8: 1, function_id: 431>  # Function: [#431 setReactNativeMicrotasksCallback of 16 bytes]: 2 params @ offset 0x001d9ea4
+25523:==> 0000015a: <LoadConstString>: <Reg8: 5, string_id: 23619>  # String: '__callReactNativeMicrotasks' (Identifier)
+25525:==> 00000162: <CreateClosure>: <Reg8: 5, Reg8: 1, function_id: 434>  # Function: [#434 __callReactNativeMicrotasks of 125 bytes]: 1 params @ offset 0x001d9f31
+25599:==> 000000ae: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 8, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+25732:==> 00000007: <GetById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 23619>  # String: '__callReactNativeMicrotasks' (Identifier)
+25999:=> [Function #431 "setReactNativeMicrotasksCallback" of 16 bytes]: 2 params, frame size=2, strict=1, exc handler=0, debug info=0  @ offset 0x001d9ea4
+26005:==> 00000006: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+26065:=> [Function #434 "__callReactNativeMicrotasks" of 125 bytes]: 1 params, frame size=15, strict=1, exc handler=1, debug info=0  @ offset 0x001d9f31
+26079:==> 00000022: <LoadConstString>: <Reg8: 0, string_id: 5481>  # String: 'JSTimers.callReactNativeMicrotasks()' (String)
+26081:==> 0000002b: <GetById>: <Reg8: 5, Reg8: 2, UInt8: 2, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+26084:==> 00000037: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 2, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+51573:==> 000000a2: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+52269:==> 0000008e: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 6, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+54331:==> 00000034: <LoadConstString>: <Reg8: 5, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+54366:==> 00000032: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 3, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+54367:==> 00000038: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 33046>  # String: '_totalJSHeapSize' (Identifier)
+54391:==> 00000002: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 33046>  # String: '_totalJSHeapSize' (Identifier)
+60379:==> 0000019c: <LoadConstString>: <Reg8: 5, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+60383:==> 000001ad: <LoadConstString>: <Reg8: 2, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+60477:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60494:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 34853>  # String: 'clearReactNativeMicrotask' (Identifier)
+60551:==> 00000032: <CreateClosure>: <Reg8: 0, Reg8: 3, function_id: 1232>  # Function: [#1232 _callReactNativeMicrotasksPass of 91 bytes]: 1 params @ offset 0x001f5627
+60596:==> 000000ed: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1242>  # Function: [#1242 queueReactNativeMicrotask of 134 bytes]: 2 params @ offset 0x001f5934
+60597:==> 000000f2: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60608:==> 00000129: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1251>  # Function: [#1251 clearReactNativeMicrotask of 62 bytes]: 2 params @ offset 0x001f5bcf
+60609:==> 0000012e: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 34853>  # String: 'clearReactNativeMicrotask' (Identifier)
+60616:==> 00000151: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1258>  # Function: [#1258 callReactNativeMicrotasks of 62 bytes]: 1 params @ offset 0x001f5da0
+60617:==> 00000156: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60630:==> 0000018c: <GetById>: <Reg8: 6, Reg8: 1, UInt8: 4, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60631:==> 00000192: <PutNewOwnById>: <Reg8: 3, Reg8: 6, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60632:==> 00000197: <GetById>: <Reg8: 6, Reg8: 1, UInt8: 5, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60633:==> 0000019d: <PutNewOwnById>: <Reg8: 3, Reg8: 6, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60638:==> 000001b1: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 6, string_id: 28107>  # String: 'setReactNativeMicrotasksCallback' (Identifier)
+60639:==> 000001b7: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 4, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60744:==> 000000bb: <LoadConstString>: <Reg8: 4, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60812:=> [Function #1232 "_callReactNativeMicrotasksPass" of 91 bytes]: 1 params, frame size=16, strict=0, exc handler=0, debug info=0  @ offset 0x001f5627
+60882:==> 00000037: <LoadConstString>: <Reg8: 3, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+61113:=> [Function #1242 "queueReactNativeMicrotask" of 134 bytes]: 2 params, frame size=18, strict=0, exc handler=0, debug info=0  @ offset 0x001f5934
+61148:==> 0000006c: <LoadConstString>: <Reg8: 0, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+61374:=> [Function #1251 "clearReactNativeMicrotask" of 62 bytes]: 2 params, frame size=14, strict=0, exc handler=0, debug info=0  @ offset 0x001f5bcf
+61561:=> [Function #1258 "callReactNativeMicrotasks" of 62 bytes]: 1 params, frame size=12, strict=0, exc handler=0, debug info=0  @ offset 0x001f5da0
+61870:==> 000000a8: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 5, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+61950:==> 00000025: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 1270>  # Function: [#1270 queueMicrotask of 160 bytes]: 2 params @ offset 0x001f61f5
+61958:=> [Function #1270 "queueMicrotask" of 160 bytes]: 2 params, frame size=14, strict=1, exc handler=0, debug info=0  @ offset 0x001f61f5
+61991:==> 0000006d: <LoadConstString>: <Reg8: 6, string_id: 10921>  # String: 'The argument to queueMicrotask must be a function.' (String)
+62000:==> 0000008f: <LoadConstString>: <Reg8: 6, string_id: 16220>  # String: 'queueMicrotask must be called with at least one argument (a function to call)' (String)
+63211:==> 00000031: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 33047>  # String: 'total' (Identifier)
+63361:==> 00000036: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 33047>  # String: 'total' (Identifier)
+67895:==> 0000003f: <PutNewOwnById>: <Reg8: 0, Reg8: 5, string_id: 30256>  # String: 'totalTime' (Identifier)
+68000:==> 00000033: <GetById>: <Reg8: 8, Reg8: 10, UInt8: 2, string_id: 30256>  # String: 'totalTime' (Identifier)
+68306:==> 00000098: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 3, string_id: 30256>  # String: 'totalTime' (Identifier)
+87476:==> 000002a7: <NewObjectWithBuffer>: <Reg8: 7, UInt16: 103, UInt16: 103, UInt16: 4259, UInt16: 1136>  # Object: {'backgroundColor': null, 'transform': true, 'transformOrigin': true, 'opacity': true, 'elevation': true, 'shadowColor': null, 'zIndex': true, 'renderToHardwareTextureAndroid': true, 'testID': true, 'nativeID': true, 'accessibilityLabelledBy': true, 'accessibilityLabel': true, 'accessibilityHint': true, 'accessibilityRole': true, 'accessibilityCollection': true, 'accessibilityCollectionItem': true, 'accessibilityState': true, 'accessibilityActions': true, 'accessibilityValue': true, 'importantForAccessibility': true, 'role': true, 'rotation': true, 'scaleX': true, 'scaleY': true, 'translateX': true, 'translateY': true, 'accessibilityLiveRegion': true, 'width': true, 'minWidth': true, 'collapsable': true, 'maxWidth': true, 'height': true, 'minHeight': true, 'maxHeight': true, 'flex': true, 'flexGrow': true, 'rowGap': true, 'columnGap': true, 'gap': true, 'flexShrink': true, 'flexBasis': true, 'aspectRatio': true, 'flexDirection': true, 'flexWrap': true, 'alignSelf': true, 'alignItems': true, 'alignContent': true, 'justifyContent': true, 'overflow': true, 'display': true, 'margin': true, 'marginBlock': true, 'marginBlockEnd': true, 'marginBlockStart': true, 'marginBottom': true, 'marginEnd': true, 'marginHorizontal': true, 'marginInline': true, 'marginInlineEnd': true, 'marginInlineStart': true, 'marginLeft': true, 'marginRight': true, 'marginStart': true, 'marginTop': true, 'marginVertical': true, 'padding': true, 'paddingBlock': true, 'paddingBlockEnd': true, 'paddingBlockStart': true, 'paddingBottom': true, 'paddingEnd': true, 'paddingHorizontal': true, 'paddingInline': true, 'paddingInlineEnd': true, 'paddingInlineStart': true, 'paddingLeft': true, 'paddingRight': true, 'paddingStart': true, 'paddingTop': true, 'paddingVertical': true, 'borderWidth': true, 'borderStartWidth': true, 'borderEndWidth': true, 'borderTopWidth': true, 'borderBottomWidth': true, 'borderLeftWidth': true, 'borderRightWidth': true, 'start': true, 'end': true, 'left': true, 'right': true, 'top': true, 'bottom': true, 'inset': true, 'insetBlock': true, 'insetBlockEnd': true, 'insetBlockStart': true, 'insetInline': true, 'insetInlineEnd': true, 'insetInlineStart': true, 'position': true, 'style': null, 'experimental_layoutConformance': true}
+96261:==> 00000163: <PutById>: <Reg8: 4, Reg8: 8, UInt8: 17, string_id: 20070>  # String: 'NOTATION_NODE' (Identifier)
+127893:==> 0000007a: <PutNewOwnByIdShort>: <Reg8: 7, Reg8: 13, string_id: 214>  # String: 'rotate' (Identifier)
+127903:==> 000000a6: <PutNewOwnById>: <Reg8: 7, Reg8: 13, string_id: 17759>  # String: 'rotateX' (Identifier)
+127913:==> 000000d3: <PutNewOwnById>: <Reg8: 7, Reg8: 13, string_id: 17761>  # String: 'rotateY' (Identifier)
+127923:==> 00000100: <PutNewOwnById>: <Reg8: 7, Reg8: 13, string_id: 17763>  # String: 'rotateZ' (Identifier)
+133663:==> 000002d0: <NewObjectWithBuffer>: <Reg8: 8, UInt16: 13, UInt16: 12, UInt16: 5148, UInt16: 1152>  # Object: {'translateX': true, 'translateY': true, 'scale': true, 'scaleX': true, 'scaleY': true, 'rotate': true, 'rotateX': true, 'rotateY': true, 'rotateZ': true, 'perspective': true, 'skewX': true, 'skewY': true}
+160446:==> 0000004d: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 9, string_id: 22301>  # String: 'total_time_spent' (Identifier)
+160613:==> 00000064: <PutNewOwnById>: <Reg8: 4, Reg8: 3, string_id: 22301>  # String: 'total_time_spent' (Identifier)
+198929:==> 0000007a: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 6, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+199141:==> 00000417: <LoadConstString>: <Reg8: 5, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+199147:==> 0000042f: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 6, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+243392:==> 0000004c: <PutById>: <Reg8: 2, Reg8: 4, UInt8: 3, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243581:==> 00000219: <GetById>: <Reg8: 6, Reg8: 2, UInt8: 19, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243585:==> 0000022f: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243586:==> 00000235: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 19, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243694:==> 000000e5: <GetById>: <Reg8: 13, Reg8: 1, UInt8: 12, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243698:==> 000000fb: <PutById>: <Reg8: 1, Reg8: 12, UInt8: 1, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243725:==> 0000015c: <PutById>: <Reg8: 1, Reg8: 2, UInt8: 1, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+283201:==> 00000075: <LoadConstString>: <Reg8: 0, string_id: 19614>  # String: 'download' (Identifier)
+288856:==> 00000009: <GetById>: <Reg8: 4, Reg8: 0, UInt8: 2, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+288870:==> 0000004b: <PutNewOwnById>: <Reg8: 2, Reg8: 4, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+290075:==> 00000043: <CreateClosure>: <Reg8: 1, Reg8: 0, function_id: 7178>  # Function: [#7178 _getTotalCount of 52 bytes]: 1 params @ offset 0x002a2e98
+290123:=> [Function #7178 "_getTotalCount" of 52 bytes]: 1 params, frame size=13, strict=0, exc handler=0, debug info=0  @ offset 0x002a2e98
+296429:==> 00000025: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
+296533:==> 00000024: <GetById>: <Reg8: 1, Reg8: 2, UInt8: 4, string_id: 33049>  # String: '_totalSize' (Identifier)
+296535:==> 0000002e: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 33049>  # String: '_totalSize' (Identifier)
+296536:==> 00000034: <GetById>: <Reg8: 5, Reg8: 2, UInt8: 4, string_id: 33049>  # String: '_totalSize' (Identifier)
+296608:==> 0000000f: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
+297062:==> 00000044: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 3, string_id: 33049>  # String: '_totalSize' (Identifier)
+297140:==> 00000044: <GetById>: <Reg8: 5, Reg8: 4, UInt8: 5, string_id: 33049>  # String: '_totalSize' (Identifier)
+297143:==> 00000053: <PutById>: <Reg8: 4, Reg8: 2, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
+297144:==> 00000059: <GetById>: <Reg8: 5, Reg8: 4, UInt8: 5, string_id: 33049>  # String: '_totalSize' (Identifier)
+297184:==> 0000000d: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
+297315:==> 00000033: <PutById>: <Reg8: 3, Reg8: 2, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
+317558:==> 00000008: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 2, string_id: 22549>  # String: 'QUOTA_ERR' (Identifier)
+318315:==> 0000000b: <LoadConstString>: <Reg8: 9, string_id: 5151>  # String: "SELECT name FROM sqlite_master WHERE type='table' AND name <> '__WebKitDatabaseInfoTable__'" (String)
+319278:==> 00000056: <LoadConstString>: <Reg8: 1, string_id: 2218>  # String: 'QuotaExceededError' (String)
+319282:==> 00000066: <LoadConstString>: <Reg8: 1, string_id: 8161>  # String: 'NS_ERROR_DOM_QUOTA_REACHED' (String)
+342703:==> 00000048: <PutById>: <Reg8: 1, Reg8: 5, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
+343028:==> 00000235: <GetById>: <Reg8: 8, Reg8: 7, UInt8: 23, string_id: 20533>  # String: 'STALL_TOTAL_TIME' (Identifier)
+343029:==> 0000023b: <GetById>: <Reg8: 7, Reg8: 1, UInt8: 24, string_id: 22300>  # String: 'stall_total_time' (Identifier)
+343032:==> 0000024c: <GetById>: <Reg8: 7, Reg8: 7, UInt8: 24, string_id: 22300>  # String: 'stall_total_time' (Identifier)
+343036:==> 00000261: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 24, string_id: 22300>  # String: 'stall_total_time' (Identifier)
+343227:==> 00000020: <GetById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
+343231:==> 00000033: <PutNewOwnById>: <Reg8: 0, Reg8: 1, string_id: 22300>  # String: 'stall_total_time' (Identifier)
+343338:==> 0000000a: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
+343382:==> 0000006f: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 5, string_id: 33050>  # String: '_totalStallTime' (Identifier)
+343384:==> 00000079: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
+343516:==> 0000003d: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 5, string_id: 20533>  # String: 'STALL_TOTAL_TIME' (Identifier)
+343523:==> 00000061: <LoadConstString>: <Reg8: 1, string_id: 22300>  # String: 'stall_total_time' (Identifier)
+343524:==> 00000065: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 5, string_id: 20533>  # String: 'STALL_TOTAL_TIME' (Identifier)
+344453:==> 00000168: <GetById>: <Reg8: 7, Reg8: 6, UInt8: 12, string_id: 26849>  # String: 'totalFrames' (Identifier)
+344454:==> 0000016e: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 12, string_id: 26849>  # String: 'totalFrames' (Identifier)
+344459:==> 00000185: <PutNewOwnById>: <Reg8: 1, Reg8: 2, string_id: 33045>  # String: 'frames_total' (Identifier)
+344481:==> 000001ea: <GetById>: <Reg8: 2, Reg8: 1, UInt8: 18, string_id: 33045>  # String: 'frames_total' (Identifier)
+348763:==> 0000009a: <NewObjectWithBuffer>: <Reg8: 1, UInt16: 12, UInt16: 12, UInt16: 4773, UInt16: 25389>  # Object: {'NUMBER_OF_POINTERS': 'numberOfPointers', 'NUMBER_OF_TOUCHES': 'numberOfTouches', 'FORCE': 'force', 'FORCE_CHANGE': 'forceChange', 'ROTATION': 'rotation', 'ROTATION_CHANGE': 'rotationChange', 'SCALE': 'scale', 'SCALE_CHANGE': 'scaleChange', 'DURATION': 'duration', 'VELOCITY': 'velocity', 'VELOCITY_X': 'velocityX', 'VELOCITY_Y': 'velocityY'}
+351415:==> 000000c3: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 8930>  # Function: [#8930 RootApp of 221 bytes]: 2 params @ offset 0x002cf7a9
+351421:=> [Function #8930 "RootApp" of 221 bytes]: 2 params, frame size=25, strict=0, exc handler=0, debug info=0  @ offset 0x002cf7a9
+356121:==> 00000065: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 6, string_id: 21464>  # String: 'totalMemory' (Identifier)
+361422:==> 00000094: <LoadConstString>: <Reg8: 1, string_id: 11824>  # String: "[Spotlight] Sentry SDK can't connect to Spotlight is it running? See https://spotlightjs.com to download it." (String)
+362438:==> 000001c4: <GetById>: <Reg8: 7, Reg8: 7, UInt8: 15, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
+367732:==> 0000010e: <LoadConstString>: <Reg8: 0, string_id: 9346>  # String: 'Function.prototype.bind called on incompatible ' (String)
+369224:==> 00000171: <CreateClosure>: <Reg8: 4, Reg8: 1, function_id: 9407>  # Function: [#9407 isDocumentDotAll of 4 bytes]: 1 params @ offset 0x001d5a7c
+369238:==> 000001b6: <CreateClosure>: <Reg8: 3, Reg8: 1, function_id: 9408>  # Function: [#9408 isDocumentDotAll of 162 bytes]: 2 params @ offset 0x002dcea3
+369319:=> [Function #9407 "isDocumentDotAll" of 4 bytes]: 1 params, frame size=1, strict=1, exc handler=0, debug info=0  @ offset 0x001d5a7c
+369329:=> [Function #9408 "isDocumentDotAll" of 162 bytes]: 2 params, frame size=18, strict=1, exc handler=1, debug info=0  @ offset 0x002dcea3
+370554:==> 00000164: <CreateClosure>: <Reg8: 1, Reg8: 3, function_id: 9475>  # Function: [#9475 scheduleMicrotask of 52 bytes]: 2 params @ offset 0x002de5a6
+370555:==> 00000169: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 27, string_id: 25887>  # String: 'scheduleMicrotask' (Identifier)
+371415:=> [Function #9475 "scheduleMicrotask" of 52 bytes]: 2 params, frame size=11, strict=1, exc handler=0, debug info=0  @ offset 0x002de5a6
+374629:==> 00000031: <GetById>: <Reg8: 3, Reg8: 3, UInt8: 2, string_id: 25887>  # String: 'scheduleMicrotask' (Identifier)
+374742:==> 0000003d: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 3, string_id: 25887>  # String: 'scheduleMicrotask' (Identifier)
+400865:==> 0000004c: <LoadConstString>: <Reg8: 1, string_id: 6313>  # String: ", re-run pod install and rebuild your iOS app. If you're not using Pods then make sure you've have downloaded the necessary Firebase iOS SDK dependencies for this API." (String)
+405555:==> 0000008e: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 7, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
+405556:==> 00000094: <PutNewOwnById>: <Reg8: 3, Reg8: 5, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
+424061:==> 00000051: <PutNewOwnById>: <Reg8: 0, Reg8: 7, string_id: 18341>  # String: 'selectTotal' (Identifier)
+424077:==> 0000009f: <PutNewOwnById>: <Reg8: 0, Reg8: 6, string_id: 18341>  # String: 'selectTotal' (Identifier)
+528632:==> 000002d8: <NewArrayWithBuffer>: <Reg8: 1, UInt16: 17, UInt16: 17, UInt16: 45849>  # Array: ['rotate', 'rotateX', 'rotateY', 'rotateZ', 'skewX', 'skewY', 'transformMatrix', 'backgroundColor', 'borderColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor', 'shadowColor', 'color', 'textDecorationColor', 'tintColor']
+530678:==> 00000058: <NewArrayWithBuffer>: <Reg8: 1, UInt16: 12, UInt16: 12, UInt16: 45896>  # Array: ['perspective', 'rotate', 'rotateX', 'rotateY', 'rotateZ', 'scale', 'scaleX', 'scaleY', 'skewX', 'skewY', 'translateX', 'translateY']
+530896:==> 0000003c: <LoadConstString>: <Reg8: 0, string_id: 214>  # String: 'rotate' (Identifier)
+532095:==> 0000003d: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532189:==> 000001f3: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 4, string_id: 214>  # String: 'rotate' (Identifier)
+532193:==> 00000201: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
+532197:==> 00000210: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
+532201:==> 0000021f: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
+532205:==> 0000022e: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
+532207:==> 00000236: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532247:==> 000002c8: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 4, string_id: 214>  # String: 'rotate' (Identifier)
+532251:==> 000002d6: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532255:==> 000002e5: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532259:==> 000002f4: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532263:==> 00000303: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532266:==> 0000030e: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 4, string_id: 214>  # String: 'rotate' (Identifier)
+532286:==> 0000038d: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20394, UInt16: 190>  # Object: {'scale': 1, 'rotate': '0deg'}
+532289:==> 0000039f: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20394, UInt16: 27835>  # Object: {'scale': 0.9, 'rotate': '-3deg'}
+532291:==> 000003ae: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20394, UInt16: 27835>  # Object: {'scale': 0.9, 'rotate': '-3deg'}
+532293:==> 000003bd: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20394, UInt16: 27861>  # Object: {'scale': 1.1, 'rotate': '-3deg'}
+532297:==> 000003d2: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 4, string_id: 214>  # String: 'rotate' (Identifier)
+532300:==> 000003dd: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532303:==> 000003e8: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 4, string_id: 214>  # String: 'rotate' (Identifier)
+532306:==> 000003f3: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532309:==> 000003fe: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 4, string_id: 214>  # String: 'rotate' (Identifier)
+532311:==> 00000407: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20394, UInt16: 27887>  # Object: {'scale': 1.1, 'rotate': '3deg'}
+532313:==> 00000416: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20394, UInt16: 190>  # Object: {'scale': 1, 'rotate': '0deg'}
+532317:==> 0000042c: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20397, UInt16: 27902>  # Object: {'translateX': 0, 'rotate': '0deg'}
+532319:==> 0000043a: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20397, UInt16: 27910>  # Object: {'translateX': 4294967271, 'rotate': '-5deg'}
+532321:==> 00000449: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20397, UInt16: 27926>  # Object: {'translateX': 20, 'rotate': '3deg'}
+532323:==> 00000458: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20397, UInt16: 27934>  # Object: {'translateX': 4294967281, 'rotate': '-3deg'}
+532325:==> 00000467: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20397, UInt16: 27965>  # Object: {'translateX': 10, 'rotate': '2deg'}
+532327:==> 00000476: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20397, UInt16: 27973>  # Object: {'translateX': 4294967291, 'rotate': '-1deg'}
+532329:==> 00000485: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20397, UInt16: 27902>  # Object: {'translateX': 0, 'rotate': '0deg'}
+532780:==> 00000056: <NewObjectWithBuffer>: <Reg8: 4, UInt16: 2, UInt16: 2, UInt16: 20414, UInt16: 28135>  # Object: {'opacity': 0, 'rotateX': '90deg'}
+532784:==> 0000006a: <PutNewOwnById>: <Reg8: 4, Reg8: 5, string_id: 17759>  # String: 'rotateX' (Identifier)
+532786:==> 00000074: <NewObjectWithBuffer>: <Reg8: 4, UInt16: 2, UInt16: 2, UInt16: 20414, UInt16: 28146>  # Object: {'opacity': 1, 'rotateX': '10deg'}
+532790:==> 00000089: <PutNewOwnById>: <Reg8: 6, Reg8: 4, string_id: 17759>  # String: 'rotateX' (Identifier)
+532792:==> 00000093: <NewObjectWithBuffer>: <Reg8: 6, UInt16: 2, UInt16: 2, UInt16: 20414, UInt16: 190>  # Object: {'opacity': 1, 'rotateX': '0deg'}
+532799:==> 000000bc: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 17817, UInt16: 28135>  # Object: {'opacity': 0, 'rotateY': '90deg'}
+532802:==> 000000cc: <PutNewOwnById>: <Reg8: 3, Reg8: 5, string_id: 17761>  # String: 'rotateY' (Identifier)
+532804:==> 000000d6: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 17817, UInt16: 28146>  # Object: {'opacity': 1, 'rotateY': '10deg'}
+532807:==> 000000e7: <PutNewOwnById>: <Reg8: 3, Reg8: 4, string_id: 17761>  # String: 'rotateY' (Identifier)
+532809:==> 000000f1: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 17817, UInt16: 190>  # Object: {'opacity': 1, 'rotateY': '0deg'}
+532815:==> 00000115: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20414, UInt16: 190>  # Object: {'opacity': 1, 'rotateX': '0deg'}
+532817:==> 00000123: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20414, UInt16: 28157>  # Object: {'opacity': 1, 'rotateX': '-20deg'}
+532819:==> 00000132: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 20414, UInt16: 28135>  # Object: {'opacity': 0, 'rotateX': '90deg'}
+532825:==> 00000156: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 17817, UInt16: 190>  # Object: {'opacity': 1, 'rotateY': '0deg'}
+532827:==> 00000164: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 17817, UInt16: 28157>  # Object: {'opacity': 1, 'rotateY': '-20deg'}
+532829:==> 00000173: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 2, UInt16: 2, UInt16: 17817, UInt16: 28135>  # Object: {'opacity': 0, 'rotateY': '90deg'}
+535234:==> 00000181: <LoadConstString>: <Reg8: 3, string_id: 31212>  # String: 'FirmwareUpdates' (Identifier)
+535235:==> 00000185: <PutById>: <Reg8: 1, Reg8: 3, UInt8: 36, string_id: 31212>  # String: 'FirmwareUpdates' (Identifier)
+564025:==> 000000af: <GetById>: <Reg8: 16, Reg8: 15, UInt8: 6, string_id: 32435>  # String: 'triggerOtaUpdate' (Identifier)
+566387:==> 00000000: <NewObjectWithBuffer>: <Reg8: 1, UInt16: 4, UInt16: 4, UInt16: 20964, UInt16: 26019>  # Object: {'fwp': '0.0.76', 'fwurl': 'https://qhderznbzup.firmware.fellowproducts.com/get_ota_device_firmware', 'fwcert': 'AAEAbgEmMGwxCzAJBgNVBAYTAlVTMRUw EwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAX BgNVBAsTEHd3dy5kaWdpY2VydC5jb20x KzApBgNVBAMTIkRpZ2lDZXJ0IEhpZ2gg QXNzdXJhbmNlIEVWIFJvb3QgQ0EwggEi MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK AoIBAQDGzOVz5vvUu+UtLTKm3+WBP8nN JUm2cSrD1ZQ0Z6IKHLBfaaZAscS3so/Q mKSpQVk609yU1jzbdDikSsxNJYL3SqVT Ejju80ltcZF+Y7arpl/DpIT4T2JRvvjF 7Ns4kuMG5QiRDMQoQVX7y1qJFX5x6DW/ TXIJPb46OFBbdzEbjbPHJEWap6xtABRa BLe6E+tRCphBQSJOZWGHgUFQpnlcid4Z SlfVLuZdHFMsfpjNGgYWpGhz0DQEE1yh cdNafFXbXmThN4cwVgTlEbQpgBLxeTmI ogIRfCdmt4i3ePLKCqg4qwpkwr9mXZWE waElHoddGlALIBLMQbtuC1E4uEvLAgMB AAE=', 'sign': 'A3NpMMLqSP3aw+gxzFFaJGBFiZX6eLma s6/3RijTUQl+MvjzN+zdIpOTnJ2tlAO1 S2Is75f5QxehDqImZr/Xwr+E8aeoyJhD +/BFaVP/mUyhOVMKkzE2OyObdlSn+fCe C8gMqV2zcP7Nr7vH1oBc01jaq4tYXGOn f/yNcIl1gP6XMRIM0x9X7C8HOi8Y5PGq gZ6F+pnvoyDxk1n7WqKRX/mhFO85J5ix 6MCafSLgaA5FNMPP63y3fIR/tGWn334e Bw0HbtJoRzbLkf4PWwBVlPoc6ExXhIUh y3MmaKxTe5i+NsQlVCLDcp/5gRqYDI0E LfoR/PvS8wiSV6AW9Dm82ZOVvfEiEP5e 2khlEb6q484OwVdw/Gr6txCA+nPTUiA+ S1lKK9AokgJw2T4Omauo/E0wauRSIQb6 BVrMXzUOipobwfpAMJTi/D7cIoGkic6+ enaDp4XKcZeEanspa+enRujH7BRjR/Lu fTdCa0CLr9nB1m0DFdNWoRTgd8xDoOBG'}
+567887:==> 00000130: <NewObjectWithBuffer>: <Reg8: 1, UInt16: 39, UInt16: 39, UInt16: 20973, UInt16: 28799>  # Object: {'UnknownError': 0, 'BluetoothManagerDestroyed': 1, 'OperationCancelled': 2, 'OperationTimedOut': 3, 'OperationStartFailed': 4, 'InvalidIdentifiers': 5, 'BluetoothUnsupported': 100, 'BluetoothUnauthorized': 101, 'BluetoothPoweredOff': 102, 'BluetoothInUnknownState': 103, 'BluetoothResetting': 104, 'BluetoothStateChangeFailed': 105, 'DeviceConnectionFailed': 200, 'DeviceDisconnected': 201, 'DeviceRSSIReadFailed': 202, 'DeviceAlreadyConnected': 203, 'DeviceNotFound': 204, 'DeviceNotConnected': 205, 'DeviceMTUChangeFailed': 206, 'ServicesDiscoveryFailed': 300, 'IncludedServicesDiscoveryFailed': 301, 'ServiceNotFound': 302, 'ServicesNotDiscovered': 303, 'CharacteristicsDiscoveryFailed': 400, 'CharacteristicWriteFailed': 401, 'CharacteristicReadFailed': 402, 'CharacteristicNotifyChangeFailed': 403, 'CharacteristicNotFound': 404, 'CharacteristicsNotDiscovered': 405, 'CharacteristicInvalidDataFormat': 406, 'DescriptorsDiscoveryFailed': 500, 'DescriptorWriteFailed': 501, 'DescriptorReadFailed': 502, 'DescriptorNotFound': 503, 'DescriptorsNotDiscovered': 504, 'DescriptorInvalidDataFormat': 505, 'DescriptorWriteNotAllowed': 506, 'ScanStartFailed': 600, 'LocationServicesDisabled': 601}
+568038:==> 0000046d: <GetById>: <Reg8: 5, Reg8: 1, UInt8: 41, string_id: 31127>  # String: 'DescriptorWriteNotAllowed' (Identifier)
+568051:==> 000004ba: <NewObjectWithBuffer>: <Reg8: 1, UInt16: 13, UInt16: 13, UInt16: 16512, UInt16: 29031>  # Object: {'Unknown': 0, 'InvalidParameters': 1, 'InvalidHandle': 2, 'NotConnected': 3, 'OutOfSpace': 4, 'OperationCancelled': 5, 'ConnectionTimeout': 6, 'PeripheralDisconnected': 7, 'UuidNotAllowed': 8, 'AlreadyAdvertising': 9, 'ConnectionFailed': 10, 'ConnectionLimitReached': 11, 'UnknownDevice': 12}
+576142:==> 0000002b: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 1, string_id: 32435>  # String: 'triggerOtaUpdate' (Identifier)
+576152:==> 00000057: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 5, string_id: 32435>  # String: 'triggerOtaUpdate' (Identifier)
+576157:==> 0000006b: <GetById>: <Reg8: 1, Reg8: 3, UInt8: 5, string_id: 32435>  # String: 'triggerOtaUpdate' (Identifier)
+576158:==> 00000071: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 32435>  # String: 'triggerOtaUpdate' (Identifier)
+576186:==> 00000040: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 1, string_id: 32435>  # String: 'triggerOtaUpdate' (Identifier)
+576199:==> 00000079: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 32435>  # String: 'triggerOtaUpdate' (Identifier)
+576217:==> 0000001e: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 15298>  # Function: [#15298 triggerOtaUpdate of 29 bytes]: 2 params @ offset 0x0024faed
+576380:==> 00000239: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 13, string_id: 21886>  # String: 'OTA_UPDATE_TRIGGER_COMMAND' (Identifier)
+576408:==> 0000029d: <LoadConstString>: <Reg8: 3, string_id: 11050>  # String: 'Trigger OTA update command error' (String)
+576420:=> [Function #15298 "triggerOtaUpdate" of 29 bytes]: 2 params, frame size=13, strict=0, exc handler=0, debug info=0  @ offset 0x0024faed
+576609:==> 0000002b: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 2, string_id: 21886>  # String: 'OTA_UPDATE_TRIGGER_COMMAND' (Identifier)
+576618:==> 0000005b: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 2, string_id: 21886>  # String: 'OTA_UPDATE_TRIGGER_COMMAND' (Identifier)
+ fellow-analysis % ls -l ~/Library/Python/3.14/bin/*hbc* \
+      ~/Library/Python/3.14/bin/hermes*
+-rwxr-xr-x  1 bram.boersma  staff  232  8 Oct 20:17 /Users/bram.boersma/Library/Python/3.14/bin/hbc-decompiler
+-rwxr-xr-x  1 bram.boersma  staff  232  8 Oct 20:17 /Users/bram.boersma/Library/Python/3.14/bin/hbc-disassembler
+-rwxr-xr-x  1 bram.boersma  staff  227  8 Oct 20:17 /Users/bram.boersma/Library/Python/3.14/bin/hbc-file-parser
+-rwxr-xr-x  1 bram.boersma  staff  243  8 Oct 20:17 /Users/bram.boersma/Library/Python/3.14/bin/hermes-dec-regen-html
+-rwxr-xr-x  1 bram.boersma  staff  227  8 Oct 20:17 /Users/bram.boersma/Library/Python/3.14/bin/hermes-dec-regen-pydefs
+-rwxr-xr-x  1 bram.boersma  staff  232  8 Oct 20:17 /Users/bram.boersma/Library/Python/3.14/bin/hermes-dec-regen-pydefs-regexp
+ fellow-analysis %  
