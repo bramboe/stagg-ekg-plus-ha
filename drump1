@@ -1,0 +1,328 @@
+ fellow-analysis % ls -lh hermes-disassembly.txt
+head -30 hermes-disassembly.txt
+-rw-r--r--  1 bram.boersma  staff    59M  8 Oct 20:24 hermes-disassembly.txt
+=> [Function #0 "global" of 84305 bytes]: 1 params, frame size=19, strict=0, exc handler=1, debug info=0  @ offset 0x001bcb6c
+  [Exception handlers: [start=0xcf, end=0x11c, target=0x11e] ]
+
+Bytecode listing:
+
+==> 00000000: <DeclareGlobalVar>: <string_id: 24925>  # String: '__BUNDLE_START_TIME__' (Identifier)
+==> 00000005: <DeclareGlobalVar>: <string_id: 25987>  # String: '__DEV__' (Identifier)
+==> 0000000a: <DeclareGlobalVar>: <string_id: 207>  # String: 'process' (Identifier)
+==> 0000000f: <DeclareGlobalVar>: <string_id: 23937>  # String: '__METRO_GLOBAL_PREFIX__' (Identifier)
+==> 00000014: <DeclareGlobalVar>: <string_id: 32948>  # String: '_sentryDebugIds' (Identifier)
+==> 00000019: <DeclareGlobalVar>: <string_id: 22602>  # String: '_sentryDebugIdIdentifier' (Identifier)
+==> 0000001e: <DeclareGlobalVar>: <string_id: 17458>  # String: 'stack' (Identifier)
+==> 00000023: <CreateEnvironment>: <Reg8: 3>
+==> 00000025: <LoadThisNS>: <Reg8: 5>
+==> 00000027: <GetById>: <Reg8: 1, Reg8: 5, UInt8: 1, string_id: 19868>  # String: 'nativePerformanceNow' (Identifier)
+==> 0000002d: <GetGlobalObject>: <Reg8: 0>
+==> 0000002f: <JmpTrue>: <Addr8: 20, Reg8: 1>  # Address: 00000043
+==> 00000032: <TryGetById>: <Reg8: 2, Reg8: 0, UInt8: 2, string_id: 10>  # String: 'Date' (Identifier)
+==> 00000038: <GetByIdShort>: <Reg8: 1, Reg8: 2, UInt8: 3, string_id: 195>  # String: 'now' (Identifier)
+==> 0000003d: <Call1>: <Reg8: 1, Reg8: 1, Reg8: 2>
+==> 00000041: <Jmp>: <Addr8: 14>  # Address: 0000004f
+==> 00000043: <TryGetById>: <Reg8: 4, Reg8: 0, UInt8: 1, string_id: 19868>  # String: 'nativePerformanceNow' (Identifier)
+==> 00000049: <LoadConstUndefined>: <Reg8: 2>
+==> 0000004b: <Call1>: <Reg8: 1, Reg8: 4, Reg8: 2>
+==> 0000004f: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 24925>  # String: '__BUNDLE_START_TIME__' (Identifier)
+==> 00000055: <LoadConstFalse>: <Reg8: 1>
+==> 00000057: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 25987>  # String: '__DEV__' (Identifier)
+==> 0000005d: <GetByIdShort>: <Reg8: 1, Reg8: 5, UInt8: 4, string_id: 207>  # String: 'process' (Identifier)
+==> 00000062: <JmpTrue>: <Addr8: 5, Reg8: 1>  # Address: 00000067
+==> 00000065: <NewObject>: <Reg8: 1>
+ fellow-analysis % grep -niE \
+'firmware|FIRMWARE|ota|download|updater|RNFS|versioning|\.bin|amazonaws|execute-api' \
+hermes-disassembly.txt | head -200
+16291:==> 00000285: <LoadConstString>: <Reg8: 7, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+16675:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+18863:==> 0000002c: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 4, string_id: 21983>  # String: 'updater' (Identifier)
+18895:==> 0000002c: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 4, string_id: 21983>  # String: 'updater' (Identifier)
+19495:==> 0000001f: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 1, string_id: 21983>  # String: 'updater' (Identifier)
+19520:==> 00000003: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 1, string_id: 21983>  # String: 'updater' (Identifier)
+25505:==> 00000115: <LoadConstString>: <Reg8: 5, string_id: 28107>  # String: 'setReactNativeMicrotasksCallback' (Identifier)
+25507:==> 0000011d: <CreateClosure>: <Reg8: 5, Reg8: 1, function_id: 431>  # Function: [#431 setReactNativeMicrotasksCallback of 16 bytes]: 2 params @ offset 0x001d9ea4
+25523:==> 0000015a: <LoadConstString>: <Reg8: 5, string_id: 23619>  # String: '__callReactNativeMicrotasks' (Identifier)
+25525:==> 00000162: <CreateClosure>: <Reg8: 5, Reg8: 1, function_id: 434>  # Function: [#434 __callReactNativeMicrotasks of 125 bytes]: 1 params @ offset 0x001d9f31
+25599:==> 000000ae: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 8, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+25732:==> 00000007: <GetById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 23619>  # String: '__callReactNativeMicrotasks' (Identifier)
+25999:=> [Function #431 "setReactNativeMicrotasksCallback" of 16 bytes]: 2 params, frame size=2, strict=1, exc handler=0, debug info=0  @ offset 0x001d9ea4
+26005:==> 00000006: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+26065:=> [Function #434 "__callReactNativeMicrotasks" of 125 bytes]: 1 params, frame size=15, strict=1, exc handler=1, debug info=0  @ offset 0x001d9f31
+26079:==> 00000022: <LoadConstString>: <Reg8: 0, string_id: 5481>  # String: 'JSTimers.callReactNativeMicrotasks()' (String)
+26081:==> 0000002b: <GetById>: <Reg8: 5, Reg8: 2, UInt8: 2, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+26084:==> 00000037: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 2, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+29912:==> 00000493: <CreateClosure>: <Reg8: 33, Reg8: 1, function_id: 700>  # Function: [#700 updateReducer of 575 bytes]: 2 params @ offset 0x001e3610
+29932:==> 000004f7: <CreateClosure>: <Reg8: 24, Reg8: 1, function_id: 712>  # Function: [#712 updateRef of 21 bytes]: 1 params @ offset 0x001e3ca6
+35762:==> 000000bf: <PutById>: <Reg8: 0, Reg8: 5, UInt8: 2, string_id: 21983>  # String: 'updater' (Identifier)
+37928:=> [Function #700 "updateReducer" of 575 bytes]: 2 params, frame size=32, strict=1, exc handler=0, debug info=0  @ offset 0x001e3610
+38437:=> [Function #712 "updateRef" of 21 bytes]: 1 params, frame size=9, strict=1, exc handler=0, debug info=0  @ offset 0x001e3ca6
+49426:==> 000009b5: <PutById>: <Reg8: 3, Reg8: 10, UInt8: 12, string_id: 21983>  # String: 'updater' (Identifier)
+51573:==> 000000a2: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+52269:==> 0000008e: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 6, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+54331:==> 00000034: <LoadConstString>: <Reg8: 5, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+54366:==> 00000032: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 3, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+54367:==> 00000038: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 33046>  # String: '_totalJSHeapSize' (Identifier)
+54391:==> 00000002: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 33046>  # String: '_totalJSHeapSize' (Identifier)
+60379:==> 0000019c: <LoadConstString>: <Reg8: 5, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+60383:==> 000001ad: <LoadConstString>: <Reg8: 2, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+60477:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60494:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 34853>  # String: 'clearReactNativeMicrotask' (Identifier)
+60551:==> 00000032: <CreateClosure>: <Reg8: 0, Reg8: 3, function_id: 1232>  # Function: [#1232 _callReactNativeMicrotasksPass of 91 bytes]: 1 params @ offset 0x001f5627
+60596:==> 000000ed: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1242>  # Function: [#1242 queueReactNativeMicrotask of 134 bytes]: 2 params @ offset 0x001f5934
+60597:==> 000000f2: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60608:==> 00000129: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1251>  # Function: [#1251 clearReactNativeMicrotask of 62 bytes]: 2 params @ offset 0x001f5bcf
+60609:==> 0000012e: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 34853>  # String: 'clearReactNativeMicrotask' (Identifier)
+60616:==> 00000151: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1258>  # Function: [#1258 callReactNativeMicrotasks of 62 bytes]: 1 params @ offset 0x001f5da0
+60617:==> 00000156: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60630:==> 0000018c: <GetById>: <Reg8: 6, Reg8: 1, UInt8: 4, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60631:==> 00000192: <PutNewOwnById>: <Reg8: 3, Reg8: 6, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60632:==> 00000197: <GetById>: <Reg8: 6, Reg8: 1, UInt8: 5, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60633:==> 0000019d: <PutNewOwnById>: <Reg8: 3, Reg8: 6, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60638:==> 000001b1: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 6, string_id: 28107>  # String: 'setReactNativeMicrotasksCallback' (Identifier)
+60639:==> 000001b7: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 4, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60744:==> 000000bb: <LoadConstString>: <Reg8: 4, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60812:=> [Function #1232 "_callReactNativeMicrotasksPass" of 91 bytes]: 1 params, frame size=16, strict=0, exc handler=0, debug info=0  @ offset 0x001f5627
+60882:==> 00000037: <LoadConstString>: <Reg8: 3, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+61113:=> [Function #1242 "queueReactNativeMicrotask" of 134 bytes]: 2 params, frame size=18, strict=0, exc handler=0, debug info=0  @ offset 0x001f5934
+61148:==> 0000006c: <LoadConstString>: <Reg8: 0, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+61374:=> [Function #1251 "clearReactNativeMicrotask" of 62 bytes]: 2 params, frame size=14, strict=0, exc handler=0, debug info=0  @ offset 0x001f5bcf
+61561:=> [Function #1258 "callReactNativeMicrotasks" of 62 bytes]: 1 params, frame size=12, strict=0, exc handler=0, debug info=0  @ offset 0x001f5da0
+61870:==> 000000a8: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 5, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+61950:==> 00000025: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 1270>  # Function: [#1270 queueMicrotask of 160 bytes]: 2 params @ offset 0x001f61f5
+61958:=> [Function #1270 "queueMicrotask" of 160 bytes]: 2 params, frame size=14, strict=1, exc handler=0, debug info=0  @ offset 0x001f61f5
+61991:==> 0000006d: <LoadConstString>: <Reg8: 6, string_id: 10921>  # String: 'The argument to queueMicrotask must be a function.' (String)
+62000:==> 0000008f: <LoadConstString>: <Reg8: 6, string_id: 16220>  # String: 'queueMicrotask must be called with at least one argument (a function to call)' (String)
+63211:==> 00000031: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 33047>  # String: 'total' (Identifier)
+63361:==> 00000036: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 33047>  # String: 'total' (Identifier)
+67895:==> 0000003f: <PutNewOwnById>: <Reg8: 0, Reg8: 5, string_id: 30256>  # String: 'totalTime' (Identifier)
+68000:==> 00000033: <GetById>: <Reg8: 8, Reg8: 10, UInt8: 2, string_id: 30256>  # String: 'totalTime' (Identifier)
+68306:==> 00000098: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 3, string_id: 30256>  # String: 'totalTime' (Identifier)
+87476:==> 000002a7: <NewObjectWithBuffer>: <Reg8: 7, UInt16: 103, UInt16: 103, UInt16: 4259, UInt16: 1136>  # Object: {'backgroundColor': null, 'transform': true, 'transformOrigin': true, 'opacity': true, 'elevation': true, 'shadowColor': null, 'zIndex': true, 'renderToHardwareTextureAndroid': true, 'testID': true, 'nativeID': true, 'accessibilityLabelledBy': true, 'accessibilityLabel': true, 'accessibilityHint': true, 'accessibilityRole': true, 'accessibilityCollection': true, 'accessibilityCollectionItem': true, 'accessibilityState': true, 'accessibilityActions': true, 'accessibilityValue': true, 'importantForAccessibility': true, 'role': true, 'rotation': true, 'scaleX': true, 'scaleY': true, 'translateX': true, 'translateY': true, 'accessibilityLiveRegion': true, 'width': true, 'minWidth': true, 'collapsable': true, 'maxWidth': true, 'height': true, 'minHeight': true, 'maxHeight': true, 'flex': true, 'flexGrow': true, 'rowGap': true, 'columnGap': true, 'gap': true, 'flexShrink': true, 'flexBasis': true, 'aspectRatio': true, 'flexDirection': true, 'flexWrap': true, 'alignSelf': true, 'alignItems': true, 'alignContent': true, 'justifyContent': true, 'overflow': true, 'display': true, 'margin': true, 'marginBlock': true, 'marginBlockEnd': true, 'marginBlockStart': true, 'marginBottom': true, 'marginEnd': true, 'marginHorizontal': true, 'marginInline': true, 'marginInlineEnd': true, 'marginInlineStart': true, 'marginLeft': true, 'marginRight': true, 'marginStart': true, 'marginTop': true, 'marginVertical': true, 'padding': true, 'paddingBlock': true, 'paddingBlockEnd': true, 'paddingBlockStart': true, 'paddingBottom': true, 'paddingEnd': true, 'paddingHorizontal': true, 'paddingInline': true, 'paddingInlineEnd': true, 'paddingInlineStart': true, 'paddingLeft': true, 'paddingRight': true, 'paddingStart': true, 'paddingTop': true, 'paddingVertical': true, 'borderWidth': true, 'borderStartWidth': true, 'borderEndWidth': true, 'borderTopWidth': true, 'borderBottomWidth': true, 'borderLeftWidth': true, 'borderRightWidth': true, 'start': true, 'end': true, 'left': true, 'right': true, 'top': true, 'bottom': true, 'inset': true, 'insetBlock': true, 'insetBlockEnd': true, 'insetBlockStart': true, 'insetInline': true, 'insetInlineEnd': true, 'insetInlineStart': true, 'position': true, 'style': null, 'experimental_layoutConformance': true}
+96261:==> 00000163: <PutById>: <Reg8: 4, Reg8: 8, UInt8: 17, string_id: 20070>  # String: 'NOTATION_NODE' (Identifier)
+100713:==> 000004ad: <CreateClosure>: <Reg8: 35, Reg8: 4, function_id: 2518>  # Function: [#2518 updateReducer of 575 bytes]: 2 params @ offset 0x00218210
+100733:==> 00000511: <CreateClosure>: <Reg8: 26, Reg8: 4, function_id: 2530>  # Function: [#2530 updateRef of 21 bytes]: 1 params @ offset 0x002188a5
+106637:==> 000000bf: <PutById>: <Reg8: 0, Reg8: 5, UInt8: 2, string_id: 21983>  # String: 'updater' (Identifier)
+108803:=> [Function #2518 "updateReducer" of 575 bytes]: 2 params, frame size=32, strict=1, exc handler=0, debug info=0  @ offset 0x00218210
+109312:=> [Function #2530 "updateRef" of 21 bytes]: 1 params, frame size=9, strict=1, exc handler=0, debug info=0  @ offset 0x002188a5
+120752:==> 000009b3: <PutById>: <Reg8: 3, Reg8: 10, UInt8: 12, string_id: 21983>  # String: 'updater' (Identifier)
+127893:==> 0000007a: <PutNewOwnByIdShort>: <Reg8: 7, Reg8: 13, string_id: 214>  # String: 'rotate' (Identifier)
+127903:==> 000000a6: <PutNewOwnById>: <Reg8: 7, Reg8: 13, string_id: 17759>  # String: 'rotateX' (Identifier)
+127913:==> 000000d3: <PutNewOwnById>: <Reg8: 7, Reg8: 13, string_id: 17761>  # String: 'rotateY' (Identifier)
+127923:==> 00000100: <PutNewOwnById>: <Reg8: 7, Reg8: 13, string_id: 17763>  # String: 'rotateZ' (Identifier)
+133663:==> 000002d0: <NewObjectWithBuffer>: <Reg8: 8, UInt16: 13, UInt16: 12, UInt16: 5148, UInt16: 1152>  # Object: {'translateX': true, 'translateY': true, 'scale': true, 'scaleX': true, 'scaleY': true, 'rotate': true, 'rotateX': true, 'rotateY': true, 'rotateZ': true, 'perspective': true, 'skewX': true, 'skewY': true}
+135638:==> 00000024: <GetById>: <Reg8: 1, Reg8: 2, UInt8: 3, string_id: 30081>  # String: '__onAnimatedValueUpdateReceived' (Identifier)
+137177:==> 000000e9: <LoadConstString>: <Reg8: 6, string_id: 30081>  # String: '__onAnimatedValueUpdateReceived' (Identifier)
+137179:==> 000000f1: <CreateClosure>: <Reg8: 6, Reg8: 5, function_id: 3131>  # Function: [#3131 __onAnimatedValueUpdateReceived of 24 bytes]: 2 params @ offset 0x0022f493
+137518:=> [Function #3131 "__onAnimatedValueUpdateReceived" of 24 bytes]: 2 params, frame size=13, strict=1, exc handler=0, debug info=0  @ offset 0x0022f493
+141140:==> 00000148: <LoadConstString>: <Reg8: 5, string_id: 30081>  # String: '__onAnimatedValueUpdateReceived' (Identifier)
+141142:==> 00000150: <CreateClosure>: <Reg8: 5, Reg8: 4, function_id: 3265>  # Function: [#3265 __onAnimatedValueUpdateReceived of 21 bytes]: 2 params @ offset 0x0023202f
+141464:==> 00000021: <GetById>: <Reg8: 1, Reg8: 2, UInt8: 3, string_id: 30081>  # String: '__onAnimatedValueUpdateReceived' (Identifier)
+141475:=> [Function #3265 "__onAnimatedValueUpdateReceived" of 21 bytes]: 2 params, frame size=11, strict=1, exc handler=0, debug info=0  @ offset 0x0023202f
+160446:==> 0000004d: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 9, string_id: 22301>  # String: 'total_time_spent' (Identifier)
+160613:==> 00000064: <PutNewOwnById>: <Reg8: 4, Reg8: 3, string_id: 22301>  # String: 'total_time_spent' (Identifier)
+198929:==> 0000007a: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 6, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+199141:==> 00000417: <LoadConstString>: <Reg8: 5, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+199147:==> 0000042f: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 6, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+210915:==> 00000adc: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 127, string_id: 38040>  # String: 'updateRateLimits' (Identifier)
+210916:==> 00000ae2: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 125, string_id: 38040>  # String: 'updateRateLimits' (Identifier)
+223500:==> 00000075: <CreateClosure>: <Reg8: 1, Reg8: 1, function_id: 5372>  # Function: [#5372 updateRateLimits of 523 bytes]: 3 params @ offset 0x00270c22
+223501:==> 0000007a: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 5, string_id: 38040>  # String: 'updateRateLimits' (Identifier)
+223601:=> [Function #5372 "updateRateLimits" of 523 bytes]: 3 params, frame size=38, strict=0, exc handler=1, debug info=0  @ offset 0x00270c22
+243392:==> 0000004c: <PutById>: <Reg8: 2, Reg8: 4, UInt8: 3, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243581:==> 00000219: <GetById>: <Reg8: 6, Reg8: 2, UInt8: 19, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243585:==> 0000022f: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243586:==> 00000235: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 19, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243694:==> 000000e5: <GetById>: <Reg8: 13, Reg8: 1, UInt8: 12, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243698:==> 000000fb: <PutById>: <Reg8: 1, Reg8: 12, UInt8: 1, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+243725:==> 0000015c: <PutById>: <Reg8: 1, Reg8: 2, UInt8: 1, string_id: 24855>  # String: '_bucketsTotalWeight' (Identifier)
+244881:==> 000000a7: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 7, string_id: 38040>  # String: 'updateRateLimits' (Identifier)
+283201:==> 00000075: <LoadConstString>: <Reg8: 0, string_id: 19614>  # String: 'download' (Identifier)
+288856:==> 00000009: <GetById>: <Reg8: 4, Reg8: 0, UInt8: 2, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+288870:==> 0000004b: <PutNewOwnById>: <Reg8: 2, Reg8: 4, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+289738:==> 0000023d: <GetById>: <Reg8: 14, Reg8: 15, UInt8: 21, string_id: 38040>  # String: 'updateRateLimits' (Identifier)
+290075:==> 00000043: <CreateClosure>: <Reg8: 1, Reg8: 0, function_id: 7178>  # Function: [#7178 _getTotalCount of 52 bytes]: 1 params @ offset 0x002a2e98
+290123:=> [Function #7178 "_getTotalCount" of 52 bytes]: 1 params, frame size=13, strict=0, exc handler=0, debug info=0  @ offset 0x002a2e98
+296429:==> 00000025: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
+296533:==> 00000024: <GetById>: <Reg8: 1, Reg8: 2, UInt8: 4, string_id: 33049>  # String: '_totalSize' (Identifier)
+296535:==> 0000002e: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 33049>  # String: '_totalSize' (Identifier)
+296536:==> 00000034: <GetById>: <Reg8: 5, Reg8: 2, UInt8: 4, string_id: 33049>  # String: '_totalSize' (Identifier)
+296608:==> 0000000f: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
+297062:==> 00000044: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 3, string_id: 33049>  # String: '_totalSize' (Identifier)
+297140:==> 00000044: <GetById>: <Reg8: 5, Reg8: 4, UInt8: 5, string_id: 33049>  # String: '_totalSize' (Identifier)
+297143:==> 00000053: <PutById>: <Reg8: 4, Reg8: 2, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
+297144:==> 00000059: <GetById>: <Reg8: 5, Reg8: 4, UInt8: 5, string_id: 33049>  # String: '_totalSize' (Identifier)
+297184:==> 0000000d: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
+297315:==> 00000033: <PutById>: <Reg8: 3, Reg8: 2, UInt8: 2, string_id: 33049>  # String: '_totalSize' (Identifier)
+317558:==> 00000008: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 2, string_id: 22549>  # String: 'QUOTA_ERR' (Identifier)
+318315:==> 0000000b: <LoadConstString>: <Reg8: 9, string_id: 5151>  # String: "SELECT name FROM sqlite_master WHERE type='table' AND name <> '__WebKitDatabaseInfoTable__'" (String)
+319278:==> 00000056: <LoadConstString>: <Reg8: 1, string_id: 2218>  # String: 'QuotaExceededError' (String)
+319282:==> 00000066: <LoadConstString>: <Reg8: 1, string_id: 8161>  # String: 'NS_ERROR_DOM_QUOTA_REACHED' (String)
+342703:==> 00000048: <PutById>: <Reg8: 1, Reg8: 5, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
+343028:==> 00000235: <GetById>: <Reg8: 8, Reg8: 7, UInt8: 23, string_id: 20533>  # String: 'STALL_TOTAL_TIME' (Identifier)
+343029:==> 0000023b: <GetById>: <Reg8: 7, Reg8: 1, UInt8: 24, string_id: 22300>  # String: 'stall_total_time' (Identifier)
+343032:==> 0000024c: <GetById>: <Reg8: 7, Reg8: 7, UInt8: 24, string_id: 22300>  # String: 'stall_total_time' (Identifier)
+343036:==> 00000261: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 24, string_id: 22300>  # String: 'stall_total_time' (Identifier)
+343227:==> 00000020: <GetById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
+343231:==> 00000033: <PutNewOwnById>: <Reg8: 0, Reg8: 1, string_id: 22300>  # String: 'stall_total_time' (Identifier)
+343338:==> 0000000a: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
+343382:==> 0000006f: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 5, string_id: 33050>  # String: '_totalStallTime' (Identifier)
+343384:==> 00000079: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 33050>  # String: '_totalStallTime' (Identifier)
+343516:==> 0000003d: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 5, string_id: 20533>  # String: 'STALL_TOTAL_TIME' (Identifier)
+343523:==> 00000061: <LoadConstString>: <Reg8: 1, string_id: 22300>  # String: 'stall_total_time' (Identifier)
+343524:==> 00000065: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 5, string_id: 20533>  # String: 'STALL_TOTAL_TIME' (Identifier)
+344453:==> 00000168: <GetById>: <Reg8: 7, Reg8: 6, UInt8: 12, string_id: 26849>  # String: 'totalFrames' (Identifier)
+344454:==> 0000016e: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 12, string_id: 26849>  # String: 'totalFrames' (Identifier)
+344459:==> 00000185: <PutNewOwnById>: <Reg8: 1, Reg8: 2, string_id: 33045>  # String: 'frames_total' (Identifier)
+344481:==> 000001ea: <GetById>: <Reg8: 2, Reg8: 1, UInt8: 18, string_id: 33045>  # String: 'frames_total' (Identifier)
+348763:==> 0000009a: <NewObjectWithBuffer>: <Reg8: 1, UInt16: 12, UInt16: 12, UInt16: 4773, UInt16: 25389>  # Object: {'NUMBER_OF_POINTERS': 'numberOfPointers', 'NUMBER_OF_TOUCHES': 'numberOfTouches', 'FORCE': 'force', 'FORCE_CHANGE': 'forceChange', 'ROTATION': 'rotation', 'ROTATION_CHANGE': 'rotationChange', 'SCALE': 'scale', 'SCALE_CHANGE': 'scaleChange', 'DURATION': 'duration', 'VELOCITY': 'velocity', 'VELOCITY_X': 'velocityX', 'VELOCITY_Y': 'velocityY'}
+351415:==> 000000c3: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 8930>  # Function: [#8930 RootApp of 221 bytes]: 2 params @ offset 0x002cf7a9
+351421:=> [Function #8930 "RootApp" of 221 bytes]: 2 params, frame size=25, strict=0, exc handler=0, debug info=0  @ offset 0x002cf7a9
+356121:==> 00000065: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 6, string_id: 21464>  # String: 'totalMemory' (Identifier)
+361422:==> 00000094: <LoadConstString>: <Reg8: 1, string_id: 11824>  # String: "[Spotlight] Sentry SDK can't connect to Spotlight is it running? See https://spotlightjs.com to download it." (String)
+362434:==> 000001b0: <GetById>: <Reg8: 7, Reg8: 7, UInt8: 14, string_id: 18441>  # String: 'UPDATER_APP_BOOT' (Identifier)
+362436:==> 000001ba: <PutNewOwnById>: <Reg8: 5, Reg8: 7, string_id: 30182>  # String: 'bootUpdaterApp' (Identifier)
+362438:==> 000001c4: <GetById>: <Reg8: 7, Reg8: 7, UInt8: 15, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
+362439:==> 000001ca: <PutNewOwnById>: <Reg8: 5, Reg8: 7, string_id: 35773>  # String: 'firmwareVersioningApiHost' (Identifier)
+367732:==> 0000010e: <LoadConstString>: <Reg8: 0, string_id: 9346>  # String: 'Function.prototype.bind called on incompatible ' (String)
+369224:==> 00000171: <CreateClosure>: <Reg8: 4, Reg8: 1, function_id: 9407>  # Function: [#9407 isDocumentDotAll of 4 bytes]: 1 params @ offset 0x001d5a7c
+369238:==> 000001b6: <CreateClosure>: <Reg8: 3, Reg8: 1, function_id: 9408>  # Function: [#9408 isDocumentDotAll of 162 bytes]: 2 params @ offset 0x002dcea3
+369319:=> [Function #9407 "isDocumentDotAll" of 4 bytes]: 1 params, frame size=1, strict=1, exc handler=0, debug info=0  @ offset 0x001d5a7c
+369329:=> [Function #9408 "isDocumentDotAll" of 162 bytes]: 2 params, frame size=18, strict=1, exc handler=1, debug info=0  @ offset 0x002dcea3
+370554:==> 00000164: <CreateClosure>: <Reg8: 1, Reg8: 3, function_id: 9475>  # Function: [#9475 scheduleMicrotask of 52 bytes]: 2 params @ offset 0x002de5a6
+370555:==> 00000169: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 27, string_id: 25887>  # String: 'scheduleMicrotask' (Identifier)
+371415:=> [Function #9475 "scheduleMicrotask" of 52 bytes]: 2 params, frame size=11, strict=1, exc handler=0, debug info=0  @ offset 0x002de5a6
+374629:==> 00000031: <GetById>: <Reg8: 3, Reg8: 3, UInt8: 2, string_id: 25887>  # String: 'scheduleMicrotask' (Identifier)
+374742:==> 0000003d: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 3, string_id: 25887>  # String: 'scheduleMicrotask' (Identifier)
+378705:==> 000000f8: <CreateClosure>: <Reg8: 3, Reg8: 1, function_id: 9776>  # Function: [#9776 updateRefetchInterval of 163 bytes]: 2 params @ offset 0x002e3d52
+378706:==> 000000fd: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 20, string_id: 24340>  # String: 'updateRefetchInterval' (Identifier)
+378719:==> 00000145: <CreateClosure>: <Reg8: 3, Reg8: 1, function_id: 9787>  # Function: [#9787 updateResult of 207 bytes]: 2 params @ offset 0x002e4523
+378720:==> 0000014a: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 27, string_id: 38041>  # String: 'updateResult' (Identifier)
+378922:==> 000000b8: <GetById>: <Reg8: 5, Reg8: 2, UInt8: 10, string_id: 38041>  # String: 'updateResult' (Identifier)
+378949:==> 0000013d: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 15, string_id: 24340>  # String: 'updateRefetchInterval' (Identifier)
+379293:==> 00000007: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 1, string_id: 38041>  # String: 'updateResult' (Identifier)
+379398:==> 0000001a: <GetById>: <Reg8: 0, Reg8: 1, UInt8: 3, string_id: 38041>  # String: 'updateResult' (Identifier)
+379435:=> [Function #9776 "updateRefetchInterval" of 163 bytes]: 2 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x002e3d52
+379518:==> 0000000d: <GetById>: <Reg8: 1, Reg8: 2, UInt8: 2, string_id: 24340>  # String: 'updateRefetchInterval' (Identifier)
+380036:=> [Function #9787 "updateResult" of 207 bytes]: 2 params, frame size=19, strict=1, exc handler=0, debug info=0  @ offset 0x002e4523
+380157:==> 00000060: <GetById>: <Reg8: 0, Reg8: 1, UInt8: 4, string_id: 38041>  # String: 'updateResult' (Identifier)
+381505:==> 00000074: <CreateClosure>: <Reg8: 3, Reg8: 1, function_id: 9850>  # Function: [#9850 updateResult of 187 bytes]: 1 params @ offset 0x002e57c6
+381506:==> 00000079: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 8, string_id: 38041>  # String: 'updateResult' (Identifier)
+381532:==> 0000003b: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 4, string_id: 38041>  # String: 'updateResult' (Identifier)
+381599:==> 00000006: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 1, string_id: 38041>  # String: 'updateResult' (Identifier)
+381639:==> 0000000b: <GetById>: <Reg8: 1, Reg8: 3, UInt8: 1, string_id: 38041>  # String: 'updateResult' (Identifier)
+381696:=> [Function #9850 "updateResult" of 187 bytes]: 1 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x002e57c6
+383712:==> 00000065: <GetById>: <Reg8: 1, Reg8: 2, UInt8: 5, string_id: 38041>  # String: 'updateResult' (Identifier)
+400865:==> 0000004c: <LoadConstString>: <Reg8: 1, string_id: 6313>  # String: ", re-run pod install and rebuild your iOS app. If you're not using Pods then make sure you've have downloaded the necessary Firebase iOS SDK dependencies for this API." (String)
+405555:==> 0000008e: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 7, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
+405556:==> 00000094: <PutNewOwnById>: <Reg8: 3, Reg8: 5, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
+405561:==> 000000ae: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 9, string_id: 18441>  # String: 'UPDATER_APP_BOOT' (Identifier)
+405562:==> 000000b4: <PutNewOwnById>: <Reg8: 3, Reg8: 4, string_id: 18441>  # String: 'UPDATER_APP_BOOT' (Identifier)
+424061:==> 00000051: <PutNewOwnById>: <Reg8: 0, Reg8: 7, string_id: 18341>  # String: 'selectTotal' (Identifier)
+424077:==> 0000009f: <PutNewOwnById>: <Reg8: 0, Reg8: 6, string_id: 18341>  # String: 'selectTotal' (Identifier)
+528632:==> 000002d8: <NewArrayWithBuffer>: <Reg8: 1, UInt16: 17, UInt16: 17, UInt16: 45849>  # Array: ['rotate', 'rotateX', 'rotateY', 'rotateZ', 'skewX', 'skewY', 'transformMatrix', 'backgroundColor', 'borderColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor', 'shadowColor', 'color', 'textDecorationColor', 'tintColor']
+530678:==> 00000058: <NewArrayWithBuffer>: <Reg8: 1, UInt16: 12, UInt16: 12, UInt16: 45896>  # Array: ['perspective', 'rotate', 'rotateX', 'rotateY', 'rotateZ', 'scale', 'scaleX', 'scaleY', 'skewX', 'skewY', 'translateX', 'translateY']
+530896:==> 0000003c: <LoadConstString>: <Reg8: 0, string_id: 214>  # String: 'rotate' (Identifier)
+532095:==> 0000003d: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532189:==> 000001f3: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 4, string_id: 214>  # String: 'rotate' (Identifier)
+532193:==> 00000201: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
+532197:==> 00000210: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
+532201:==> 0000021f: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
+532205:==> 0000022e: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 6, string_id: 214>  # String: 'rotate' (Identifier)
+532207:==> 00000236: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532247:==> 000002c8: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 4, string_id: 214>  # String: 'rotate' (Identifier)
+532251:==> 000002d6: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532255:==> 000002e5: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+532259:==> 000002f4: <PutNewOwnByIdShort>: <Reg8: 3, Reg8: 5, string_id: 214>  # String: 'rotate' (Identifier)
+ fellow-analysis % grep -niE \
+'GetFirmwareVersion|ShouldBlock|UpdateCount|UpdatedAt|initialUpdaterRunning' \
+hermes-disassembly.txt | head -100
+87498:==> 0000030c: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 28, UInt16: 28, UInt16: 4471, UInt16: 1151>  # Object: {'onLayout': true, 'onMoveShouldSetResponder': true, 'onMoveShouldSetResponderCapture': true, 'onStartShouldSetResponder': true, 'onStartShouldSetResponderCapture': true, 'onResponderGrant': true, 'onResponderReject': true, 'onResponderStart': true, 'onResponderEnd': true, 'onResponderRelease': true, 'onResponderMove': true, 'onResponderTerminate': true, 'onResponderTerminationRequest': true, 'onShouldBlockNativeResponder': true, 'onTouchStart': true, 'onTouchMove': true, 'onTouchEnd': true, 'onTouchCancel': true, 'onPointerEnter': true, 'onPointerEnterCapture': true, 'onPointerLeave': true, 'onPointerLeaveCapture': true, 'onPointerMove': true, 'onPointerMoveCapture': true, 'onPointerOut': true, 'onPointerOutCapture': true, 'onPointerOver': true, 'onPointerOverCapture': true}
+155971:==> 000003d9: <PutNewOwnById>: <Reg8: 1, Reg8: 2, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+156549:==> 00000214: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 29, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+156607:==> 00000005: <GetById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+156610:==> 00000012: <PutNewOwnById>: <Reg8: 0, Reg8: 1, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+156847:==> 00000019: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 3, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+159015:==> 0000002f: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 9, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+159337:==> 0000001b: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 2, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+159708:==> 00000154: <GetById>: <Reg8: 4, Reg8: 0, UInt8: 15, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+159714:==> 00000169: <PutNewOwnById>: <Reg8: 1, Reg8: 2, string_id: 28128>  # String: 'pendingScrollUpdateCount' (Identifier)
+192916:==> 000000c4: <GetById>: <Reg8: 2, Reg8: 0, UInt8: 7, string_id: 24344>  # String: 'onShouldBlockNativeResponder' (Identifier)
+192922:==> 000000d9: <GetById>: <Reg8: 2, Reg8: 3, UInt8: 7, string_id: 24344>  # String: 'onShouldBlockNativeResponder' (Identifier)
+373347:==> 000000ae: <GetById>: <Reg8: 4, Reg8: 5, UInt8: 10, string_id: 38049>  # String: 'updatedAt' (Identifier)
+373348:==> 000000b4: <PutNewOwnById>: <Reg8: 1, Reg8: 4, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+373497:==> 00000016: <GetById>: <Reg8: 2, Reg8: 2, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+373536:==> 00000021: <GetById>: <Reg8: 2, Reg8: 2, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+373547:==> 0000004f: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+373776:==> 00000022: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+374238:==> 00000039: <GetById>: <Reg8: 0, Reg8: 6, UInt8: 2, string_id: 36913>  # String: 'initialDataUpdatedAt' (Identifier)
+374241:==> 00000046: <GetById>: <Reg8: 0, Reg8: 6, UInt8: 2, string_id: 36913>  # String: 'initialDataUpdatedAt' (Identifier)
+374243:==> 0000004e: <GetById>: <Reg8: 5, Reg8: 6, UInt8: 2, string_id: 36913>  # String: 'initialDataUpdatedAt' (Identifier)
+374248:==> 00000062: <NewObjectWithBuffer>: <Reg8: 0, UInt16: 12, UInt16: 11, UInt16: 18580, UInt16: 604>  # Object: {'data': null, 'dataUpdateCount': 0, 'dataUpdatedAt': null, 'error': null, 'errorUpdateCount': 0, 'errorUpdatedAt': 0, 'fetchFailureCount': 0, 'fetchMeta': null, 'isFetching': false, 'isInvalidated': false, 'isPaused': false}
+374259:==> 00000091: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+374331:==> 000000ec: <GetById>: <Reg8: 8, Reg8: 4, UInt8: 8, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+374334:==> 000000f9: <PutNewOwnById>: <Reg8: 6, Reg8: 8, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+374339:==> 0000010f: <PutNewOwnById>: <Reg8: 6, Reg8: 8, string_id: 24347>  # String: 'errorUpdatedAt' (Identifier)
+374359:==> 00000163: <NewObjectWithBuffer>: <Reg8: 3, UInt16: 9, UInt16: 9, UInt16: 3875, UInt16: 241>  # Object: {'data': null, 'dataUpdateCount': null, 'dataUpdatedAt': null, 'error': null, 'fetchFailureCount': 0, 'isFetching': false, 'isInvalidated': false, 'isPaused': false, 'status': 'success'}
+374362:==> 00000178: <GetById>: <Reg8: 2, Reg8: 4, UInt8: 13, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+374365:==> 00000185: <PutById>: <Reg8: 3, Reg8: 1, UInt8: 2, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+374366:==> 0000018b: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 14, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+374373:==> 000001a8: <PutById>: <Reg8: 3, Reg8: 1, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+374388:==> 000001e9: <GetById>: <Reg8: 0, Reg8: 4, UInt8: 14, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+378530:==> 0000001a: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 3, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+378558:==> 0000001d: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 2, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379371:==> 00000091: <GetById>: <Reg8: 4, Reg8: 3, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379610:==> 0000005d: <GetById>: <Reg8: 12, Reg8: 9, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379612:==> 00000068: <GetById>: <Reg8: 7, Reg8: 9, UInt8: 11, string_id: 24347>  # String: 'errorUpdatedAt' (Identifier)
+379650:==> 000000f0: <GetById>: <Reg8: 9, Reg8: 9, UInt8: 17, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+379661:==> 0000011a: <GetById>: <Reg8: 15, Reg8: 8, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379868:==> 0000044b: <PutNewOwnById>: <Reg8: 0, Reg8: 15, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379870:==> 00000454: <PutNewOwnById>: <Reg8: 0, Reg8: 7, string_id: 24347>  # String: 'errorUpdatedAt' (Identifier)
+379874:==> 00000467: <GetById>: <Reg8: 13, Reg8: 7, UInt8: 32, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+379875:==> 0000046d: <PutNewOwnById>: <Reg8: 0, Reg8: 13, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+379876:==> 00000472: <GetById>: <Reg8: 13, Reg8: 7, UInt8: 17, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+379881:==> 00000484: <GetById>: <Reg8: 15, Reg8: 15, UInt8: 32, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+379885:==> 00000496: <GetById>: <Reg8: 15, Reg8: 13, UInt8: 17, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+379886:==> 0000049c: <GetById>: <Reg8: 13, Reg8: 14, UInt8: 17, string_id: 35372>  # String: 'dataUpdateCount' (Identifier)
+379890:==> 000004ac: <GetById>: <Reg8: 15, Reg8: 15, UInt8: 32, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+379891:==> 000004b2: <GetById>: <Reg8: 14, Reg8: 14, UInt8: 32, string_id: 24341>  # String: 'errorUpdateCount' (Identifier)
+379901:==> 000004db: <GetById>: <Reg8: 11, Reg8: 11, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+379907:==> 000004f7: <GetById>: <Reg8: 6, Reg8: 6, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+382193:==> 00000097: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+382195:==> 000000a2: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 9, string_id: 20831>  # String: 'dataUpdatedAt' (Identifier)
+673361:==> 0000005f: <PutById>: <Reg8: 3, Reg8: 4, UInt8: 4, string_id: 24343>  # String: 'GetFirmwareVersion' (Identifier)
+680652:==> 00000047: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 4, string_id: 24343>  # String: 'GetFirmwareVersion' (Identifier)
+ fellow-analysis % ls -lh hermes-disassembly.txt
+head -30 hermes-disassembly.txt
+-rw-r--r--  1 bram.boersma  staff    59M  8 Oct 20:24 hermes-disassembly.txt
+=> [Function #0 "global" of 84305 bytes]: 1 params, frame size=19, strict=0, exc handler=1, debug info=0  @ offset 0x001bcb6c
+  [Exception handlers: [start=0xcf, end=0x11c, target=0x11e] ]
+
+Bytecode listing:
+
+==> 00000000: <DeclareGlobalVar>: <string_id: 24925>  # String: '__BUNDLE_START_TIME__' (Identifier)
+==> 00000005: <DeclareGlobalVar>: <string_id: 25987>  # String: '__DEV__' (Identifier)
+==> 0000000a: <DeclareGlobalVar>: <string_id: 207>  # String: 'process' (Identifier)
+==> 0000000f: <DeclareGlobalVar>: <string_id: 23937>  # String: '__METRO_GLOBAL_PREFIX__' (Identifier)
+==> 00000014: <DeclareGlobalVar>: <string_id: 32948>  # String: '_sentryDebugIds' (Identifier)
+==> 00000019: <DeclareGlobalVar>: <string_id: 22602>  # String: '_sentryDebugIdIdentifier' (Identifier)
+==> 0000001e: <DeclareGlobalVar>: <string_id: 17458>  # String: 'stack' (Identifier)
+==> 00000023: <CreateEnvironment>: <Reg8: 3>
+==> 00000025: <LoadThisNS>: <Reg8: 5>
+==> 00000027: <GetById>: <Reg8: 1, Reg8: 5, UInt8: 1, string_id: 19868>  # String: 'nativePerformanceNow' (Identifier)
+==> 0000002d: <GetGlobalObject>: <Reg8: 0>
+==> 0000002f: <JmpTrue>: <Addr8: 20, Reg8: 1>  # Address: 00000043
+==> 00000032: <TryGetById>: <Reg8: 2, Reg8: 0, UInt8: 2, string_id: 10>  # String: 'Date' (Identifier)
+==> 00000038: <GetByIdShort>: <Reg8: 1, Reg8: 2, UInt8: 3, string_id: 195>  # String: 'now' (Identifier)
+==> 0000003d: <Call1>: <Reg8: 1, Reg8: 1, Reg8: 2>
+==> 00000041: <Jmp>: <Addr8: 14>  # Address: 0000004f
+==> 00000043: <TryGetById>: <Reg8: 4, Reg8: 0, UInt8: 1, string_id: 19868>  # String: 'nativePerformanceNow' (Identifier)
+==> 00000049: <LoadConstUndefined>: <Reg8: 2>
+==> 0000004b: <Call1>: <Reg8: 1, Reg8: 4, Reg8: 2>
+==> 0000004f: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 24925>  # String: '__BUNDLE_START_TIME__' (Identifier)
+==> 00000055: <LoadConstFalse>: <Reg8: 1>
+==> 00000057: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 25987>  # String: '__DEV__' (Identifier)
+==> 0000005d: <GetByIdShort>: <Reg8: 1, Reg8: 5, UInt8: 4, string_id: 207>  # String: 'process' (Identifier)
+==> 00000062: <JmpTrue>: <Addr8: 5, Reg8: 1>  # Address: 00000067
+==> 00000065: <NewObject>: <Reg8: 1>
+ fellow-analysis % 
