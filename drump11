@@ -1,0 +1,924 @@
+Last login: Thu Oct  8 21:01:51 on ttys000
+ fellow-analysis % grep -niE \
+'firmware_version_check|firmwareVersion|firmware|download|ota|update|\.bin|s3|amazonaws|presigned|url' \
+~/Desktop/fellow-analysis/hermes-disassembly.txt \
+| head -300
+16291:==> 00000285: <LoadConstString>: <Reg8: 7, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+16675:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+18685:==> 00000186: <CreateClosure>: <Reg8: 14, Reg8: 1, function_id: 182>  # Function: [#182 enqueueForceUpdate of 4 bytes]: 1 params @ offset 0x001d2e0c
+18686:==> 0000018b: <PutNewOwnById>: <Reg8: 12, Reg8: 14, string_id: 18834>  # String: 'enqueueForceUpdate' (Identifier)
+18705:==> 000001e4: <PutById>: <Reg8: 14, Reg8: 12, UInt8: 3, string_id: 24195>  # String: 'forceUpdate' (Identifier)
+18863:==> 0000002c: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 4, string_id: 21983>  # String: 'updater' (Identifier)
+18895:==> 0000002c: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 4, string_id: 21983>  # String: 'updater' (Identifier)
+19452:=> [Function #182 "enqueueForceUpdate" of 4 bytes]: 1 params, frame size=1, strict=1, exc handler=0, debug info=0  @ offset 0x001d2e0c
+19495:==> 0000001f: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 1, string_id: 21983>  # String: 'updater' (Identifier)
+19508:==> 0000004d: <LoadConstString>: <Reg8: 0, string_id: 14967>  # String: 'setState(...): takes an object of state variables to update or a function which returns an object of state variables.' (String)
+19520:==> 00000003: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 1, string_id: 21983>  # String: 'updater' (Identifier)
+19521:==> 00000009: <GetById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 18834>  # String: 'enqueueForceUpdate' (Identifier)
+19523:==> 00000012: <LoadConstString>: <Reg8: 0, string_id: 24195>  # String: 'forceUpdate' (Identifier)
+20331:==> 000003a7: <CreateClosure>: <Reg8: 4, Reg8: 1, function_id: 280>  # Function: [#280 get unstable_batchedUpdates of 33 bytes]: 1 params @ offset 0x001d6c32
+20332:==> 000003ac: <LoadConstString>: <Reg8: 3, string_id: 22136>  # String: 'unstable_batchedUpdates' (Identifier)
+21412:=> [Function #280 "get unstable_batchedUpdates" of 33 bytes]: 1 params, frame size=11, strict=1, exc handler=0, debug info=0  @ offset 0x001d6c32
+21423:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 22136>  # String: 'unstable_batchedUpdates' (Identifier)
+24350:==> 0000003b: <CreateClosure>: <Reg8: 0, Reg8: 3, function_id: 396>  # Function: [#396 updateErrorWithErrorData of 32 bytes]: 3 params @ offset 0x001d915b
+24822:=> [Function #396 "updateErrorWithErrorData" of 32 bytes]: 3 params, frame size=13, strict=1, exc handler=0, debug info=0  @ offset 0x001d915b
+25505:==> 00000115: <LoadConstString>: <Reg8: 5, string_id: 28107>  # String: 'setReactNativeMicrotasksCallback' (Identifier)
+25507:==> 0000011d: <CreateClosure>: <Reg8: 5, Reg8: 1, function_id: 431>  # Function: [#431 setReactNativeMicrotasksCallback of 16 bytes]: 2 params @ offset 0x001d9ea4
+25523:==> 0000015a: <LoadConstString>: <Reg8: 5, string_id: 23619>  # String: '__callReactNativeMicrotasks' (Identifier)
+25525:==> 00000162: <CreateClosure>: <Reg8: 5, Reg8: 1, function_id: 434>  # Function: [#434 __callReactNativeMicrotasks of 125 bytes]: 1 params @ offset 0x001d9f31
+25599:==> 000000ae: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 8, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+25732:==> 00000007: <GetById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 23619>  # String: '__callReactNativeMicrotasks' (Identifier)
+25999:=> [Function #431 "setReactNativeMicrotasksCallback" of 16 bytes]: 2 params, frame size=2, strict=1, exc handler=0, debug info=0  @ offset 0x001d9ea4
+26005:==> 00000006: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+26065:=> [Function #434 "__callReactNativeMicrotasks" of 125 bytes]: 1 params, frame size=15, strict=1, exc handler=1, debug info=0  @ offset 0x001d9f31
+26079:==> 00000022: <LoadConstString>: <Reg8: 0, string_id: 5481>  # String: 'JSTimers.callReactNativeMicrotasks()' (String)
+26081:==> 0000002b: <GetById>: <Reg8: 5, Reg8: 2, UInt8: 2, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+26084:==> 00000037: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 2, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+27483:==> 00000080: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 479>  # Function: [#479 updateView of 38 bytes]: 4 params @ offset 0x001db38e
+27484:==> 00000085: <PutNewOwnById>: <Reg8: 2, Reg8: 0, string_id: 33093>  # String: 'updateView' (Identifier)
+27738:=> [Function #479 "updateView" of 38 bytes]: 4 params, frame size=13, strict=1, exc handler=0, debug info=0  @ offset 0x001db38e
+27748:==> 00000016: <LoadConstString>: <Reg8: 0, string_id: 33093>  # String: 'updateView' (Identifier)
+28855:==> 00000000: <NewArrayWithBuffer>: <Reg8: 1, UInt16: 36, UInt16: 36, UInt16: 727>  # Array: ['clearJSResponder', 'configureNextLayoutAnimation', 'createView', 'dismissPopupMenu', 'dispatchViewManagerCommand', 'findSubviewIn', 'getConstantsForViewManager', 'getDefaultEventTypes', 'manageChildren', 'measure', 'measureInWindow', 'measureLayout', 'measureLayoutRelativeToParent', 'removeRootView', 'removeSubviewsFromContainerWithID', 'replaceExistingNonRootView', 'sendAccessibilityEvent', 'setChildren', 'setJSResponder', 'setLayoutAnimationEnabledExperimental', 'showPopupMenu', 'updateView', 'viewIsDescendantOf', 'PopupMenu', 'LazyViewManagersEnabled', 'ViewManagerNames', 'StyleConstants', 'AccessibilityEventTypes', 'UIView', 'getViewManagerConfig', 'hasViewManagerConfig', 'blur', 'focus', 'genericBubblingEventTypes', 'genericDirectEventTypes', 'lazilyLoadView']
+29431:==> 00000087: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 544>  # Function: [#544 unstable_batchedUpdates of 45 bytes]: 3 params @ offset 0x001dc75c
+29432:==> 0000008c: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 8, string_id: 22136>  # String: 'unstable_batchedUpdates' (Identifier)
+29587:=> [Function #544 "unstable_batchedUpdates" of 45 bytes]: 3 params, frame size=13, strict=0, exc handler=0, debug info=0  @ offset 0x001dc75c
+29598:==> 00000019: <GetById>: <Reg8: 2, Reg8: 3, UInt8: 1, string_id: 22136>  # String: 'unstable_batchedUpdates' (Identifier)
+29769:==> 000001ee: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 605>  # Function: [#605 batchedUpdatesImpl of 15 bytes]: 3 params @ offset 0x001dfe14
+29771:==> 000001f7: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 606>  # Function: [#606 batchedUpdates of 64 bytes]: 3 params @ offset 0x001dfe23
+29790:==> 0000024d: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 618>  # Function: [#618 markRootUpdated of 82 bytes]: 4 params @ offset 0x001e05fe
+29848:==> 00000353: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 648>  # Function: [#648 pushConcurrentUpdateQueue of 48 bytes]: 2 params @ offset 0x001e1100
+29850:==> 0000035d: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 649>  # Function: [#649 enqueueConcurrentHookUpdate of 88 bytes]: 5 params @ offset 0x001e1130
+29852:==> 00000367: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 650>  # Function: [#650 markUpdateLaneFromFiberToRoot of 133 bytes]: 3 params @ offset 0x001e1188
+29854:==> 00000371: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 651>  # Function: [#651 initializeUpdateQueue of 50 bytes]: 2 params @ offset 0x001e120d
+29856:==> 0000037b: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 652>  # Function: [#652 cloneUpdateQueue of 87 bytes]: 3 params @ offset 0x001e123f
+29858:==> 00000385: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 653>  # Function: [#653 createUpdate of 30 bytes]: 3 params @ offset 0x001e1296
+29860:==> 0000038f: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 654>  # Function: [#654 enqueueUpdate of 175 bytes]: 4 params @ offset 0x001e12b4
+29864:==> 000003a3: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 656>  # Function: [#656 enqueueCapturedUpdate of 239 bytes]: 3 params @ offset 0x001e13b9
+29866:==> 000003ad: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 657>  # Function: [#657 processUpdateQueue of 899 bytes]: 5 params @ offset 0x001e14a8
+29868:==> 000003b7: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 658>  # Function: [#658 commitUpdateQueue of 119 bytes]: 4 params @ offset 0x001e182b
+29872:==> 000003cb: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 660>  # Function: [#660 checkShouldComponentUpdate of 123 bytes]: 8 params @ offset 0x001e18f6
+29908:==> 0000047f: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 698>  # Function: [#698 updateWorkInProgressHook of 225 bytes]: 1 params @ offset 0x001e3512
+29912:==> 00000493: <CreateClosure>: <Reg8: 33, Reg8: 1, function_id: 700>  # Function: [#700 updateReducer of 575 bytes]: 2 params @ offset 0x001e3610
+29916:==> 000004a7: <CreateClosure>: <Reg8: 22, Reg8: 1, function_id: 702>  # Function: [#702 updateMutableSource of 4 bytes]: 1 params @ offset 0x001d2e0c
+29917:==> 000004ac: <CreateClosure>: <Reg8: 21, Reg8: 1, function_id: 703>  # Function: [#703 updateSyncExternalStore of 292 bytes]: 3 params @ offset 0x001e390b
+29920:==> 000004bb: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 705>  # Function: [#705 updateStoreInstance of 54 bytes]: 5 params @ offset 0x001e3ab6
+29932:==> 000004f7: <CreateClosure>: <Reg8: 24, Reg8: 1, function_id: 712>  # Function: [#712 updateRef of 21 bytes]: 1 params @ offset 0x001e3ca6
+29935:==> 00000506: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 714>  # Function: [#714 updateEffectImpl of 177 bytes]: 5 params @ offset 0x001e3d13
+29939:==> 0000051a: <CreateClosure>: <Reg8: 30, Reg8: 1, function_id: 716>  # Function: [#716 updateEffect of 33 bytes]: 3 params @ offset 0x001e3de5
+29941:==> 00000524: <CreateClosure>: <Reg8: 28, Reg8: 1, function_id: 717>  # Function: [#717 updateInsertionEffect of 30 bytes]: 3 params @ offset 0x001e3e06
+29942:==> 00000529: <CreateClosure>: <Reg8: 27, Reg8: 1, function_id: 718>  # Function: [#718 updateLayoutEffect of 33 bytes]: 3 params @ offset 0x001e3e24
+29945:==> 00000538: <CreateClosure>: <Reg8: 29, Reg8: 1, function_id: 722>  # Function: [#722 updateImperativeHandle of 90 bytes]: 4 params @ offset 0x001e3eb4
+29947:==> 00000542: <CreateClosure>: <Reg8: 32, Reg8: 1, function_id: 724>  # Function: [#724 updateCallback of 93 bytes]: 3 params @ offset 0x001e3f0e
+29948:==> 00000547: <CreateClosure>: <Reg8: 26, Reg8: 1, function_id: 725>  # Function: [#725 updateMemo of 97 bytes]: 3 params @ offset 0x001e3f6b
+29949:==> 0000054c: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 726>  # Function: [#726 updateDeferredValueImpl of 124 bytes]: 4 params @ offset 0x001e3fcc
+29953:==> 00000560: <CreateClosure>: <Reg8: 20, Reg8: 1, function_id: 728>  # Function: [#728 updateId of 21 bytes]: 1 params @ offset 0x001e3ca6
+29958:==> 00000579: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 731>  # Function: [#731 isRenderPhaseUpdate of 44 bytes]: 2 params @ offset 0x001e42ce
+29960:==> 00000583: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 732>  # Function: [#732 enqueueRenderPhaseUpdate of 66 bytes]: 3 params @ offset 0x001e42fa
+29962:==> 0000058d: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 733>  # Function: [#733 entangleTransitionUpdate of 69 bytes]: 4 params @ offset 0x001e433c
+29970:==> 000005b5: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 738>  # Function: [#738 createRootErrorUpdate of 87 bytes]: 4 params @ offset 0x001e44ed
+29972:==> 000005bf: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 740>  # Function: [#740 createClassErrorUpdate of 150 bytes]: 4 params @ offset 0x001e4579
+29978:==> 000005dd: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 746>  # Function: [#746 updateForwardRef of 186 bytes]: 6 params @ offset 0x001e4815
+29980:==> 000005e7: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 747>  # Function: [#747 updateMemoComponent of 334 bytes]: 6 params @ offset 0x001e48cf
+29982:==> 000005f1: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 748>  # Function: [#748 updateSimpleMemoComponent of 182 bytes]: 6 params @ offset 0x001e4a1d
+29984:==> 000005fb: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 749>  # Function: [#749 updateOffscreenComponent of 391 bytes]: 4 params @ offset 0x001e4ad3
+29988:==> 0000060f: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 751>  # Function: [#751 updateFunctionComponent of 215 bytes]: 6 params @ offset 0x001e4c95
+29990:==> 00000619: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 752>  # Function: [#752 updateClassComponent of 1609 bytes]: 6 params @ offset 0x001e4d6c
+29998:==> 00000641: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 756>  # Function: [#756 updateSuspenseComponent of 932 bytes]: 4 params @ offset 0x001e554c
+30004:==> 0000065f: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 759>  # Function: [#759 updateDehydratedSuspenseComponent of 938 bytes]: 8 params @ offset 0x001e59ae
+30010:==> 0000067d: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 762>  # Function: [#762 updateSuspenseListComponent of 671 bytes]: 4 params @ offset 0x001e5e0c
+30016:==> 0000069b: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 765>  # Function: [#765 attemptEarlyBailoutIfNoScheduledUpdate of 618 bytes]: 4 params @ offset 0x001e61e3
+30058:==> 0000076d: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 787>  # Function: [#787 requestUpdateLane of 165 bytes]: 2 params @ offset 0x001e8334
+30060:==> 00000777: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 788>  # Function: [#788 scheduleUpdateOnFiber of 270 bytes]: 5 params @ offset 0x001e83d9
+30140:==> 00000907: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 829>  # Function: [#829 updateContainer of 163 bytes]: 5 params @ offset 0x001eaee9
+30606:==> 00001162: <CreateClosure>: <Reg8: 39, Reg8: 1, function_id: 867>  # Function: [#867 enqueueForceUpdate of 133 bytes]: 3 params @ offset 0x001ec17e
+30607:==> 00001167: <PutNewOwnById>: <Reg8: 38, Reg8: 39, string_id: 18834>  # String: 'enqueueForceUpdate' (Identifier)
+30754:==> 00001408: <CreateClosure>: <Reg8: 15, Reg8: 1, function_id: 887>  # Function: [#887 updateHostContainer of 102 bytes]: 3 params @ offset 0x001ec7b2
+30756:==> 00001411: <CreateClosure>: <Reg8: 15, Reg8: 1, function_id: 888>  # Function: [#888 updateHostComponent$1 of 283 bytes]: 5 params @ offset 0x001ec818
+30758:==> 0000141a: <CreateClosure>: <Reg8: 15, Reg8: 1, function_id: 889>  # Function: [#889 updateHostText$1 of 116 bytes]: 5 params @ offset 0x001ec933
+30808:==> 000014f4: <CreateClosure>: <Reg8: 8, Reg8: 1, function_id: 891>  # Function: [#891 batchedUpdatesImpl of 186 bytes]: 3 params @ offset 0x001ed424
+30845:==> 000015a9: <PutNewOwnById>: <Reg8: 7, Reg8: 9, string_id: 25388>  # String: 'scheduleUpdate' (Identifier)
+33478:=> [Function #605 "batchedUpdatesImpl" of 15 bytes]: 3 params, frame size=11, strict=1, exc handler=0, debug info=0  @ offset 0x001dfe14
+33491:=> [Function #606 "batchedUpdates" of 64 bytes]: 3 params, frame size=16, strict=1, exc handler=1, debug info=0  @ offset 0x001dfe23
+34072:=> [Function #618 "markRootUpdated" of 82 bytes]: 4 params, frame size=12, strict=1, exc handler=0, debug info=0  @ offset 0x001e05fe
+35069:=> [Function #648 "pushConcurrentUpdateQueue" of 48 bytes]: 2 params, frame size=12, strict=1, exc handler=0, debug info=0  @ offset 0x001e1100
+35091:=> [Function #649 "enqueueConcurrentHookUpdate" of 88 bytes]: 5 params, frame size=13, strict=1, exc handler=0, debug info=0  @ offset 0x001e1130
+35121:=> [Function #650 "markUpdateLaneFromFiberToRoot" of 133 bytes]: 3 params, frame size=6, strict=1, exc handler=0, debug info=0  @ offset 0x001e1188
+35160:=> [Function #651 "initializeUpdateQueue" of 50 bytes]: 2 params, frame size=3, strict=1, exc handler=0, debug info=0  @ offset 0x001e120d
+35165:==> 00000003: <NewObjectWithBuffer>: <Reg8: 0, UInt16: 5, UInt16: 5, UInt16: 299, UInt16: 529>  # Object: {'baseState': null, 'firstBaseUpdate': null, 'lastBaseUpdate': null, 'shared': null, 'effects': null}
+35170:==> 00000028: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+35177:=> [Function #652 "cloneUpdateQueue" of 87 bytes]: 3 params, frame size=4, strict=1, exc handler=0, debug info=0  @ offset 0x001e123f
+35183:==> 00000006: <GetByIdShort>: <Reg8: 2, Reg8: 0, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35184:==> 0000000b: <GetByIdShort>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35189:==> 00000021: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 3, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35190:==> 00000027: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35191:==> 0000002c: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 4, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35192:==> 00000032: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35197:==> 0000004d: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35204:=> [Function #653 "createUpdate" of 30 bytes]: 3 params, frame size=2, strict=1, exc handler=0, debug info=0  @ offset 0x001e1296
+35218:=> [Function #654 "enqueueUpdate" of 175 bytes]: 4 params, frame size=17, strict=1, exc handler=0, debug info=0  @ offset 0x001e12b4
+35225:==> 00000009: <GetByIdShort>: <Reg8: 1, Reg8: 4, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35274:==> 00000009: <GetByIdShort>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35297:=> [Function #656 "enqueueCapturedUpdate" of 239 bytes]: 3 params, frame size=11, strict=1, exc handler=0, debug info=0  @ offset 0x001e13b9
+35303:==> 00000006: <GetByIdShort>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35307:==> 00000016: <GetByIdShort>: <Reg8: 2, Reg8: 2, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35309:==> 0000001f: <GetById>: <Reg8: 4, Reg8: 0, UInt8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35313:==> 00000031: <PutById>: <Reg8: 0, Reg8: 3, UInt8: 2, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35314:==> 00000037: <PutById>: <Reg8: 0, Reg8: 3, UInt8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35317:==> 00000041: <GetById>: <Reg8: 9, Reg8: 0, UInt8: 4, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35349:==> 000000c5: <PutNewOwnById>: <Reg8: 0, Reg8: 4, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35350:==> 000000ca: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35355:==> 000000e5: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 4, string_id: 239>  # String: 'updateQueue' (Identifier)
+35362:=> [Function #657 "processUpdateQueue" of 899 bytes]: 5 params, frame size=48, strict=1, exc handler=0, debug info=0  @ offset 0x001e14a8
+35370:==> 0000000c: <GetByIdShort>: <Reg8: 8, Reg8: 1, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35374:==> 0000001a: <GetById>: <Reg8: 2, Reg8: 8, UInt8: 2, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35375:==> 00000020: <GetById>: <Reg8: 6, Reg8: 8, UInt8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35392:==> 0000006e: <GetByIdShort>: <Reg8: 2, Reg8: 2, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35393:==> 00000073: <GetById>: <Reg8: 6, Reg8: 2, UInt8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35399:==> 0000008c: <PutById>: <Reg8: 2, Reg8: 5, UInt8: 3, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35400:==> 00000092: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 4, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35552:==> 000002de: <PutById>: <Reg8: 8, Reg8: 33, UInt8: 4, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35566:==> 00000317: <PutById>: <Reg8: 8, Reg8: 3, UInt8: 3, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35567:==> 0000031d: <PutById>: <Reg8: 8, Reg8: 2, UInt8: 4, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35595:=> [Function #658 "commitUpdateQueue" of 119 bytes]: 4 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e182b
+35657:==> 00000047: <GetByIdShort>: <Reg8: 1, Reg8: 1, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+35664:=> [Function #660 "checkShouldComponentUpdate" of 123 bytes]: 8 params, frame size=18, strict=1, exc handler=0, debug info=0  @ offset 0x001e18f6
+35673:==> 00000011: <GetById>: <Reg8: 0, Reg8: 3, UInt8: 2, string_id: 24538>  # String: 'shouldComponentUpdate' (Identifier)
+35697:==> 00000069: <GetById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 24538>  # String: 'shouldComponentUpdate' (Identifier)
+35762:==> 000000bf: <PutById>: <Reg8: 0, Reg8: 5, UInt8: 2, string_id: 21983>  # String: 'updater' (Identifier)
+35863:==> 000000d8: <GetById>: <Reg8: 7, Reg8: 1, UInt8: 6, string_id: 36428>  # String: 'getSnapshotBeforeUpdate' (Identifier)
+36091:==> 0000003f: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 675>  # Function: [#675 updateTextNode of 83 bytes]: 5 params @ offset 0x001e2081
+36093:==> 00000048: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 676>  # Function: [#676 updateElement of 246 bytes]: 5 params @ offset 0x001e20d4
+36095:==> 00000051: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 677>  # Function: [#677 updatePortal of 137 bytes]: 5 params @ offset 0x001e21ca
+36097:==> 0000005a: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 678>  # Function: [#678 updateFragment of 86 bytes]: 6 params @ offset 0x001e2253
+36101:==> 0000006c: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 680>  # Function: [#680 updateSlot of 335 bytes]: 5 params @ offset 0x001e23ed
+36103:==> 00000075: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 681>  # Function: [#681 updateFromMap of 392 bytes]: 6 params @ offset 0x001e253c
+36272:=> [Function #675 "updateTextNode" of 83 bytes]: 5 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e2081
+36302:=> [Function #676 "updateElement" of 246 bytes]: 5 params, frame size=24, strict=1, exc handler=0, debug info=0  @ offset 0x001e20d4
+36370:=> [Function #677 "updatePortal" of 137 bytes]: 5 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e21ca
+36411:=> [Function #678 "updateFragment" of 86 bytes]: 6 params, frame size=18, strict=1, exc handler=0, debug info=0  @ offset 0x001e2253
+36530:=> [Function #680 "updateSlot" of 335 bytes]: 5 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e23ed
+36633:=> [Function #681 "updateFromMap" of 392 bytes]: 6 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e253c
+37764:==> 00000025: <PutById>: <Reg8: 13, Reg8: 5, UInt8: 2, string_id: 239>  # String: 'updateQueue' (Identifier)
+37788:==> 00000084: <PutById>: <Reg8: 13, Reg8: 5, UInt8: 2, string_id: 239>  # String: 'updateQueue' (Identifier)
+37847:=> [Function #698 "updateWorkInProgressHook" of 225 bytes]: 1 params, frame size=14, strict=1, exc handler=0, debug info=0  @ offset 0x001e3512
+37928:=> [Function #700 "updateReducer" of 575 bytes]: 2 params, frame size=32, strict=1, exc handler=0, debug info=0  @ offset 0x001e3610
+38122:=> [Function #702 "updateMutableSource" of 4 bytes]: 1 params, frame size=1, strict=1, exc handler=0, debug info=0  @ offset 0x001d2e0c
+38132:=> [Function #703 "updateSyncExternalStore" of 292 bytes]: 3 params, frame size=24, strict=1, exc handler=0, debug info=0  @ offset 0x001e390b
+38231:==> 00000030: <GetByIdShort>: <Reg8: 3, Reg8: 1, UInt8: 2, string_id: 239>  # String: 'updateQueue' (Identifier)
+38245:==> 0000006f: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+38255:=> [Function #705 "updateStoreInstance" of 54 bytes]: 5 params, frame size=12, strict=1, exc handler=0, debug info=0  @ offset 0x001e3ab6
+38415:==> 0000002d: <GetByIdShort>: <Reg8: 1, Reg8: 1, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+38429:==> 00000075: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+38437:=> [Function #712 "updateRef" of 21 bytes]: 1 params, frame size=9, strict=1, exc handler=0, debug info=0  @ offset 0x001e3ca6
+38484:=> [Function #714 "updateEffectImpl" of 177 bytes]: 5 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e3d13
+38558:=> [Function #716 "updateEffect" of 33 bytes]: 3 params, frame size=17, strict=1, exc handler=0, debug info=0  @ offset 0x001e3de5
+38576:=> [Function #717 "updateInsertionEffect" of 30 bytes]: 3 params, frame size=17, strict=1, exc handler=0, debug info=0  @ offset 0x001e3e06
+38594:=> [Function #718 "updateLayoutEffect" of 33 bytes]: 3 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e3e24
+38671:=> [Function #722 "updateImperativeHandle" of 90 bytes]: 4 params, frame size=18, strict=1, exc handler=0, debug info=0  @ offset 0x001e3eb4
+38715:=> [Function #724 "updateCallback" of 93 bytes]: 3 params, frame size=17, strict=1, exc handler=0, debug info=0  @ offset 0x001e3f0e
+38749:=> [Function #725 "updateMemo" of 97 bytes]: 3 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e3f6b
+38784:=> [Function #726 "updateDeferredValueImpl" of 124 bytes]: 4 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e3fcc
+38874:=> [Function #728 "updateId" of 21 bytes]: 1 params, frame size=9, strict=1, exc handler=0, debug info=0  @ offset 0x001e3ca6
+39033:=> [Function #731 "isRenderPhaseUpdate" of 44 bytes]: 2 params, frame size=5, strict=1, exc handler=0, debug info=0  @ offset 0x001e42ce
+39054:=> [Function #732 "enqueueRenderPhaseUpdate" of 66 bytes]: 3 params, frame size=5, strict=1, exc handler=0, debug info=0  @ offset 0x001e42fa
+39079:=> [Function #733 "entangleTransitionUpdate" of 69 bytes]: 4 params, frame size=14, strict=1, exc handler=0, debug info=0  @ offset 0x001e433c
+39243:=> [Function #738 "createRootErrorUpdate" of 87 bytes]: 4 params, frame size=15, strict=1, exc handler=0, debug info=0  @ offset 0x001e44ed
+39296:=> [Function #740 "createClassErrorUpdate" of 150 bytes]: 4 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e4579
+39519:=> [Function #746 "updateForwardRef" of 186 bytes]: 6 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e4815
+39544:==> 0000004a: <GetByIdShort>: <Reg8: 6, Reg8: 5, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+39545:==> 0000004f: <PutById>: <Reg8: 0, Reg8: 6, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+39574:=> [Function #747 "updateMemoComponent" of 334 bytes]: 6 params, frame size=23, strict=1, exc handler=0, debug info=0  @ offset 0x001e48cf
+39664:=> [Function #748 "updateSimpleMemoComponent" of 182 bytes]: 6 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e4a1d
+39720:=> [Function #749 "updateOffscreenComponent" of 391 bytes]: 4 params, frame size=24, strict=1, exc handler=0, debug info=0  @ offset 0x001e4ad3
+39783:==> 00000108: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 5, string_id: 239>  # String: 'updateQueue' (Identifier)
+39842:=> [Function #751 "updateFunctionComponent" of 215 bytes]: 6 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e4c95
+39875:==> 00000067: <GetByIdShort>: <Reg8: 6, Reg8: 5, UInt8: 2, string_id: 239>  # String: 'updateQueue' (Identifier)
+39876:==> 0000006c: <PutById>: <Reg8: 0, Reg8: 6, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+39905:=> [Function #752 "updateClassComponent" of 1609 bytes]: 6 params, frame size=37, strict=1, exc handler=0, debug info=0  @ offset 0x001e4d6c
+39967:==> 000000f2: <GetById>: <Reg8: 13, Reg8: 12, UInt8: 10, string_id: 36428>  # String: 'getSnapshotBeforeUpdate' (Identifier)
+40010:==> 0000019e: <GetById>: <Reg8: 1, Reg8: 12, UInt8: 14, string_id: 23075>  # String: 'componentDidUpdate' (Identifier)
+40025:==> 000001dc: <GetById>: <Reg8: 1, Reg8: 12, UInt8: 10, string_id: 36428>  # String: 'getSnapshotBeforeUpdate' (Identifier)
+40067:==> 00000279: <GetById>: <Reg8: 16, Reg8: 12, UInt8: 14, string_id: 23075>  # String: 'componentDidUpdate' (Identifier)
+40082:==> 000002b7: <GetById>: <Reg8: 16, Reg8: 12, UInt8: 10, string_id: 36428>  # String: 'getSnapshotBeforeUpdate' (Identifier)
+40101:==> 0000030c: <GetById>: <Reg8: 16, Reg8: 12, UInt8: 16, string_id: 32003>  # String: 'UNSAFE_componentWillUpdate' (Identifier)
+40105:==> 0000031c: <GetById>: <Reg8: 17, Reg8: 12, UInt8: 17, string_id: 23074>  # String: 'componentWillUpdate' (Identifier)
+40110:==> 0000032f: <GetById>: <Reg8: 14, Reg8: 12, UInt8: 17, string_id: 23074>  # String: 'componentWillUpdate' (Identifier)
+40113:==> 0000033c: <GetById>: <Reg8: 14, Reg8: 12, UInt8: 17, string_id: 23074>  # String: 'componentWillUpdate' (Identifier)
+40115:==> 00000349: <GetById>: <Reg8: 14, Reg8: 12, UInt8: 16, string_id: 32003>  # String: 'UNSAFE_componentWillUpdate' (Identifier)
+40118:==> 00000356: <GetById>: <Reg8: 14, Reg8: 12, UInt8: 16, string_id: 32003>  # String: 'UNSAFE_componentWillUpdate' (Identifier)
+40120:==> 00000363: <GetById>: <Reg8: 14, Reg8: 12, UInt8: 14, string_id: 23075>  # String: 'componentDidUpdate' (Identifier)
+40127:==> 00000382: <GetById>: <Reg8: 14, Reg8: 12, UInt8: 10, string_id: 36428>  # String: 'getSnapshotBeforeUpdate' (Identifier)
+40166:==> 00000430: <GetById>: <Reg8: 12, Reg8: 11, UInt8: 10, string_id: 36428>  # String: 'getSnapshotBeforeUpdate' (Identifier)
+40437:=> [Function #756 "updateSuspenseComponent" of 932 bytes]: 4 params, frame size=33, strict=1, exc handler=0, debug info=0  @ offset 0x001e554c
+40733:=> [Function #759 "updateDehydratedSuspenseComponent" of 938 bytes]: 8 params, frame size=23, strict=1, exc handler=0, debug info=0  @ offset 0x001e59ae
+40855:==> 00000220: <LoadConstString>: <Reg8: 1, string_id: 10969>  # String: 'This Suspense boundary received an update before it finished hydrating. This caused the boundary to switch to client rendering. The usual way to fix this is to wrap the original update in startTransition.' (String)
+41017:=> [Function #762 "updateSuspenseListComponent" of 671 bytes]: 4 params, frame size=30, strict=1, exc handler=0, debug info=0  @ offset 0x001e5e0c
+41285:=> [Function #765 "attemptEarlyBailoutIfNoScheduledUpdate" of 618 bytes]: 4 params, frame size=20, strict=1, exc handler=0, debug info=0  @ offset 0x001e61e3
+41800:==> 00000197: <GetByIdShort>: <Reg8: 7, Reg8: 7, UInt8: 9, string_id: 239>  # String: 'updateQueue' (Identifier)
+41802:==> 000001a0: <PutById>: <Reg8: 0, Reg8: 7, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+41883:==> 00000308: <GetByIdShort>: <Reg8: 9, Reg8: 9, UInt8: 9, string_id: 239>  # String: 'updateQueue' (Identifier)
+41885:==> 00000311: <PutById>: <Reg8: 0, Reg8: 9, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+41911:==> 000003a1: <GetByIdShort>: <Reg8: 14, Reg8: 13, UInt8: 9, string_id: 239>  # String: 'updateQueue' (Identifier)
+41912:==> 000003a6: <PutById>: <Reg8: 11, Reg8: 14, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+41932:==> 00000408: <PutById>: <Reg8: 11, Reg8: 4, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+42092:==> 000006a7: <GetByIdShort>: <Reg8: 6, Reg8: 0, UInt8: 9, string_id: 239>  # String: 'updateQueue' (Identifier)
+42551:==> 00000105: <GetById>: <Reg8: 22, Reg8: 23, UInt8: 10, string_id: 36428>  # String: 'getSnapshotBeforeUpdate' (Identifier)
+42565:==> 00000140: <PutById>: <Reg8: 0, Reg8: 21, UInt8: 1, string_id: 32166>  # String: '__reactInternalSnapshotBeforeUpdate' (Identifier)
+42609:==> 00000009: <GetByIdShort>: <Reg8: 2, Reg8: 6, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+42644:==> 00000006: <GetByIdShort>: <Reg8: 2, Reg8: 0, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+42690:==> 0000005f: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 11, string_id: 239>  # String: 'updateQueue' (Identifier)
+42781:==> 00000101: <GetByIdShort>: <Reg8: 5, Reg8: 5, UInt8: 7, string_id: 239>  # String: 'updateQueue' (Identifier)
+42845:==> 00000009: <GetByIdShort>: <Reg8: 2, Reg8: 3, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+42848:==> 00000014: <PutById>: <Reg8: 3, Reg8: 4, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+43245:==> 000000e8: <GetByIdShort>: <Reg8: 1, Reg8: 1, UInt8: 7, string_id: 239>  # String: 'updateQueue' (Identifier)
+43291:==> 000001a9: <GetById>: <Reg8: 21, Reg8: 22, UInt8: 13, string_id: 23075>  # String: 'componentDidUpdate' (Identifier)
+43294:==> 000001b7: <GetById>: <Reg8: 1, Reg8: 22, UInt8: 15, string_id: 32166>  # String: '__reactInternalSnapshotBeforeUpdate' (Identifier)
+43301:==> 000001d6: <GetByIdShort>: <Reg8: 1, Reg8: 1, UInt8: 7, string_id: 239>  # String: 'updateQueue' (Identifier)
+43417:=> [Function #787 "requestUpdateLane" of 165 bytes]: 2 params, frame size=15, strict=1, exc handler=0, debug info=0  @ offset 0x001e8334
+43472:=> [Function #788 "scheduleUpdateOnFiber" of 270 bytes]: 5 params, frame size=18, strict=1, exc handler=0, debug info=0  @ offset 0x001e83d9
+43542:==> 00000103: <LoadConstString>: <Reg8: 0, string_id: 9994>  # String: 'Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.' (String)
+44186:==> 0000002c: <GetByIdShort>: <Reg8: 12, Reg8: 11, UInt8: 2, string_id: 239>  # String: 'updateQueue' (Identifier)
+44656:==> 0000016e: <PutById>: <Reg8: 25, Reg8: 0, UInt8: 4, string_id: 239>  # String: 'updateQueue' (Identifier)
+44660:==> 0000017f: <GetByIdShort>: <Reg8: 26, Reg8: 22, UInt8: 10, string_id: 239>  # String: 'updateQueue' (Identifier)
+44661:==> 00000184: <PutById>: <Reg8: 25, Reg8: 26, UInt8: 4, string_id: 239>  # String: 'updateQueue' (Identifier)
+44701:==> 0000021c: <LoadConstString>: <Reg8: 22, string_id: 1068>  # String: 'A component suspended while responding to synchronous input. This will cause the UI to be replaced with a loading indicator. To fix, updates that suspend should be wrapped with startTransition.' (String)
+44882:==> 00000520: <GetByIdShort>: <Reg8: 22, Reg8: 22, UInt8: 10, string_id: 239>  # String: 'updateQueue' (Identifier)
+44901:==> 0000056a: <PutById>: <Reg8: 22, Reg8: 23, UInt8: 4, string_id: 239>  # String: 'updateQueue' (Identifier)
+46010:==> 00000058: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 13, string_id: 239>  # String: 'updateQueue' (Identifier)
+46147:==> 000000d7: <GetByIdShort>: <Reg8: 3, Reg8: 1, UInt8: 14, string_id: 239>  # String: 'updateQueue' (Identifier)
+46148:==> 000000dc: <PutById>: <Reg8: 0, Reg8: 3, UInt8: 14, string_id: 239>  # String: 'updateQueue' (Identifier)
+46542:=> [Function #829 "updateContainer" of 163 bytes]: 5 params, frame size=21, strict=1, exc handler=0, debug info=0  @ offset 0x001eaee9
+48069:=> [Function #867 "enqueueForceUpdate" of 133 bytes]: 3 params, frame size=20, strict=1, exc handler=0, debug info=0  @ offset 0x001ec17e
+48645:=> [Function #887 "updateHostContainer" of 102 bytes]: 3 params, frame size=19, strict=1, exc handler=0, debug info=0  @ offset 0x001ec7b2
+48679:=> [Function #888 "updateHostComponent$1" of 283 bytes]: 5 params, frame size=23, strict=1, exc handler=0, debug info=0  @ offset 0x001ec818
+48758:=> [Function #889 "updateHostText$1" of 116 bytes]: 5 params, frame size=18, strict=1, exc handler=0, debug info=0  @ offset 0x001ec933
+49043:==> 000003de: <GetByIdShort>: <Reg8: 24, Reg8: 17, UInt8: 22, string_id: 239>  # String: 'updateQueue' (Identifier)
+49407:==> 00000967: <PutById>: <Reg8: 0, Reg8: 7, UInt8: 11, string_id: 239>  # String: 'updateQueue' (Identifier)
+49426:==> 000009b5: <PutById>: <Reg8: 3, Reg8: 10, UInt8: 12, string_id: 21983>  # String: 'updater' (Identifier)
+49459:=> [Function #891 "batchedUpdatesImpl" of 186 bytes]: 3 params, frame size=15, strict=1, exc handler=1, debug info=0  @ offset 0x001ed424
+51573:==> 000000a2: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+52269:==> 0000008e: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 6, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+54331:==> 00000034: <LoadConstString>: <Reg8: 5, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+54366:==> 00000032: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 3, string_id: 33048>  # String: 'totalJSHeapSize' (Identifier)
+54367:==> 00000038: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 33046>  # String: '_totalJSHeapSize' (Identifier)
+54391:==> 00000002: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 33046>  # String: '_totalJSHeapSize' (Identifier)
+55663:==> 00000086: <GetById>: <Reg8: 16, Reg8: 15, UInt8: 6, string_id: 31769>  # String: 'sourceUrl' (Identifier)
+56132:==> 00000002: <CreateClosure>: <Reg8: 1, Reg8: 0, function_id: 1091>  # Function: [#1091 isInternalBytecodeSourceUrl of 13 bytes]: 2 params @ offset 0x001f20d0
+56149:=> [Function #1091 "isInternalBytecodeSourceUrl" of 13 bytes]: 2 params, frame size=2, strict=1, exc handler=0, debug info=0  @ offset 0x001f20d0
+56208:==> 000000a3: <PutNewOwnById>: <Reg8: 1, Reg8: 3, string_id: 31769>  # String: 'sourceUrl' (Identifier)
+56234:==> 00000111: <PutNewOwnById>: <Reg8: 3, Reg8: 2, string_id: 31769>  # String: 'sourceUrl' (Identifier)
+56254:==> 00000168: <PutNewOwnById>: <Reg8: 3, Reg8: 4, string_id: 31769>  # String: 'sourceUrl' (Identifier)
+56441:==> 0000018c: <CreateClosure>: <Reg8: 4, Reg8: 3, function_id: 1099>  # Function: [#1099 updateExceptionMessage of 33 bytes]: 4 params @ offset 0x001f25c9
+56442:==> 00000191: <PutNewOwnById>: <Reg8: 1, Reg8: 4, string_id: 37652>  # String: 'updateExceptionMessage' (Identifier)
+56540:=> [Function #1099 "updateExceptionMessage" of 33 bytes]: 4 params, frame size=15, strict=0, exc handler=0, debug info=0  @ offset 0x001f25c9
+56546:==> 00000007: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 1, string_id: 37652>  # String: 'updateExceptionMessage' (Identifier)
+60379:==> 0000019c: <LoadConstString>: <Reg8: 5, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+60383:==> 000001ad: <LoadConstString>: <Reg8: 2, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+60477:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60494:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 34853>  # String: 'clearReactNativeMicrotask' (Identifier)
+60551:==> 00000032: <CreateClosure>: <Reg8: 0, Reg8: 3, function_id: 1232>  # Function: [#1232 _callReactNativeMicrotasksPass of 91 bytes]: 1 params @ offset 0x001f5627
+60596:==> 000000ed: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1242>  # Function: [#1242 queueReactNativeMicrotask of 134 bytes]: 2 params @ offset 0x001f5934
+60597:==> 000000f2: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60608:==> 00000129: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1251>  # Function: [#1251 clearReactNativeMicrotask of 62 bytes]: 2 params @ offset 0x001f5bcf
+60609:==> 0000012e: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 34853>  # String: 'clearReactNativeMicrotask' (Identifier)
+60616:==> 00000151: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 1258>  # Function: [#1258 callReactNativeMicrotasks of 62 bytes]: 1 params @ offset 0x001f5da0
+60617:==> 00000156: <PutNewOwnById>: <Reg8: 1, Reg8: 6, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60630:==> 0000018c: <GetById>: <Reg8: 6, Reg8: 1, UInt8: 4, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60631:==> 00000192: <PutNewOwnById>: <Reg8: 3, Reg8: 6, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60632:==> 00000197: <GetById>: <Reg8: 6, Reg8: 1, UInt8: 5, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60633:==> 0000019d: <PutNewOwnById>: <Reg8: 3, Reg8: 6, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60638:==> 000001b1: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 6, string_id: 28107>  # String: 'setReactNativeMicrotasksCallback' (Identifier)
+60639:==> 000001b7: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 4, string_id: 19506>  # String: 'callReactNativeMicrotasks' (Identifier)
+60744:==> 000000bb: <LoadConstString>: <Reg8: 4, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+60812:=> [Function #1232 "_callReactNativeMicrotasksPass" of 91 bytes]: 1 params, frame size=16, strict=0, exc handler=0, debug info=0  @ offset 0x001f5627
+60882:==> 00000037: <LoadConstString>: <Reg8: 3, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+61113:=> [Function #1242 "queueReactNativeMicrotask" of 134 bytes]: 2 params, frame size=18, strict=0, exc handler=0, debug info=0  @ offset 0x001f5934
+61148:==> 0000006c: <LoadConstString>: <Reg8: 0, string_id: 37939>  # String: 'queueReactNativeMicrotask' (Identifier)
+61374:=> [Function #1251 "clearReactNativeMicrotask" of 62 bytes]: 2 params, frame size=14, strict=0, exc handler=0, debug info=0  @ offset 0x001f5bcf
+61561:=> [Function #1258 "callReactNativeMicrotasks" of 62 bytes]: 1 params, frame size=12, strict=0, exc handler=0, debug info=0  @ offset 0x001f5da0
+61870:==> 000000a8: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 5, string_id: 24185>  # String: 'queueMicrotask' (Identifier)
+61950:==> 00000025: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 1270>  # Function: [#1270 queueMicrotask of 160 bytes]: 2 params @ offset 0x001f61f5
+61958:=> [Function #1270 "queueMicrotask" of 160 bytes]: 2 params, frame size=14, strict=1, exc handler=0, debug info=0  @ offset 0x001f61f5
+61991:==> 0000006d: <LoadConstString>: <Reg8: 6, string_id: 10921>  # String: 'The argument to queueMicrotask must be a function.' (String)
+62000:==> 0000008f: <LoadConstString>: <Reg8: 6, string_id: 16220>  # String: 'queueMicrotask must be called with at least one argument (a function to call)' (String)
+62112:==> 0000014f: <LoadConstString>: <Reg8: 6, string_id: 18835>  # String: 'URL' (Identifier)
+62118:==> 0000016d: <LoadConstString>: <Reg8: 6, string_id: 24390>  # String: 'URLSearchParams' (Identifier)
+ fellow-analysis % grep -niE \
+'firmwareVersioningApiHost|FIRMWARE_VERSIONING_API_HOST|firmware_version_check' \
+~/Desktop/fellow-analysis/hermes-disassembly.txt \
+| head -100
+362438:==> 000001c4: <GetById>: <Reg8: 7, Reg8: 7, UInt8: 15, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
+362439:==> 000001ca: <PutNewOwnById>: <Reg8: 5, Reg8: 7, string_id: 35773>  # String: 'firmwareVersioningApiHost' (Identifier)
+405555:==> 0000008e: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 7, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
+405556:==> 00000094: <PutNewOwnById>: <Reg8: 3, Reg8: 5, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
+673360:==> 0000005b: <LoadConstString>: <Reg8: 4, string_id: 6493>  # String: '/firmware_version_check' (String)
+673378:==> 000000af: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 6, string_id: 35773>  # String: 'firmwareVersioningApiHost' (Identifier)
+ fellow-analysis % grep -niE \
+'axios|fetch\(|XMLHttpRequest|download|GET|POST|PUT' \
+~/Desktop/fellow-analysis/hermes-disassembly.txt \
+| head -300
+2:  [Exception handlers: [start=0xcf, end=0x11c, target=0x11e] ]
+15:==> 00000027: <GetById>: <Reg8: 1, Reg8: 5, UInt8: 1, string_id: 19868>  # String: 'nativePerformanceNow' (Identifier)
+16:==> 0000002d: <GetGlobalObject>: <Reg8: 0>
+18:==> 00000032: <TryGetById>: <Reg8: 2, Reg8: 0, UInt8: 2, string_id: 10>  # String: 'Date' (Identifier)
+19:==> 00000038: <GetByIdShort>: <Reg8: 1, Reg8: 2, UInt8: 3, string_id: 195>  # String: 'now' (Identifier)
+22:==> 00000043: <TryGetById>: <Reg8: 4, Reg8: 0, UInt8: 1, string_id: 19868>  # String: 'nativePerformanceNow' (Identifier)
+25:==> 0000004f: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 24925>  # String: '__BUNDLE_START_TIME__' (Identifier)
+27:==> 00000057: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 2, string_id: 25987>  # String: '__DEV__' (Identifier)
+28:==> 0000005d: <GetByIdShort>: <Reg8: 1, Reg8: 5, UInt8: 4, string_id: 207>  # String: 'process' (Identifier)
+31:==> 00000067: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 3, string_id: 207>  # String: 'process' (Identifier)
+33:==> 00000071: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 4, string_id: 23937>  # String: '__METRO_GLOBAL_PREFIX__' (Identifier)
+34:==> 00000077: <GetByIdShort>: <Reg8: 2, Reg8: 0, UInt8: 4, string_id: 207>  # String: 'process' (Identifier)
+35:==> 0000007c: <GetByIdShort>: <Reg8: 1, Reg8: 0, UInt8: 4, string_id: 207>  # String: 'process' (Identifier)
+36:==> 00000081: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 5, string_id: 19156>  # String: 'env' (Identifier)
+39:==> 0000008c: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 5, string_id: 19156>  # String: 'env' (Identifier)
+40:==> 00000092: <GetByIdShort>: <Reg8: 1, Reg8: 0, UInt8: 4, string_id: 207>  # String: 'process' (Identifier)
+41:==> 00000097: <GetById>: <Reg8: 2, Reg8: 1, UInt8: 5, string_id: 19156>  # String: 'env' (Identifier)
+42:==> 0000009d: <GetByIdShort>: <Reg8: 1, Reg8: 0, UInt8: 4, string_id: 207>  # String: 'process' (Identifier)
+43:==> 000000a2: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 5, string_id: 19156>  # String: 'env' (Identifier)
+44:==> 000000a8: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 6, string_id: 24524>  # String: 'NODE_ENV' (Identifier)
+47:==> 000000b5: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 6, string_id: 24524>  # String: 'NODE_ENV' (Identifier)
+48:==> 000000bb: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 7, string_id: 32948>  # String: '_sentryDebugIds' (Identifier)
+52:==> 000000c9: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 7, string_id: 32948>  # String: '_sentryDebugIds' (Identifier)
+53:==> 000000cf: <TryGetById>: <Reg8: 1, Reg8: 0, UInt8: 8, string_id: 12>  # String: 'Error' (Identifier)
+54:==> 000000d5: <GetByIdShort>: <Reg8: 4, Reg8: 1, UInt8: 9, string_id: 71>  # String: 'prototype' (Identifier)
+59:==> 000000e9: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 10, string_id: 17458>  # String: 'stack' (Identifier)
+60:==> 000000ef: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 8, string_id: 17458>  # String: 'stack' (Identifier)
+61:==> 000000f5: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 10, string_id: 17458>  # String: 'stack' (Identifier)
+63:==> 000000fe: <GetById>: <Reg8: 6, Reg8: 0, UInt8: 7, string_id: 32948>  # String: '_sentryDebugIds' (Identifier)
+64:==> 00000104: <GetById>: <Reg8: 4, Reg8: 0, UInt8: 10, string_id: 17458>  # String: 'stack' (Identifier)
+66:==> 0000010e: <PutByVal>: <Reg8: 6, Reg8: 4, Reg8: 1>
+68:==> 00000116: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 9, string_id: 22602>  # String: '_sentryDebugIdIdentifier' (Identifier)
+71:==> 00000120: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 11, string_id: 17188>  # String: 'globalThis' (Identifier)
+75:==> 00000131: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 12, string_id: 17028>  # String: 'global' (Identifier)
+78:==> 0000013e: <GetByIdShort>: <Reg8: 1, Reg8: 0, UInt8: 13, string_id: 253>  # String: 'window' (Identifier)
+82:==> 0000014d: <TryGetById>: <Reg8: 6, Reg8: 0, UInt8: 13, string_id: 253>  # String: 'window' (Identifier)
+84:==> 00000155: <TryGetById>: <Reg8: 6, Reg8: 0, UInt8: 12, string_id: 17028>  # String: 'global' (Identifier)
+86:==> 0000015d: <TryGetById>: <Reg8: 6, Reg8: 0, UInt8: 11, string_id: 17188>  # String: 'globalThis' (Identifier)
+89:==> 0000016d: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 11, string_id: 17188>  # String: 'globalThis' (Identifier)
+92:==> 0000017a: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 12, string_id: 17028>  # String: 'global' (Identifier)
+95:==> 00000187: <GetByIdShort>: <Reg8: 1, Reg8: 0, UInt8: 13, string_id: 253>  # String: 'window' (Identifier)
+99:==> 00000196: <TryGetById>: <Reg8: 6, Reg8: 0, UInt8: 13, string_id: 253>  # String: 'window' (Identifier)
+101:==> 0000019e: <TryGetById>: <Reg8: 6, Reg8: 0, UInt8: 12, string_id: 17028>  # String: 'global' (Identifier)
+103:==> 000001a6: <TryGetById>: <Reg8: 6, Reg8: 0, UInt8: 11, string_id: 17188>  # String: 'globalThis' (Identifier)
+106:==> 000001b6: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 11, string_id: 17188>  # String: 'globalThis' (Identifier)
+109:==> 000001c3: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 12, string_id: 17028>  # String: 'global' (Identifier)
+112:==> 000001d0: <GetByIdShort>: <Reg8: 1, Reg8: 0, UInt8: 13, string_id: 253>  # String: 'window' (Identifier)
+115:==> 000001dc: <TryGetById>: <Reg8: 5, Reg8: 0, UInt8: 13, string_id: 253>  # String: 'window' (Identifier)
+117:==> 000001e4: <TryGetById>: <Reg8: 5, Reg8: 0, UInt8: 12, string_id: 17028>  # String: 'global' (Identifier)
+119:==> 000001ec: <TryGetById>: <Reg8: 5, Reg8: 0, UInt8: 11, string_id: 17188>  # String: 'globalThis' (Identifier)
+122:==> 000001fc: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 11, string_id: 17188>  # String: 'globalThis' (Identifier)
+125:==> 00000209: <GetById>: <Reg8: 1, Reg8: 0, UInt8: 12, string_id: 17028>  # String: 'global' (Identifier)
+128:==> 00000216: <GetByIdShort>: <Reg8: 1, Reg8: 0, UInt8: 13, string_id: 253>  # String: 'window' (Identifier)
+131:==> 00000222: <TryGetById>: <Reg8: 1, Reg8: 0, UInt8: 13, string_id: 253>  # String: 'window' (Identifier)
+133:==> 0000022a: <TryGetById>: <Reg8: 1, Reg8: 0, UInt8: 12, string_id: 17028>  # String: 'global' (Identifier)
+135:==> 00000232: <TryGetById>: <Reg8: 1, Reg8: 0, UInt8: 11, string_id: 17188>  # String: 'globalThis' (Identifier)
+138:==> 00000242: <TryGetById>: <Reg8: 6, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+143:==> 0000025e: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+148:==> 00000277: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+153:==> 00000294: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+158:==> 000002b1: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+163:==> 000002ce: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+168:==> 000002e7: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+173:==> 00000300: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+178:==> 0000031d: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+183:==> 0000033a: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+188:==> 00000357: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+193:==> 00000370: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+198:==> 0000038d: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+203:==> 000003a6: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+208:==> 000003bf: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+213:==> 000003dc: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+218:==> 000003f5: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+223:==> 00000412: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+228:==> 0000042b: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+233:==> 00000448: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+238:==> 00000465: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+243:==> 00000482: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+248:==> 0000049f: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+253:==> 000004bc: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+258:==> 000004d9: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+263:==> 000004f2: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+268:==> 0000050b: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+273:==> 00000524: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+278:==> 00000541: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+283:==> 0000055e: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+288:==> 0000057b: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+293:==> 00000594: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+298:==> 000005b1: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+303:==> 000005ce: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+308:==> 000005e7: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+313:==> 00000600: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+318:==> 0000061d: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+323:==> 00000636: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+328:==> 0000064f: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+333:==> 0000066c: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+338:==> 00000689: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+343:==> 000006a6: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+348:==> 000006c3: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+353:==> 000006dc: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+358:==> 000006f5: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+363:==> 0000070e: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+368:==> 0000072b: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+373:==> 00000744: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+378:==> 00000761: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+383:==> 0000077e: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+388:==> 00000797: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+393:==> 000007b4: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+398:==> 000007cd: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+403:==> 000007ea: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+408:==> 00000807: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+413:==> 00000820: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+418:==> 0000083d: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+423:==> 0000085a: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+428:==> 00000877: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+433:==> 00000894: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+438:==> 000008b1: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+443:==> 000008ce: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+448:==> 000008eb: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+453:==> 00000908: <TryGetById>: <Reg8: 7, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+458:==> 00000925: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+463:==> 0000093e: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+468:==> 0000095b: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+473:==> 00000978: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+478:==> 00000995: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+483:==> 000009b2: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+488:==> 000009cf: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+493:==> 000009ec: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+498:==> 00000a05: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+503:==> 00000a1e: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+508:==> 00000a3b: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+513:==> 00000a58: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+518:==> 00000a75: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+523:==> 00000a92: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+528:==> 00000aaf: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+533:==> 00000acc: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+538:==> 00000ae9: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+543:==> 00000b06: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+548:==> 00000b23: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+553:==> 00000b40: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+558:==> 00000b5d: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+563:==> 00000b76: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+568:==> 00000b93: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+573:==> 00000bac: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+578:==> 00000bc9: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+583:==> 00000be2: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+588:==> 00000bfb: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+593:==> 00000c18: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+598:==> 00000c35: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+603:==> 00000c52: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+608:==> 00000c6f: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+613:==> 00000c8c: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+618:==> 00000ca5: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+623:==> 00000cc2: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+628:==> 00000cdf: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+633:==> 00000cf8: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+638:==> 00000d11: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+643:==> 00000d2e: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+648:==> 00000d4b: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+653:==> 00000d68: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+658:==> 00000d81: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+663:==> 00000d9a: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+668:==> 00000db7: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+673:==> 00000dd4: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+678:==> 00000ded: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+683:==> 00000e0a: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+688:==> 00000e27: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+693:==> 00000e40: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+698:==> 00000e5d: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+703:==> 00000e76: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+708:==> 00000e93: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+713:==> 00000eb0: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+718:==> 00000ec9: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+723:==> 00000ee2: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+728:==> 00000eff: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+733:==> 00000f1c: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+738:==> 00000f39: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+743:==> 00000f56: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+748:==> 00000f73: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+753:==> 00000f90: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+758:==> 00000fad: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+763:==> 00000fc6: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+768:==> 00000fe3: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+773:==> 00001000: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+778:==> 0000101d: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+783:==> 0000103a: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+788:==> 00001057: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+793:==> 00001074: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+798:==> 00001091: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+803:==> 000010ae: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+808:==> 000010cb: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+813:==> 000010e8: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+818:==> 00001105: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+823:==> 00001122: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+828:==> 0000113f: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+833:==> 0000115c: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+838:==> 00001179: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+843:==> 00001196: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+848:==> 000011b3: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+853:==> 000011d0: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+858:==> 000011ed: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+863:==> 0000120a: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+868:==> 00001223: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+873:==> 00001240: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+878:==> 0000125d: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+883:==> 0000127a: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+888:==> 00001297: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+893:==> 000012b4: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+898:==> 000012d1: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+903:==> 000012ea: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+908:==> 00001303: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+913:==> 00001320: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+918:==> 0000133d: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+923:==> 0000135a: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+928:==> 00001377: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+933:==> 00001394: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+938:==> 000013b1: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+943:==> 000013ca: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+948:==> 000013e7: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+953:==> 00001404: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+958:==> 00001421: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+963:==> 0000143e: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+968:==> 0000145b: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+973:==> 00001474: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+978:==> 00001491: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+983:==> 000014ae: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+988:==> 000014c7: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+993:==> 000014e0: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+998:==> 000014f9: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1003:==> 00001516: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1008:==> 00001533: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1013:==> 00001550: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1018:==> 00001569: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1023:==> 00001582: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1028:==> 0000159b: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1033:==> 000015b4: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1038:==> 000015d1: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1043:==> 000015ee: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1048:==> 0000160b: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1053:==> 00001624: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1058:==> 00001641: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1063:==> 0000165e: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1068:==> 0000167b: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1073:==> 00001698: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1078:==> 000016b5: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1083:==> 000016ce: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1088:==> 000016eb: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1093:==> 00001708: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1098:==> 00001725: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1103:==> 00001742: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1108:==> 0000175f: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1113:==> 0000177c: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1118:==> 00001799: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1123:==> 000017b6: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1128:==> 000017d3: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1133:==> 000017f0: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1138:==> 0000180d: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1143:==> 0000182a: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1148:==> 00001847: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1153:==> 00001864: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1158:==> 00001881: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1163:==> 0000189e: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1168:==> 000018bb: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1173:==> 000018d8: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1178:==> 000018f5: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1183:==> 00001912: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1188:==> 0000192f: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1193:==> 0000194c: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1198:==> 00001969: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1203:==> 00001986: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1208:==> 000019a3: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1213:==> 000019c0: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1218:==> 000019dd: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1223:==> 000019f6: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1228:==> 00001a0f: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1233:==> 00001a2c: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1238:==> 00001a49: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1243:==> 00001a66: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1248:==> 00001a83: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1253:==> 00001aa0: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1258:==> 00001abd: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1263:==> 00001ada: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1268:==> 00001af3: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1273:==> 00001b10: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1278:==> 00001b2d: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1283:==> 00001b4a: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1288:==> 00001b63: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1293:==> 00001b80: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1298:==> 00001b9d: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1303:==> 00001bba: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1308:==> 00001bd7: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1313:==> 00001bf4: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1318:==> 00001c11: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1323:==> 00001c2a: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1328:==> 00001c47: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1333:==> 00001c64: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1338:==> 00001c81: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1343:==> 00001c9e: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1348:==> 00001cb7: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+1353:==> 00001cd4: <TryGetById>: <Reg8: 8, Reg8: 0, UInt8: 14, string_id: 55>  # String: '__d' (Identifier)
+ fellow-analysis % grep -niE \
+'s3|bucket|object|presigned|presign|cloudfront|downloadUrl|downloadURL|firmwareUrl|firmwareURL' \
+~/Desktop/fellow-analysis/hermes-disassembly.txt \
+| head -300
+16:==> 0000002d: <GetGlobalObject>: <Reg8: 0>
+30:==> 00000065: <NewObject>: <Reg8: 1>
+38:==> 0000008a: <NewObject>: <Reg8: 1>
+51:==> 000000c7: <NewObject>: <Reg8: 1>
+58:==> 000000e5: <SelectObject>: <Reg8: 1, Reg8: 4, Reg8: 1>
+13615:==> 00000053: <GetGlobalObject>: <Reg8: 1>
+13630:==> 00000098: <NewObject>: <Reg8: 7>
+13632:==> 0000009e: <NewObject>: <Reg8: 7>
+13657:==> 00000111: <SelectObject>: <Reg8: 1, Reg8: 3, Reg8: 1>
+13668:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+13674:==> 00000018: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+13692:==> 00000017: <NewObject>: <Reg8: 2>
+13704:==> 00000047: <NewObject>: <Reg8: 1>
+13705:==> 00000049: <NewObject>: <Reg8: 4>
+13795:==> 0000003e: <NewObject>: <Reg8: 3>
+13870:==> 00000016: <NewObject>: <Reg8: 0>
+14047:==> 0000000b: <GetGlobalObject>: <Reg8: 0>
+14062:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+14069:==> 0000001c: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+14079:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+14086:==> 0000001c: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+14110:==> 00000037: <NewObjectWithBuffer>: <Reg8: 4, UInt16: 4, UInt16: 4, UInt16: 12, UInt16: 0>  # Object: {'trace': 0, 'info': 1, 'warn': 2, 'error': 3}
+14145:==> 000000d6: <NewObject>: <Reg8: 1>
+14164:==> 00000130: <GetGlobalObject>: <Reg8: 1>
+14165:==> 00000132: <TryGetById>: <Reg8: 9, Reg8: 1, UInt8: 8, string_id: 28>  # String: 'Object' (Identifier)
+14169:==> 00000147: <NewObjectWithBuffer>: <Reg8: 1, UInt16: 2, UInt16: 2, UInt16: 20, UInt16: 43>  # Object: {'value': true, 'enumerable': false}
+14172:==> 0000015d: <NewObject>: <Reg8: 1>
+14202:==> 000001f2: <GetGlobalObject>: <Reg8: 1>
+14203:==> 000001f4: <TryGetById>: <Reg8: 5, Reg8: 1, UInt8: 8, string_id: 28>  # String: 'Object' (Identifier)
+14207:==> 00000209: <NewObjectWithBuffer>: <Reg8: 1, UInt16: 2, UInt16: 2, UInt16: 20, UInt16: 43>  # Object: {'value': true, 'enumerable': false}
+14241:==> 0000001f: <GetGlobalObject>: <Reg8: 3>
+14316:==> 00000007: <NewObject>: <Reg8: 2>
+14334:==> 00000009: <GetGlobalObject>: <Reg8: 1>
+14370:==> 0000000e: <GetGlobalObject>: <Reg8: 1>
+14399:==> 00000081: <TryGetById>: <Reg8: 6, Reg8: 1, UInt8: 6, string_id: 28>  # String: 'Object' (Identifier)
+14518:==> 00000025: <GetGlobalObject>: <Reg8: 2>
+14720:==> 00000089: <CreateClosure>: <Reg8: 1, Reg8: 0, function_id: 55>  # Function: [#55 isObject of 25 bytes]: 2 params @ offset 0x001d2d3d
+14728:==> 000000ad: <CreateClosure>: <Reg8: 1, Reg8: 0, function_id: 59>  # Function: [#59 objectToString of 33 bytes]: 2 params @ offset 0x001d2dc6
+14742:==> 00000000: <NewObject>: <Reg8: 4>
+14777:==> 00000005: <NewObject>: <Reg8: 0>
+14824:==> 0000004b: <GetGlobalObject>: <Reg8: 5>
+14825:==> 0000004d: <TryGetById>: <Reg8: 7, Reg8: 5, UInt8: 2, string_id: 28>  # String: 'Object' (Identifier)
+14941:==> 0000024f: <LoadConstString>: <Reg8: 10, string_id: 11595>  # String: '[Object]' (String)
+14999:==> 0000034b: <GetGlobalObject>: <Reg8: 0>
+15068:==> 00000088: <GetGlobalObject>: <Reg8: 0>
+15103:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+15139:==> 00000037: <GetGlobalObject>: <Reg8: 6>
+15212:==> 00000011: <GetGlobalObject>: <Reg8: 3>
+15213:==> 00000013: <TryGetById>: <Reg8: 6, Reg8: 3, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+15217:==> 00000027: <NewObject>: <Reg8: 0>
+15454:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+15539:==> 0000001d: <LoadConstString>: <Reg8: 1, string_id: 32072>  # String: '[object RegExp]' (Identifier)
+15546:=> [Function #55 "isObject" of 25 bytes]: 2 params, frame size=3, strict=0, exc handler=0, debug info=0  @ offset 0x001d2d3d
+15552:==> 00000006: <LoadConstString>: <Reg8: 0, string_id: 17553>  # String: 'object' (Identifier)
+15574:==> 0000001d: <LoadConstString>: <Reg8: 1, string_id: 32061>  # String: '[object Date]' (Identifier)
+15593:==> 0000001d: <LoadConstString>: <Reg8: 1, string_id: 32062>  # String: '[object Error]' (Identifier)
+15596:==> 00000028: <GetGlobalObject>: <Reg8: 2>
+15618:=> [Function #59 "objectToString" of 33 bytes]: 2 params, frame size=11, strict=0, exc handler=0, debug info=0  @ offset 0x001d2dc6
+15622:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+15623:==> 00000002: <TryGetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+15638:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+15639:==> 00000002: <TryGetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+15689:==> 00000011: <NewObject>: <Reg8: 1>
+15884:==> 00000042: <GetGlobalObject>: <Reg8: 0>
+15902:==> 00000007: <GetGlobalObject>: <Reg8: 0>
+15909:==> 00000022: <SelectObject>: <Reg8: 5, Reg8: 3, Reg8: 0>
+15956:==> 00000002: <GetGlobalObject>: <Reg8: 1>
+15957:==> 00000004: <TryGetById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+15961:==> 00000018: <TryGetById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+15966:==> 0000002e: <TryGetById>: <Reg8: 4, Reg8: 1, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+15969:==> 0000003f: <TryGetById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+15973:==> 00000051: <TryGetById>: <Reg8: 1, Reg8: 1, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16009:==> 00000057: <GetGlobalObject>: <Reg8: 0>
+16013:==> 00000068: <LoadConstString>: <Reg8: 13, string_id: 748>  # String: 'Object.entries called on non-object' (String)
+16016:==> 00000073: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+16046:==> 0000004b: <GetGlobalObject>: <Reg8: 0>
+16050:==> 0000005c: <LoadConstString>: <Reg8: 12, string_id: 10301>  # String: 'Object.values called on non-object' (String)
+16053:==> 00000067: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+16135:==> 00000011: <NewObject>: <Reg8: 1>
+16157:==> 00000020: <GetGlobalObject>: <Reg8: 6>
+16158:==> 00000022: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16160:==> 0000002d: <NewObject>: <Reg8: 8>
+16165:==> 00000040: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16167:==> 0000004b: <NewObject>: <Reg8: 8>
+16173:==> 00000065: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16175:==> 00000070: <NewObject>: <Reg8: 8>
+16181:==> 0000008a: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16183:==> 00000095: <NewObject>: <Reg8: 8>
+16189:==> 000000af: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16191:==> 000000ba: <NewObject>: <Reg8: 8>
+16197:==> 000000d4: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16199:==> 000000df: <NewObject>: <Reg8: 8>
+16205:==> 000000f9: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16207:==> 00000104: <NewObject>: <Reg8: 8>
+16213:==> 0000011e: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16215:==> 00000129: <NewObject>: <Reg8: 8>
+16221:==> 00000143: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16223:==> 0000014e: <NewObject>: <Reg8: 8>
+16229:==> 00000168: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16231:==> 00000173: <NewObject>: <Reg8: 8>
+16237:==> 0000018d: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16239:==> 00000198: <NewObject>: <Reg8: 8>
+16245:==> 000001b2: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16247:==> 000001bd: <NewObject>: <Reg8: 8>
+16253:==> 000001d7: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16255:==> 000001e2: <NewObject>: <Reg8: 8>
+16261:==> 000001fc: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16263:==> 00000207: <NewObject>: <Reg8: 8>
+16269:==> 00000221: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16271:==> 0000022c: <NewObject>: <Reg8: 8>
+16277:==> 00000246: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16279:==> 00000251: <NewObject>: <Reg8: 8>
+16285:==> 0000026b: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16287:==> 00000276: <NewObject>: <Reg8: 8>
+16293:==> 00000290: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16295:==> 0000029b: <NewObject>: <Reg8: 8>
+16301:==> 000002b5: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16303:==> 000002c0: <NewObject>: <Reg8: 8>
+16309:==> 000002da: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16311:==> 000002e5: <NewObject>: <Reg8: 8>
+16317:==> 000002ff: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16319:==> 0000030a: <NewObject>: <Reg8: 8>
+16325:==> 00000324: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16327:==> 0000032f: <NewObject>: <Reg8: 8>
+16333:==> 00000349: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16335:==> 00000354: <NewObject>: <Reg8: 8>
+16341:==> 0000036e: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16343:==> 00000379: <NewObject>: <Reg8: 8>
+16349:==> 00000393: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16351:==> 0000039e: <NewObject>: <Reg8: 8>
+16357:==> 000003b8: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16359:==> 000003c3: <NewObject>: <Reg8: 8>
+16365:==> 000003dd: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16367:==> 000003e8: <NewObject>: <Reg8: 8>
+16373:==> 00000402: <TryGetById>: <Reg8: 11, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16375:==> 0000040d: <NewObject>: <Reg8: 8>
+16381:==> 00000427: <TryGetById>: <Reg8: 8, Reg8: 6, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16383:==> 00000432: <NewObject>: <Reg8: 6>
+16890:==> 0000003b: <GetGlobalObject>: <Reg8: 19>
+16891:==> 0000003d: <TryGetById>: <Reg8: 10, Reg8: 19, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16893:==> 00000048: <NewObject>: <Reg8: 5>
+16900:==> 00000067: <TryGetById>: <Reg8: 6, Reg8: 19, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16902:==> 00000072: <NewObject>: <Reg8: 4>
+16950:==> 0000013f: <LoadConstString>: <Reg8: 4, string_id: 17553>  # String: 'object' (Identifier)
+16960:==> 0000016e: <NewObjectWithParent>: <Reg8: 4, Reg8: 18>
+16961:==> 00000171: <TryGetById>: <Reg8: 10, Reg8: 19, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16964:==> 0000017f: <TryGetById>: <Reg8: 10, Reg8: 19, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16975:==> 000001ab: <NewObject>: <Reg8: 20>
+16982:==> 000001c5: <TryGetById>: <Reg8: 22, Reg8: 19, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+16994:==> 000001f6: <TryGetById>: <Reg8: 22, Reg8: 19, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+17009:==> 00000235: <NewObject>: <Reg8: 4>
+17037:==> 000002b2: <NewObjectWithBuffer>: <Reg8: 5, UInt16: 2, UInt16: 2, UInt16: 38, UInt16: 76>  # Object: {'shouldCancelWhenOutside': false, 'shouldActivateOnStart': false}
+17052:==> 00000304: <NewObject>: <Reg8: 4>
+17053:==> 00000306: <NewObjectWithBuffer>: <Reg8: 7, UInt16: 5, UInt16: 5, UInt16: 2, UInt16: 86>  # Object: {'position': 'absolute', 'left': 0, 'right': 0, 'bottom': 0, 'top': 0}
+17061:==> 00000334: <NewObjectWithBuffer>: <Reg8: 4, UInt16: 2, UInt16: 2, UInt16: 55, UInt16: 123>  # Object: {'activeOpacity': 0.105, 'underlayColor': 'black'}
+17067:==> 0000035a: <NewObjectWithBuffer>: <Reg8: 1, UInt16: 2, UInt16: 2, UInt16: 74, UInt16: 161>  # Object: {'activeOpacity': 0.3, 'borderless': true}
+17079:==> 00000002: <GetGlobalObject>: <Reg8: 1>
+17089:==> 0000002a: <SelectObject>: <Reg8: 2, Reg8: 3, Reg8: 2>
+17096:==> 00000048: <SelectObject>: <Reg8: 1, Reg8: 2, Reg8: 1>
+17146:==> 0000003d: <GetGlobalObject>: <Reg8: 6>
+17168:==> 00000002: <GetGlobalObject>: <Reg8: 1>
+17244:==> 0000002b: <NewObject>: <Reg8: 4>
+17420:==> 00000032: <GetGlobalObject>: <Reg8: 4>
+17421:==> 00000034: <TryGetById>: <Reg8: 6, Reg8: 4, UInt8: 5, string_id: 28>  # String: 'Object' (Identifier)
+17423:==> 0000003f: <NewObject>: <Reg8: 4>
+17428:==> 00000055: <NewObject>: <Reg8: 0>
+17455:==> 0000002b: <NewObject>: <Reg8: 4>
+17497:==> 00000065: <SelectObject>: <Reg8: 1, Reg8: 2, Reg8: 1>
+17560:==> 0000003e: <NewObject>: <Reg8: 2>
+17565:==> 00000052: <GetGlobalObject>: <Reg8: 4>
+17566:==> 00000054: <TryGetById>: <Reg8: 6, Reg8: 4, UInt8: 8, string_id: 28>  # String: 'Object' (Identifier)
+17568:==> 0000005f: <NewObject>: <Reg8: 4>
+17576:==> 00000083: <NewObject>: <Reg8: 0>
+17581:==> 00000097: <NewObject>: <Reg8: 12>
+17604:==> 00000106: <NewObject>: <Reg8: 0>
+17627:==> 0000002b: <NewObject>: <Reg8: 4>
+17669:==> 00000066: <SelectObject>: <Reg8: 1, Reg8: 2, Reg8: 1>
+17730:==> 00000036: <GetGlobalObject>: <Reg8: 4>
+17731:==> 00000038: <TryGetById>: <Reg8: 6, Reg8: 4, UInt8: 6, string_id: 28>  # String: 'Object' (Identifier)
+17733:==> 00000043: <NewObject>: <Reg8: 4>
+17744:==> 00000071: <NewObject>: <Reg8: 10>
+17751:==> 0000008b: <NewObject>: <Reg8: 0>
+17769:==> 00000013: <CreateClosure>: <Reg8: 1, Reg8: 1, function_id: 134>  # Function: [#134 _objectWithoutProperties of 158 bytes]: 3 params @ offset 0x001d4682
+17783:=> [Function #134 "_objectWithoutProperties" of 158 bytes]: 3 params, frame size=17, strict=0, exc handler=0, debug info=0  @ offset 0x001d4682
+17799:==> 0000002d: <GetGlobalObject>: <Reg8: 1>
+17800:==> 0000002f: <TryGetById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+17803:==> 0000003e: <TryGetById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+17814:==> 0000006e: <NewObject>: <Reg8: 1>
+17825:==> 0000009a: <NewObject>: <Reg8: 0>
+17837:==> 00000005: <CreateClosure>: <Reg8: 1, Reg8: 1, function_id: 136>  # Function: [#136 _objectWithoutPropertiesLoose of 87 bytes]: 3 params @ offset 0x001d4751
+17851:=> [Function #136 "_objectWithoutPropertiesLoose" of 87 bytes]: 3 params, frame size=20, strict=0, exc handler=0, debug info=0  @ offset 0x001d4751
+17859:==> 0000000c: <NewObject>: <Reg8: 0>
+17866:==> 00000025: <NewObject>: <Reg8: 8>
+17878:==> 00000053: <NewObject>: <Reg8: 0>
+17912:==> 0000000d: <GetGlobalObject>: <Reg8: 0>
+17919:==> 00000029: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+17962:==> 00000011: <GetGlobalObject>: <Reg8: 7>
+17978:==> 0000004a: <TryGetById>: <Reg8: 12, Reg8: 7, UInt8: 3, string_id: 28>  # String: 'Object' (Identifier)
+18013:==> 00000032: <GetGlobalObject>: <Reg8: 1>
+18014:==> 00000034: <TryGetById>: <Reg8: 4, Reg8: 1, UInt8: 2, string_id: 28>  # String: 'Object' (Identifier)
+18016:==> 0000003f: <NewObject>: <Reg8: 2>
+18117:==> 00000028: <LoadConstString>: <Reg8: 4, string_id: 17553>  # String: 'object' (Identifier)
+18120:==> 00000039: <GetGlobalObject>: <Reg8: 2>
+18149:==> 000000b7: <SelectObject>: <Reg8: 2, Reg8: 3, Reg8: 2>
+18186:==> 00000009: <GetGlobalObject>: <Reg8: 1>
+18234:==> 00000006: <GetGlobalObject>: <Reg8: 0>
+18291:==> 00000028: <LoadConstString>: <Reg8: 1, string_id: 17553>  # String: 'object' (Identifier)
+18307:==> 00000062: <GetGlobalObject>: <Reg8: 1>
+18311:==> 00000073: <LoadConstString>: <Reg8: 5, string_id: 8736>  # String: 'Derived constructors may only return object or undefined' (String)
+18314:==> 0000007e: <SelectObject>: <Reg8: 1, Reg8: 2, Reg8: 1>
+18349:==> 0000000b: <GetGlobalObject>: <Reg8: 0>
+18356:==> 00000027: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+18390:==> 00000007: <GetGlobalObject>: <Reg8: 3>
+18391:==> 00000009: <TryGetById>: <Reg8: 1, Reg8: 3, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+18397:==> 00000021: <TryGetById>: <Reg8: 3, Reg8: 3, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+18426:==> 0000000c: <GetGlobalObject>: <Reg8: 1>
+18427:==> 0000000e: <TryGetById>: <Reg8: 2, Reg8: 1, UInt8: 2, string_id: 28>  # String: 'Object' (Identifier)
+18470:==> 0000001a: <GetGlobalObject>: <Reg8: 0>
+18471:==> 0000001c: <TryGetById>: <Reg8: 6, Reg8: 0, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+18476:==> 00000032: <NewObject>: <Reg8: 1>
+18477:==> 00000034: <NewObjectWithBuffer>: <Reg8: 7, UInt16: 3, UInt16: 3, UInt16: 93, UInt16: 182>  # Object: {'value': null, 'writable': true, 'configurable': true}
+18482:==> 00000054: <TryGetById>: <Reg8: 5, Reg8: 0, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+18484:==> 0000005f: <NewObject>: <Reg8: 1>
+18500:==> 00000097: <GetGlobalObject>: <Reg8: 0>
+18507:==> 000000b3: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+18541:==> 00000007: <GetGlobalObject>: <Reg8: 3>
+18542:==> 00000009: <TryGetById>: <Reg8: 1, Reg8: 3, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+18548:==> 00000021: <TryGetById>: <Reg8: 3, Reg8: 3, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+18627:==> 00000065: <GetGlobalObject>: <Reg8: 5>
+18682:==> 0000017a: <NewObject>: <Reg8: 12>
+18692:==> 000001a8: <TryGetById>: <Reg8: 12, Reg8: 5, UInt8: 4, string_id: 28>  # String: 'Object' (Identifier)
+18695:==> 000001b7: <NewObject>: <Reg8: 12>
+18698:==> 000001c2: <NewObject>: <Reg8: 12>
+18712:==> 00000205: <SelectObject>: <Reg8: 14, Reg8: 12, Reg8: 0>
+18723:==> 00000239: <TryGetById>: <Reg8: 5, Reg8: 5, UInt8: 4, string_id: 28>  # String: 'Object' (Identifier)
+18727:==> 0000024d: <NewObject>: <Reg8: 12>
+18731:==> 00000259: <NewObjectWithBuffer>: <Reg8: 14, UInt16: 4, UInt16: 4, UInt16: 97, UInt16: 188>  # Object: {'key': true, 'ref': true, '__self': true, '__source': true}
+18735:==> 00000279: <NewObject>: <Reg8: 15>
+18738:==> 00000283: <NewObject>: <Reg8: 14>
+18741:==> 0000028e: <NewObject>: <Reg8: 5>
+18745:==> 0000029f: <NewObject>: <Reg8: 12>
+18827:==> 00000009: <LoadConstString>: <Reg8: 3, string_id: 17553>  # String: 'object' (Identifier)
+18910:==> 0000000a: <NewObject>: <Reg8: 2>
+18954:==> 000000a7: <GetGlobalObject>: <Reg8: 0>
+18983:==> 00000119: <NewObject>: <Reg8: 0>
+19004:==> 00000003: <NewObject>: <Reg8: 0>
+19028:==> 00000003: <LoadConstString>: <Reg8: 2, string_id: 17553>  # String: 'object' (Identifier)
+19050:==> 00000005: <NewObjectWithBuffer>: <Reg8: 1, UInt16: 2, UInt16: 2, UInt16: 111, UInt16: 222>  # Object: {'=': '=0', ':': '=2'}
+19082:==> 00000006: <LoadConstString>: <Reg8: 2, string_id: 17553>  # String: 'object' (Identifier)
+19126:==> 0000003c: <LoadConstString>: <Reg8: 4, string_id: 17553>  # String: 'object' (Identifier)
+19155:==> 000000a9: <LoadConstString>: <Reg8: 3, string_id: 17553>  # String: 'object' (Identifier)
+19158:==> 000000b6: <GetGlobalObject>: <Reg8: 3>
+19162:==> 000000c9: <LoadConstString>: <Reg8: 15, string_id: 32071>  # String: '[object Object]' (Identifier)
+19164:==> 000000d1: <TryGetById>: <Reg8: 15, Reg8: 3, UInt8: 4, string_id: 28>  # String: 'Object' (Identifier)
+19170:==> 000000ef: <LoadConstString>: <Reg8: 3, string_id: 1741>  # String: 'object with keys {' (String)
+19174:==> 000000ff: <LoadConstString>: <Reg8: 3, string_id: 10306>  # String: 'Objects are not valid as a React child (found: ' (String)
+19489:==> 00000009: <LoadConstString>: <Reg8: 0, string_id: 17553>  # String: 'object' (Identifier)
+19505:==> 00000043: <GetGlobalObject>: <Reg8: 0>
+19508:==> 0000004d: <LoadConstString>: <Reg8: 0, string_id: 14967>  # String: 'setState(...): takes an object of state variables to update or a function which returns an object of state variables.' (String)
+19639:==> 00000014: <GetGlobalObject>: <Reg8: 1>
+19663:==> 00000026: <NewObject>: <Reg8: 1>
+19725:==> 0000011b: <GetGlobalObject>: <Reg8: 0>
+19739:==> 00000152: <NewObject>: <Reg8: 0>
+19749:==> 00000179: <GetGlobalObject>: <Reg8: 0>
+19766:==> 00000003: <NewObjectWithBuffer>: <Reg8: 0, UInt16: 8, UInt16: 8, UInt16: 124, UInt16: 235>  # Object: {'$$typeof': null, '_currentValue': null, '_currentValue2': null, '_threadCount': 0, 'Provider': null, 'Consumer': null, '_defaultValue': null, '_globalName': null}
+19772:==> 00000026: <NewObject>: <Reg8: 1>
+19803:==> 00000000: <NewObject>: <Reg8: 0>
+19815:==> 00000000: <NewObject>: <Reg8: 0>
+19830:==> 00000000: <NewObject>: <Reg8: 0>
+19834:==> 0000000e: <NewObject>: <Reg8: 2>
+19852:==> 00000003: <NewObject>: <Reg8: 0>
+19879:==> 00000014: <NewObject>: <Reg8: 4>
+19898:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+20146:==> 00000010: <NewObject>: <Reg8: 2>
+21694:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+21708:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+21730:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+21752:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+21774:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+21806:==> 00000020: <GetGlobalObject>: <Reg8: 4>
+21807:==> 00000022: <TryGetById>: <Reg8: 10, Reg8: 4, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+21809:==> 0000002d: <NewObject>: <Reg8: 5>
+21867:==> 00000141: <SelectObject>: <Reg8: 1, Reg8: 5, Reg8: 1>
+21884:==> 00000194: <SelectObject>: <Reg8: 1, Reg8: 5, Reg8: 4>
+21886:==> 0000019c: <NewObject>: <Reg8: 1>
+21931:==> 00000019: <GetGlobalObject>: <Reg8: 0>
+21939:==> 00000038: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+21941:==> 0000003e: <GetGlobalObject>: <Reg8: 0>
+21985:==> 00000019: <GetGlobalObject>: <Reg8: 0>
+21993:==> 00000038: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+21995:==> 0000003e: <GetGlobalObject>: <Reg8: 0>
+22039:==> 00000019: <GetGlobalObject>: <Reg8: 0>
+22047:==> 00000038: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+22049:==> 0000003e: <GetGlobalObject>: <Reg8: 0>
+22087:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+22095:==> 0000001f: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+22146:==> 00000000: <GetGlobalObject>: <Reg8: 0>
+22154:==> 0000001f: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+22190:==> 00000066: <GetGlobalObject>: <Reg8: 0>
+22210:==> 00000019: <GetGlobalObject>: <Reg8: 0>
+ fellow-analysis % 
