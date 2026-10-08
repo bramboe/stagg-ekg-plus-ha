@@ -274,6 +274,19 @@
     "send_cli": {
       "name": "Send CLI command",
       "description": "Send a raw HTTP CLI command to the kettle (for testing)."
+    },
+    "install_firmware": {
+      "name": "Install firmware (recovery)",
+      "description": "Flash a local firmware .img onto the kettle via its own upload endpoint. Recovery tool for when the kettle's previous firmware is gone. The kettle verifies the image and rejects a wrong or corrupt file. The kettle reboots into the uploaded firmware.",
+      "fields": {
+        "path": {
+          "name": "Firmware file path",
+          "description": "Absolute path to the .img file, readable by Home Assistant (e.g. under /config, /media or /share)."
+        },
+        "entry_id": {
+          "description": "Optional config entry id (needed if multiple kettles)"
+        }
+      }
     }
   },
   "device_automation": {

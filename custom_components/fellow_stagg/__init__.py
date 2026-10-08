@@ -37,7 +37,13 @@ from .const import (
   MIN_TEMP_F,
   MAX_TEMP_F,
 )
-from .kettle_http import KettleHttpClient, other_ota_slot
+from homeassistant.exceptions import HomeAssistantError
+from .kettle_http import (
+  FirmwareImageError,
+  KettleHttpClient,
+  other_ota_slot,
+  parse_esp_app_image,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -637,11 +643,74 @@ def _async_register_services(hass: HomeAssistant) -> None:
       beeps = CHIME_PRESETS.get(pattern, CHIME_PRESETS["beep"])
       await coord.kettle.async_play_chime(coord.session, beeps)
 
+  async def install_firmware_handler(call):
+    """Flash a local firmware .img onto the kettle via its /uploadfw endpoint.
+
+    Recovery tool: if the kettle's previous firmware is ever gone (e.g. overwritten by a
+    manufacturer update), upload a known-good image such as the signed 1.1.75SSP. The kettle
+    verifies the image itself and rejects anything that doesn't belong to it.
+    """
+    coord = _get_coordinator(call.data.get("entry_id"))
+    if not coord:
+      raise HomeAssistantError("No Fellow Stagg kettle configured")
+    path = call.data["path"]
+    if not hass.config.is_allowed_path(path):
+      raise HomeAssistantError(
+        f"{path} is not in an allowed directory. Add its folder to allowlist_external_dirs, "
+        "or put the file under /config, /media or /share."
+      )
+
+    def _read() -> bytes:
+      with open(path, "rb") as handle:
+        return handle.read()
+
+    try:
+      data = await hass.async_add_executor_job(_read)
+    except OSError as err:
+      raise HomeAssistantError(f"Could not read {path}: {err}") from err
+    try:
+      info = parse_esp_app_image(data)
+    except FirmwareImageError as err:
+      raise HomeAssistantError(str(err)) from err
+
+    kettle_data = coord.data or {}
+    if kettle_data.get("power") and not kettle_data.get("cli_muted"):
+      raise HomeAssistantError("The kettle is heating; install firmware when it is idle")
+
+    _LOGGER.warning(
+      "Installing firmware %s (%s bytes) onto the Fellow Stagg kettle from %s",
+      info["version"], len(data), path,
+    )
+    coord.notify_command_sent()
+    try:
+      await coord.kettle.async_upload_firmware(coord.session, data)
+    except FirmwareImageError as err:
+      raise HomeAssistantError(str(err)) from err
+    except Exception as err:  # noqa: BLE001 - the kettle reboots mid-flash; a dropped connection is expected
+      _LOGGER.debug("Firmware upload connection ended (kettle may be rebooting): %s", err)
+    # The kettle flashes, sets boot partition and reboots into the new image; re-read soon.
+    coord._firmware_fetched_at = None
+    persistent_notification.async_create(
+      hass,
+      f"Uploaded firmware {info['version']} to the kettle. It verifies and installs the image, "
+      "then reboots (about 30 seconds). Check the Firmware version sensor afterwards.",
+      title="Fellow Stagg firmware upload",
+      notification_id=f"fellow_stagg_fw_upload_{coord._entry_id}",
+    )
+    return {"version": info["version"], "bytes": len(data)}
+
   hass.services.async_register(
     DOMAIN,
     "send_cli",
     send_cli_handler,
     vol.Schema({vol.Required("command"): vol.All(str, vol.Length(min=1)), vol.Optional("entry_id"): str}),
+    supports_response=SupportsResponse.OPTIONAL,
+  )
+  hass.services.async_register(
+    DOMAIN,
+    "install_firmware",
+    install_firmware_handler,
+    vol.Schema({vol.Required("path"): str, vol.Optional("entry_id"): str}),
     supports_response=SupportsResponse.OPTIONAL,
   )
   hass.services.async_register(

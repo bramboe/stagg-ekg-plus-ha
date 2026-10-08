@@ -274,6 +274,19 @@
     "send_cli": {
       "name": "CLI-Befehl senden",
       "description": "Einen rohen HTTP-CLI-Befehl an den Wasserkocher senden (zum Testen)."
+    },
+    "install_firmware": {
+      "name": "Firmware installieren (Wiederherstellung)",
+      "description": "Flasht ein lokales Firmware-.img über den eigenen Upload-Endpunkt des Wasserkochers. Wiederherstellungswerkzeug, falls die vorherige Firmware des Wasserkochers weg ist. Der Wasserkocher prüft das Image und lehnt eine falsche oder beschädigte Datei ab. Der Wasserkocher startet in der hochgeladenen Firmware neu.",
+      "fields": {
+        "path": {
+          "name": "Pfad zur Firmware-Datei",
+          "description": "Absoluter Pfad zur .img-Datei, von Home Assistant lesbar (z. B. unter /config, /media oder /share)."
+        },
+        "entry_id": {
+          "description": "Optionale Config-Entry-ID (nötig bei mehreren Wasserkochern)"
+        }
+      }
     }
   },
   "device_automation": {

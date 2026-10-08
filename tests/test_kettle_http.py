@@ -2,7 +2,14 @@
 
 Sample bodies are based on live CLI output captured in docs/CLI_TESTING.md.
 """
-from kettle_http import KettleHttpClient, _first_not_none, other_ota_slot
+from kettle_http import (
+    KettleHttpClient,
+    _first_not_none,
+    other_ota_slot,
+    parse_esp_app_image,
+    FirmwareImageError,
+    EKG_PROJECT_NAME,
+)
 
 # Live-captured style bodies
 STATE_BODY = (
@@ -292,3 +299,56 @@ class TestCliMuted:
     def test_empty_or_plain_body_is_not_muted(self):
         assert KettleHttpClient._cli_output_missing("") is False
         assert KettleHttpClient._cli_output_missing(STATE_BODY) is False
+
+
+import struct
+from pathlib import Path
+
+import pytest
+
+
+def _make_esp_image(version: str = "1.1.75SSP", project: str = EKG_PROJECT_NAME, magic: int = 0xE9,
+                    desc_magic: int = 0xABCD5432, size: int = 0x400) -> bytes:
+    """Build a minimal ESP32 app image with the EKG app descriptor for tests."""
+    data = bytearray(size)
+    data[0] = magic
+    struct.pack_into("<I", data, 0x20, desc_magic)
+    data[0x30:0x30 + len(version)] = version.encode()      # desc offset 16
+    data[0x50:0x50 + len(project)] = project.encode()      # desc offset 48
+    return bytes(data)
+
+
+class TestParseEspAppImage:
+    def test_valid_kettle_image(self):
+        info = parse_esp_app_image(_make_esp_image())
+        assert info == {"version": "1.1.75SSP", "project": EKG_PROJECT_NAME}
+
+    def test_empty_file(self):
+        with pytest.raises(FirmwareImageError):
+            parse_esp_app_image(b"")
+
+    def test_wrong_magic_byte(self):
+        with pytest.raises(FirmwareImageError):
+            parse_esp_app_image(_make_esp_image(magic=0x00))
+
+    def test_missing_app_descriptor(self):
+        with pytest.raises(FirmwareImageError):
+            parse_esp_app_image(_make_esp_image(desc_magic=0x12345678))
+
+    def test_wrong_project(self):
+        with pytest.raises(FirmwareImageError):
+            parse_esp_app_image(_make_esp_image(project="some-other-fw"))
+
+    def test_too_large(self):
+        with pytest.raises(FirmwareImageError):
+            parse_esp_app_image(b"\xe9" + b"\x00" * (0x200000))
+
+
+_NAS_IMAGE = Path("/Volumes/ParadiseHome/Firmware/Fellow Stagg EKG Pro/firmware_1.1.75SSP.img")
+
+
+@pytest.mark.skipif(not _NAS_IMAGE.exists(), reason="NAS firmware image not mounted")
+def test_real_1_1_75_image_validates():
+    info = parse_esp_app_image(_NAS_IMAGE.read_bytes())
+    assert info["project"] == EKG_PROJECT_NAME
+    assert info["version"] == "1.1.75SSP"

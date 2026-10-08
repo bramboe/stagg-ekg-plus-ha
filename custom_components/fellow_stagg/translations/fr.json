@@ -274,6 +274,19 @@
     "send_cli": {
       "name": "Envoyer une commande CLI",
       "description": "Envoyer une commande CLI HTTP brute à la bouilloire (pour les tests)."
+    },
+    "install_firmware": {
+      "name": "Installer le firmware (récupération)",
+      "description": "Flashe un fichier firmware .img local sur la bouilloire via son propre point de téléversement. Outil de récupération si le firmware précédent de la bouilloire a disparu. La bouilloire vérifie l'image et rejette un fichier erroné ou corrompu. La bouilloire redémarre sur le firmware téléversé.",
+      "fields": {
+        "path": {
+          "name": "Chemin du fichier firmware",
+          "description": "Chemin absolu vers le fichier .img, lisible par Home Assistant (par ex. sous /config, /media ou /share)."
+        },
+        "entry_id": {
+          "description": "ID d'entrée de configuration facultatif (nécessaire si plusieurs bouilloires)"
+        }
+      }
     }
   },
   "device_automation": {

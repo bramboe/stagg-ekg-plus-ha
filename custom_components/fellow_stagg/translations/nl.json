@@ -274,6 +274,19 @@
     "send_cli": {
       "name": "CLI-commando verzenden",
       "description": "Stuur een ruw HTTP CLI-commando naar de waterkoker (voor testen)."
+    },
+    "install_firmware": {
+      "name": "Firmware installeren (herstel)",
+      "description": "Flash een lokaal firmware-.img naar de waterkoker via zijn eigen upload-endpoint. Hersteltool voor als de vorige firmware van de waterkoker weg is. De waterkoker controleert het image en weigert een verkeerd of beschadigd bestand. De waterkoker herstart in de geüploade firmware.",
+      "fields": {
+        "path": {
+          "name": "Pad naar firmwarebestand",
+          "description": "Absoluut pad naar het .img-bestand, leesbaar voor Home Assistant (bijv. onder /config, /media of /share)."
+        },
+        "entry_id": {
+          "description": "Optioneel config-entry-id (nodig bij meerdere waterkokers)"
+        }
+      }
     }
   },
   "device_automation": {

@@ -58,6 +58,18 @@ The kettle updates itself over the internet, and firmware 1.2.24 (Sep 2026) stop
 
 Home Assistant shows a **Repairs** notice when the kettle runs firmware that hides its data. The **Firmware version** sensor lists the version in each partition. The kettle itself can't be told to skip updates over the CLI, so blocking its internet access is the only reliable way to stay on a version. Manual steps and background are in [docs/CLI_TESTING.md](docs/CLI_TESTING.md#rolling-back-from-1224).
 
+### Recovery: upload firmware (beta)
+
+If the kettle's previous firmware is ever gone — for example a manufacturer update overwrites the last good partition — you can flash a known-good image (such as the signed `1.1.75SSP`) back onto it with the `fellow_stagg.install_firmware` service. It uses the kettle's own `/upload` endpoint; the kettle verifies the image's signature and rejects a wrong or corrupt file, so it can't be bricked by a bad upload.
+
+```yaml
+action: fellow_stagg.install_firmware
+data:
+  path: /share/firmware_1.1.75SSP.img   # readable by Home Assistant (/config, /media or /share)
+```
+
+The kettle writes the image to its inactive partition, verifies it, and reboots into it (~30 s). Keep a copy of a working `.img` somewhere safe for this. Note: this relies on the `/upload` endpoint, which exists on 1.1.x firmware; whether a future firmware keeps it is not guaranteed.
+
 ## ⚠️ Security note
 
 The kettle’s HTTP CLI endpoint is **completely unauthenticated**: anyone on your local network can control the kettle (and so can this integration). Fellow has stated they have no plans for an official remote-control API. Keep the kettle on a trusted (or isolated IoT) network segment if this concerns you.

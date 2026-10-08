@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import struct
 import time
 from typing import Any
 
@@ -12,9 +13,49 @@ from aiohttp import ClientResponseError, ClientSession, ClientTimeout
 _LOGGER = logging.getLogger(__name__)
 
 _REQUEST_TIMEOUT = ClientTimeout(total=15)
+# Uploading + flashing firmware takes ~30 s on the kettle; give it room.
+_UPLOAD_TIMEOUT = ClientTimeout(total=120)
 
 # Feet per meter, for normalizing a kettle that is set to feet back to meters
 FEET_PER_METER = 3.28084
+
+# Firmware upload limits/format (from the kettle's own /upload page and ESP-IDF image layout)
+MAX_FIRMWARE_SIZE = 0x200000  # 2 MiB, matches the OTA partition size
+_ESP_IMAGE_MAGIC = 0xE9
+_ESP_APP_DESC_MAGIC = 0xABCD5432  # marks the app-description struct at offset 0x20
+# Project name baked into the EKG Pro firmware's app descriptor; guards against wrong images
+EKG_PROJECT_NAME = "ekg-firmware"
+
+
+class FirmwareImageError(ValueError):
+  """Raised when a file is not a valid Fellow Stagg firmware image."""
+
+
+def parse_esp_app_image(data: bytes) -> dict[str, Any]:
+  """Validate an ESP32 app image and return its {version, project} app descriptor.
+
+  Checks the ESP image magic byte and the app-description struct the EKG firmware carries,
+  so a wrong or corrupt file is rejected before it is ever sent to the kettle. Raises
+  FirmwareImageError on anything that is not a Fellow Stagg firmware image.
+  """
+  if not data:
+    raise FirmwareImageError("The firmware file is empty")
+  if len(data) > MAX_FIRMWARE_SIZE:
+    raise FirmwareImageError(
+      f"The firmware file is {len(data)} bytes; the kettle accepts at most {MAX_FIRMWARE_SIZE}"
+    )
+  if data[0] != _ESP_IMAGE_MAGIC:
+    raise FirmwareImageError("Not an ESP32 firmware image (wrong magic byte)")
+  if len(data) < 0x120 or struct.unpack_from("<I", data, 0x20)[0] != _ESP_APP_DESC_MAGIC:
+    raise FirmwareImageError("No ESP32 app descriptor found; not a kettle firmware image")
+  desc = data[0x20:0x120]
+  version = desc[16:48].split(b"\0", 1)[0].decode("utf-8", "replace")
+  project = desc[48:80].split(b"\0", 1)[0].decode("utf-8", "replace")
+  if project != EKG_PROJECT_NAME:
+    raise FirmwareImageError(
+      f"This image is for project '{project}', not the Fellow Stagg kettle ('{EKG_PROJECT_NAME}')"
+    )
+  return {"version": version, "project": project}
 
 
 def _first_not_none(*values: Any) -> Any:
@@ -77,6 +118,22 @@ class KettleHttpClient:
     if not re.fullmatch(r"ota_\d", partition):
       raise ValueError(f"Not an OTA partition: {partition}")
     await self._cli_command(session, f"setpart {partition}")
+
+  async def async_upload_firmware(self, session: ClientSession, data: bytes) -> str:
+    """Flash a firmware image to the kettle via its built-in /uploadfw endpoint.
+
+    The image is validated first (see parse_esp_app_image). The kettle writes it to the
+    inactive OTA partition, verifies the signature/hash itself, and boots it. A bad or wrong
+    image is rejected by the kettle, not flashed. The raw file is the POST body, matching the
+    kettle's own /upload web page.
+    """
+    parse_esp_app_image(data)  # raises FirmwareImageError on a bad/wrong file
+    url = self._root_url + "uploadfw"
+    async with session.post(url, data=data, timeout=_UPLOAD_TIMEOUT) as resp:
+      text = await resp.text()
+      if resp.status != 200:
+        raise FirmwareImageError(f"Kettle rejected the firmware (HTTP {resp.status}): {text[:200]}")
+      return text
 
   async def async_poll(self, session: ClientSession, settings_max_age: float = 0.0) -> dict[str, Any]:
     """Fetch kettle state via CLI commands.
