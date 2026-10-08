@@ -284,7 +284,8 @@
           "description": "Absoluut pad naar het .img-bestand, leesbaar voor Home Assistant (bijv. onder /config, /media of /share)."
         },
         "entry_id": {
-          "description": "Optioneel config-entry-id (nodig bij meerdere waterkokers)"
+          "description": "Optioneel config-entry-id (nodig bij meerdere waterkokers)",
+          "name": "Waterkoker (config-entry)"
         }
       }
     }

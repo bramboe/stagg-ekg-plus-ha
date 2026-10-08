@@ -284,7 +284,8 @@
           "description": "Absoluter Pfad zur .img-Datei, von Home Assistant lesbar (z. B. unter /config, /media oder /share)."
         },
         "entry_id": {
-          "description": "Optionale Config-Entry-ID (nötig bei mehreren Wasserkochern)"
+          "description": "Optionale Config-Entry-ID (nötig bei mehreren Wasserkochern)",
+          "name": "Wasserkocher (Config-Entry)"
         }
       }
     }

@@ -284,7 +284,8 @@
           "description": "Chemin absolu vers le fichier .img, lisible par Home Assistant (par ex. sous /config, /media ou /share)."
         },
         "entry_id": {
-          "description": "ID d'entrée de configuration facultatif (nécessaire si plusieurs bouilloires)"
+          "description": "ID d'entrée de configuration facultatif (nécessaire si plusieurs bouilloires)",
+          "name": "Bouilloire (entrée de configuration)"
         }
       }
     }

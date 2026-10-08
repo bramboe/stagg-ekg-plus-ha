@@ -284,7 +284,8 @@
           "description": "Absolute path to the .img file, readable by Home Assistant (e.g. under /config, /media or /share)."
         },
         "entry_id": {
-          "description": "Optional config entry id (needed if multiple kettles)"
+          "description": "Optional config entry id (needed if multiple kettles)",
+          "name": "Kettle (config entry)"
         }
       }
     }
