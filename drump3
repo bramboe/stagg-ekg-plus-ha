@@ -1,0 +1,382 @@
+Last login: Thu Oct  8 20:25:54 on ttys013
+ fellow-analysis % cd ~/Desktop/fellow-analysis
+
+sed -n '673300,673450p' hermes-disassembly.txt
+==> 0000002c: <PutNewOwnById>: <Reg8: 0, Reg8: 4, string_id: 21522>  # String: 'onError' (Identifier)
+==> 00000031: <Call3>: <Reg8: 0, Reg8: 2, Reg8: 3, Reg8: 1, Reg8: 0>
+==> 00000037: <Ret>: <Reg8: 0>
+
+
+===============
+
+=> [Function #17786 "onError" of 71 bytes]: 2 params, frame size=15, strict=0, exc handler=0, debug info=0  @ offset 0x003be09e
+
+Bytecode listing:
+
+==> 00000000: <GetEnvironment>: <Reg8: 0, UInt8: 1>
+==> 00000003: <LoadFromEnvironment>: <Reg8: 2, Reg8: 0, UInt8: 0>
+==> 00000007: <LoadFromEnvironment>: <Reg8: 1, Reg8: 0, UInt8: 1>
+==> 0000000b: <LoadConstUInt8>: <Reg8: 0, UInt8: 4>
+==> 0000000e: <GetByVal>: <Reg8: 1, Reg8: 1, Reg8: 0>
+==> 00000012: <LoadConstUndefined>: <Reg8: 0>
+==> 00000014: <Call2>: <Reg8: 1, Reg8: 2, Reg8: 0, Reg8: 1>
+==> 00000019: <GetById>: <Reg8: 3, Reg8: 1, UInt8: 1, string_id: 34953>  # String: 'logError' (Identifier)
+==> 0000001f: <NewObject>: <Reg8: 2>
+==> 00000021: <GetGlobalObject>: <Reg8: 1>
+==> 00000023: <TryGetById>: <Reg8: 5, Reg8: 1, UInt8: 2, string_id: 19>  # String: 'JSON' (Identifier)
+==> 00000029: <GetByIdShort>: <Reg8: 4, Reg8: 5, UInt8: 3, string_id: 226>  # String: 'stringify' (Identifier)
+==> 0000002e: <LoadParam>: <Reg8: 1, UInt8: 1>
+==> 00000031: <Call2>: <Reg8: 1, Reg8: 4, Reg8: 5, Reg8: 1>
+==> 00000036: <PutNewOwnById>: <Reg8: 2, Reg8: 1, string_id: 18216>  # String: 'extra' (Identifier)
+==> 0000003b: <LoadConstString>: <Reg8: 1, string_id: 10960>  # String: 'There was an issue registering the Firebase token' (String)
+==> 0000003f: <Call3>: <Reg8: 1, Reg8: 3, Reg8: 0, Reg8: 1, Reg8: 2>
+==> 00000045: <Ret>: <Reg8: 0>
+
+
+===============
+
+=> [Function #17787 "" of 212 bytes]: 8 params, frame size=19, strict=0, exc handler=0, debug info=0  @ offset 0x003be0e5
+
+Bytecode listing:
+
+==> 00000000: <LoadParam>: <Reg8: 6, UInt8: 2>
+==> 00000003: <LoadParam>: <Reg8: 2, UInt8: 6>
+==> 00000006: <LoadParam>: <Reg8: 7, UInt8: 7>
+==> 00000009: <LoadConstZero>: <Reg8: 0>
+==> 0000000b: <GetByVal>: <Reg8: 1, Reg8: 7, Reg8: 0>
+==> 0000000f: <LoadConstUndefined>: <Reg8: 0>
+==> 00000011: <Call2>: <Reg8: 3, Reg8: 6, Reg8: 0, Reg8: 1>
+==> 00000016: <GetGlobalObject>: <Reg8: 1>
+==> 00000018: <TryGetById>: <Reg8: 8, Reg8: 1, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+==> 0000001e: <GetByIdShort>: <Reg8: 5, Reg8: 8, UInt8: 2, string_id: 29>  # String: 'defineProperty' (Identifier)
+==> 00000023: <NewObject>: <Reg8: 4>
+==> 00000025: <LoadConstTrue>: <Reg8: 1>
+==> 00000027: <PutNewOwnByIdShort>: <Reg8: 4, Reg8: 1, string_id: 248>  # String: 'value' (Identifier)
+==> 0000002b: <LoadConstString>: <Reg8: 1, string_id: 56>  # String: '__esModule' (Identifier)
+==> 0000002f: <Call4>: <Reg8: 1, Reg8: 5, Reg8: 8, Reg8: 2, Reg8: 1, Reg8: 4>
+==> 00000036: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 1, string_id: 21580>  # String: 'Endpoints' (Identifier)
+==> 0000003c: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 2, string_id: 31712>  # String: 'QueryKeys' (Identifier)
+==> 00000042: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 3, string_id: 27212>  # String: 'axios' (Identifier)
+==> 00000048: <LoadConstUInt8>: <Reg8: 1, UInt8: 1>
+==> 0000004b: <GetByVal>: <Reg8: 1, Reg8: 7, Reg8: 1>
+==> 0000004f: <Call2>: <Reg8: 1, Reg8: 6, Reg8: 0, Reg8: 1>
+==> 00000054: <Call2>: <Reg8: 1, Reg8: 3, Reg8: 0, Reg8: 1>
+==> 00000059: <NewObject>: <Reg8: 3>
+==> 0000005b: <LoadConstString>: <Reg8: 4, string_id: 6493>  # String: '/firmware_version_check' (String)
+==> 0000005f: <PutById>: <Reg8: 3, Reg8: 4, UInt8: 4, string_id: 24343>  # String: 'GetFirmwareVersion' (Identifier)
+==> 00000065: <LoadConstString>: <Reg8: 4, string_id: 6543>  # String: '/set_device_firebase_notification_token' (String)
+==> 00000069: <PutById>: <Reg8: 3, Reg8: 4, UInt8: 5, string_id: 31671>  # String: 'RegisterFcmNotificationToken' (Identifier)
+==> 0000006f: <LoadConstString>: <Reg8: 4, string_id: 1139>  # String: '/delete_device_firebase_notification_token' (String)
+==> 00000073: <PutById>: <Reg8: 3, Reg8: 4, UInt8: 6, string_id: 22850>  # String: 'DeleteNotificationToken' (Identifier)
+==> 00000079: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 1, string_id: 21580>  # String: 'Endpoints' (Identifier)
+==> 0000007f: <NewObject>: <Reg8: 3>
+==> 00000081: <LoadConstString>: <Reg8: 4, string_id: 18858>  # String: 'KettleFirmwareVersion' (Identifier)
+==> 00000085: <PutById>: <Reg8: 3, Reg8: 4, UInt8: 7, string_id: 18858>  # String: 'KettleFirmwareVersion' (Identifier)
+==> 0000008b: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 31712>  # String: 'QueryKeys' (Identifier)
+==> 00000091: <GetByIdShort>: <Reg8: 4, Reg8: 1, UInt8: 3, string_id: 129>  # String: 'default' (Identifier)
+==> 00000096: <GetByIdShort>: <Reg8: 3, Reg8: 4, UInt8: 4, string_id: 123>  # String: 'create' (Identifier)
+==> 0000009b: <NewObject>: <Reg8: 1>
+==> 0000009d: <LoadConstUInt8>: <Reg8: 5, UInt8: 2>
+==> 000000a0: <GetByVal>: <Reg8: 5, Reg8: 7, Reg8: 5>
+==> 000000a4: <Call2>: <Reg8: 5, Reg8: 6, Reg8: 0, Reg8: 5>
+==> 000000a9: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 5, string_id: 19157>  # String: 'environment' (Identifier)
+==> 000000af: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 6, string_id: 35773>  # String: 'firmwareVersioningApiHost' (Identifier)
+==> 000000b5: <PutNewOwnById>: <Reg8: 1, Reg8: 5, string_id: 23114>  # String: 'baseURL' (Identifier)
+==> 000000ba: <Call2>: <Reg8: 3, Reg8: 3, Reg8: 4, Reg8: 1>
+==> 000000bf: <NewObject>: <Reg8: 1>
+==> 000000c1: <PutNewOwnById>: <Reg8: 1, Reg8: 3, string_id: 27212>  # String: 'axios' (Identifier)
+==> 000000c6: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 7, string_id: 27212>  # String: 'axios' (Identifier)
+==> 000000cc: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 3, string_id: 27212>  # String: 'axios' (Identifier)
+==> 000000d2: <Ret>: <Reg8: 0>
+
+
+===============
+
+=> [Function #17788 "" of 30 bytes]: 8 params, frame size=11, strict=0, exc handler=0, debug info=0  @ offset 0x001d4f52
+
+Bytecode listing:
+
+==> 00000000: <LoadParam>: <Reg8: 1, UInt8: 7>
+==> 00000003: <LoadConstZero>: <Reg8: 0>
+==> 00000005: <GetByVal>: <Reg8: 2, Reg8: 1, Reg8: 0>
+==> 00000009: <LoadParam>: <Reg8: 1, UInt8: 2>
+==> 0000000c: <LoadConstUndefined>: <Reg8: 0>
+==> 0000000e: <Call2>: <Reg8: 2, Reg8: 1, Reg8: 0, Reg8: 2>
+==> 00000013: <LoadParam>: <Reg8: 1, UInt8: 5>
+==> 00000016: <PutById>: <Reg8: 1, Reg8: 2, UInt8: 1, string_id: 143>  # String: 'exports' (Identifier)
+==> 0000001c: <Ret>: <Reg8: 0>
+
+
+===============
+
+=> [Function #17789 "" of 255 bytes]: 8 params, frame size=15, strict=1, exc handler=0, debug info=0  @ offset 0x003be1b9
+
+Bytecode listing:
+
+==> 00000000: <CreateEnvironment>: <Reg8: 3>
+==> 00000002: <LoadParam>: <Reg8: 4, UInt8: 2>
+==> 00000005: <LoadParam>: <Reg8: 1, UInt8: 5>
+==> 00000008: <LoadParam>: <Reg8: 5, UInt8: 7>
+==> 0000000b: <StoreToEnvironment>: <Reg8: 3, UInt8: 0, Reg8: 4>
+==> 0000000f: <StoreToEnvironment>: <Reg8: 3, UInt8: 1, Reg8: 5>
+==> 00000013: <CreateClosure>: <Reg8: 6, Reg8: 3, function_id: 17790>  # Function: [#17790 createInstance of 167 bytes]: 2 params @ offset 0x003be2b8
+==> 00000018: <StoreToEnvironment>: <Reg8: 3, UInt8: 2, Reg8: 6>
+==> 0000001c: <LoadConstUInt8>: <Reg8: 0, UInt8: 4>
+==> 0000001f: <GetByVal>: <Reg8: 2, Reg8: 5, Reg8: 0>
+==> 00000023: <LoadConstUndefined>: <Reg8: 0>
+==> 00000025: <Call2>: <Reg8: 2, Reg8: 4, Reg8: 0, Reg8: 2>
+==> 0000002a: <Call2>: <Reg8: 2, Reg8: 6, Reg8: 0, Reg8: 2>
+==> 0000002f: <LoadConstZero>: <Reg8: 6>
+==> 00000031: <GetByVal>: <Reg8: 6, Reg8: 5, Reg8: 6>
+==> 00000035: <Call2>: <Reg8: 6, Reg8: 4, Reg8: 0, Reg8: 6>
+==> 0000003a: <PutById>: <Reg8: 2, Reg8: 6, UInt8: 1, string_id: 24674>  # String: 'Axios' (Identifier)
+==> 00000040: <LoadConstUInt8>: <Reg8: 6, UInt8: 5>
+==> 00000043: <GetByVal>: <Reg8: 6, Reg8: 5, Reg8: 6>
+==> 00000047: <Call2>: <Reg8: 6, Reg8: 4, Reg8: 0, Reg8: 6>
+==> 0000004c: <PutById>: <Reg8: 2, Reg8: 6, UInt8: 2, string_id: 24097>  # String: 'CanceledError' (Identifier)
+==> 00000052: <LoadConstUInt8>: <Reg8: 6, UInt8: 6>
+==> 00000055: <GetByVal>: <Reg8: 6, Reg8: 5, Reg8: 6>
+==> 00000059: <Call2>: <Reg8: 6, Reg8: 4, Reg8: 0, Reg8: 6>
+==> 0000005e: <PutById>: <Reg8: 2, Reg8: 6, UInt8: 3, string_id: 31006>  # String: 'CancelToken' (Identifier)
+==> 00000064: <LoadConstUInt8>: <Reg8: 6, UInt8: 7>
+==> 00000067: <GetByVal>: <Reg8: 6, Reg8: 5, Reg8: 6>
+==> 0000006b: <Call2>: <Reg8: 6, Reg8: 4, Reg8: 0, Reg8: 6>
+==> 00000070: <PutById>: <Reg8: 2, Reg8: 6, UInt8: 4, string_id: 37023>  # String: 'isCancel' (Identifier)
+==> 00000076: <LoadConstUInt8>: <Reg8: 6, UInt8: 8>
+==> 00000079: <GetByVal>: <Reg8: 6, Reg8: 5, Reg8: 6>
+==> 0000007d: <Call2>: <Reg8: 6, Reg8: 4, Reg8: 0, Reg8: 6>
+==> 00000082: <GetByIdShort>: <Reg8: 6, Reg8: 6, UInt8: 1, string_id: 154>  # String: 'version' (Identifier)
+==> 00000087: <PutById>: <Reg8: 2, Reg8: 6, UInt8: 5, string_id: 23413>  # String: 'VERSION' (Identifier)
+==> 0000008d: <LoadConstUInt8>: <Reg8: 6, UInt8: 9>
+==> 00000090: <GetByVal>: <Reg8: 6, Reg8: 5, Reg8: 6>
+==> 00000094: <Call2>: <Reg8: 6, Reg8: 4, Reg8: 0, Reg8: 6>
+==> 00000099: <PutById>: <Reg8: 2, Reg8: 6, UInt8: 6, string_id: 22037>  # String: 'toFormData' (Identifier)
+==> 0000009f: <LoadConstUInt8>: <Reg8: 6, UInt8: 10>
+==> 000000a2: <GetByVal>: <Reg8: 6, Reg8: 5, Reg8: 6>
+ fellow-analysis % sed -n '405500,405620p' hermes-disassembly.txt
+=> [Function #10337 "onDisplayNotification" of 29 bytes]: 2 params, frame size=13, strict=0, exc handler=0, debug info=0  @ offset 0x0024faed
+
+Bytecode listing:
+
+==> 00000000: <LoadConstUndefined>: <Reg8: 0>
+==> 00000002: <GetEnvironment>: <Reg8: 1, UInt8: 0>
+==> 00000005: <LoadFromEnvironment>: <Reg8: 3, Reg8: 1, UInt8: 0>
+==> 00000009: <GetByIdShort>: <Reg8: 2, Reg8: 3, UInt8: 1, string_id: 73>  # String: 'apply' (Identifier)
+==> 0000000e: <ReifyArguments>: <Reg8: 0>
+==> 00000010: <Mov>: <Reg8: 1, Reg8: 0>
+==> 00000013: <LoadThisNS>: <Reg8: 0>
+==> 00000015: <Call3>: <Reg8: 0, Reg8: 2, Reg8: 3, Reg8: 0, Reg8: 1>
+==> 0000001b: <Ret>: <Reg8: 0>
+
+
+===============
+
+=> [Function #10338 "" of 202 bytes]: 8 params, frame size=20, strict=0, exc handler=0, debug info=0  @ offset 0x002f8e7a
+
+Bytecode listing:
+
+==> 00000000: <CreateEnvironment>: <Reg8: 1>
+==> 00000002: <LoadParam>: <Reg8: 5, UInt8: 2>
+==> 00000005: <LoadParam>: <Reg8: 2, UInt8: 6>
+==> 00000008: <LoadParam>: <Reg8: 6, UInt8: 7>
+==> 0000000b: <StoreToEnvironment>: <Reg8: 1, UInt8: 0, Reg8: 5>
+==> 0000000f: <StoreToEnvironment>: <Reg8: 1, UInt8: 1, Reg8: 6>
+==> 00000013: <LoadConstZero>: <Reg8: 0>
+==> 00000015: <GetByVal>: <Reg8: 3, Reg8: 6, Reg8: 0>
+==> 00000019: <LoadConstUndefined>: <Reg8: 0>
+==> 0000001b: <Call2>: <Reg8: 4, Reg8: 5, Reg8: 0, Reg8: 3>
+==> 00000020: <GetGlobalObject>: <Reg8: 3>
+==> 00000022: <TryGetById>: <Reg8: 9, Reg8: 3, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+==> 00000028: <GetByIdShort>: <Reg8: 8, Reg8: 9, UInt8: 2, string_id: 29>  # String: 'defineProperty' (Identifier)
+==> 0000002d: <NewObject>: <Reg8: 7>
+==> 0000002f: <LoadConstTrue>: <Reg8: 3>
+==> 00000031: <PutNewOwnByIdShort>: <Reg8: 7, Reg8: 3, string_id: 248>  # String: 'value' (Identifier)
+==> 00000035: <LoadConstString>: <Reg8: 3, string_id: 56>  # String: '__esModule' (Identifier)
+==> 00000039: <Call4>: <Reg8: 3, Reg8: 8, Reg8: 9, Reg8: 2, Reg8: 3, Reg8: 7>
+==> 00000040: <PutById>: <Reg8: 2, Reg8: 0, UInt8: 1, string_id: 38114>  # String: 'validateEnvironment' (Identifier)
+==> 00000046: <LoadConstUInt8>: <Reg8: 3, UInt8: 1>
+==> 00000049: <GetByVal>: <Reg8: 3, Reg8: 6, Reg8: 3>
+==> 0000004d: <Call2>: <Reg8: 3, Reg8: 5, Reg8: 0, Reg8: 3>
+==> 00000052: <Call2>: <Reg8: 4, Reg8: 4, Reg8: 0, Reg8: 3>
+==> 00000057: <NewObject>: <Reg8: 3>
+==> 00000059: <GetByIdShort>: <Reg8: 5, Reg8: 4, UInt8: 3, string_id: 129>  # String: 'default' (Identifier)
+==> 0000005e: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 4, string_id: 30833>  # String: 'API_HOST' (Identifier)
+==> 00000064: <PutNewOwnById>: <Reg8: 3, Reg8: 5, string_id: 30833>  # String: 'API_HOST' (Identifier)
+==> 00000069: <GetByIdShort>: <Reg8: 5, Reg8: 4, UInt8: 3, string_id: 129>  # String: 'default' (Identifier)
+==> 0000006e: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 5, string_id: 21183>  # String: 'BLE_CONNECTION_ENABLED' (Identifier)
+==> 00000074: <PutNewOwnById>: <Reg8: 3, Reg8: 5, string_id: 21183>  # String: 'BLE_CONNECTION_ENABLED' (Identifier)
+==> 00000079: <GetByIdShort>: <Reg8: 5, Reg8: 4, UInt8: 3, string_id: 129>  # String: 'default' (Identifier)
+==> 0000007e: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 6, string_id: 21408>  # String: 'ENVIRONMENT' (Identifier)
+==> 00000084: <PutNewOwnById>: <Reg8: 3, Reg8: 5, string_id: 21408>  # String: 'ENVIRONMENT' (Identifier)
+==> 00000089: <GetByIdShort>: <Reg8: 5, Reg8: 4, UInt8: 3, string_id: 129>  # String: 'default' (Identifier)
+==> 0000008e: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 7, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
+==> 00000094: <PutNewOwnById>: <Reg8: 3, Reg8: 5, string_id: 30832>  # String: 'FIRMWARE_VERSIONING_API_HOST' (Identifier)
+==> 00000099: <GetByIdShort>: <Reg8: 5, Reg8: 4, UInt8: 3, string_id: 129>  # String: 'default' (Identifier)
+==> 0000009e: <GetById>: <Reg8: 5, Reg8: 5, UInt8: 8, string_id: 21693>  # String: 'SENTRY_DSN' (Identifier)
+==> 000000a4: <PutNewOwnById>: <Reg8: 3, Reg8: 5, string_id: 21693>  # String: 'SENTRY_DSN' (Identifier)
+==> 000000a9: <GetByIdShort>: <Reg8: 4, Reg8: 4, UInt8: 3, string_id: 129>  # String: 'default' (Identifier)
+==> 000000ae: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 9, string_id: 18441>  # String: 'UPDATER_APP_BOOT' (Identifier)
+==> 000000b4: <PutNewOwnById>: <Reg8: 3, Reg8: 4, string_id: 18441>  # String: 'UPDATER_APP_BOOT' (Identifier)
+==> 000000b9: <StoreToEnvironment>: <Reg8: 1, UInt8: 2, Reg8: 3>
+==> 000000bd: <CreateClosure>: <Reg8: 1, Reg8: 1, function_id: 10339>  # Function: [#10339 validateEnvironment of 137 bytes]: 1 params @ offset 0x002f8f44
+==> 000000c2: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 1, string_id: 38114>  # String: 'validateEnvironment' (Identifier)
+==> 000000c8: <Ret>: <Reg8: 0>
+
+
+===============
+
+=> [Function #10339 "validateEnvironment" of 137 bytes]: 1 params, frame size=15, strict=0, exc handler=0, debug info=0  @ offset 0x002f8f44
+
+Bytecode listing:
+
+==> 00000000: <GetGlobalObject>: <Reg8: 1>
+==> 00000002: <TryGetById>: <Reg8: 4, Reg8: 1, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+==> 00000008: <GetByIdShort>: <Reg8: 3, Reg8: 4, UInt8: 2, string_id: 109>  # String: 'keys' (Identifier)
+==> 0000000d: <GetEnvironment>: <Reg8: 0, UInt8: 0>
+==> 00000010: <LoadFromEnvironment>: <Reg8: 2, Reg8: 0, UInt8: 2>
+==> 00000014: <Call2>: <Reg8: 4, Reg8: 3, Reg8: 4, Reg8: 2>
+==> 00000019: <GetByIdShort>: <Reg8: 3, Reg8: 4, UInt8: 3, string_id: 148>  # String: 'filter' (Identifier)
+==> 0000001e: <CreateEnvironment>: <Reg8: 2>
+==> 00000020: <CreateClosure>: <Reg8: 2, Reg8: 2, function_id: 10340>  # Function: [#10340  of 22 bytes]: 2 params @ offset 0x002f8fcd
+==> 00000025: <Call2>: <Reg8: 5, Reg8: 3, Reg8: 4, Reg8: 2>
+==> 0000002a: <GetByIdShort>: <Reg8: 3, Reg8: 5, UInt8: 4, string_id: 176>  # String: 'length' (Identifier)
+==> 0000002f: <LoadConstZero>: <Reg8: 2>
+==> 00000031: <JGreater>: <Addr8: 8, Reg8: 3, Reg8: 2>  # Address: 00000039
+==> 00000035: <LoadConstUndefined>: <Reg8: 2>
+==> 00000037: <Ret>: <Reg8: 2>
+==> 00000039: <TryGetById>: <Reg8: 2, Reg8: 1, UInt8: 5, string_id: 12>  # String: 'Error' (Identifier)
+==> 0000003f: <LoadFromEnvironment>: <Reg8: 1, Reg8: 0, UInt8: 0>
+==> 00000043: <LoadFromEnvironment>: <Reg8: 3, Reg8: 0, UInt8: 1>
+==> 00000047: <LoadConstUInt8>: <Reg8: 0, UInt8: 2>
+==> 0000004a: <GetByVal>: <Reg8: 0, Reg8: 3, Reg8: 0>
+==> 0000004e: <LoadConstUndefined>: <Reg8: 4>
+==> 00000050: <Call2>: <Reg8: 0, Reg8: 1, Reg8: 4, Reg8: 0>
+==> 00000055: <GetById>: <Reg8: 3, Reg8: 0, UInt8: 6, string_id: 18143>  # String: 'format' (Identifier)
+==> 0000005b: <GetByIdShort>: <Reg8: 1, Reg8: 5, UInt8: 7, string_id: 170>  # String: 'join' (Identifier)
+==> 00000060: <LoadConstString>: <Reg8: 0, string_id: 1323>  # String: ', ' (String)
+==> 00000064: <Call2>: <Reg8: 1, Reg8: 1, Reg8: 5, Reg8: 0>
+==> 00000069: <LoadConstString>: <Reg8: 0, string_id: 10031>  # String: 'Missing required environment variables: %s' (String)
+==> 0000006d: <Call3>: <Reg8: 7, Reg8: 3, Reg8: 4, Reg8: 0, Reg8: 1>
+==> 00000073: <GetByIdShort>: <Reg8: 1, Reg8: 2, UInt8: 8, string_id: 71>  # String: 'prototype' (Identifier)
+==> 00000078: <CreateThis>: <Reg8: 1, Reg8: 1, Reg8: 2>
+==> 0000007c: <Mov>: <Reg8: 8, Reg8: 1>
+==> 0000007f: <Construct>: <Reg8: 0, Reg8: 2, UInt8: 2>
+==> 00000083: <SelectObject>: <Reg8: 0, Reg8: 1, Reg8: 0>
+==> 00000087: <Throw>: <Reg8: 0>
+
+
+===============
+
+=> [Function #10340 "" of 22 bytes]: 2 params, frame size=2, strict=0, exc handler=0, debug info=0  @ offset 0x002f8fcd
+
+Bytecode listing:
+
+==> 00000000: <GetEnvironment>: <Reg8: 0, UInt8: 1>
+==> 00000003: <LoadFromEnvironment>: <Reg8: 1, Reg8: 0, UInt8: 2>
+==> 00000007: <LoadParam>: <Reg8: 0, UInt8: 1>
+==> 0000000a: <GetByVal>: <Reg8: 1, Reg8: 1, Reg8: 0>
+ fellow-analysis % grep -niE \
+'fetch|axios|GET|POST|headers|Authorization|method|baseURL|firmware_version_check' \
+hermes-disassembly.txt | \
+grep -E '673[0-9]{3}|405[0-9]{3}' | head -100
+405000:==> 00000058: <GetByIdShort>: <Reg8: 7, Reg8: 1, UInt8: 4, string_id: 114>  # String: 'concat' (Identifier)
+405005:==> 0000006f: <GetByIdShort>: <Reg8: 4, Reg8: 6, UInt8: 5, string_id: 170>  # String: 'join' (Identifier)
+405008:==> 0000007d: <GetByIdShort>: <Reg8: 4, Reg8: 5, UInt8: 6, string_id: 71>  # String: 'prototype' (Identifier)
+405014:==> 00000093: <GetById>: <Reg8: 1, Reg8: 3, UInt8: 7, string_id: 32285>  # String: '_checkDestroyed' (Identifier)
+405030:==> 00000004: <GetEnvironment>: <Reg8: 0, UInt8: 0>
+405034:==> 00000012: <GetByVal>: <Reg8: 6, Reg8: 1, Reg8: 4>
+405037:==> 0000001d: <GetById>: <Reg8: 6, Reg8: 6, UInt8: 1, string_id: 17632>  # String: 'initializeApp' (Identifier)
+405039:==> 00000028: <CreateClosure>: <Reg8: 8, Reg8: 5, function_id: 10324>  # Function: [#10324 get app of 33 bytes]: 1 params @ offset 0x002f8a2a
+405041:==> 00000031: <PutOwnGetterSetterByVal>: <Reg8: 3, Reg8: 6, Reg8: 8, Reg8: 7, UInt8: 1>
+405042:==> 00000037: <CreateClosure>: <Reg8: 6, Reg8: 5, function_id: 10325>  # Function: [#10325 get apps of 37 bytes]: 1 params @ offset 0x002f8a4b
+405044:==> 00000040: <PutOwnGetterSetterByVal>: <Reg8: 3, Reg8: 5, Reg8: 6, Reg8: 7, UInt8: 1>
+405046:==> 0000004a: <GetByIdShort>: <Reg8: 5, Reg8: 5, UInt8: 2, string_id: 129>  # String: 'default' (Identifier)
+405048:==> 00000054: <GetByVal>: <Reg8: 4, Reg8: 1, Reg8: 4>
+405050:==> 0000005d: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 3, string_id: 17835>  # String: 'setLogLevel' (Identifier)
+405054:==> 0000006f: <GetByVal>: <Reg8: 1, Reg8: 1, Reg8: 6>
+405056:==> 00000078: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 4, string_id: 22545>  # String: 'KNOWN_NAMESPACES' (Identifier)
+405057:==> 0000007e: <GetByIdShort>: <Reg8: 1, Reg8: 1, UInt8: 5, string_id: 176>  # String: 'length' (Identifier)
+405060:==> 00000089: <GetGlobalObject>: <Reg8: 4>
+405066:==> 0000009a: <GetByVal>: <Reg8: 9, Reg8: 1, Reg8: 6>
+405068:==> 000000a3: <GetById>: <Reg8: 9, Reg8: 9, UInt8: 4, string_id: 22545>  # String: 'KNOWN_NAMESPACES' (Identifier)
+405069:==> 000000a9: <GetByVal>: <Reg8: 13, Reg8: 9, Reg8: 5>
+405070:==> 000000ad: <TryGetById>: <Reg8: 12, Reg8: 4, UInt8: 6, string_id: 28>  # String: 'Object' (Identifier)
+405071:==> 000000b3: <GetByIdShort>: <Reg8: 11, Reg8: 12, UInt8: 7, string_id: 29>  # String: 'defineProperty' (Identifier)
+405076:==> 000000c6: <GetByIdShort>: <Reg8: 15, Reg8: 16, UInt8: 8, string_id: 76>  # String: 'bind' (Identifier)
+405079:==> 000000d6: <PutNewOwnByIdShort>: <Reg8: 9, Reg8: 14, string_id: 156>  # String: 'get' (Identifier)
+405082:==> 000000e4: <GetByVal>: <Reg8: 1, Reg8: 1, Reg8: 6>
+405084:==> 000000ed: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 4, string_id: 22545>  # String: 'KNOWN_NAMESPACES' (Identifier)
+405085:==> 000000f3: <GetByIdShort>: <Reg8: 1, Reg8: 1, UInt8: 5, string_id: 176>  # String: 'length' (Identifier)
+405093:=> [Function #10324 "get app" of 33 bytes]: 1 params, frame size=11, strict=0, exc handler=0, debug info=0  @ offset 0x002f8a2a
+405097:==> 00000000: <GetEnvironment>: <Reg8: 0, UInt8: 1>
+405101:==> 0000000e: <GetByVal>: <Reg8: 1, Reg8: 1, Reg8: 0>
+405104:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 32439>  # String: 'getApp' (Identifier)
+405110:=> [Function #10325 "get apps" of 37 bytes]: 1 params, frame size=11, strict=0, exc handler=0, debug info=0  @ offset 0x002f8a4b
+405114:==> 00000000: <GetEnvironment>: <Reg8: 0, UInt8: 1>
+405118:==> 0000000e: <GetByVal>: <Reg8: 0, Reg8: 1, Reg8: 0>
+405121:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 36203>  # String: 'getApps' (Identifier)
+405128:=> [Function #10326 "getFirebaseRoot" of 28 bytes]: 1 params, frame size=10, strict=0, exc handler=0, debug info=0  @ offset 0x002f8a70
+405132:==> 00000000: <GetEnvironment>: <Reg8: 0, UInt8: 0>
+405151:==> 00000004: <GetArgumentsLength>: <Reg8: 3, Reg8: 1>
+405154:==> 0000000d: <GetArgumentsPropByVal>: <Reg8: 3, Reg8: 0, Reg8: 1>
+405158:==> 00000019: <GetArgumentsPropByVal>: <Reg8: 7, Reg8: 0, Reg8: 1>
+405159:==> 0000001d: <GetById>: <Reg8: 1, Reg8: 7, UInt8: 1, string_id: 20454>  # String: 'namespace' (Identifier)
+405160:==> 00000023: <GetById>: <Reg8: 3, Reg8: 7, UInt8: 2, string_id: 22583>  # String: 'ModuleClass' (Identifier)
+405161:==> 00000029: <GetEnvironment>: <Reg8: 0, UInt8: 0>
+405163:==> 00000030: <GetByVal>: <Reg8: 4, Reg8: 4, Reg8: 1>
+405166:==> 0000003b: <GetByIdShort>: <Reg8: 4, Reg8: 4, UInt8: 3, string_id: 129>  # String: 'default' (Identifier)
+405167:==> 00000040: <GetById>: <Reg8: 4, Reg8: 4, UInt8: 4, string_id: 24964>  # String: '__extended__' (Identifier)
+405168:==> 00000046: <GetById>: <Reg8: 3, Reg8: 3, UInt8: 4, string_id: 24964>  # String: '__extended__' (Identifier)
+405171:==> 00000054: <GetGlobalObject>: <Reg8: 3>
+405172:==> 00000056: <TryGetById>: <Reg8: 6, Reg8: 3, UInt8: 5, string_id: 28>  # String: 'Object' (Identifier)
+405173:==> 0000005c: <GetByIdShort>: <Reg8: 5, Reg8: 6, UInt8: 6, string_id: 24>  # String: 'assign' (Identifier)
+405178:==> 0000006f: <GetGlobalObject>: <Reg8: 3>
+405179:==> 00000071: <TryGetById>: <Reg8: 5, Reg8: 3, UInt8: 7, string_id: 12>  # String: 'Error' (Identifier)
+405180:==> 00000077: <GetByIdShort>: <Reg8: 3, Reg8: 5, UInt8: 8, string_id: 71>  # String: 'prototype' (Identifier)
+405189:==> 00000099: <GetByVal>: <Reg8: 0, Reg8: 0, Reg8: 1>
+405200:==> 00000003: <GetEnvironment>: <Reg8: 7, UInt8: 0>
+405204:==> 00000011: <GetByVal>: <Reg8: 1, Reg8: 0, Reg8: 6>
+405207:==> 0000001c: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 1, string_id: 22545>  # String: 'KNOWN_NAMESPACES' (Identifier)
+405208:==> 00000022: <GetByIdShort>: <Reg8: 1, Reg8: 1, UInt8: 2, string_id: 176>  # String: 'length' (Identifier)
+405211:==> 0000002d: <GetGlobalObject>: <Reg8: 4>
+405217:==> 0000003e: <GetByVal>: <Reg8: 10, Reg8: 1, Reg8: 6>
+405219:==> 00000047: <GetById>: <Reg8: 10, Reg8: 10, UInt8: 1, string_id: 22545>  # String: 'KNOWN_NAMESPACES' (Identifier)
+405220:==> 0000004d: <GetByVal>: <Reg8: 13, Reg8: 10, Reg8: 5>
+405221:==> 00000051: <TryGetById>: <Reg8: 12, Reg8: 4, UInt8: 3, string_id: 28>  # String: 'Object' (Identifier)
+405222:==> 00000057: <GetByIdShort>: <Reg8: 11, Reg8: 12, UInt8: 4, string_id: 29>  # String: 'defineProperty' (Identifier)
+405226:==> 00000066: <GetByIdShort>: <Reg8: 14, Reg8: 15, UInt8: 5, string_id: 76>  # String: 'bind' (Identifier)
+405228:==> 00000072: <PutNewOwnByIdShort>: <Reg8: 10, Reg8: 14, string_id: 156>  # String: 'get' (Identifier)
+405231:==> 00000080: <GetByVal>: <Reg8: 1, Reg8: 1, Reg8: 6>
+405233:==> 00000089: <GetById>: <Reg8: 1, Reg8: 1, UInt8: 1, string_id: 22545>  # String: 'KNOWN_NAMESPACES' (Identifier)
+405234:==> 0000008f: <GetByIdShort>: <Reg8: 1, Reg8: 1, UInt8: 2, string_id: 176>  # String: 'length' (Identifier)
+405246:==> 00000003: <GetEnvironment>: <Reg8: 1, UInt8: 0>
+405248:==> 0000000a: <GetByIdShort>: <Reg8: 2, Reg8: 0, UInt8: 1, string_id: 112>  # String: 'name' (Identifier)
+405251:==> 00000017: <GetByIdShort>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 112>  # String: 'name' (Identifier)
+405280:==> 0000000b: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 10332>  # Function: [#10332 _getRequireWildcardCache of 108 bytes]: 2 params @ offset 0x002f8d82
+405283:==> 00000016: <GetByVal>: <Reg8: 3, Reg8: 5, Reg8: 0>
+405286:==> 00000021: <GetGlobalObject>: <Reg8: 16>
+405287:==> 00000023: <TryGetById>: <Reg8: 9, Reg8: 16, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+405288:==> 00000029: <GetByIdShort>: <Reg8: 8, Reg8: 9, UInt8: 2, string_id: 29>  # String: 'defineProperty' (Identifier)
+405296:==> 0000004a: <GetByVal>: <Reg8: 3, Reg8: 5, Reg8: 3>
+405301:==> 0000005f: <GetByVal>: <Reg8: 3, Reg8: 5, Reg8: 3>
+405304:==> 0000006b: <GetByIdShort>: <Reg8: 4, Reg8: 5, UInt8: 3, string_id: 56>  # String: '__esModule' (Identifier)
+405317:==> 000000a4: <GetByIdShort>: <Reg8: 4, Reg8: 6, UInt8: 4, string_id: 159>  # String: 'has' (Identifier)
+405321:==> 000000b7: <TryGetById>: <Reg8: 7, Reg8: 16, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+405322:==> 000000bd: <GetByIdShort>: <Reg8: 14, Reg8: 7, UInt8: 2, string_id: 29>  # String: 'defineProperty' (Identifier)
+405324:==> 000000c5: <TryGetById>: <Reg8: 7, Reg8: 16, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+405325:==> 000000cb: <GetByIdShort>: <Reg8: 14, Reg8: 7, UInt8: 5, string_id: 157>  # String: 'getOwnPropertyDescriptor' (Identifier)
+405329:==> 000000d9: <GetPNameList>: <Reg8: 13, Reg8: 12, Reg8: 11, Reg8: 10>
+405331:==> 000000e1: <GetNextPName>: <Reg8: 9, Reg8: 13, Reg8: 12, Reg8: 11, Reg8: 10>
+405336:==> 000000f3: <GetByIdShort>: <Reg8: 18, Reg8: 17, UInt8: 6, string_id: 160>  # String: 'hasOwnProperty' (Identifier)
+405337:==> 000000f8: <GetByIdShort>: <Reg8: 17, Reg8: 18, UInt8: 7, string_id: 99>  # String: 'call' (Identifier)
+405342:==> 0000010b: <TryGetById>: <Reg8: 19, Reg8: 16, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+405343:==> 00000111: <GetByIdShort>: <Reg8: 18, Reg8: 19, UInt8: 5, string_id: 157>  # String: 'getOwnPropertyDescriptor' (Identifier)
+405346:==> 0000011f: <GetByIdShort>: <Reg8: 18, Reg8: 17, UInt8: 8, string_id: 156>  # String: 'get' (Identifier)
+405348:==> 00000127: <GetByIdShort>: <Reg8: 18, Reg8: 17, UInt8: 9, string_id: 199>  # String: 'set' (Identifier)
+405350:==> 0000012f: <GetByVal>: <Reg8: 18, Reg8: 5, Reg8: 20>
+405354:==> 0000013c: <TryGetById>: <Reg8: 19, Reg8: 16, UInt8: 1, string_id: 28>  # String: 'Object' (Identifier)
+405355:==> 00000142: <GetByIdShort>: <Reg8: 18, Reg8: 19, UInt8: 2, string_id: 29>  # String: 'defineProperty' (Identifier)
+405362:==> 0000015f: <GetByIdShort>: <Reg8: 7, Reg8: 6, UInt8: 9, string_id: 199>  # String: 'set' (Identifier)
+405366:==> 0000016f: <GetByIdShort>: <Reg8: 4, Reg8: 6, UInt8: 8, string_id: 156>  # String: 'get' (Identifier)
+405381:=> [Function #10332 "_getRequireWildcardCache" of 108 bytes]: 2 params, frame size=12, strict=0, exc handler=0, debug info=0  @ offset 0x002f8d82
+ fellow-analysis % 
