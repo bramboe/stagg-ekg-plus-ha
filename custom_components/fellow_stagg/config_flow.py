@@ -32,6 +32,7 @@ from homeassistant.components.bluetooth import (
     BluetoothServiceInfoBleak,
 )
 from homeassistant.components import persistent_notification
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
@@ -553,7 +554,8 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     @staticmethod
-    async def async_get_options_flow(
+    @callback
+    def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> FellowStaggOptionsFlowHandler:
         """Return the options flow handler."""
