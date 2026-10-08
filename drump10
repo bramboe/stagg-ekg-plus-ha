@@ -1,0 +1,424 @@
+Last login: Thu Oct  8 20:59:21 on ttys000
+ ~ % find ~/Desktop/fellow-apk -type f -maxdepth 2 -print
+/Users/bram.boersma/Desktop/fellow-apk/split_config.en.apk
+/Users/bram.boersma/Desktop/fellow-apk/split_config.xxhdpi.apk
+/Users/bram.boersma/Desktop/fellow-apk/split_config.nl.apk
+/Users/bram.boersma/Desktop/fellow-apk/split_config.arm64_v8a.apk
+/Users/bram.boersma/Desktop/fellow-apk/base.apk
+ ~ % du -h ~/Desktop/fellow-apk/*
+ 23M	/Users/bram.boersma/Desktop/fellow-apk/base.apk
+ 15M	/Users/bram.boersma/Desktop/fellow-apk/split_config.arm64_v8a.apk
+ 48K	/Users/bram.boersma/Desktop/fellow-apk/split_config.en.apk
+ 32K	/Users/bram.boersma/Desktop/fellow-apk/split_config.nl.apk
+628K	/Users/bram.boersma/Desktop/fellow-apk/split_config.xxhdpi.apk
+ ~ % find ~/Desktop/fellow-apk -type f \
+  | grep -Ei 'updat|firmware|ota|bin|zip|tar|hex|img'
+ ~ % grep -RniE \
+  'firmware|firmware_version|ota|download|\.bin|\.zip|update' \
+  ~/Desktop/fellow-analysis/jadx-out 2>/dev/null \
+  | head -200
+Binary file /Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/mipmap-night-xhdpi/ic_launcher_round.webp matches
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/drawable/abc_ic_arrow_drop_right_black_24dp.xml:13:        android:rotation="90">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/public.xml:834:    <public type="attr" name="motionPathRotate" id="0x7f0302e2" />
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/public.xml:889:    <public type="attr" name="pivotAnchor" id="0x7f030319" />
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/public.xml:916:    <public type="attr" name="progressBarAutoRotateInterval" id="0x7f030334" />
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/public.xml:1190:    <public type="attr" name="transitionPathRotate" id="0x7f030446" />
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/public.xml:1196:    <public type="attr" name="updatesContinuously" id="0x7f03044c" />
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/public.xml:3450:    <public type="string" name="FIRMWARE_VERSIONING_API_HOST" id="0x7f0e0005" />
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/public.xml:3454:    <public type="string" name="UPDATER_APP_BOOT" id="0x7f0e0009" />
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/public.xml:3532:    <public type="string" name="common_google_play_services_update_button" id="0x7f0e0057" />
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/public.xml:3533:    <public type="string" name="common_google_play_services_update_text" id="0x7f0e0058" />
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/public.xml:3534:    <public type="string" name="common_google_play_services_update_title" id="0x7f0e0059" />
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/public.xml:3536:    <public type="string" name="common_google_play_services_wear_update_text" id="0x7f0e005b" />
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/styles.xml:2873:        <item name="updatesContinuously">false</item>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/strings.xml:8:    <string name="FIRMWARE_VERSIONING_API_HOST">https://5iuo52bmuc.execute-api.us-west-2.amazonaws.com/</string>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/strings.xml:12:    <string name="UPDATER_APP_BOOT">true</string>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/strings.xml:42:    <string name="app_name">EKG Updater</string>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/strings.xml:90:    <string name="common_google_play_services_update_button">Update</string>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/strings.xml:91:    <string name="common_google_play_services_update_text">%1$s won\'t run unless you update Google Play services.</string>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/strings.xml:92:    <string name="common_google_play_services_update_title">Update Google Play services</string>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/strings.xml:94:    <string name="common_google_play_services_wear_update_text">New version of Google Play services needed. It will update itself shortly.</string>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/attrs.xml:1827:    <attr name="motionPathRotate" format="float">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/attrs.xml:1964:    <attr name="pivotAnchor" format="reference">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/attrs.xml:2032:    <attr name="progressBarAutoRotateInterval" format="integer">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/attrs.xml:2679:    <attr name="transitionPathRotate" format="float">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/values/attrs.xml:2691:    <attr name="updatesContinuously" format="boolean">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/res/xml/rn_dev_preferences.xml:28:            android:summary="Debug server host &amp; port for downloading JS bundle or communicating with JS debugger. With this setting empty launcher should work fine when running on emulator (or genymotion) and connection to debug server running on emulator&apos;s host."
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:53:// returned by a get operation or modified by an update operation.
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:102:// # Field Masks in Update Operations
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:104:// A field mask in update operations specifies which fields of the
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:105:// targeted resource are going to be updated. The API is required
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:108:// describe the updated values, the API ignores the values of all
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:111:// If a repeated field is specified for an update operation, new values will
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:116:// update operation, then new value will be merged into the existing sub-message
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:129:// And an update message:
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:161:// If a field mask is not present on update, the operation applies to
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:170:// describes the updated values in the request message depends on the
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:176:// The HTTP kind of an update operation which uses a field mask must
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/field_mask.proto:178:// (PUT must only be used for full updates).
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/api.proto:131:// - Each annotation belonging to the service config (http,
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/api.proto:135:// - If an http annotation is inherited, the path pattern will be
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/api.proto:169:// `Storage`. A documentation generator or annotation processor will
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/api.proto:171:// documentation and annotations as follows:
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/google/protobuf/api.proto:192:// This implies the following inherited HTTP annotation:
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:56:    <uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE"/>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:123:            android:directBootAware="true">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:225:            android:directBootAware="false"/>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:228:            android:permission="android.permission.BIND_JOB_SERVICE"
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:231:            android:directBootAware="false"/>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:236:            android:directBootAware="false"/>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:241:            android:directBootAware="false"/>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:246:            android:directBootAware="false">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:256:            android:directBootAware="false">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:266:            android:directBootAware="false">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:276:            android:directBootAware="false">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:285:            android:directBootAware="false">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:293:            android:name="androidx.work.impl.background.systemalarm.ConstraintProxyUpdateReceiver"
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:296:            android:directBootAware="false">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:298:                <action android:name="androidx.work.impl.background.systemalarm.UpdateProxies"/>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:306:            android:directBootAware="false">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:314:            android:directBootAware="true"/>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:336:            android:directBootAware="true">
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:346:            android:directBootAware="true"/>
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/AndroidManifest.xml:375:            android:permission="android.permission.BIND_JOB_SERVICE"
+Binary file /Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/kotlin/internal/internal.kotlin_builtins matches
+Binary file /Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/kotlin/annotation/annotation.kotlin_builtins matches
+Binary file /Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/kotlin/kotlin.kotlin_builtins matches
+Binary file /Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/DebugProbesKt.bin matches
+Binary file /Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/assets/index.android.bundle matches
+Binary file /Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/assets/fonts/PPRightGrotesk-Medium.otf matches
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/firebase-annotations.properties:2:client=firebase-annotations
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/resources/firebase-annotations.properties:3:firebase-annotations_client=16.0.0
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/DeflaterSink.java:4:import java.util.zip.Deflater;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/InflaterSource.java:5:import java.util.zip.DataFormatException;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/InflaterSource.java:6:import java.util.zip.Inflater;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/Util.java:11:@Metadata(bv = {1, 0, 3}, d1 = {"\u0000:\n\u0000\n\u0002\u0010\u000b\n\u0000\n\u0002\u0010\u0012\n\u0000\n\u0002\u0010\b\n\u0002\b\u0004\n\u0002\u0010\u0002\n\u0000\n\u0002\u0010\t\n\u0002\b\u0003\n\u0002\u0010\u0005\n\u0002\b\u0004\n\u0002\u0010\n\n\u0002\b\u0004\n\u0002\u0010\u000e\n\u0000\u001a0\u0010\u0000\u001a\u00020\u00012\u0006\u0010\u0002\u001a\u00020\u00032\u0006\u0010\u0004\u001a\u00020\u00052\u0006\u0010\u0006\u001a\u00020\u00032\u0006\u0010\u0007\u001a\u00020\u00052\u0006\u0010\b\u001a\u00020\u0005H\u0000\u001a \u0010\t\u001a\u00020\n2\u0006\u0010\u000b\u001a\u00020\f2\u0006\u0010\r\u001a\u00020\f2\u0006\u0010\b\u001a\u00020\fH\u0000\u001a\u0019\u0010\u000e\u001a\u00020\f2\u0006\u0010\u0002\u001a\u00020\u00052\u0006\u0010\u0006\u001a\u00020\fH\u0080\b\u001a\u0019\u0010\u000e\u001a\u00020\f2\u0006\u0010\u0002\u001a\u00020\f2\u0006\u0010\u0006\u001a\u00020\u0005H\u0080\b\u001a\u0015\u0010\u000f\u001a\u00020\u0005*\u00020\u00102\u0006\u0010\u0011\u001a\u00020\u0005H\u0080\f\u001a\u0015\u0010\u000f\u001a\u00020\f*\u00020\u00102\u0006\u0010\u0011\u001a\u00020\fH\u0080\f\u001a\u0015\u0010\u000f\u001a\u00020\f*\u00020\u00052\u0006\u0010\u0011\u001a\u00020\fH\u0080\f\u001a\u0015\u0010\u0012\u001a\u00020\u0005*\u00020\u00052\u0006\u0010\u0013\u001a\u00020\u0005H\u0080\f\u001a\f\u0010\u0014\u001a\u00020\u0005*\u00020\u0005H\u0000\u001a\f\u0010\u0014\u001a\u00020\f*\u00020\fH\u0000\u001a\f\u0010\u0014\u001a\u00020\u0015*\u00020\u0015H\u0000\u001a\u0015\u0010\u0016\u001a\u00020\f*\u00020\f2\u0006\u0010\u0013\u001a\u00020\u0005H\u0080\f\u001a\u0015\u0010\u0017\u001a\u00020\u0005*\u00020\u00102\u0006\u0010\u0011\u001a\u00020\u0005H\u0080\f\u001a\u0015\u0010\u0018\u001a\u00020\u0005*\u00020\u00102\u0006\u0010\u0011\u001a\u00020\u0005H\u0080\f\u001a\f\u0010\u0019\u001a\u00020\u001a*\u00020\u0010H\u0000\u001a\f\u0010\u0019\u001a\u00020\u001a*\u00020\u0005H\u0000\u001a\f\u0010\u0019\u001a\u00020\u001a*\u00020\fH\u0000¨\u0006\u001b"}, d2 = {"arrayRangeEquals", "", "a", "", "aOffset", "", "b", "bOffset", "byteCount", "checkOffsetAndCount", "", RRWebVideoEvent.JsonKeys.SIZE, "", "offset", "minOf", "and", "", "other", "leftRotate", "bitCount", "reverseBytes", "", "rightRotate", "shl", "shr", "toHexString", "", "okio"}, k = 2, mv = {1, 4, 0})
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/Util.java:25:    public static final int leftRotate(int i, int i2) {
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/Util.java:41:    public static final long rightRotate(long j, int i) {
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/SegmentedByteString.java:88:                mac.update(getSegments()[i], i3, i4 - i2);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSink.java:4:import java.util.zip.CRC32;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSink.java:5:import java.util.zip.Deflater;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSink.java:14:@Metadata(bv = {1, 0, 3}, d1 = {"\u0000H\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0010\u000b\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\t\n\u0002\b\u0004\u0018\u00002\u00020\u0001B\r\u0012\u0006\u0010\u0002\u001a\u00020\u0001¢\u0006\u0002\u0010\u0003J\b\u0010\u000e\u001a\u00020\u000fH\u0016J\r\u0010\b\u001a\u00020\tH\u0007¢\u0006\u0002\b\u0010J\b\u0010\u0011\u001a\u00020\u000fH\u0016J\b\u0010\u0012\u001a\u00020\u0013H\u0016J\u0018\u0010\u0014\u001a\u00020\u000f2\u0006\u0010\u0015\u001a\u00020\u00162\u0006\u0010\u0017\u001a\u00020\u0018H\u0002J\u0018\u0010\u0019\u001a\u00020\u000f2\u0006\u0010\u001a\u001a\u00020\u00162\u0006\u0010\u0017\u001a\u00020\u0018H\u0016J\b\u0010\u001b\u001a\u00020\u000fH\u0002R\u000e\u0010\u0004\u001a\u00020\u0005X\u0082\u000e¢\u0006\u0002\n\u0000R\u000e\u0010\u0006\u001a\u00020\u0007X\u0082\u0004¢\u0006\u0002\n\u0000R\u0013\u0010\b\u001a\u00020\t8G¢\u0006\b\n\u0000\u001a\u0004\b\b\u0010\nR\u000e\u0010\u000b\u001a\u00020\fX\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\u0002\u001a\u00020\rX\u0082\u0004¢\u0006\u0002\n\u0000¨\u0006\u001c"}, d2 = {"Lokio/GzipSink;", "Lokio/Sink;", "sink", "(Lokio/Sink;)V", "closed", "", "crc", "Ljava/util/zip/CRC32;", "deflater", "Ljava/util/zip/Deflater;", "()Ljava/util/zip/Deflater;", "deflaterSink", "Lokio/DeflaterSink;", "Lokio/RealBufferedSink;", "close", "", "-deprecated_deflater", "flush", "timeout", "Lokio/Timeout;", "updateCrc", "buffer", "Lokio/Buffer;", "byteCount", "", "write", "source", "writeFooter", "okio"}, k = 1, mv = {1, 4, 0})
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSink.java:52:        updateCrc(source, byteCount);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSink.java:103:    private final void updateCrc(Buffer buffer, long byteCount) {
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSink.java:108:            this.crc.update(segment.data, segment.pos, iMin);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/HashingSink.java:100:                messageDigest.update(segment.data, segment.pos, iMin);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/HashingSink.java:104:                mac.update(segment.data, segment.pos, iMin);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/internal/HashFunctionKt.java:23:            public void update(byte[] input, int offset, int byteCount) {
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/internal/HashFunctionKt.java:25:                this.digest.update(input, offset, byteCount);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/internal/HashFunction.java:7:@Metadata(bv = {1, 0, 3}, d1 = {"\u0000 \n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0000\n\u0002\u0010\u0012\n\u0000\n\u0002\u0010\u0002\n\u0002\b\u0002\n\u0002\u0010\b\n\u0002\b\u0002\b`\u0018\u00002\u00020\u0001J\b\u0010\u0002\u001a\u00020\u0003H&J \u0010\u0004\u001a\u00020\u00052\u0006\u0010\u0006\u001a\u00020\u00032\u0006\u0010\u0007\u001a\u00020\b2\u0006\u0010\t\u001a\u00020\bH&¨\u0006\n"}, d2 = {"Lokio/internal/HashFunction;", "", "digest", "", "update", "", "input", "offset", "", "byteCount", "okio"}, k = 1, mv = {1, 4, 0})
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/internal/HashFunction.java:11:    void update(byte[] input, int offset, int byteCount);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/internal/ByteStringKt.java:67:        hashFunctionNewHashFunction.update(commonDigest.getData(), 0, commonDigest.size());
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/internal/ByteStringKt.java:81:            hashFunctionNewHashFunction.update(commonSegmentDigest.getSegments()[i], i3, i4 - i2);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSink.java:11:@Metadata(bv = {1, 0, 3}, d1 = {"\u0000J\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0010\b\n\u0002\b\u0003\n\u0002\u0010\u000b\n\u0000\n\u0002\u0010\u0002\n\u0000\n\u0002\u0010\u0003\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\t\n\u0002\b\u0003\u0018\u00002\u00020\u0001B\u0015\u0012\u0006\u0010\u0002\u001a\u00020\u0003\u0012\u0006\u0010\u0004\u001a\u00020\u0005¢\u0006\u0002\u0010\u0006J\b\u0010\r\u001a\u00020\u000eH\u0016J\n\u0010\u000f\u001a\u0004\u0018\u00010\u0010H\u0002J\b\u0010\u0011\u001a\u00020\u000eH\u0016J\b\u0010\u0012\u001a\u00020\u0013H\u0016J\u0018\u0010\u0014\u001a\u00020\b2\u0006\u0010\u0015\u001a\u00020\u00162\u0006\u0010\u0017\u001a\u00020\u0018H\u0002J\u0018\u0010\u0019\u001a\u00020\u000e2\u0006\u0010\u0015\u001a\u00020\u00162\u0006\u0010\u001a\u001a\u00020\u0018H\u0016R\u000e\u0010\u0007\u001a\u00020\bX\u0082\u0004¢\u0006\u0002\n\u0000R\u0011\u0010\u0004\u001a\u00020\u0005¢\u0006\b\n\u0000\u001a\u0004\b\t\u0010\nR\u000e\u0010\u000b\u001a\u00020\fX\u0082\u000e¢\u0006\u0002\n\u0000R\u000e\u0010\u0002\u001a\u00020\u0003X\u0082\u0004¢\u0006\u0002\n\u0000¨\u0006\u001b"}, d2 = {"Lokio/CipherSink;", "Lokio/Sink;", "sink", "Lokio/BufferedSink;", "cipher", "Ljavax/crypto/Cipher;", "(Lokio/BufferedSink;Ljavax/crypto/Cipher;)V", "blockSize", "", "getCipher", "()Ljavax/crypto/Cipher;", "closed", "", "close", "", "doFinal", "", "flush", "timeout", "Lokio/Timeout;", "update", "source", "Lokio/Buffer;", "remaining", "", "write", "byteCount", "okio"}, k = 1, mv = {1, 4, 0})
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSink.java:45:            byteCount -= (long) update(source, byteCount);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSink.java:49:    private final int update(Buffer source, long remaining) throws ShortBufferException {
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSink.java:55:        int iUpdate = this.cipher.update(segment.data, segment.pos, iMin, segmentWritableSegment$okio.data, segmentWritableSegment$okio.limit);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSink.java:56:        segmentWritableSegment$okio.limit += iUpdate;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSink.java:57:        buffer.setSize$okio(buffer.size() + ((long) iUpdate));
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSource.java:6:import java.util.zip.CRC32;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSource.java:7:import java.util.zip.Inflater;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSource.java:13:@Metadata(bv = {1, 0, 3}, d1 = {"\u0000R\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u0005\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u0002\n\u0000\n\u0002\u0010\u000e\n\u0000\n\u0002\u0010\b\n\u0002\b\u0005\n\u0002\u0010\t\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0004\u0018\u00002\u00020\u0001B\r\u0012\u0006\u0010\u0002\u001a\u00020\u0001¢\u0006\u0002\u0010\u0003J \u0010\r\u001a\u00020\u000e2\u0006\u0010\u000f\u001a\u00020\u00102\u0006\u0010\u0011\u001a\u00020\u00122\u0006\u0010\u0013\u001a\u00020\u0012H\u0002J\b\u0010\u0014\u001a\u00020\u000eH\u0016J\b\u0010\u0015\u001a\u00020\u000eH\u0002J\b\u0010\u0016\u001a\u00020\u000eH\u0002J\u0018\u0010\u0017\u001a\u00020\u00182\u0006\u0010\u0019\u001a\u00020\u001a2\u0006\u0010\u001b\u001a\u00020\u0018H\u0016J\b\u0010\u001c\u001a\u00020\u001dH\u0016J \u0010\u001e\u001a\u00020\u000e2\u0006\u0010\u001f\u001a\u00020\u001a2\u0006\u0010 \u001a\u00020\u00182\u0006\u0010\u001b\u001a\u00020\u0018H\u0002R\u000e\u0010\u0004\u001a\u00020\u0005X\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\u0006\u001a\u00020\u0007X\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\b\u001a\u00020\tX\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\n\u001a\u00020\u000bX\u0082\u000e¢\u0006\u0002\n\u0000R\u000e\u0010\u0002\u001a\u00020\fX\u0082\u0004¢\u0006\u0002\n\u0000¨\u0006!"}, d2 = {"Lokio/GzipSource;", "Lokio/Source;", "source", "(Lokio/Source;)V", "crc", "Ljava/util/zip/CRC32;", "inflater", "Ljava/util/zip/Inflater;", "inflaterSource", "Lokio/InflaterSource;", "section", "", "Lokio/RealBufferedSource;", "checkEqual", "", "name", "", "expected", "", "actual", "close", "consumeHeader", "consumeTrailer", "read", "", "sink", "Lokio/Buffer;", "byteCount", "timeout", "Lokio/Timeout;", "updateCrc", "buffer", "offset", "okio"}, k = 1, mv = {1, 4, 0})
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSource.java:48:                updateCrc(sink, size, j);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSource.java:68:            updateCrc(this.source.bufferField, 0L, 10L);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSource.java:75:                updateCrc(this.source.bufferField, 0L, 2L);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSource.java:80:                updateCrc(this.source.bufferField, 0L, shortLe);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSource.java:90:                updateCrc(this.source.bufferField, 0L, jIndexOf + 1);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSource.java:100:                updateCrc(this.source.bufferField, 0L, jIndexOf2 + 1);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSource.java:125:    private final void updateCrc(Buffer buffer, long offset, long byteCount) {
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/GzipSource.java:136:            this.crc.update(segment.data, i, iMin);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/DeflaterSinkExtensions.java:3:import java.util.zip.Deflater;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/RealBufferedSink.java:14:@Metadata(bv = {1, 0, 3}, d1 = {"\u0000f\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0006\n\u0002\u0010\u000b\n\u0000\n\u0002\u0010\u0002\n\u0002\b\u0005\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000e\n\u0000\n\u0002\u0010\b\n\u0000\n\u0002\u0018\u0002\n\u0002\u0010\u0012\n\u0002\b\u0002\n\u0002\u0010\t\n\u0000\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\b\u0011\n\u0002\u0018\u0002\n\u0002\b\u0006\b\u0000\u0018\u00002\u00020\u0001B\r\u0012\u0006\u0010\u0002\u001a\u00020\u0003¢\u0006\u0002\u0010\u0004J\b\u0010\u0005\u001a\u00020\u0006H\u0016J\b\u0010\u000e\u001a\u00020\u000fH\u0016J\b\u0010\u0010\u001a\u00020\u0001H\u0016J\b\u0010\u0011\u001a\u00020\u0001H\u0016J\b\u0010\u0012\u001a\u00020\u000fH\u0016J\b\u0010\u0013\u001a\u00020\rH\u0016J\b\u0010\u0014\u001a\u00020\u0015H\u0016J\b\u0010\u0016\u001a\u00020\u0017H\u0016J\b\u0010\u0018\u001a\u00020\u0019H\u0016J\u0010\u0010\u001a\u001a\u00020\u001b2\u0006\u0010\u001c\u001a\u00020\u001dH\u0016J\u0010\u0010\u001a\u001a\u00020\u00012\u0006\u0010\u001c\u001a\u00020\u001eH\u0016J \u0010\u001a\u001a\u00020\u00012\u0006\u0010\u001c\u001a\u00020\u001e2\u0006\u0010\u001f\u001a\u00020\u001b2\u0006\u0010 \u001a\u00020\u001bH\u0016J\u0018\u0010\u001a\u001a\u00020\u000f2\u0006\u0010\u001c\u001a\u00020\u00062\u0006\u0010 \u001a\u00020!H\u0016J\u0010\u0010\u001a\u001a\u00020\u00012\u0006\u0010\"\u001a\u00020#H\u0016J \u0010\u001a\u001a\u00020\u00012\u0006\u0010\"\u001a\u00020#2\u0006\u0010\u001f\u001a\u00020\u001b2\u0006\u0010 \u001a\u00020\u001bH\u0016J\u0018\u0010\u001a\u001a\u00020\u00012\u0006\u0010\u001c\u001a\u00020$2\u0006\u0010 \u001a\u00020!H\u0016J\u0010\u0010%\u001a\u00020!2\u0006\u0010\u001c\u001a\u00020$H\u0016J\u0010\u0010&\u001a\u00020\u00012\u0006\u0010'\u001a\u00020\u001bH\u0016J\u0010\u0010(\u001a\u00020\u00012\u0006\u0010)\u001a\u00020!H\u0016J\u0010\u0010*\u001a\u00020\u00012\u0006\u0010)\u001a\u00020!H\u0016J\u0010\u0010+\u001a\u00020\u00012\u0006\u0010,\u001a\u00020\u001bH\u0016J\u0010\u0010-\u001a\u00020\u00012\u0006\u0010,\u001a\u00020\u001bH\u0016J\u0010\u0010.\u001a\u00020\u00012\u0006\u0010)\u001a\u00020!H\u0016J\u0010\u0010/\u001a\u00020\u00012\u0006\u0010)\u001a\u00020!H\u0016J\u0010\u00100\u001a\u00020\u00012\u0006\u00101\u001a\u00020\u001bH\u0016J\u0010\u00102\u001a\u00020\u00012\u0006\u00101\u001a\u00020\u001bH\u0016J\u0018\u00103\u001a\u00020\u00012\u0006\u00104\u001a\u00020\u00192\u0006\u00105\u001a\u000206H\u0016J(\u00103\u001a\u00020\u00012\u0006\u00104\u001a\u00020\u00192\u0006\u00107\u001a\u00020\u001b2\u0006\u00108\u001a\u00020\u001b2\u0006\u00105\u001a\u000206H\u0016J\u0010\u00109\u001a\u00020\u00012\u0006\u00104\u001a\u00020\u0019H\u0016J \u00109\u001a\u00020\u00012\u0006\u00104\u001a\u00020\u00192\u0006\u00107\u001a\u00020\u001b2\u0006\u00108\u001a\u00020\u001bH\u0016J\u0010\u0010:\u001a\u00020\u00012\u0006\u0010;\u001a\u00020\u001bH\u0016R\u001b\u0010\u0005\u001a\u00020\u00068Ö\u0002X\u0096\u0004¢\u0006\f\u0012\u0004\b\u0007\u0010\b\u001a\u0004\b\t\u0010\nR\u0010\u0010\u000b\u001a\u00020\u00068\u0006X\u0087\u0004¢\u0006\u0002\n\u0000R\u0012\u0010\f\u001a\u00020\r8\u0006@\u0006X\u0087\u000e¢\u0006\u0002\n\u0000R\u0010\u0010\u0002\u001a\u00020\u00038\u0006X\u0087\u0004¢\u0006\u0002\n\u0000¨\u0006<"}, d2 = {"Lokio/RealBufferedSink;", "Lokio/BufferedSink;", "sink", "Lokio/Sink;", "(Lokio/Sink;)V", "buffer", "Lokio/Buffer;", "getBuffer$annotations", "()V", "getBuffer", "()Lokio/Buffer;", "bufferField", "closed", "", "close", "", "emit", "emitCompleteSegments", "flush", "isOpen", "outputStream", "Ljava/io/OutputStream;", "timeout", "Lokio/Timeout;", "toString", "", "write", "", "source", "Ljava/nio/ByteBuffer;", "", "offset", "byteCount", "", "byteString", "Lokio/ByteString;", "Lokio/Source;", "writeAll", "writeByte", "b", "writeDecimalLong", "v", "writeHexadecimalUnsignedLong", "writeInt", ContextChain.TAG_INFRA, "writeIntLe", "writeLong", "writeLongLe", "writeShort", "s", "writeShortLe", "writeString", "string", "charset", "Ljava/nio/charset/Charset;", "beginIndex", "endIndex", "writeUtf8", "writeUtf8CodePoint", "codePoint", "okio"}, k = 1, mv = {1, 4, 0})
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/RealBufferedSink.java:20:    public static /* synthetic */ void getBuffer$annotations() {
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/HashingSource.java:107:                    messageDigest.update(segment.data, i, segment.limit - i);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/HashingSource.java:111:                    mac.update(segment.data, i, segment.limit - i);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/InflaterSourceExtensions.java:3:import java.util.zip.Inflater;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/Options.java:130:                    listMutableListOf.set(CollectionsKt.binarySearch$default(mutableList, byteStrings[i2], 0, 0, 6, (Object) null), Integer.valueOf(i3));
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/Buffer.java:520:            messageDigest.update(segment.data, segment.pos, segment.limit - segment.pos);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/Buffer.java:524:                messageDigest.update(segment2.data, segment2.pos, segment2.limit - segment2.pos);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/Buffer.java:555:                mac.update(segment.data, segment.pos, segment.limit - segment.pos);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/Buffer.java:559:                    mac.update(segment2.data, segment2.pos, segment2.limit - segment2.pos);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSource.java:13:@Metadata(bv = {1, 0, 3}, d1 = {"\u0000F\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0010\b\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0010\u000b\n\u0002\b\u0002\n\u0002\u0010\u0002\n\u0002\b\u0002\n\u0002\u0010\t\n\u0002\b\u0004\n\u0002\u0018\u0002\n\u0002\b\u0002\u0018\u00002\u00020\u0001B\u0015\u0012\u0006\u0010\u0002\u001a\u00020\u0003\u0012\u0006\u0010\u0004\u001a\u00020\u0005¢\u0006\u0002\u0010\u0006J\b\u0010\u0010\u001a\u00020\u0011H\u0016J\b\u0010\u0012\u001a\u00020\u0011H\u0002J\u0018\u0010\u0013\u001a\u00020\u00142\u0006\u0010\u0015\u001a\u00020\n2\u0006\u0010\u0016\u001a\u00020\u0014H\u0016J\b\u0010\u0017\u001a\u00020\u0011H\u0002J\b\u0010\u0018\u001a\u00020\u0019H\u0016J\b\u0010\u001a\u001a\u00020\u0011H\u0002R\u000e\u0010\u0007\u001a\u00020\bX\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\t\u001a\u00020\nX\u0082\u0004¢\u0006\u0002\n\u0000R\u0011\u0010\u0004\u001a\u00020\u0005¢\u0006\b\n\u0000\u001a\u0004\b\u000b\u0010\fR\u000e\u0010\r\u001a\u00020\u000eX\u0082\u000e¢\u0006\u0002\n\u0000R\u000e\u0010\u000f\u001a\u00020\u000eX\u0082\u000e¢\u0006\u0002\n\u0000R\u000e\u0010\u0002\u001a\u00020\u0003X\u0082\u0004¢\u0006\u0002\n\u0000¨\u0006\u001b"}, d2 = {"Lokio/CipherSource;", "Lokio/Source;", "source", "Lokio/BufferedSource;", "cipher", "Ljavax/crypto/Cipher;", "(Lokio/BufferedSource;Ljavax/crypto/Cipher;)V", "blockSize", "", "buffer", "Lokio/Buffer;", "getCipher", "()Ljavax/crypto/Cipher;", "closed", "", "final", "close", "", "doFinal", "read", "", "sink", "byteCount", "refill", "timeout", "Lokio/Timeout;", "update", "okio"}, k = 1, mv = {1, 4, 0})
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSource.java:68:            update();
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSource.java:72:    private final void update() throws IOException, ShortBufferException {
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSource.java:77:        int iUpdate = this.cipher.update(segment.data, segment.pos, i, segmentWritableSegment$okio.data, segmentWritableSegment$okio.pos);
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSource.java:79:        segmentWritableSegment$okio.limit += iUpdate;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/CipherSource.java:81:        buffer.setSize$okio(buffer.size() + ((long) iUpdate));
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/RealBufferedSource.java:18:@Metadata(bv = {1, 0, 3}, d1 = {"\u0000\u0086\u0001\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0006\n\u0002\u0010\u000b\n\u0000\n\u0002\u0010\u0002\n\u0002\b\u0002\n\u0002\u0010\t\n\u0000\n\u0002\u0010\u0005\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0002\b\u0005\n\u0002\u0010\b\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0002\u0010\u0012\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u000b\n\u0002\u0010\n\n\u0002\b\u0002\n\u0002\u0010\u000e\n\u0000\n\u0002\u0018\u0002\n\u0002\b\t\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0002\b\u0000\u0018\u00002\u00020\u0001B\r\u0012\u0006\u0010\u0002\u001a\u00020\u0003¢\u0006\u0002\u0010\u0004J\b\u0010\u0005\u001a\u00020\u0006H\u0016J\b\u0010\u000e\u001a\u00020\u000fH\u0016J\b\u0010\u0010\u001a\u00020\rH\u0016J\u0010\u0010\u0011\u001a\u00020\u00122\u0006\u0010\u0013\u001a\u00020\u0014H\u0016J\u0018\u0010\u0011\u001a\u00020\u00122\u0006\u0010\u0013\u001a\u00020\u00142\u0006\u0010\u0015\u001a\u00020\u0012H\u0016J \u0010\u0011\u001a\u00020\u00122\u0006\u0010\u0013\u001a\u00020\u00142\u0006\u0010\u0015\u001a\u00020\u00122\u0006\u0010\u0016\u001a\u00020\u0012H\u0016J\u0010\u0010\u0011\u001a\u00020\u00122\u0006\u0010\u0017\u001a\u00020\u0018H\u0016J\u0018\u0010\u0011\u001a\u00020\u00122\u0006\u0010\u0017\u001a\u00020\u00182\u0006\u0010\u0015\u001a\u00020\u0012H\u0016J\u0010\u0010\u0019\u001a\u00020\u00122\u0006\u0010\u001a\u001a\u00020\u0018H\u0016J\u0018\u0010\u0019\u001a\u00020\u00122\u0006\u0010\u001a\u001a\u00020\u00182\u0006\u0010\u0015\u001a\u00020\u0012H\u0016J\b\u0010\u001b\u001a\u00020\u001cH\u0016J\b\u0010\u001d\u001a\u00020\rH\u0016J\b\u0010\u001e\u001a\u00020\u0001H\u0016J\u0018\u0010\u001f\u001a\u00020\r2\u0006\u0010 \u001a\u00020\u00122\u0006\u0010\u0017\u001a\u00020\u0018H\u0016J(\u0010\u001f\u001a\u00020\r2\u0006\u0010 \u001a\u00020\u00122\u0006\u0010\u0017\u001a\u00020\u00182\u0006\u0010!\u001a\u00020\"2\u0006\u0010#\u001a\u00020\"H\u0016J\u0010\u0010$\u001a\u00020\"2\u0006\u0010%\u001a\u00020&H\u0016J\u0010\u0010$\u001a\u00020\"2\u0006\u0010%\u001a\u00020'H\u0016J \u0010$\u001a\u00020\"2\u0006\u0010%\u001a\u00020'2\u0006\u0010 \u001a\u00020\"2\u0006\u0010#\u001a\u00020\"H\u0016J\u0018\u0010$\u001a\u00020\u00122\u0006\u0010%\u001a\u00020\u00062\u0006\u0010#\u001a\u00020\u0012H\u0016J\u0010\u0010(\u001a\u00020\u00122\u0006\u0010%\u001a\u00020)H\u0016J\b\u0010*\u001a\u00020\u0014H\u0016J\b\u0010+\u001a\u00020'H\u0016J\u0010\u0010+\u001a\u00020'2\u0006\u0010#\u001a\u00020\u0012H\u0016J\b\u0010,\u001a\u00020\u0018H\u0016J\u0010\u0010,\u001a\u00020\u00182\u0006\u0010#\u001a\u00020\u0012H\u0016J\b\u0010-\u001a\u00020\u0012H\u0016J\u0010\u0010.\u001a\u00020\u000f2\u0006\u0010%\u001a\u00020'H\u0016J\u0018\u0010.\u001a\u00020\u000f2\u0006\u0010%\u001a\u00020\u00062\u0006\u0010#\u001a\u00020\u0012H\u0016J\b\u0010/\u001a\u00020\u0012H\u0016J\b\u00100\u001a\u00020\"H\u0016J\b\u00101\u001a\u00020\"H\u0016J\b\u00102\u001a\u00020\u0012H\u0016J\b\u00103\u001a\u00020\u0012H\u0016J\b\u00104\u001a\u000205H\u0016J\b\u00106\u001a\u000205H\u0016J\u0010\u00107\u001a\u0002082\u0006\u00109\u001a\u00020:H\u0016J\u0018\u00107\u001a\u0002082\u0006\u0010#\u001a\u00020\u00122\u0006\u00109\u001a\u00020:H\u0016J\b\u0010;\u001a\u000208H\u0016J\u0010\u0010;\u001a\u0002082\u0006\u0010#\u001a\u00020\u0012H\u0016J\b\u0010<\u001a\u00020\"H\u0016J\n\u0010=\u001a\u0004\u0018\u000108H\u0016J\b\u0010>\u001a\u000208H\u0016J\u0010\u0010>\u001a\u0002082\u0006\u0010?\u001a\u00020\u0012H\u0016J\u0010\u0010@\u001a\u00020\r2\u0006\u0010#\u001a\u00020\u0012H\u0016J\u0010\u0010A\u001a\u00020\u000f2\u0006\u0010#\u001a\u00020\u0012H\u0016J\u0010\u0010B\u001a\u00020\"2\u0006\u0010C\u001a\u00020DH\u0016J\u0010\u0010E\u001a\u00020\u000f2\u0006\u0010#\u001a\u00020\u0012H\u0016J\b\u0010F\u001a\u00020GH\u0016J\b\u0010H\u001a\u000208H\u0016R\u001b\u0010\u0005\u001a\u00020\u00068Ö\u0002X\u0096\u0004¢\u0006\f\u0012\u0004\b\u0007\u0010\b\u001a\u0004\b\t\u0010\nR\u0010\u0010\u000b\u001a\u00020\u00068\u0006X\u0087\u0004¢\u0006\u0002\n\u0000R\u0012\u0010\f\u001a\u00020\r8\u0006@\u0006X\u0087\u000e¢\u0006\u0002\n\u0000R\u0010\u0010\u0002\u001a\u00020\u00038\u0006X\u0087\u0004¢\u0006\u0002\n\u0000¨\u0006I"}, d2 = {"Lokio/RealBufferedSource;", "Lokio/BufferedSource;", "source", "Lokio/Source;", "(Lokio/Source;)V", "buffer", "Lokio/Buffer;", "getBuffer$annotations", "()V", "getBuffer", "()Lokio/Buffer;", "bufferField", "closed", "", "close", "", "exhausted", "indexOf", "", "b", "", "fromIndex", "toIndex", "bytes", "Lokio/ByteString;", "indexOfElement", "targetBytes", "inputStream", "Ljava/io/InputStream;", "isOpen", "peek", "rangeEquals", "offset", "bytesOffset", "", "byteCount", "read", "sink", "Ljava/nio/ByteBuffer;", "", "readAll", "Lokio/Sink;", "readByte", "readByteArray", "readByteString", "readDecimalLong", "readFully", "readHexadecimalUnsignedLong", "readInt", "readIntLe", "readLong", "readLongLe", "readShort", "", "readShortLe", "readString", "", "charset", "Ljava/nio/charset/Charset;", "readUtf8", "readUtf8CodePoint", "readUtf8Line", "readUtf8LineStrict", "limit", SentryBaseEvent.JsonKeys.REQUEST, "require", "select", "options", "Lokio/Options;", "skip", "timeout", "Lokio/Timeout;", "toString", "okio"}, k = 1, mv = {1, 4, 0})
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/okio/RealBufferedSource.java:24:    public static /* synthetic */ void getBuffer$annotations() {
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/InitProvider.java:55:    public int update(Uri uri, ContentValues contentValues, String str, String[] strArr) {
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/c.java:614:                    workManager.enqueueUniquePeriodicWork(str, ExistingPeriodicWorkPolicy.UPDATE, builder2.build());
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/c.java:647:                workManager2.enqueueUniquePeriodicWork(str2, ExistingPeriodicWorkPolicy.UPDATE, initialDelay.build());
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/c.java:660:            workManager2.enqueueUniquePeriodicWork(str2, ExistingPeriodicWorkPolicy.UPDATE, initialDelay2.build());
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/R.java:39:        public static int progressBarAutoRotateInterval = 0x7f030334;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/R.java:318:        public static int GenericDraweeHierarchy_progressBarAutoRotateInterval = 0x00000009;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/R.java:362:        public static int SimpleDraweeView_progressBarAutoRotateInterval = 0x0000000a;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/R.java:388:        public static int[] GenericDraweeHierarchy = {com.fellowApp.R.attr.actualImageScaleType, com.fellowApp.R.attr.backgroundImage, com.fellowApp.R.attr.fadeDuration, com.fellowApp.R.attr.failureImage, com.fellowApp.R.attr.failureImageScaleType, com.fellowApp.R.attr.overlayImage, com.fellowApp.R.attr.placeholderImage, com.fellowApp.R.attr.placeholderImageScaleType, com.fellowApp.R.attr.pressedStateOverlayImage, com.fellowApp.R.attr.progressBarAutoRotateInterval, com.fellowApp.R.attr.progressBarImage, com.fellowApp.R.attr.progressBarImageScaleType, com.fellowApp.R.attr.retryImage, com.fellowApp.R.attr.retryImageScaleType, com.fellowApp.R.attr.roundAsCircle, com.fellowApp.R.attr.roundBottomEnd, com.fellowApp.R.attr.roundBottomLeft, com.fellowApp.R.attr.roundBottomRight, com.fellowApp.R.attr.roundBottomStart, com.fellowApp.R.attr.roundTopEnd, com.fellowApp.R.attr.roundTopLeft, com.fellowApp.R.attr.roundTopRight, com.fellowApp.R.attr.roundTopStart, com.fellowApp.R.attr.roundWithOverlayColor, com.fellowApp.R.attr.roundedCornerRadius, com.fellowApp.R.attr.roundingBorderColor, com.fellowApp.R.attr.roundingBorderPadding, com.fellowApp.R.attr.roundingBorderWidth, com.fellowApp.R.attr.viewAspectRatio};
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/R.java:391:        public static int[] SimpleDraweeView = {com.fellowApp.R.attr.actualImageResource, com.fellowApp.R.attr.actualImageUri, com.fellowApp.R.attr.backgroundImage, com.fellowApp.R.attr.fadeDuration, com.fellowApp.R.attr.failureImage, com.fellowApp.R.attr.failureImageScaleType, com.fellowApp.R.attr.overlayImage, com.fellowApp.R.attr.placeholderImage, com.fellowApp.R.attr.placeholderImageScaleType, com.fellowApp.R.attr.pressedStateOverlayImage, com.fellowApp.R.attr.progressBarAutoRotateInterval, com.fellowApp.R.attr.progressBarImage, com.fellowApp.R.attr.progressBarImageScaleType, com.fellowApp.R.attr.retryImage, com.fellowApp.R.attr.retryImageScaleType, com.fellowApp.R.attr.roundAsCircle, com.fellowApp.R.attr.roundBottomEnd, com.fellowApp.R.attr.roundBottomLeft, com.fellowApp.R.attr.roundBottomRight, com.fellowApp.R.attr.roundBottomStart, com.fellowApp.R.attr.roundTopEnd, com.fellowApp.R.attr.roundTopLeft, com.fellowApp.R.attr.roundTopRight, com.fellowApp.R.attr.roundTopStart, com.fellowApp.R.attr.roundWithOverlayColor, com.fellowApp.R.attr.roundedCornerRadius, com.fellowApp.R.attr.roundingBorderColor, com.fellowApp.R.attr.roundingBorderPadding, com.fellowApp.R.attr.roundingBorderWidth, com.fellowApp.R.attr.viewAspectRatio};
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/KeepForSdk.java:3:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/KeepForSdk.java:4:import java.lang.annotation.ElementType;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/app/notifee/core/KeepForSdk.java:5:import java.lang.annotation.Target;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/Provides.java:3:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/Provides.java:4:import java.lang.annotation.ElementType;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/Provides.java:5:import java.lang.annotation.Retention;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/Provides.java:6:import java.lang.annotation.RetentionPolicy;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/Provides.java:7:import java.lang.annotation.Target;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/ForReleasableReferences.java:4:import java.lang.annotation.Annotation;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/ForReleasableReferences.java:5:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/ForReleasableReferences.java:6:import java.lang.annotation.ElementType;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/ForReleasableReferences.java:7:import java.lang.annotation.Retention;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/ForReleasableReferences.java:8:import java.lang.annotation.RetentionPolicy;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/ForReleasableReferences.java:9:import java.lang.annotation.Target;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/ForReleasableReferences.java:17:    Class<? extends Annotation> value();
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/ReleasableReferenceManager.java:3:import java.lang.annotation.Annotation;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/ReleasableReferenceManager.java:11:    Class<? extends Annotation> scope();
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/TypedReleasableReferenceManager.java:3:import java.lang.annotation.Annotation;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/TypedReleasableReferenceManager.java:6:public interface TypedReleasableReferenceManager<M extends Annotation> extends ReleasableReferenceManager {
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/CanReleaseReferences.java:3:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/CanReleaseReferences.java:4:import java.lang.annotation.ElementType;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/CanReleaseReferences.java:5:import java.lang.annotation.Target;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/releasablereferences/CanReleaseReferences.java:8:@Target({ElementType.ANNOTATION_TYPE})
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/Reusable.java:4:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/Reusable.java:5:import java.lang.annotation.Retention;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/Reusable.java:6:import java.lang.annotation.RetentionPolicy;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/IntoSet.java:3:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/IntoSet.java:4:import java.lang.annotation.ElementType;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/IntoSet.java:5:import java.lang.annotation.Retention;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/IntoSet.java:6:import java.lang.annotation.RetentionPolicy;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/IntoSet.java:7:import java.lang.annotation.Target;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/StringKey.java:4:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/StringKey.java:5:import java.lang.annotation.ElementType;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/StringKey.java:6:import java.lang.annotation.Retention;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/StringKey.java:7:import java.lang.annotation.RetentionPolicy;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/StringKey.java:8:import java.lang.annotation.Target;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/ElementsIntoSet.java:3:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/ElementsIntoSet.java:4:import java.lang.annotation.ElementType;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/ElementsIntoSet.java:5:import java.lang.annotation.Retention;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/ElementsIntoSet.java:6:import java.lang.annotation.RetentionPolicy;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/ElementsIntoSet.java:7:import java.lang.annotation.Target;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/IntKey.java:4:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/IntKey.java:5:import java.lang.annotation.ElementType;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/IntKey.java:6:import java.lang.annotation.Retention;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/IntKey.java:7:import java.lang.annotation.RetentionPolicy;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/IntKey.java:8:import java.lang.annotation.Target;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/ClassKey.java:4:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/ClassKey.java:5:import java.lang.annotation.ElementType;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/ClassKey.java:6:import java.lang.annotation.Retention;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/ClassKey.java:7:import java.lang.annotation.RetentionPolicy;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/ClassKey.java:8:import java.lang.annotation.Target;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/LongKey.java:4:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/LongKey.java:5:import java.lang.annotation.ElementType;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/LongKey.java:6:import java.lang.annotation.Retention;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/LongKey.java:7:import java.lang.annotation.RetentionPolicy;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/LongKey.java:8:import java.lang.annotation.Target;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/Multibinds.java:3:import java.lang.annotation.Documented;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/Multibinds.java:4:import java.lang.annotation.ElementType;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/Multibinds.java:5:import java.lang.annotation.Retention;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/Multibinds.java:6:import java.lang.annotation.RetentionPolicy;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/Multibinds.java:7:import java.lang.annotation.Target;
+/Users/bram.boersma/Desktop/fellow-analysis/jadx-out/sources/bleshadow/dagger/multibindings/IntoMap.java:3:import java.lang.annotation.Documented;
+ ~ % grep -niE \
+  'firmware|firmware_version|ota|download|\.bin|\.zip|update' \
+  ~/Desktop/fellow-analysis/hermes-disassembly.txt \
+  | head -200
+16291:==> 00000285: <LoadConstString>: <Reg8: 7, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+16675:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 29191>  # String: 'RotationGestureHandler' (Identifier)
+18685:==> 00000186: <CreateClosure>: <Reg8: 14, Reg8: 1, function_id: 182>  # Function: [#182 enqueueForceUpdate of 4 bytes]: 1 params @ offset 0x001d2e0c
+18686:==> 0000018b: <PutNewOwnById>: <Reg8: 12, Reg8: 14, string_id: 18834>  # String: 'enqueueForceUpdate' (Identifier)
+18705:==> 000001e4: <PutById>: <Reg8: 14, Reg8: 12, UInt8: 3, string_id: 24195>  # String: 'forceUpdate' (Identifier)
+18863:==> 0000002c: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 4, string_id: 21983>  # String: 'updater' (Identifier)
+18895:==> 0000002c: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 4, string_id: 21983>  # String: 'updater' (Identifier)
+19452:=> [Function #182 "enqueueForceUpdate" of 4 bytes]: 1 params, frame size=1, strict=1, exc handler=0, debug info=0  @ offset 0x001d2e0c
+19495:==> 0000001f: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 1, string_id: 21983>  # String: 'updater' (Identifier)
+19508:==> 0000004d: <LoadConstString>: <Reg8: 0, string_id: 14967>  # String: 'setState(...): takes an object of state variables to update or a function which returns an object of state variables.' (String)
+19520:==> 00000003: <GetById>: <Reg8: 3, Reg8: 4, UInt8: 1, string_id: 21983>  # String: 'updater' (Identifier)
+19521:==> 00000009: <GetById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 18834>  # String: 'enqueueForceUpdate' (Identifier)
+19523:==> 00000012: <LoadConstString>: <Reg8: 0, string_id: 24195>  # String: 'forceUpdate' (Identifier)
+20331:==> 000003a7: <CreateClosure>: <Reg8: 4, Reg8: 1, function_id: 280>  # Function: [#280 get unstable_batchedUpdates of 33 bytes]: 1 params @ offset 0x001d6c32
+20332:==> 000003ac: <LoadConstString>: <Reg8: 3, string_id: 22136>  # String: 'unstable_batchedUpdates' (Identifier)
+21412:=> [Function #280 "get unstable_batchedUpdates" of 33 bytes]: 1 params, frame size=11, strict=1, exc handler=0, debug info=0  @ offset 0x001d6c32
+21423:==> 00000019: <GetById>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 22136>  # String: 'unstable_batchedUpdates' (Identifier)
+24350:==> 0000003b: <CreateClosure>: <Reg8: 0, Reg8: 3, function_id: 396>  # Function: [#396 updateErrorWithErrorData of 32 bytes]: 3 params @ offset 0x001d915b
+24822:=> [Function #396 "updateErrorWithErrorData" of 32 bytes]: 3 params, frame size=13, strict=1, exc handler=0, debug info=0  @ offset 0x001d915b
+25505:==> 00000115: <LoadConstString>: <Reg8: 5, string_id: 28107>  # String: 'setReactNativeMicrotasksCallback' (Identifier)
+25507:==> 0000011d: <CreateClosure>: <Reg8: 5, Reg8: 1, function_id: 431>  # Function: [#431 setReactNativeMicrotasksCallback of 16 bytes]: 2 params @ offset 0x001d9ea4
+25523:==> 0000015a: <LoadConstString>: <Reg8: 5, string_id: 23619>  # String: '__callReactNativeMicrotasks' (Identifier)
+25525:==> 00000162: <CreateClosure>: <Reg8: 5, Reg8: 1, function_id: 434>  # Function: [#434 __callReactNativeMicrotasks of 125 bytes]: 1 params @ offset 0x001d9f31
+25599:==> 000000ae: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 8, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+25732:==> 00000007: <GetById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 23619>  # String: '__callReactNativeMicrotasks' (Identifier)
+25999:=> [Function #431 "setReactNativeMicrotasksCallback" of 16 bytes]: 2 params, frame size=2, strict=1, exc handler=0, debug info=0  @ offset 0x001d9ea4
+26005:==> 00000006: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+26065:=> [Function #434 "__callReactNativeMicrotasks" of 125 bytes]: 1 params, frame size=15, strict=1, exc handler=1, debug info=0  @ offset 0x001d9f31
+26079:==> 00000022: <LoadConstString>: <Reg8: 0, string_id: 5481>  # String: 'JSTimers.callReactNativeMicrotasks()' (String)
+26081:==> 0000002b: <GetById>: <Reg8: 5, Reg8: 2, UInt8: 2, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+26084:==> 00000037: <GetById>: <Reg8: 0, Reg8: 2, UInt8: 2, string_id: 32869>  # String: '_reactNativeMicrotasksCallback' (Identifier)
+27483:==> 00000080: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 479>  # Function: [#479 updateView of 38 bytes]: 4 params @ offset 0x001db38e
+27484:==> 00000085: <PutNewOwnById>: <Reg8: 2, Reg8: 0, string_id: 33093>  # String: 'updateView' (Identifier)
+27738:=> [Function #479 "updateView" of 38 bytes]: 4 params, frame size=13, strict=1, exc handler=0, debug info=0  @ offset 0x001db38e
+27748:==> 00000016: <LoadConstString>: <Reg8: 0, string_id: 33093>  # String: 'updateView' (Identifier)
+28855:==> 00000000: <NewArrayWithBuffer>: <Reg8: 1, UInt16: 36, UInt16: 36, UInt16: 727>  # Array: ['clearJSResponder', 'configureNextLayoutAnimation', 'createView', 'dismissPopupMenu', 'dispatchViewManagerCommand', 'findSubviewIn', 'getConstantsForViewManager', 'getDefaultEventTypes', 'manageChildren', 'measure', 'measureInWindow', 'measureLayout', 'measureLayoutRelativeToParent', 'removeRootView', 'removeSubviewsFromContainerWithID', 'replaceExistingNonRootView', 'sendAccessibilityEvent', 'setChildren', 'setJSResponder', 'setLayoutAnimationEnabledExperimental', 'showPopupMenu', 'updateView', 'viewIsDescendantOf', 'PopupMenu', 'LazyViewManagersEnabled', 'ViewManagerNames', 'StyleConstants', 'AccessibilityEventTypes', 'UIView', 'getViewManagerConfig', 'hasViewManagerConfig', 'blur', 'focus', 'genericBubblingEventTypes', 'genericDirectEventTypes', 'lazilyLoadView']
+29431:==> 00000087: <CreateClosure>: <Reg8: 0, Reg8: 0, function_id: 544>  # Function: [#544 unstable_batchedUpdates of 45 bytes]: 3 params @ offset 0x001dc75c
+29432:==> 0000008c: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 8, string_id: 22136>  # String: 'unstable_batchedUpdates' (Identifier)
+29587:=> [Function #544 "unstable_batchedUpdates" of 45 bytes]: 3 params, frame size=13, strict=0, exc handler=0, debug info=0  @ offset 0x001dc75c
+29598:==> 00000019: <GetById>: <Reg8: 2, Reg8: 3, UInt8: 1, string_id: 22136>  # String: 'unstable_batchedUpdates' (Identifier)
+29769:==> 000001ee: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 605>  # Function: [#605 batchedUpdatesImpl of 15 bytes]: 3 params @ offset 0x001dfe14
+29771:==> 000001f7: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 606>  # Function: [#606 batchedUpdates of 64 bytes]: 3 params @ offset 0x001dfe23
+29790:==> 0000024d: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 618>  # Function: [#618 markRootUpdated of 82 bytes]: 4 params @ offset 0x001e05fe
+29848:==> 00000353: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 648>  # Function: [#648 pushConcurrentUpdateQueue of 48 bytes]: 2 params @ offset 0x001e1100
+29850:==> 0000035d: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 649>  # Function: [#649 enqueueConcurrentHookUpdate of 88 bytes]: 5 params @ offset 0x001e1130
+29852:==> 00000367: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 650>  # Function: [#650 markUpdateLaneFromFiberToRoot of 133 bytes]: 3 params @ offset 0x001e1188
+29854:==> 00000371: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 651>  # Function: [#651 initializeUpdateQueue of 50 bytes]: 2 params @ offset 0x001e120d
+29856:==> 0000037b: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 652>  # Function: [#652 cloneUpdateQueue of 87 bytes]: 3 params @ offset 0x001e123f
+29858:==> 00000385: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 653>  # Function: [#653 createUpdate of 30 bytes]: 3 params @ offset 0x001e1296
+29860:==> 0000038f: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 654>  # Function: [#654 enqueueUpdate of 175 bytes]: 4 params @ offset 0x001e12b4
+29864:==> 000003a3: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 656>  # Function: [#656 enqueueCapturedUpdate of 239 bytes]: 3 params @ offset 0x001e13b9
+29866:==> 000003ad: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 657>  # Function: [#657 processUpdateQueue of 899 bytes]: 5 params @ offset 0x001e14a8
+29868:==> 000003b7: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 658>  # Function: [#658 commitUpdateQueue of 119 bytes]: 4 params @ offset 0x001e182b
+29872:==> 000003cb: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 660>  # Function: [#660 checkShouldComponentUpdate of 123 bytes]: 8 params @ offset 0x001e18f6
+29908:==> 0000047f: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 698>  # Function: [#698 updateWorkInProgressHook of 225 bytes]: 1 params @ offset 0x001e3512
+29912:==> 00000493: <CreateClosure>: <Reg8: 33, Reg8: 1, function_id: 700>  # Function: [#700 updateReducer of 575 bytes]: 2 params @ offset 0x001e3610
+29916:==> 000004a7: <CreateClosure>: <Reg8: 22, Reg8: 1, function_id: 702>  # Function: [#702 updateMutableSource of 4 bytes]: 1 params @ offset 0x001d2e0c
+29917:==> 000004ac: <CreateClosure>: <Reg8: 21, Reg8: 1, function_id: 703>  # Function: [#703 updateSyncExternalStore of 292 bytes]: 3 params @ offset 0x001e390b
+29920:==> 000004bb: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 705>  # Function: [#705 updateStoreInstance of 54 bytes]: 5 params @ offset 0x001e3ab6
+29932:==> 000004f7: <CreateClosure>: <Reg8: 24, Reg8: 1, function_id: 712>  # Function: [#712 updateRef of 21 bytes]: 1 params @ offset 0x001e3ca6
+29935:==> 00000506: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 714>  # Function: [#714 updateEffectImpl of 177 bytes]: 5 params @ offset 0x001e3d13
+29939:==> 0000051a: <CreateClosure>: <Reg8: 30, Reg8: 1, function_id: 716>  # Function: [#716 updateEffect of 33 bytes]: 3 params @ offset 0x001e3de5
+29941:==> 00000524: <CreateClosure>: <Reg8: 28, Reg8: 1, function_id: 717>  # Function: [#717 updateInsertionEffect of 30 bytes]: 3 params @ offset 0x001e3e06
+29942:==> 00000529: <CreateClosure>: <Reg8: 27, Reg8: 1, function_id: 718>  # Function: [#718 updateLayoutEffect of 33 bytes]: 3 params @ offset 0x001e3e24
+29945:==> 00000538: <CreateClosure>: <Reg8: 29, Reg8: 1, function_id: 722>  # Function: [#722 updateImperativeHandle of 90 bytes]: 4 params @ offset 0x001e3eb4
+29947:==> 00000542: <CreateClosure>: <Reg8: 32, Reg8: 1, function_id: 724>  # Function: [#724 updateCallback of 93 bytes]: 3 params @ offset 0x001e3f0e
+29948:==> 00000547: <CreateClosure>: <Reg8: 26, Reg8: 1, function_id: 725>  # Function: [#725 updateMemo of 97 bytes]: 3 params @ offset 0x001e3f6b
+29949:==> 0000054c: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 726>  # Function: [#726 updateDeferredValueImpl of 124 bytes]: 4 params @ offset 0x001e3fcc
+29953:==> 00000560: <CreateClosure>: <Reg8: 20, Reg8: 1, function_id: 728>  # Function: [#728 updateId of 21 bytes]: 1 params @ offset 0x001e3ca6
+29958:==> 00000579: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 731>  # Function: [#731 isRenderPhaseUpdate of 44 bytes]: 2 params @ offset 0x001e42ce
+29960:==> 00000583: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 732>  # Function: [#732 enqueueRenderPhaseUpdate of 66 bytes]: 3 params @ offset 0x001e42fa
+29962:==> 0000058d: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 733>  # Function: [#733 entangleTransitionUpdate of 69 bytes]: 4 params @ offset 0x001e433c
+29970:==> 000005b5: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 738>  # Function: [#738 createRootErrorUpdate of 87 bytes]: 4 params @ offset 0x001e44ed
+29972:==> 000005bf: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 740>  # Function: [#740 createClassErrorUpdate of 150 bytes]: 4 params @ offset 0x001e4579
+29978:==> 000005dd: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 746>  # Function: [#746 updateForwardRef of 186 bytes]: 6 params @ offset 0x001e4815
+29980:==> 000005e7: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 747>  # Function: [#747 updateMemoComponent of 334 bytes]: 6 params @ offset 0x001e48cf
+29982:==> 000005f1: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 748>  # Function: [#748 updateSimpleMemoComponent of 182 bytes]: 6 params @ offset 0x001e4a1d
+29984:==> 000005fb: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 749>  # Function: [#749 updateOffscreenComponent of 391 bytes]: 4 params @ offset 0x001e4ad3
+29988:==> 0000060f: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 751>  # Function: [#751 updateFunctionComponent of 215 bytes]: 6 params @ offset 0x001e4c95
+29990:==> 00000619: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 752>  # Function: [#752 updateClassComponent of 1609 bytes]: 6 params @ offset 0x001e4d6c
+29998:==> 00000641: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 756>  # Function: [#756 updateSuspenseComponent of 932 bytes]: 4 params @ offset 0x001e554c
+30004:==> 0000065f: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 759>  # Function: [#759 updateDehydratedSuspenseComponent of 938 bytes]: 8 params @ offset 0x001e59ae
+30010:==> 0000067d: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 762>  # Function: [#762 updateSuspenseListComponent of 671 bytes]: 4 params @ offset 0x001e5e0c
+30016:==> 0000069b: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 765>  # Function: [#765 attemptEarlyBailoutIfNoScheduledUpdate of 618 bytes]: 4 params @ offset 0x001e61e3
+30058:==> 0000076d: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 787>  # Function: [#787 requestUpdateLane of 165 bytes]: 2 params @ offset 0x001e8334
+30060:==> 00000777: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 788>  # Function: [#788 scheduleUpdateOnFiber of 270 bytes]: 5 params @ offset 0x001e83d9
+30140:==> 00000907: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 829>  # Function: [#829 updateContainer of 163 bytes]: 5 params @ offset 0x001eaee9
+30606:==> 00001162: <CreateClosure>: <Reg8: 39, Reg8: 1, function_id: 867>  # Function: [#867 enqueueForceUpdate of 133 bytes]: 3 params @ offset 0x001ec17e
+30607:==> 00001167: <PutNewOwnById>: <Reg8: 38, Reg8: 39, string_id: 18834>  # String: 'enqueueForceUpdate' (Identifier)
+30754:==> 00001408: <CreateClosure>: <Reg8: 15, Reg8: 1, function_id: 887>  # Function: [#887 updateHostContainer of 102 bytes]: 3 params @ offset 0x001ec7b2
+30756:==> 00001411: <CreateClosure>: <Reg8: 15, Reg8: 1, function_id: 888>  # Function: [#888 updateHostComponent$1 of 283 bytes]: 5 params @ offset 0x001ec818
+30758:==> 0000141a: <CreateClosure>: <Reg8: 15, Reg8: 1, function_id: 889>  # Function: [#889 updateHostText$1 of 116 bytes]: 5 params @ offset 0x001ec933
+30808:==> 000014f4: <CreateClosure>: <Reg8: 8, Reg8: 1, function_id: 891>  # Function: [#891 batchedUpdatesImpl of 186 bytes]: 3 params @ offset 0x001ed424
+30845:==> 000015a9: <PutNewOwnById>: <Reg8: 7, Reg8: 9, string_id: 25388>  # String: 'scheduleUpdate' (Identifier)
+33478:=> [Function #605 "batchedUpdatesImpl" of 15 bytes]: 3 params, frame size=11, strict=1, exc handler=0, debug info=0  @ offset 0x001dfe14
+33491:=> [Function #606 "batchedUpdates" of 64 bytes]: 3 params, frame size=16, strict=1, exc handler=1, debug info=0  @ offset 0x001dfe23
+34072:=> [Function #618 "markRootUpdated" of 82 bytes]: 4 params, frame size=12, strict=1, exc handler=0, debug info=0  @ offset 0x001e05fe
+35069:=> [Function #648 "pushConcurrentUpdateQueue" of 48 bytes]: 2 params, frame size=12, strict=1, exc handler=0, debug info=0  @ offset 0x001e1100
+35091:=> [Function #649 "enqueueConcurrentHookUpdate" of 88 bytes]: 5 params, frame size=13, strict=1, exc handler=0, debug info=0  @ offset 0x001e1130
+35121:=> [Function #650 "markUpdateLaneFromFiberToRoot" of 133 bytes]: 3 params, frame size=6, strict=1, exc handler=0, debug info=0  @ offset 0x001e1188
+35160:=> [Function #651 "initializeUpdateQueue" of 50 bytes]: 2 params, frame size=3, strict=1, exc handler=0, debug info=0  @ offset 0x001e120d
+35165:==> 00000003: <NewObjectWithBuffer>: <Reg8: 0, UInt16: 5, UInt16: 5, UInt16: 299, UInt16: 529>  # Object: {'baseState': null, 'firstBaseUpdate': null, 'lastBaseUpdate': null, 'shared': null, 'effects': null}
+35170:==> 00000028: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+35177:=> [Function #652 "cloneUpdateQueue" of 87 bytes]: 3 params, frame size=4, strict=1, exc handler=0, debug info=0  @ offset 0x001e123f
+35183:==> 00000006: <GetByIdShort>: <Reg8: 2, Reg8: 0, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35184:==> 0000000b: <GetByIdShort>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35189:==> 00000021: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 3, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35190:==> 00000027: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35191:==> 0000002c: <GetById>: <Reg8: 3, Reg8: 2, UInt8: 4, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35192:==> 00000032: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35197:==> 0000004d: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35204:=> [Function #653 "createUpdate" of 30 bytes]: 3 params, frame size=2, strict=1, exc handler=0, debug info=0  @ offset 0x001e1296
+35218:=> [Function #654 "enqueueUpdate" of 175 bytes]: 4 params, frame size=17, strict=1, exc handler=0, debug info=0  @ offset 0x001e12b4
+35225:==> 00000009: <GetByIdShort>: <Reg8: 1, Reg8: 4, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35274:==> 00000009: <GetByIdShort>: <Reg8: 0, Reg8: 0, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35297:=> [Function #656 "enqueueCapturedUpdate" of 239 bytes]: 3 params, frame size=11, strict=1, exc handler=0, debug info=0  @ offset 0x001e13b9
+35303:==> 00000006: <GetByIdShort>: <Reg8: 0, Reg8: 1, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35307:==> 00000016: <GetByIdShort>: <Reg8: 2, Reg8: 2, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35309:==> 0000001f: <GetById>: <Reg8: 4, Reg8: 0, UInt8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35313:==> 00000031: <PutById>: <Reg8: 0, Reg8: 3, UInt8: 2, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35314:==> 00000037: <PutById>: <Reg8: 0, Reg8: 3, UInt8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35317:==> 00000041: <GetById>: <Reg8: 9, Reg8: 0, UInt8: 4, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35349:==> 000000c5: <PutNewOwnById>: <Reg8: 0, Reg8: 4, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35350:==> 000000ca: <PutNewOwnById>: <Reg8: 0, Reg8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35355:==> 000000e5: <PutById>: <Reg8: 1, Reg8: 0, UInt8: 4, string_id: 239>  # String: 'updateQueue' (Identifier)
+35362:=> [Function #657 "processUpdateQueue" of 899 bytes]: 5 params, frame size=48, strict=1, exc handler=0, debug info=0  @ offset 0x001e14a8
+35370:==> 0000000c: <GetByIdShort>: <Reg8: 8, Reg8: 1, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35374:==> 0000001a: <GetById>: <Reg8: 2, Reg8: 8, UInt8: 2, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35375:==> 00000020: <GetById>: <Reg8: 6, Reg8: 8, UInt8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35392:==> 0000006e: <GetByIdShort>: <Reg8: 2, Reg8: 2, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+35393:==> 00000073: <GetById>: <Reg8: 6, Reg8: 2, UInt8: 3, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35399:==> 0000008c: <PutById>: <Reg8: 2, Reg8: 5, UInt8: 3, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35400:==> 00000092: <PutById>: <Reg8: 2, Reg8: 3, UInt8: 4, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35552:==> 000002de: <PutById>: <Reg8: 8, Reg8: 33, UInt8: 4, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35566:==> 00000317: <PutById>: <Reg8: 8, Reg8: 3, UInt8: 3, string_id: 35776>  # String: 'firstBaseUpdate' (Identifier)
+35567:==> 0000031d: <PutById>: <Reg8: 8, Reg8: 2, UInt8: 4, string_id: 31738>  # String: 'lastBaseUpdate' (Identifier)
+35595:=> [Function #658 "commitUpdateQueue" of 119 bytes]: 4 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e182b
+35657:==> 00000047: <GetByIdShort>: <Reg8: 1, Reg8: 1, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+35664:=> [Function #660 "checkShouldComponentUpdate" of 123 bytes]: 8 params, frame size=18, strict=1, exc handler=0, debug info=0  @ offset 0x001e18f6
+35673:==> 00000011: <GetById>: <Reg8: 0, Reg8: 3, UInt8: 2, string_id: 24538>  # String: 'shouldComponentUpdate' (Identifier)
+35697:==> 00000069: <GetById>: <Reg8: 2, Reg8: 3, UInt8: 2, string_id: 24538>  # String: 'shouldComponentUpdate' (Identifier)
+35762:==> 000000bf: <PutById>: <Reg8: 0, Reg8: 5, UInt8: 2, string_id: 21983>  # String: 'updater' (Identifier)
+35863:==> 000000d8: <GetById>: <Reg8: 7, Reg8: 1, UInt8: 6, string_id: 36428>  # String: 'getSnapshotBeforeUpdate' (Identifier)
+36091:==> 0000003f: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 675>  # Function: [#675 updateTextNode of 83 bytes]: 5 params @ offset 0x001e2081
+36093:==> 00000048: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 676>  # Function: [#676 updateElement of 246 bytes]: 5 params @ offset 0x001e20d4
+36095:==> 00000051: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 677>  # Function: [#677 updatePortal of 137 bytes]: 5 params @ offset 0x001e21ca
+36097:==> 0000005a: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 678>  # Function: [#678 updateFragment of 86 bytes]: 6 params @ offset 0x001e2253
+36101:==> 0000006c: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 680>  # Function: [#680 updateSlot of 335 bytes]: 5 params @ offset 0x001e23ed
+36103:==> 00000075: <CreateClosure>: <Reg8: 0, Reg8: 1, function_id: 681>  # Function: [#681 updateFromMap of 392 bytes]: 6 params @ offset 0x001e253c
+36272:=> [Function #675 "updateTextNode" of 83 bytes]: 5 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e2081
+36302:=> [Function #676 "updateElement" of 246 bytes]: 5 params, frame size=24, strict=1, exc handler=0, debug info=0  @ offset 0x001e20d4
+36370:=> [Function #677 "updatePortal" of 137 bytes]: 5 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e21ca
+36411:=> [Function #678 "updateFragment" of 86 bytes]: 6 params, frame size=18, strict=1, exc handler=0, debug info=0  @ offset 0x001e2253
+36530:=> [Function #680 "updateSlot" of 335 bytes]: 5 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e23ed
+36633:=> [Function #681 "updateFromMap" of 392 bytes]: 6 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e253c
+37764:==> 00000025: <PutById>: <Reg8: 13, Reg8: 5, UInt8: 2, string_id: 239>  # String: 'updateQueue' (Identifier)
+37788:==> 00000084: <PutById>: <Reg8: 13, Reg8: 5, UInt8: 2, string_id: 239>  # String: 'updateQueue' (Identifier)
+37847:=> [Function #698 "updateWorkInProgressHook" of 225 bytes]: 1 params, frame size=14, strict=1, exc handler=0, debug info=0  @ offset 0x001e3512
+37928:=> [Function #700 "updateReducer" of 575 bytes]: 2 params, frame size=32, strict=1, exc handler=0, debug info=0  @ offset 0x001e3610
+38122:=> [Function #702 "updateMutableSource" of 4 bytes]: 1 params, frame size=1, strict=1, exc handler=0, debug info=0  @ offset 0x001d2e0c
+38132:=> [Function #703 "updateSyncExternalStore" of 292 bytes]: 3 params, frame size=24, strict=1, exc handler=0, debug info=0  @ offset 0x001e390b
+38231:==> 00000030: <GetByIdShort>: <Reg8: 3, Reg8: 1, UInt8: 2, string_id: 239>  # String: 'updateQueue' (Identifier)
+38245:==> 0000006f: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+38255:=> [Function #705 "updateStoreInstance" of 54 bytes]: 5 params, frame size=12, strict=1, exc handler=0, debug info=0  @ offset 0x001e3ab6
+38415:==> 0000002d: <GetByIdShort>: <Reg8: 1, Reg8: 1, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+38429:==> 00000075: <PutById>: <Reg8: 2, Reg8: 1, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+38437:=> [Function #712 "updateRef" of 21 bytes]: 1 params, frame size=9, strict=1, exc handler=0, debug info=0  @ offset 0x001e3ca6
+38484:=> [Function #714 "updateEffectImpl" of 177 bytes]: 5 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e3d13
+38558:=> [Function #716 "updateEffect" of 33 bytes]: 3 params, frame size=17, strict=1, exc handler=0, debug info=0  @ offset 0x001e3de5
+38576:=> [Function #717 "updateInsertionEffect" of 30 bytes]: 3 params, frame size=17, strict=1, exc handler=0, debug info=0  @ offset 0x001e3e06
+38594:=> [Function #718 "updateLayoutEffect" of 33 bytes]: 3 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e3e24
+38671:=> [Function #722 "updateImperativeHandle" of 90 bytes]: 4 params, frame size=18, strict=1, exc handler=0, debug info=0  @ offset 0x001e3eb4
+38715:=> [Function #724 "updateCallback" of 93 bytes]: 3 params, frame size=17, strict=1, exc handler=0, debug info=0  @ offset 0x001e3f0e
+38749:=> [Function #725 "updateMemo" of 97 bytes]: 3 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e3f6b
+38784:=> [Function #726 "updateDeferredValueImpl" of 124 bytes]: 4 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e3fcc
+38874:=> [Function #728 "updateId" of 21 bytes]: 1 params, frame size=9, strict=1, exc handler=0, debug info=0  @ offset 0x001e3ca6
+39033:=> [Function #731 "isRenderPhaseUpdate" of 44 bytes]: 2 params, frame size=5, strict=1, exc handler=0, debug info=0  @ offset 0x001e42ce
+39054:=> [Function #732 "enqueueRenderPhaseUpdate" of 66 bytes]: 3 params, frame size=5, strict=1, exc handler=0, debug info=0  @ offset 0x001e42fa
+39079:=> [Function #733 "entangleTransitionUpdate" of 69 bytes]: 4 params, frame size=14, strict=1, exc handler=0, debug info=0  @ offset 0x001e433c
+39243:=> [Function #738 "createRootErrorUpdate" of 87 bytes]: 4 params, frame size=15, strict=1, exc handler=0, debug info=0  @ offset 0x001e44ed
+39296:=> [Function #740 "createClassErrorUpdate" of 150 bytes]: 4 params, frame size=16, strict=1, exc handler=0, debug info=0  @ offset 0x001e4579
+39519:=> [Function #746 "updateForwardRef" of 186 bytes]: 6 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e4815
+39544:==> 0000004a: <GetByIdShort>: <Reg8: 6, Reg8: 5, UInt8: 3, string_id: 239>  # String: 'updateQueue' (Identifier)
+39545:==> 0000004f: <PutById>: <Reg8: 0, Reg8: 6, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+39574:=> [Function #747 "updateMemoComponent" of 334 bytes]: 6 params, frame size=23, strict=1, exc handler=0, debug info=0  @ offset 0x001e48cf
+39664:=> [Function #748 "updateSimpleMemoComponent" of 182 bytes]: 6 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e4a1d
+39720:=> [Function #749 "updateOffscreenComponent" of 391 bytes]: 4 params, frame size=24, strict=1, exc handler=0, debug info=0  @ offset 0x001e4ad3
+39783:==> 00000108: <PutById>: <Reg8: 0, Reg8: 1, UInt8: 5, string_id: 239>  # String: 'updateQueue' (Identifier)
+39842:=> [Function #751 "updateFunctionComponent" of 215 bytes]: 6 params, frame size=22, strict=1, exc handler=0, debug info=0  @ offset 0x001e4c95
+39875:==> 00000067: <GetByIdShort>: <Reg8: 6, Reg8: 5, UInt8: 2, string_id: 239>  # String: 'updateQueue' (Identifier)
+39876:==> 0000006c: <PutById>: <Reg8: 0, Reg8: 6, UInt8: 1, string_id: 239>  # String: 'updateQueue' (Identifier)
+39905:=> [Function #752 "updateClassComponent" of 1609 bytes]: 6 params, frame size=37, strict=1, exc handler=0, debug info=0  @ offset 0x001e4d6c
+39967:==> 000000f2: <GetById>: <Reg8: 13, Reg8: 12, UInt8: 10, string_id: 36428>  # String: 'getSnapshotBeforeUpdate' (Identifier)
+40010:==> 0000019e: <GetById>: <Reg8: 1, Reg8: 12, UInt8: 14, string_id: 23075>  # String: 'componentDidUpdate' (Identifier)
+40025:==> 000001dc: <GetById>: <Reg8: 1, Reg8: 12, UInt8: 10, string_id: 36428>  # String: 'getSnapshotBeforeUpdate' (Identifier)
+40067:==> 00000279: <GetById>: <Reg8: 16, Reg8: 12, UInt8: 14, string_id: 23075>  # String: 'componentDidUpdate' (Identifier)
+40082:==> 000002b7: <GetById>: <Reg8: 16, Reg8: 12, UInt8: 10, string_id: 36428>  # String: 'getSnapshotBeforeUpdate' (Identifier)
+40101:==> 0000030c: <GetById>: <Reg8: 16, Reg8: 12, UInt8: 16, string_id: 32003>  # String: 'UNSAFE_componentWillUpdate' (Identifier)
+40105:==> 0000031c: <GetById>: <Reg8: 17, Reg8: 12, UInt8: 17, string_id: 23074>  # String: 'componentWillUpdate' (Identifier)
+40110:==> 0000032f: <GetById>: <Reg8: 14, Reg8: 12, UInt8: 17, string_id: 23074>  # String: 'componentWillUpdate' (Identifier)
+ ~ % 
