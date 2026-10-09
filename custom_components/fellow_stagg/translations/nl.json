@@ -48,11 +48,43 @@
         "data": {
           "base_url": "URL van de waterkoker"
         }
+      },
+      "wifi_setup": {
+        "title": "Wifi instellen via Bluetooth",
+        "description": "Zet de waterkoker eerst via zijn menu in wifi-setupmodus en houd de Fellow-app gesloten (die houdt de Bluetooth-verbinding vast, en de setup via de app laat de waterkoker ook nieuwe firmware downloaden). Home Assistant stuurt de netwerkgegevens rechtstreeks naar de waterkoker; er gaat niets via de servers van Fellow.",
+        "data": {
+          "ssid": "Netwerknaam (SSID)",
+          "password": "Wachtwoord"
+        },
+        "data_description": {
+          "ssid": "2,4 GHz-netwerk; de waterkoker heeft geen 5 GHz.",
+          "password": "Leeg laten voor een open netwerk."
+        }
+      },
+      "bluetooth_menu": {
+        "title": "{name}",
+        "description": "De waterkoker zit nog niet op wifi, of zijn adres kon niet worden uitgelezen.",
+        "menu_options": {
+          "wifi_setup": "Wifi instellen via Bluetooth",
+          "bluetooth_configure": "Adres van de waterkoker invoeren"
+        }
+      },
+      "dhcp_confirm": {
+        "title": "Fellow Stagg gevonden",
+        "description": "De Fellow Stagg-waterkoker op {base_url} toevoegen?"
       }
     },
     "error": {
       "required": "Dit veld is verplicht.",
-      "not_fellow_stagg": "Geen Fellow Stagg-CLI gevonden op deze URL."
+      "not_fellow_stagg": "Geen Fellow Stagg-CLI gevonden op deze URL.",
+      "ble_unreachable": "Kon via Bluetooth geen verbinding maken met de waterkoker. Is hij binnen bereik van de Bluetooth-adapter of een Bluetooth-proxy van Home Assistant, en is de Fellow-app gesloten?",
+      "not_in_setup_mode": "De waterkoker accepteerde de wifi-setup niet. Zet hem via zijn menu in wifi-setupmodus en probeer het opnieuw.",
+      "pop_rejected": "De waterkoker weigerde de setup-sleutel. Zet hem via zijn menu in wifi-setupmodus en probeer het opnieuw.",
+      "handshake_failed": "De beveiligde Bluetooth-sessie met de waterkoker mislukte. Probeer het opnieuw.",
+      "set_config_failed": "De waterkoker accepteerde de netwerkgegevens niet.",
+      "wrong_password": "De waterkoker kon niet met het netwerk verbinden: verkeerd wachtwoord.",
+      "network_not_found": "De waterkoker kon dat netwerk niet vinden. Controleer de naam; het moet een 2,4 GHz-netwerk zijn.",
+      "wifi_timeout": "De waterkoker kwam niet op tijd op het netwerk. Controleer naam en wachtwoord en probeer het opnieuw."
     },
     "abort": {
       "already_configured": "Deze waterkoker is al geconfigureerd.",
@@ -61,21 +93,87 @@
       "invalid_discovery_info": "Ongeldige discovery-informatie.",
       "ignored": "Discovery genegeerd.",
       "reconfigure_successful": "De URL van de waterkoker is bijgewerkt.",
-      "unknown": "Onverwachte fout."
+      "unknown": "Onverwachte fout.",
+      "ble_unreachable": "Kon via Bluetooth geen verbinding maken met de waterkoker. Is hij binnen bereik van de Bluetooth-adapter of een Bluetooth-proxy van Home Assistant, en is de Fellow-app gesloten?"
     },
     "progress": {
-      "scan_network": "Netwerk wordt gescand op Fellow Stagg-waterkokers…"
+      "scan_network": "Netwerk wordt gescand op Fellow Stagg-waterkokers…",
+      "wifi_connecting": "Wifi-gegevens voor {ssid} worden verstuurd; wachten tot de waterkoker verbonden is…"
     }
   },
   "options": {
     "step": {
       "init": {
+        "title": "Fellow Stagg-opties",
+        "menu_options": {
+          "polling": "Pollingintervallen",
+          "switch_firmware": "Firmware wisselen",
+          "upload_firmware": "Firmware uploaden (herstel)",
+          "wifi_setup": "Wifi instellen (Bluetooth)"
+        }
+      },
+      "polling": {
         "title": "Polling-opties",
         "data": {
           "polling_interval_seconds": "Polling-interval (seconden)",
           "polling_interval_countdown_seconds": "Snel polling-interval bij activiteit (seconden)"
         }
+      },
+      "switch_firmware": {
+        "title": "Firmware wisselen",
+        "description": "De waterkoker draait **{running_version}** ({running_partition}). Dit schakelt over naar **{target_version}** ({target_partition}), die al op de waterkoker staat, en herstart hem. Dat duurt ongeveer 10 seconden.\n\nBlokkeer eerst de internettoegang van de waterkoker, anders werkt hij zichzelf mogelijk opnieuw bij.",
+        "data": {
+          "confirm": "Ja, wissel de firmware van de waterkoker"
+        }
+      },
+      "upload_firmware": {
+        "title": "Firmware uploaden",
+        "description": "Kies een firmware-.img-bestand om naar de waterkoker te flashen. Hersteltool voor als de vorige firmware van de waterkoker weg is. De waterkoker controleert de handtekening van het image en weigert een verkeerd of beschadigd bestand, dus bricken kan niet. Blokkeer eerst de internettoegang van de waterkoker. De waterkoker herstart in de geüploade firmware.",
+        "data": {
+          "firmware_file": "Firmware-.img-bestand"
+        }
+      },
+      "wifi_setup": {
+        "title": "Wifi instellen via Bluetooth",
+        "description": "Zet de waterkoker eerst via zijn menu in wifi-setupmodus en houd de Fellow-app gesloten (die houdt de Bluetooth-verbinding vast, en de setup via de app laat de waterkoker ook nieuwe firmware downloaden). Home Assistant stuurt de netwerkgegevens rechtstreeks naar de waterkoker; er gaat niets via de servers van Fellow.",
+        "data": {
+          "ssid": "Netwerknaam (SSID)",
+          "password": "Wachtwoord"
+        },
+        "data_description": {
+          "ssid": "2,4 GHz-netwerk; de waterkoker heeft geen 5 GHz.",
+          "password": "Leeg laten voor een open netwerk."
+        }
       }
+    },
+    "progress": {
+      "switching": "De waterkoker schakelt over naar {target_version}; wachten tot hij herstart is…",
+      "uploading": "Firmware {version} wordt geüpload; wachten tot de waterkoker herstart…",
+      "wifi_connecting": "Wifi-gegevens voor {ssid} worden verstuurd; wachten tot de waterkoker verbonden is…"
+    },
+    "error": {
+      "not_confirmed": "Vink het vakje aan om te bevestigen.",
+      "kettle_heating": "De waterkoker is aan het verwarmen. Wissel de firmware als hij niet in gebruik is.",
+      "invalid_firmware": "Dat bestand is geen geldig firmware-image voor de Fellow Stagg-waterkoker.",
+      "read_failed": "Kon het geüploade bestand niet lezen. Probeer het opnieuw.",
+      "ble_unreachable": "Kon via Bluetooth geen verbinding maken met de waterkoker. Is hij binnen bereik van de Bluetooth-adapter of een Bluetooth-proxy van Home Assistant, en is de Fellow-app gesloten?",
+      "not_in_setup_mode": "De waterkoker accepteerde de wifi-setup niet. Zet hem via zijn menu in wifi-setupmodus en probeer het opnieuw.",
+      "pop_rejected": "De waterkoker weigerde de setup-sleutel. Zet hem via zijn menu in wifi-setupmodus en probeer het opnieuw.",
+      "handshake_failed": "De beveiligde Bluetooth-sessie met de waterkoker mislukte. Probeer het opnieuw.",
+      "set_config_failed": "De waterkoker accepteerde de netwerkgegevens niet.",
+      "wrong_password": "De waterkoker kon niet met het netwerk verbinden: verkeerd wachtwoord.",
+      "network_not_found": "De waterkoker kon dat netwerk niet vinden. Controleer de naam; het moet een 2,4 GHz-netwerk zijn.",
+      "wifi_timeout": "De waterkoker kwam niet op tijd op het netwerk. Controleer naam en wachtwoord en probeer het opnieuw."
+    },
+    "abort": {
+      "no_other_firmware": "De waterkoker heeft geen andere geldige firmware om naar over te schakelen.",
+      "firmware_switched": "Klaar: de waterkoker draait nu {target_version}.",
+      "firmware_switch_failed": "De waterkoker is niet binnen een minuut teruggekomen op {target_version}. Kijk zo meteen naar de sensor **Firmwareversie**; als het wisselen niet gelukt is, houdt de waterkoker zijn vorige firmware.",
+      "firmware_uploaded": "Klaar: de waterkoker is herstart op firmware {version}.",
+      "firmware_upload_failed": "De waterkoker is na het uploaden van firmware {version} niet op tijd teruggekomen. Controleer de firmwareversie-sensor; als het niet gelukt is, houdt de waterkoker zijn vorige firmware.",
+      "not_loaded": "De waterkoker is nog niet geladen; probeer het zo opnieuw.",
+      "ble_unreachable": "Kon via Bluetooth geen verbinding maken met de waterkoker. Is hij binnen bereik van de Bluetooth-adapter of een Bluetooth-proxy van Home Assistant, en is de Fellow-app gesloten?",
+      "wifi_setup_done": "De waterkoker zit nu op {ssid} met adres {ip}."
     }
   },
   "entity": {
@@ -213,6 +311,9 @@
       },
       "chime": {
         "name": "Pieptoon bij gereed"
+      },
+      "revert_firmware_updates": {
+        "name": "Firmware vergrendelen"
       }
     },
     "time": {
@@ -245,12 +346,36 @@
     "send_cli": {
       "name": "CLI-commando verzenden",
       "description": "Stuur een ruw HTTP CLI-commando naar de waterkoker (voor testen)."
+    },
+    "install_firmware": {
+      "name": "Firmware installeren (herstel)",
+      "description": "Flash een lokaal firmware-.img naar de waterkoker via zijn eigen upload-endpoint. Hersteltool voor als de vorige firmware van de waterkoker weg is. De waterkoker controleert het image en weigert een verkeerd of beschadigd bestand. De waterkoker herstart in de geüploade firmware.",
+      "fields": {
+        "path": {
+          "name": "Pad naar firmwarebestand",
+          "description": "Absoluut pad naar het .img-bestand, leesbaar voor Home Assistant (bijv. onder /config, /media of /share)."
+        },
+        "entry_id": {
+          "description": "Optioneel config-entry-id (nodig bij meerdere waterkokers)",
+          "name": "Waterkoker (config-entry)"
+        }
+      }
     }
   },
   "device_automation": {
     "trigger_type": {
       "placed_on_base": "Waterkoker op voet geplaatst",
       "lifted_off_base": "Waterkoker van voet getild"
+    }
+  },
+  "issues": {
+    "cli_muted": {
+      "title": "Waterkoker-firmware {version} deelt geen gegevens meer",
+      "description": "De waterkoker draait firmware {version}, die via wifi geen metingen meer teruggeeft, dus de meeste entiteiten staan op *onbekend*. Opdrachten werken nog wel.\n\nDe vorige firmware ({other_version}) staat nog op de waterkoker. Zo ga je terug:\n1. Blokkeer de internettoegang van de waterkoker in je router (lokale wifi blijft werken), anders werkt hij zichzelf opnieuw bij.\n2. Open de Fellow Stagg-integratie, kies **Configureren** en dan **Firmware wisselen**.\n\nZet daarna eventueel **Firmware vergrendelen** aan, zodat Home Assistant terugschakelt als de waterkoker zichzelf opnieuw bijwerkt."
+    },
+    "firmware_staged": {
+      "title": "Firmware {staged} staat klaar op de waterkoker",
+      "description": "De waterkoker draait {running}, maar heeft firmware {staged} gedownload in zijn andere partitie ({partition}). Hij kan die versie zelf opstarten bij zijn volgende updatecyclus of een reset.\n\nDe waterkoker downloadt updates zodra hij internet heeft, en instellen via de Fellow-app laat hem er ook een downloaden. Firmware 1.2.24 deelde geen gegevens meer via wifi; latere versies zijn niet getest met deze integratie.\n\nOm op {running} te blijven: blokkeer het internet van de waterkoker in je router (lokale wifi blijft werken) en zet **Firmware vergrendelen** aan. Deze melding verdwijnt zodra {staged} niet meer klaarstaat of draait."
     }
   }
 }

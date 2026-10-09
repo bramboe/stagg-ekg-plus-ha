@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from time import monotonic  # not "import time": the time.py platform would shadow it
 from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
@@ -16,6 +17,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
@@ -35,7 +37,15 @@ from .const import (
   MIN_TEMP_F,
   MAX_TEMP_F,
 )
-from .kettle_http import KettleHttpClient
+from homeassistant.exceptions import HomeAssistantError
+from .kettle_http import (
+  FirmwareImageError,
+  KettleHttpClient,
+  firmware_newer,
+  other_ota_slot,
+  parse_esp_app_image,
+  slot_bootable,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -81,8 +91,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     except Exception:
       self.wifi_address = None
 
+    mac = (entry.data or {}).get("mac")
     self.device_info = DeviceInfo(
       identifiers={(DOMAIN, entry.entry_id)},
+      connections={(dr.CONNECTION_NETWORK_MAC, mac)} if mac else set(),
       name="Fellow Stagg EKG Pro",
       manufacturer="Fellow",
       model="Stagg EKG Pro",
@@ -101,6 +113,19 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self._entry_id = entry.entry_id
     self._firmware_version: str | None = None
     self._using_fast_interval = False
+    # Root page: running version/partition and the firmware in each OTA slot
+    self.firmware: dict[str, Any] | None = None
+    self._firmware_fetched_at: float | None = None
+    # "Lock firmware": partition to stay on (None = off), set by the switch
+    self.guard_partition: str | None = None
+    self._last_partition_switch: float | None = None
+    self._guard_reverts: list[float] = []
+    self._guard_gave_up = False
+    self._cli_muted_polls = 0
+    self._cli_muted_issue = False
+    self._firmware_staged_issue: str | None = None
+    # Options at setup; data-only updates (new IP, learned name) must not trigger the reload listener
+    self.options_snapshot = dict(entry.options or {})
 
   def notify_command_sent(self) -> None:
     """Call after sending a command so polling uses fast interval for a short window."""
@@ -130,13 +155,203 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     )
     data = await self.kettle.async_poll(self.session, settings_max_age=settings_max_age)
     if data is not None:
-      if self._firmware_version is None:
+      await self._async_refresh_firmware_page()
+      if self.firmware is None and self._firmware_version is None:
         try:
           self._firmware_version = await self.kettle.async_get_firmware_version(self.session)
         except Exception as err:
           _LOGGER.debug("Could not fetch firmware version yet: %s", err)
-      data["firmware_version"] = self._firmware_version
+      data["firmware"] = self.firmware
+      data["firmware_version"] = (self.firmware or {}).get("current_version") or self._firmware_version
     return data
+
+  async def _async_refresh_firmware_page(self) -> None:
+    """Re-read the root page every few minutes; it answers even when the CLI output is gone."""
+    now = monotonic()
+    if self._firmware_fetched_at is not None and now - self._firmware_fetched_at < _FIRMWARE_PAGE_REFRESH_SECONDS:
+      return
+    self._firmware_fetched_at = now
+    try:
+      firmware = await self.kettle.async_get_partitions(self.session)
+    except Exception as err:
+      _LOGGER.debug("Could not read the kettle's firmware page: %s", err)
+      return
+    if firmware:
+      self.firmware = firmware
+
+  async def async_switch_partition(self, partition: str) -> None:
+    """Boot the kettle from another OTA partition: setpart, then reset (which drops the connection)."""
+    self.notify_command_sent()
+    self._last_partition_switch = monotonic()
+    await self.kettle.async_set_boot_partition(self.session, partition)
+    await asyncio.sleep(1)
+    try:
+      await self.kettle.async_reset(self.session)
+    except Exception as err:  # noqa: BLE001
+      _LOGGER.debug("Kettle reset (connection drop is expected): %s", err)
+    if self.guard_partition is not None:
+      self.guard_partition = partition  # a deliberate switch moves the pin with it
+    # Read the root page again shortly after the reboot
+    self._firmware_fetched_at = monotonic() - _FIRMWARE_PAGE_REFRESH_SECONDS + 30
+
+  def firmware_switch_target(self) -> tuple[str, str] | None:
+    """The other OTA partition and its version, if it holds valid firmware."""
+    name = other_ota_slot(self.firmware)
+    slot = ((self.firmware or {}).get("slots") or {}).get(name) if name else None
+    if not slot or not slot_bootable(slot):
+      return None
+    return name, slot.get("version") or "?"
+
+  async def async_switch_partition_and_wait(self, partition: str, timeout: float = 60) -> bool:
+    """Switch partitions, then wait until the kettle is back and running from that partition."""
+    await self.async_switch_partition(partition)
+    deadline = monotonic() + timeout
+    while monotonic() < deadline:
+      await asyncio.sleep(3)
+      try:
+        firmware = await self.kettle.async_get_partitions(self.session)
+      except Exception:  # noqa: BLE001 - still rebooting
+        continue
+      if firmware and firmware.get("running") == partition:
+        self.firmware = firmware
+        self._firmware_fetched_at = monotonic()
+        await self.async_request_refresh()
+        return True
+    return False
+
+  async def async_install_firmware_and_wait(self, data: bytes, timeout: float = 120) -> bool:
+    """Flash a firmware image and wait for the kettle to come back on its web server.
+
+    The kettle validates and installs the image, then reboots into it. A rejected image raises
+    FirmwareImageError (surfaced to the user); a dropped connection is the expected reboot.
+    """
+    self.notify_command_sent()
+    self._last_partition_switch = monotonic()  # share the revert-guard cooldown
+    # The upload flashes the inactive partition and boots it, so the running partition flips.
+    before_running = (self.firmware or {}).get("running")
+    try:
+      await self.kettle.async_upload_firmware(self.session, data)
+    except FirmwareImageError:
+      raise  # the kettle refused the image; let the flow report it
+    except Exception as err:  # noqa: BLE001 - connection drops when the kettle reboots to flash
+      _LOGGER.debug("Firmware upload connection ended (kettle rebooting): %s", err)
+    self._firmware_fetched_at = None
+    deadline = monotonic() + timeout
+    while monotonic() < deadline:
+      await asyncio.sleep(3)
+      try:
+        firmware = await self.kettle.async_get_partitions(self.session)
+      except Exception:  # noqa: BLE001 - still rebooting/flashing
+        continue
+      # Wait for the reboot onto the newly flashed partition, so the version we report is the new
+      # one (if we never knew the old partition, accept the first page we get back).
+      if firmware and (before_running is None or firmware.get("running") != before_running):
+        self.firmware = firmware
+        self._firmware_fetched_at = monotonic()
+        await self.async_request_refresh()
+        return True
+    return False
+
+  async def _maybe_revert_firmware(self) -> None:
+    """If "Lock firmware" is on and the kettle booted another partition, switch back."""
+    pinned = self.guard_partition
+    firmware = self.firmware
+    if not pinned or not firmware or firmware.get("running") == pinned:
+      return
+    slot = (firmware.get("slots") or {}).get(pinned) or {}
+    if not slot_bootable(slot):
+      return
+    now = monotonic()
+    if self._last_partition_switch is not None and now - self._last_partition_switch < _FIRMWARE_SWITCH_COOLDOWN_SECONDS:
+      return
+    self._guard_reverts = [t for t in self._guard_reverts if now - t < 86400]
+    notification_id = f"fellow_stagg_firmware_{self._entry_id}"
+    if len(self._guard_reverts) >= _FIRMWARE_MAX_REVERTS_PER_DAY:
+      # The kettle keeps updating itself; stop rebooting it and tell the user instead.
+      if not self._guard_gave_up:
+        self._guard_gave_up = True
+        persistent_notification.async_create(
+          self.hass,
+          f"The kettle updated itself to {firmware.get('current_version')} again. "
+          f"It was switched back {len(self._guard_reverts)} times in the last 24 hours, so Home "
+          "Assistant stopped reverting it. Block the kettle's internet access, then open the "
+          "integration's **Configure** dialog and choose **Switch firmware**.",
+          title="Fellow Stagg keeps updating",
+          notification_id=notification_id,
+        )
+      return
+    self._guard_gave_up = False
+    self._guard_reverts.append(now)
+    _LOGGER.warning(
+      "Fellow Stagg updated itself to %s; switching back to %s (%s)",
+      firmware.get("current_version"), slot.get("version"), pinned,
+    )
+    await self.async_switch_partition(pinned)
+    persistent_notification.async_create(
+      self.hass,
+      f"The kettle updated itself to {firmware.get('current_version')}. "
+      f"Home Assistant switched it back to {slot.get('version')} ({pinned}).",
+      title="Fellow Stagg firmware update reverted",
+      notification_id=notification_id,
+    )
+
+  @callback
+  def _update_cli_muted_issue(self, data: dict[str, Any]) -> None:
+    """Raise a Repairs issue when the CLI answers without output (firmware 1.2.24)."""
+    self._cli_muted_polls = self._cli_muted_polls + 1 if data.get("cli_muted") else 0
+    issue_id = f"cli_muted_{self._entry_id}"
+    if self._cli_muted_polls >= _CLI_MUTED_POLLS_BEFORE_ISSUE and not self._cli_muted_issue:
+      firmware = self.firmware or {}
+      other = other_ota_slot(firmware)
+      other_version = ((firmware.get("slots") or {}).get(other) or {}).get("version") if other else None
+      ir.async_create_issue(
+        self.hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="cli_muted",
+        translation_placeholders={
+          "version": firmware.get("current_version") or "?",
+          "other_version": other_version or "?",
+        },
+        learn_more_url="https://github.com/bramboe/stagg-ekg-plus-ha/blob/main/docs/CLI_TESTING.md#rolling-back-from-1224",
+      )
+      self._cli_muted_issue = True
+    elif self._cli_muted_polls == 0 and self._cli_muted_issue:
+      ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+      self._cli_muted_issue = False
+
+  def _update_firmware_staged_issue(self) -> None:
+    """Raise a Repairs issue when newer firmware sits unused in the other partition.
+
+    The kettle downloads updates in the background (and the Fellow app's Wi-Fi setup triggers one
+    with `httpfw`), so the next update cycle or a reset could boot it without anyone noticing.
+    """
+    firmware = self.firmware or {}
+    other = other_ota_slot(firmware)
+    slot = ((firmware.get("slots") or {}).get(other) or {}) if other else {}
+    staged = slot.get("version") if slot and slot_bootable(slot) else None
+    running = firmware.get("current_version")
+    if staged and running and firmware_newer(staged, running):
+      if self._firmware_staged_issue != staged:
+        ir.async_create_issue(
+          self.hass,
+          DOMAIN,
+          f"firmware_staged_{self._entry_id}",
+          is_fixable=False,
+          severity=ir.IssueSeverity.WARNING,
+          translation_key="firmware_staged",
+          translation_placeholders={
+            "staged": staged,
+            "partition": other,
+            "running": running,
+          },
+        )
+        self._firmware_staged_issue = staged
+    elif firmware and self._firmware_staged_issue is not None:
+      ir.async_delete_issue(self.hass, DOMAIN, f"firmware_staged_{self._entry_id}")
+      self._firmware_staged_issue = None
 
   async def _async_update_data(self) -> dict[str, Any] | None:
     """Fetch data from the kettle."""
@@ -195,6 +410,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
           self.last_schedule_mode = device_mode
 
       await self._maybe_sync_clock(data)
+      await self._maybe_revert_firmware()
+      self._update_cli_muted_issue(data)
+      self._update_firmware_staged_issue()
       # Instant (fast) polling when heating, countdown active, or right after a command
       # Use idle interval when kettle is off base (lifted) or on hold
       heating = bool(data and data.get("power"))
@@ -361,6 +579,13 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 _NETWORK_DISCOVERY_DELAY = 15
 # Poll retries on connection/timeout (try twice before marking unavailable, like resilient WiFi devices)
 _POLL_RETRY_ATTEMPTS = 2
+# Firmware page (root URL) is re-read this often; the kettle only changes it on an update or switch
+_FIRMWARE_PAGE_REFRESH_SECONDS = 120
+# "Lock firmware": wait after any partition switch, and give up after this many per day
+_FIRMWARE_SWITCH_COOLDOWN_SECONDS = 600
+_FIRMWARE_MAX_REVERTS_PER_DAY = 3
+# Consecutive form-only CLI answers before raising the Repairs issue
+_CLI_MUTED_POLLS_BEFORE_ISSUE = 3
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
   # Option 2 (network): after HA started, scan for kettles so they show up in Discovered.
@@ -490,11 +715,74 @@ def _async_register_services(hass: HomeAssistant) -> None:
       beeps = CHIME_PRESETS.get(pattern, CHIME_PRESETS["beep"])
       await coord.kettle.async_play_chime(coord.session, beeps)
 
+  async def install_firmware_handler(call):
+    """Flash a local firmware .img onto the kettle via its /uploadfw endpoint.
+
+    Recovery tool: if the kettle's previous firmware is ever gone (e.g. overwritten by a
+    manufacturer update), upload a known-good image such as the signed 1.1.75SSP. The kettle
+    verifies the image itself and rejects anything that doesn't belong to it.
+    """
+    coord = _get_coordinator(call.data.get("entry_id"))
+    if not coord:
+      raise HomeAssistantError("No Fellow Stagg kettle configured")
+    path = call.data["path"]
+    if not hass.config.is_allowed_path(path):
+      raise HomeAssistantError(
+        f"{path} is not in an allowed directory. Add its folder to allowlist_external_dirs, "
+        "or put the file under /config, /media or /share."
+      )
+
+    def _read() -> bytes:
+      with open(path, "rb") as handle:
+        return handle.read()
+
+    try:
+      data = await hass.async_add_executor_job(_read)
+    except OSError as err:
+      raise HomeAssistantError(f"Could not read {path}: {err}") from err
+    try:
+      info = parse_esp_app_image(data)
+    except FirmwareImageError as err:
+      raise HomeAssistantError(str(err)) from err
+
+    kettle_data = coord.data or {}
+    if kettle_data.get("power") and not kettle_data.get("cli_muted"):
+      raise HomeAssistantError("The kettle is heating; install firmware when it is idle")
+
+    _LOGGER.warning(
+      "Installing firmware %s (%s bytes) onto the Fellow Stagg kettle from %s",
+      info["version"], len(data), path,
+    )
+    coord.notify_command_sent()
+    try:
+      await coord.kettle.async_upload_firmware(coord.session, data)
+    except FirmwareImageError as err:
+      raise HomeAssistantError(str(err)) from err
+    except Exception as err:  # noqa: BLE001 - the kettle reboots mid-flash; a dropped connection is expected
+      _LOGGER.debug("Firmware upload connection ended (kettle may be rebooting): %s", err)
+    # The kettle flashes, sets boot partition and reboots into the new image; re-read soon.
+    coord._firmware_fetched_at = None
+    persistent_notification.async_create(
+      hass,
+      f"Uploaded firmware {info['version']} to the kettle. It verifies and installs the image, "
+      "then reboots (about 30 seconds). Check the Firmware version sensor afterwards.",
+      title="Fellow Stagg firmware upload",
+      notification_id=f"fellow_stagg_fw_upload_{coord._entry_id}",
+    )
+    return {"version": info["version"], "bytes": len(data)}
+
   hass.services.async_register(
     DOMAIN,
     "send_cli",
     send_cli_handler,
     vol.Schema({vol.Required("command"): vol.All(str, vol.Length(min=1)), vol.Optional("entry_id"): str}),
+    supports_response=SupportsResponse.OPTIONAL,
+  )
+  hass.services.async_register(
+    DOMAIN,
+    "install_firmware",
+    install_firmware_handler,
+    vol.Schema({vol.Required("path"): str, vol.Optional("entry_id"): str}),
     supports_response=SupportsResponse.OPTIONAL,
   )
   hass.services.async_register(
@@ -553,7 +841,23 @@ def _async_register_services(hass: HomeAssistant) -> None:
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
   """Reload the entry when options (polling intervals) change."""
+  coordinator = (hass.data.get(DOMAIN) or {}).get(entry.entry_id)
+  if coordinator is not None and dict(entry.options or {}) == coordinator.options_snapshot:
+    return  # only entry data changed; whoever changed it reloads if needed
   await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def _async_learn_device_name(
+  hass: HomeAssistant, entry: ConfigEntry, coordinator: "FellowStaggDataUpdateCoordinator"
+) -> None:
+  """Store the kettle's name (its DHCP hostname) so DHCP discovery can follow IP changes."""
+  try:
+    name = await coordinator.kettle.async_get_device_name(coordinator.session)
+  except Exception as err:  # noqa: BLE001 - muted CLI (1.2.24) or offline: try next setup
+    _LOGGER.debug("Could not read the kettle's device name: %s", err)
+    return
+  if name and entry.data.get("device_name") != name:
+    hass.config_entries.async_update_entry(entry, data={**entry.data, "device_name": name})
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -592,6 +896,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
   entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+  if not entry.data.get("device_name"):
+    entry.async_create_background_task(
+      hass, _async_learn_device_name(hass, entry, coordinator), "fellow_stagg_device_name"
+    )
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
   # Unhide "Kettle on base" binary sensor so it's visible in the UI
   ent_reg = er.async_get(hass)

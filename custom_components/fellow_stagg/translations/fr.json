@@ -70,12 +70,52 @@
   "options": {
     "step": {
       "init": {
+        "title": "Options Fellow Stagg",
+        "menu_options": {
+          "polling": "Intervalles d'interrogation",
+          "switch_firmware": "Changer de firmware",
+          "upload_firmware": "Téléverser le firmware (récupération)"
+        }
+      },
+      "polling": {
         "title": "Options d'interrogation",
         "data": {
           "polling_interval_seconds": "Intervalle d'interrogation (secondes)",
           "polling_interval_countdown_seconds": "Intervalle rapide pendant l'activité (secondes)"
         }
+      },
+      "switch_firmware": {
+        "title": "Changer de firmware",
+        "description": "La bouilloire utilise **{running_version}** ({running_partition}). Cette action passe à **{target_version}** ({target_partition}), déjà présent sur la bouilloire, et la redémarre. Cela prend environ 10 secondes.\n\nBloquez d'abord l'accès Internet de la bouilloire, sinon elle risque de se mettre de nouveau à jour.",
+        "data": {
+          "confirm": "Oui, changer le firmware de la bouilloire"
+        }
+      },
+      "upload_firmware": {
+        "title": "Téléverser le firmware",
+        "description": "Choisissez un fichier firmware .img à flasher sur la bouilloire. Outil de récupération si le firmware précédent a disparu. La bouilloire vérifie la signature de l'image et rejette un fichier erroné ou corrompu ; elle ne peut donc pas être « brickée ». Bloquez d'abord l'accès Internet de la bouilloire. La bouilloire redémarre sur le firmware téléversé.",
+        "data": {
+          "firmware_file": "Fichier firmware .img"
+        }
       }
+    },
+    "progress": {
+      "switching": "Passage de la bouilloire à {target_version} ; attente du redémarrage…",
+      "uploading": "Téléversement du firmware {version} ; attente du redémarrage de la bouilloire…"
+    },
+    "error": {
+      "not_confirmed": "Cochez la case pour confirmer.",
+      "kettle_heating": "La bouilloire est en train de chauffer. Changez de firmware lorsqu'elle est inactive.",
+      "invalid_firmware": "Ce fichier n'est pas une image firmware valide pour la bouilloire Fellow Stagg.",
+      "read_failed": "Impossible de lire le fichier téléversé. Veuillez réessayer."
+    },
+    "abort": {
+      "no_other_firmware": "La bouilloire n'a pas d'autre firmware valide vers lequel basculer.",
+      "firmware_switched": "Terminé : la bouilloire utilise maintenant {target_version}.",
+      "firmware_switch_failed": "La bouilloire n'est pas revenue sur {target_version} en moins d'une minute. Vérifiez dans un instant le capteur **Version du micrologiciel** ; si le changement n'a pas abouti, la bouilloire conserve son firmware précédent.",
+      "firmware_uploaded": "Terminé : la bouilloire a redémarré sur le firmware {version}.",
+      "firmware_upload_failed": "La bouilloire n'est pas revenue à temps après le téléversement du firmware {version}. Vérifiez le capteur de version du firmware ; si cela n'a pas abouti, la bouilloire conserve son firmware précédent.",
+      "not_loaded": "La bouilloire n'est pas encore chargée ; réessayez dans un instant."
     }
   },
   "entity": {
@@ -213,6 +253,9 @@
       },
       "chime": {
         "name": "Signal sonore prêt"
+      },
+      "revert_firmware_updates": {
+        "name": "Verrouiller le firmware"
       }
     },
     "time": {
@@ -245,12 +288,32 @@
     "send_cli": {
       "name": "Envoyer une commande CLI",
       "description": "Envoyer une commande CLI HTTP brute à la bouilloire (pour les tests)."
+    },
+    "install_firmware": {
+      "name": "Installer le firmware (récupération)",
+      "description": "Flashe un fichier firmware .img local sur la bouilloire via son propre point de téléversement. Outil de récupération si le firmware précédent de la bouilloire a disparu. La bouilloire vérifie l'image et rejette un fichier erroné ou corrompu. La bouilloire redémarre sur le firmware téléversé.",
+      "fields": {
+        "path": {
+          "name": "Chemin du fichier firmware",
+          "description": "Chemin absolu vers le fichier .img, lisible par Home Assistant (par ex. sous /config, /media ou /share)."
+        },
+        "entry_id": {
+          "description": "ID d'entrée de configuration facultatif (nécessaire si plusieurs bouilloires)",
+          "name": "Bouilloire (entrée de configuration)"
+        }
+      }
     }
   },
   "device_automation": {
     "trigger_type": {
       "placed_on_base": "Bouilloire posée sur la base",
       "lifted_off_base": "Bouilloire soulevée de la base"
+    }
+  },
+  "issues": {
+    "cli_muted": {
+      "title": "Le firmware {version} de la bouilloire ne transmet plus de données",
+      "description": "La bouilloire utilise le firmware {version}, qui ne renvoie plus aucune mesure via le Wi-Fi ; la plupart des entités affichent donc *inconnu*. Les commandes fonctionnent toujours.\n\nLe firmware précédent ({other_version}) est toujours sur la bouilloire. Pour y revenir :\n1. Bloquez l'accès Internet de la bouilloire dans votre routeur (le Wi-Fi local reste actif), sinon elle se mettra de nouveau à jour.\n2. Ouvrez l'intégration Fellow Stagg, choisissez **Configurer**, puis **Changer de firmware**.\n\nActivez ensuite éventuellement **Verrouiller le firmware**, pour que Home Assistant revienne en arrière si la bouilloire se met de nouveau à jour."
     }
   }
 }

@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import struct
 import time
 from typing import Any
 
@@ -12,9 +13,49 @@ from aiohttp import ClientResponseError, ClientSession, ClientTimeout
 _LOGGER = logging.getLogger(__name__)
 
 _REQUEST_TIMEOUT = ClientTimeout(total=15)
+# Uploading + flashing firmware takes ~30 s on the kettle; give it room.
+_UPLOAD_TIMEOUT = ClientTimeout(total=120)
 
 # Feet per meter, for normalizing a kettle that is set to feet back to meters
 FEET_PER_METER = 3.28084
+
+# Firmware upload limits/format (from the kettle's own /upload page and ESP-IDF image layout)
+MAX_FIRMWARE_SIZE = 0x200000  # 2 MiB, matches the OTA partition size
+_ESP_IMAGE_MAGIC = 0xE9
+_ESP_APP_DESC_MAGIC = 0xABCD5432  # marks the app-description struct at offset 0x20
+# Project name baked into the EKG Pro firmware's app descriptor; guards against wrong images
+EKG_PROJECT_NAME = "ekg-firmware"
+
+
+class FirmwareImageError(ValueError):
+  """Raised when a file is not a valid Fellow Stagg firmware image."""
+
+
+def parse_esp_app_image(data: bytes) -> dict[str, Any]:
+  """Validate an ESP32 app image and return its {version, project} app descriptor.
+
+  Checks the ESP image magic byte and the app-description struct the EKG firmware carries,
+  so a wrong or corrupt file is rejected before it is ever sent to the kettle. Raises
+  FirmwareImageError on anything that is not a Fellow Stagg firmware image.
+  """
+  if not data:
+    raise FirmwareImageError("The firmware file is empty")
+  if len(data) > MAX_FIRMWARE_SIZE:
+    raise FirmwareImageError(
+      f"The firmware file is {len(data)} bytes; the kettle accepts at most {MAX_FIRMWARE_SIZE}"
+    )
+  if data[0] != _ESP_IMAGE_MAGIC:
+    raise FirmwareImageError("Not an ESP32 firmware image (wrong magic byte)")
+  if len(data) < 0x120 or struct.unpack_from("<I", data, 0x20)[0] != _ESP_APP_DESC_MAGIC:
+    raise FirmwareImageError("No ESP32 app descriptor found; not a kettle firmware image")
+  desc = data[0x20:0x120]
+  version = desc[16:48].split(b"\0", 1)[0].decode("utf-8", "replace")
+  project = desc[48:80].split(b"\0", 1)[0].decode("utf-8", "replace")
+  if project != EKG_PROJECT_NAME:
+    raise FirmwareImageError(
+      f"This image is for project '{project}', not the Fellow Stagg kettle ('{EKG_PROJECT_NAME}')"
+    )
+  return {"version": version, "project": project}
 
 
 def _first_not_none(*values: Any) -> Any:
@@ -23,6 +64,35 @@ def _first_not_none(*values: Any) -> Any:
     if value is not None:
       return value
   return None
+
+
+def other_ota_slot(firmware: dict[str, Any] | None) -> str | None:
+  """Return the OTA partition the kettle is not running from (ota_0 <-> ota_1), if it exists."""
+  if not firmware:
+    return None
+  running = firmware.get("running")
+  for name in (firmware.get("slots") or {}):
+    if name.startswith("ota_") and name != running:
+      return name
+  return None
+
+
+def slot_bootable(slot: dict[str, Any]) -> bool:
+  """A partition holding an image we may boot: anything but invalid/aborted.
+
+  After switching back and forth the root page can report `state undef` (no otadata entry) for an
+  intact image; esp_ota_set_boot_partition verifies the image itself.
+  """
+  return bool(slot.get("version")) and slot.get("state") not in ("invalid", "aborted")
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+  return tuple(int(n) for n in re.findall(r"\d+", version or ""))
+
+
+def firmware_newer(candidate: str, current: str) -> bool:
+  """True if firmware `candidate` (e.g. 1.2.26) is newer than `current` (e.g. 1.1.76SSP)."""
+  return _version_key(candidate) > _version_key(current)
 
 
 class KettleHttpClient:
@@ -41,6 +111,7 @@ class KettleHttpClient:
       self._cli_url = base
     else:
       self._cli_url = f"{base}{cli_path if cli_path.startswith('/') else '/' + cli_path}"
+    self._root_url = self._cli_url.rsplit("/", 1)[0] + "/"
 
     # prtsettings cache so fast (1s) polling doesn't hammer the kettle with extra requests
     self._settings_body: str | None = None
@@ -50,6 +121,37 @@ class KettleHttpClient:
     """Fetch the firmware version once (it doesn't change between polls)."""
     body = await self._cli_command(session, "fwinfo")
     return self._parse_fwinfo(body)
+
+  async def async_get_partitions(self, session: ClientSession) -> dict[str, Any] | None:
+    """Read the kettle's root page: running version/partition and the firmware in each slot.
+
+    Unlike the CLI, this page still answers on firmware 1.2.24, so it works on every version.
+    """
+    async with session.get(self._root_url, timeout=_REQUEST_TIMEOUT) as resp:
+      resp.raise_for_status()
+      return self._parse_partitions(await resp.text())
+
+  async def async_set_boot_partition(self, session: ClientSession, partition: str) -> None:
+    """Select the OTA partition to boot from (takes effect after a reset)."""
+    if not re.fullmatch(r"ota_\d", partition):
+      raise ValueError(f"Not an OTA partition: {partition}")
+    await self._cli_command(session, f"setpart {partition}")
+
+  async def async_upload_firmware(self, session: ClientSession, data: bytes) -> str:
+    """Flash a firmware image to the kettle via its built-in /uploadfw endpoint.
+
+    The image is validated first (see parse_esp_app_image). The kettle writes it to the
+    inactive OTA partition, verifies the signature/hash itself, and boots it. A bad or wrong
+    image is rejected by the kettle, not flashed. The raw file is the POST body, matching the
+    kettle's own /upload web page.
+    """
+    parse_esp_app_image(data)  # raises FirmwareImageError on a bad/wrong file
+    url = self._root_url + "uploadfw"
+    async with session.post(url, data=data, timeout=_UPLOAD_TIMEOUT) as resp:
+      text = await resp.text()
+      if resp.status != 200:
+        raise FirmwareImageError(f"Kettle rejected the firmware (HTTP {resp.status}): {text[:200]}")
+      return text
 
   async def async_poll(self, session: ClientSession, settings_max_age: float = 0.0) -> dict[str, Any]:
     """Fetch kettle state via CLI commands.
@@ -159,6 +261,7 @@ class KettleHttpClient:
       "chime": self._parse_chime(settings_body),
       "boil_point_c": self._parse_boil_point(body),
       "ketl_flags": self._parse_ketl_flags(body),
+      "cli_muted": self._cli_output_missing(body),
     }
     return data
 
@@ -350,6 +453,16 @@ class KettleHttpClient:
     m = re.search(r"\bclockmode\s*=\s*(\d+)", body or "", re.IGNORECASE)
     return int(m.group(1)) if m and int(m.group(1)) in (0, 1, 2) else None
 
+  async def async_get_device_name(self, session: ClientSession) -> str | None:
+    """The kettle's own name (EKG-xx-xx-xx), also its DHCP hostname and BLE name."""
+    body = await self._cli_command(session, "wifiprt")
+    return self._parse_device_name(body)
+
+  @staticmethod
+  def _parse_device_name(body: str) -> str | None:
+    m = re.search(r"m_our_device_name\s+(EKG-[0-9A-Fa-f-]+)", body or "")
+    return m.group(1) if m else None
+
   @staticmethod
   def _parse_fwinfo(body: str) -> str | None:
     """Parse firmware version from fwinfo CLI output (e.g. Current version: 1.2.5CL cli)."""
@@ -360,6 +473,36 @@ class KettleHttpClient:
       return m.group(1).strip()
     m = re.search(r"fw version\s+([^\s\n]+)", body, re.IGNORECASE)
     return m.group(1).strip() if m else None
+
+  @staticmethod
+  def _parse_partitions(body: str) -> dict[str, Any] | None:
+    """Parse the root page (Current version, Boot/Running partition, one line per partition)."""
+    text = re.sub(r"<br\s*/?>", "\n", body or "", flags=re.IGNORECASE)
+    current = re.search(r"Current version:\s*([^\s<]+)", text)
+    running = re.search(r"Running partition:\s*(\w+)", text)
+    if not current or not running:
+      return None
+    boot = re.search(r"Boot partition:\s*(\w+)", text)
+    slots = {
+      m.group(1): {"state": m.group(2), "version": m.group(3)}
+      for m in re.finditer(
+        r"partition\s+'(\w+)'\s+at\s+\S+\s+size\s+\S+\s+encr\s+\d+\s+state\s+(\S+)\s+fw version\s+([^\s<]+)",
+        text,
+      )
+    }
+    return {
+      "current_version": current.group(1),
+      "running": running.group(1),
+      "boot": boot.group(1) if boot else None,
+      "slots": slots,
+    }
+
+  @staticmethod
+  def _cli_output_missing(body: str) -> bool:
+    """True when the CLI answers with only its input form (firmware 1.2.24 hides all output)."""
+    if not body or "CLI Command" not in body:
+      return False
+    return not re.sub(r"<form.*?</form>", "", body, flags=re.DOTALL | re.IGNORECASE).strip()
 
   @staticmethod
   def _parse_units_flag(body: str) -> str | None:

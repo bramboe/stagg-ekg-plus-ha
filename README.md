@@ -17,7 +17,9 @@ Home Assistant integration for the Fellow Stagg **EKG Pro** using the kettle’s
 4. Restart Home Assistant.
 
 ## Add the integration
-- **BLE discovery:** If you have Bluetooth enabled in Home Assistant, the integration can discover Stagg kettles by scanning for BLE devices whose name starts with “Stagg”, “EKG”, or “Fellow”. When one is found, you are asked to enter its HTTP base URL (e.g. `http://192.168.1.xx`). The integration may try to retrieve the kettle’s WiFi IP over BLE; if that succeeds, the URL is pre-filled.
+- **BLE discovery:** If you have Bluetooth enabled in Home Assistant, the integration discovers Stagg kettles by their BLE name (“EKG-xx-xx-xx”) or service. It reads the kettle's Wi-Fi IP, name and MAC straight from the kettle over BLE, so the address is pre-filled.
+- **Wi-Fi setup without the Fellow app (beta):** if the kettle is not on Wi-Fi yet, choose **Set up Wi-Fi over Bluetooth**, put the kettle in Wi-Fi setup mode from its menu and enter your network name and password. Home Assistant sends them directly to the kettle (ESP-IDF provisioning, encrypted). Unlike the Fellow app, this does **not** make the kettle download new firmware. To move an added kettle to another network, use **Configure → Set up Wi-Fi (Bluetooth)**. Needs a Bluetooth adapter or proxy that supports active connections near the kettle, and the Fellow app closed (the kettle accepts one Bluetooth connection at a time).
+- **DHCP:** when the kettle (hostname `EKG-xx-xx-xx`) gets a new IP address, the integration follows it automatically.
 - **mDNS discovery:** The integration also probes mDNS `_http._tcp` services. If your kettle advertises over mDNS, it may appear under Settings → Devices & Services → “Discovered”.
 - **Manual:** Settings → Devices & Services → Add Integration → search “Fellow Stagg EKG Pro (HTTP CLI)” → enter the kettle’s base URL (e.g. `http://192.168.1.xx`). The `/cli` path is added automatically.
 
@@ -25,7 +27,7 @@ If the kettle’s IP address changes later, use **Reconfigure** on the integrati
 
 ## Requirements
 - **Device:** Fellow Stagg **EKG Pro** with WiFi. Not for the older EKG+ (BLE-only) model.
-- Kettle firmware must support the HTTP CLI (`/cli?cmd=state`, `setstate`, `setsetting`, etc. — firmware 1.1.x / 1.2.x).
+- Kettle firmware must support the HTTP CLI (`/cli?cmd=state`, `setstate`, `setsetting`, etc. — firmware 1.1.x). Firmware **1.2.24** no longer returns CLI output, so readings stay *unknown*; see [Firmware 1.2.24](#firmware-1224).
 - Kettle and Home Assistant on the same network.
 - Home Assistant 2024.4 or newer.
 
@@ -38,7 +40,7 @@ If the kettle’s IP address changes later, use **Reconfigure** on the integrati
 - **Binary sensors:** Kettle on base, heating, **water ready**, no water.
 - **Selects:** Schedule mode, clock display mode (off / digital / analog), temperature unit (°C / °F), hold duration, **display language**.
 - **Numbers:** Schedule temperature, **altitude** (boiling-point compensation, in feet).
-- **Switches:** Sync clock (survives restarts), pre-boil.
+- **Switches:** Sync clock (survives restarts), pre-boil, ready chime, **Lock firmware** (beta).
 - **Buttons:** Update Schedule, Launch Bricky (only when kettle is lifted; otherwise plays an error chime).
 - **Services:** `heat_to` (set temperature + start in one call), `play_chime` (beep patterns on the kettle’s buzzer), `set_schedule`, `update_schedule`, `disable_schedule`, `send_cli` (raw CLI commands, supports response data).
 - **Device triggers:** kettle placed on / lifted off base.
@@ -47,6 +49,30 @@ If the kettle’s IP address changes later, use **Reconfigure** on the integrati
 - **Languages:** English, Nederlands, Deutsch, Français.
 
 Polling interval is 5 seconds by default (1 second while heating); both are configurable via the integration’s **Configure** dialog.
+
+## Firmware 1.2.24
+
+If the kettle downloads newer firmware into its spare partition, Home Assistant raises a **Repairs** issue ("Firmware … is waiting on the kettle") so you can block its internet and lock the firmware before it boots. Setting the kettle up with the Fellow app makes it download firmware too (the app sends the CLI command `httpfw` over Bluetooth); the Wi-Fi setup in this integration doesn't.
+
+The kettle updates itself over the internet, and firmware 1.2.24 (Sep 2026) stopped returning CLI output, so the integration can't read the kettle anymore ([#5](https://github.com/bramboe/stagg-ekg-plus-ha/issues/5)). The kettle keeps the previous firmware in its other partition, and this integration (0.5.0 beta) can switch back to it:
+
+1. **Block the kettle's internet access** on your router (keep local Wi-Fi). Otherwise it updates itself again within about 30 minutes.
+2. Open the integration, choose **Configure** → **Switch firmware**. It shows the version the kettle runs and the one it switches to, and asks you to confirm. The kettle restarts in about 10 seconds; the dialog waits and tells you when it's back on the new version.
+3. Optional: turn on the **Lock firmware** switch. It keeps the kettle on the version it runs when you turn it on: if the kettle updates itself anyway, Home Assistant switches it back (at most 3 times a day; after that it tells you to block the internet access instead).
+
+Home Assistant shows a **Repairs** notice when the kettle runs firmware that hides its data. The **Firmware version** sensor lists the version in each partition. The kettle itself can't be told to skip updates over the CLI, so blocking its internet access is the only reliable way to stay on a version. Manual steps and background are in [docs/CLI_TESTING.md](docs/CLI_TESTING.md#rolling-back-from-1224).
+
+### Recovery: upload firmware (beta)
+
+If the kettle's previous firmware is ever gone — for example a manufacturer update overwrites the last good partition — you can flash a known-good image (such as the signed `1.1.75SSP`) back onto it with the `fellow_stagg.install_firmware` service. It uses the kettle's own `/upload` endpoint; the kettle verifies the image's signature and rejects a wrong or corrupt file, so it can't be bricked by a bad upload.
+
+```yaml
+action: fellow_stagg.install_firmware
+data:
+  path: /share/firmware_1.1.75SSP.img   # readable by Home Assistant (/config, /media or /share)
+```
+
+The kettle writes the image to its inactive partition, verifies it, and reboots into it (~30 s). Keep a copy of a working `.img` somewhere safe for this. Note: this relies on the `/upload` endpoint, which exists on 1.1.x firmware; whether a future firmware keeps it is not guaranteed.
 
 ## ⚠️ Security note
 

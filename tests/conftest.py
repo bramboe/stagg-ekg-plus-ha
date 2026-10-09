@@ -1,4 +1,4 @@
-"""Load kettle_http.py directly so tests don't need Home Assistant installed.
+"""Load kettle_http.py and ble_provisioning.py directly so tests don't need Home Assistant installed.
 
 custom_components/fellow_stagg/__init__.py imports homeassistant, so a normal
 package import would fail; spec_from_file_location sidesteps the package.
@@ -18,3 +18,10 @@ spec = importlib.util.spec_from_file_location("kettle_http", MODULE_PATH)
 kettle_http = importlib.util.module_from_spec(spec)
 sys.modules["kettle_http"] = kettle_http
 spec.loader.exec_module(kettle_http)
+
+spec = importlib.util.spec_from_file_location(
+    "ble_provisioning", MODULE_PATH.with_name("ble_provisioning.py")
+)
+ble_provisioning = importlib.util.module_from_spec(spec)
+sys.modules["ble_provisioning"] = ble_provisioning
+spec.loader.exec_module(ble_provisioning)

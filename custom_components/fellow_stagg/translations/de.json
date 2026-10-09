@@ -70,12 +70,52 @@
   "options": {
     "step": {
       "init": {
+        "title": "Fellow Stagg Optionen",
+        "menu_options": {
+          "polling": "Abfrageintervalle",
+          "switch_firmware": "Firmware wechseln",
+          "upload_firmware": "Firmware hochladen (Wiederherstellung)"
+        }
+      },
+      "polling": {
         "title": "Abfrageoptionen",
         "data": {
           "polling_interval_seconds": "Abfrageintervall (Sekunden)",
           "polling_interval_countdown_seconds": "Schnelles Abfrageintervall bei Aktivität (Sekunden)"
         }
+      },
+      "switch_firmware": {
+        "title": "Firmware wechseln",
+        "description": "Der Wasserkocher läuft mit **{running_version}** ({running_partition}). Dies wechselt zu **{target_version}** ({target_partition}), die bereits auf dem Wasserkocher gespeichert ist, und startet ihn neu. Das dauert etwa 10 Sekunden.\n\nSperre zuerst den Internetzugang des Wasserkochers, sonst aktualisiert er sich womöglich erneut.",
+        "data": {
+          "confirm": "Ja, Firmware des Wasserkochers wechseln"
+        }
+      },
+      "upload_firmware": {
+        "title": "Firmware hochladen",
+        "description": "Wähle eine Firmware-.img-Datei zum Flashen auf den Wasserkocher. Wiederherstellungswerkzeug, falls die vorherige Firmware weg ist. Der Wasserkocher prüft die Signatur des Images und lehnt eine falsche oder beschädigte Datei ab, ein Bricken ist also ausgeschlossen. Sperre zuerst den Internetzugang des Wasserkochers. Der Wasserkocher startet in der hochgeladenen Firmware neu.",
+        "data": {
+          "firmware_file": "Firmware-.img-Datei"
+        }
       }
+    },
+    "progress": {
+      "switching": "Der Wasserkocher wechselt zu {target_version}; warte auf den Neustart…",
+      "uploading": "Firmware {version} wird hochgeladen; warte auf den Neustart des Wasserkochers…"
+    },
+    "error": {
+      "not_confirmed": "Setze das Häkchen zur Bestätigung.",
+      "kettle_heating": "Der Wasserkocher heizt gerade. Wechsle die Firmware, wenn er nicht in Betrieb ist.",
+      "invalid_firmware": "Diese Datei ist kein gültiges Firmware-Image für den Fellow Stagg Wasserkocher.",
+      "read_failed": "Die hochgeladene Datei konnte nicht gelesen werden. Bitte erneut versuchen."
+    },
+    "abort": {
+      "no_other_firmware": "Der Wasserkocher hat keine andere gültige Firmware zum Wechseln.",
+      "firmware_switched": "Fertig: Der Wasserkocher läuft jetzt mit {target_version}.",
+      "firmware_switch_failed": "Der Wasserkocher ist nicht innerhalb einer Minute mit {target_version} zurückgekommen. Prüfe gleich den Sensor **Firmware-Version**; hat der Wechsel nicht geklappt, behält der Wasserkocher seine bisherige Firmware.",
+      "firmware_uploaded": "Fertig: Der Wasserkocher ist mit Firmware {version} neu gestartet.",
+      "firmware_upload_failed": "Der Wasserkocher ist nach dem Hochladen von Firmware {version} nicht rechtzeitig zurückgekommen. Prüfe den Firmware-Versionssensor; hat es nicht geklappt, behält der Wasserkocher seine bisherige Firmware.",
+      "not_loaded": "Der Wasserkocher ist noch nicht geladen; versuche es gleich erneut."
     }
   },
   "entity": {
@@ -213,6 +253,9 @@
       },
       "chime": {
         "name": "Signalton bei Fertig"
+      },
+      "revert_firmware_updates": {
+        "name": "Firmware sperren"
       }
     },
     "time": {
@@ -245,12 +288,32 @@
     "send_cli": {
       "name": "CLI-Befehl senden",
       "description": "Einen rohen HTTP-CLI-Befehl an den Wasserkocher senden (zum Testen)."
+    },
+    "install_firmware": {
+      "name": "Firmware installieren (Wiederherstellung)",
+      "description": "Flasht ein lokales Firmware-.img über den eigenen Upload-Endpunkt des Wasserkochers. Wiederherstellungswerkzeug, falls die vorherige Firmware des Wasserkochers weg ist. Der Wasserkocher prüft das Image und lehnt eine falsche oder beschädigte Datei ab. Der Wasserkocher startet in der hochgeladenen Firmware neu.",
+      "fields": {
+        "path": {
+          "name": "Pfad zur Firmware-Datei",
+          "description": "Absoluter Pfad zur .img-Datei, von Home Assistant lesbar (z. B. unter /config, /media oder /share)."
+        },
+        "entry_id": {
+          "description": "Optionale Config-Entry-ID (nötig bei mehreren Wasserkochern)",
+          "name": "Wasserkocher (Config-Entry)"
+        }
+      }
     }
   },
   "device_automation": {
     "trigger_type": {
       "placed_on_base": "Wasserkocher auf Basis gestellt",
       "lifted_off_base": "Wasserkocher von Basis genommen"
+    }
+  },
+  "issues": {
+    "cli_muted": {
+      "title": "Wasserkocher-Firmware {version} liefert keine Daten mehr",
+      "description": "Der Wasserkocher läuft mit Firmware {version}, die über WLAN keine Messwerte mehr zurückgibt, daher zeigen die meisten Entitäten *unbekannt*. Befehle funktionieren weiterhin.\n\nDie vorherige Firmware ({other_version}) ist noch auf dem Wasserkocher. So wechselst du zurück:\n1. Sperre den Internetzugang des Wasserkochers in deinem Router (lokales WLAN bleibt aktiv), sonst aktualisiert er sich erneut.\n2. Öffne die Fellow Stagg-Integration, wähle **Konfigurieren** und dann **Firmware wechseln**.\n\nSchalte danach optional **Firmware sperren** ein, damit Home Assistant zurückwechselt, falls sich der Wasserkocher erneut aktualisiert."
     }
   }
 }

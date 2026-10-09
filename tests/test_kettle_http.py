@@ -2,7 +2,14 @@
 
 Sample bodies are based on live CLI output captured in docs/CLI_TESTING.md.
 """
-from kettle_http import KettleHttpClient, _first_not_none
+from kettle_http import (
+    KettleHttpClient,
+    _first_not_none,
+    other_ota_slot,
+    parse_esp_app_image,
+    FirmwareImageError,
+    EKG_PROJECT_NAME,
+)
 
 # Live-captured style bodies
 STATE_BODY = (
@@ -217,3 +224,158 @@ class TestHelpers:
 
     def test_screen_name(self):
         assert KettleHttpClient._parse_screen_name(STATE_BODY) == "wnd"
+
+    def test_root_url(self):
+        assert KettleHttpClient("http://192.168.1.86/")._root_url == "http://192.168.1.86/"
+        assert KettleHttpClient("http://192.168.1.86/cli")._root_url == "http://192.168.1.86/"
+
+
+# Root page of a kettle running 1.1.76SSP with 1.2.24 in the other slot (live capture, Oct 2026)
+ROOT_PAGE_OLD = (
+    "<h1>EKG</h1>Current version: 1.1.76SSP CLI<br>Build time: 14:03:33<br>"
+    "Build date: May  9 2024<br>Boot partition: ota_0<br>Running partition: ota_0<br>"
+    "Last invalid partition: <br>"
+    "partition 'factory' at 0x10000 size 0x200000 encr 0 state ?? fw version 1.1.14SSB<br>"
+    "partition 'ota_0' at 0x210000 size 0x200000 encr 0 state valid fw version 1.1.76SSP<br>"
+    "partition 'ota_1' at 0x410000 size 0x200000 encr 0 state valid fw version 1.2.24<br>\n\n"
+    '            <form action="cli" method="GET">\n'
+    '            <label for="x">CLI Command:</label><br>\n'
+    '            <input type="text" id="cli" name="cmd"><br>\n'
+    "            </form>"
+)
+# Same page on 1.2.24 as quoted in issue #5 (line breaks, padded columns)
+ROOT_PAGE_NEW = (
+    "<h1>EKG</h1>Current version: 1.2.24 CLI\nBuild time: 20:50:09\nBuild date: Sep 30 2026\n"
+    "Boot partition: ota_0\nRunning partition: ota_0\nLast invalid partition:\n"
+    "partition 'factory' at 0x10000 size 0x200000 encr 0 state ?? fw version 1.1.14SSB\n"
+    "partition 'ota_0'   at 0x210000 size 0x200000 encr 0 state valid fw version 1.2.24\n"
+    "partition 'ota_1'   at 0x410000 size 0x200000 encr 0 state valid fw version 1.1.76SSP\n"
+)
+CLI_FORM_ONLY = (
+    '\n            <form action="cli" method="GET">\n'
+    '            <label for="x">CLI Command:</label><br>\n'
+    '            <input type="text" id="cli" name="cmd"><br>\n'
+    "            </form>\n            "
+)
+
+
+class TestFirmwarePage:
+    def test_parse_old_firmware_page(self):
+        fw = KettleHttpClient._parse_partitions(ROOT_PAGE_OLD)
+        assert fw["current_version"] == "1.1.76SSP"
+        assert fw["running"] == "ota_0"
+        assert fw["boot"] == "ota_0"
+        assert fw["slots"]["ota_0"] == {"state": "valid", "version": "1.1.76SSP"}
+        assert fw["slots"]["ota_1"] == {"state": "valid", "version": "1.2.24"}
+        assert fw["slots"]["factory"] == {"state": "??", "version": "1.1.14SSB"}
+
+    def test_parse_new_firmware_page(self):
+        fw = KettleHttpClient._parse_partitions(ROOT_PAGE_NEW)
+        assert fw["current_version"] == "1.2.24"
+        assert fw["running"] == "ota_0"
+        assert fw["slots"]["ota_1"]["version"] == "1.1.76SSP"
+
+    def test_parse_unrelated_page(self):
+        assert KettleHttpClient._parse_partitions("This URI does not exist") is None
+        assert KettleHttpClient._parse_partitions("") is None
+
+    def test_other_ota_slot(self):
+        assert other_ota_slot(KettleHttpClient._parse_partitions(ROOT_PAGE_OLD)) == "ota_1"
+        assert other_ota_slot(KettleHttpClient._parse_partitions(ROOT_PAGE_NEW)) == "ota_1"
+        assert other_ota_slot({"running": "ota_1", "slots": {"factory": {}, "ota_0": {}, "ota_1": {}}}) == "ota_0"
+        assert other_ota_slot({"running": "ota_0", "slots": {"ota_0": {}}}) is None
+        assert other_ota_slot(None) is None
+
+
+class TestCliMuted:
+    def test_form_only_is_muted(self):
+        # Firmware 1.2.24: every command answers with just the input form
+        assert KettleHttpClient._cli_output_missing(CLI_FORM_ONLY) is True
+
+    def test_form_with_output_is_not_muted(self):
+        body = CLI_FORM_ONLY + "I (25071) Cli: cmd len 5: 'state'\nmode=S_Off\ntempr=nan C\n"
+        assert KettleHttpClient._cli_output_missing(body) is False
+
+    def test_empty_or_plain_body_is_not_muted(self):
+        assert KettleHttpClient._cli_output_missing("") is False
+        assert KettleHttpClient._cli_output_missing(STATE_BODY) is False
+
+
+import struct
+from pathlib import Path
+
+import pytest
+
+
+def _make_esp_image(version: str = "1.1.75SSP", project: str = EKG_PROJECT_NAME, magic: int = 0xE9,
+                    desc_magic: int = 0xABCD5432, size: int = 0x400) -> bytes:
+    """Build a minimal ESP32 app image with the EKG app descriptor for tests."""
+    data = bytearray(size)
+    data[0] = magic
+    struct.pack_into("<I", data, 0x20, desc_magic)
+    data[0x30:0x30 + len(version)] = version.encode()      # desc offset 16
+    data[0x50:0x50 + len(project)] = project.encode()      # desc offset 48
+    return bytes(data)
+
+
+class TestParseEspAppImage:
+    def test_valid_kettle_image(self):
+        info = parse_esp_app_image(_make_esp_image())
+        assert info == {"version": "1.1.75SSP", "project": EKG_PROJECT_NAME}
+
+    def test_empty_file(self):
+        with pytest.raises(FirmwareImageError):
+            parse_esp_app_image(b"")
+
+    def test_wrong_magic_byte(self):
+        with pytest.raises(FirmwareImageError):
+            parse_esp_app_image(_make_esp_image(magic=0x00))
+
+    def test_missing_app_descriptor(self):
+        with pytest.raises(FirmwareImageError):
+            parse_esp_app_image(_make_esp_image(desc_magic=0x12345678))
+
+    def test_wrong_project(self):
+        with pytest.raises(FirmwareImageError):
+            parse_esp_app_image(_make_esp_image(project="some-other-fw"))
+
+    def test_too_large(self):
+        with pytest.raises(FirmwareImageError):
+            parse_esp_app_image(b"\xe9" + b"\x00" * (0x200000))
+
+
+_NAS_IMAGE = Path("/Volumes/ParadiseHome/Firmware/Fellow Stagg EKG Pro/firmware_1.1.75SSP.img")
+
+
+@pytest.mark.skipif(not _NAS_IMAGE.exists(), reason="NAS firmware image not mounted")
+def test_real_1_1_75_image_validates():
+    info = parse_esp_app_image(_NAS_IMAGE.read_bytes())
+    assert info["project"] == EKG_PROJECT_NAME
+    assert info["version"] == "1.1.75SSP"
+
+
+class TestFirmwareHelpers:
+    def test_newer(self):
+        from kettle_http import firmware_newer
+        assert firmware_newer("1.2.26", "1.1.76SSP")
+        assert not firmware_newer("1.1.76SSP", "1.2.26")
+        assert not firmware_newer("1.1.76SSP", "1.1.76SSP")
+
+    def test_bootable_accepts_undef(self):
+        from kettle_http import slot_bootable
+        assert slot_bootable({"state": "undef", "version": "1.2.24"})
+        assert slot_bootable({"state": "valid", "version": "1.1.76SSP"})
+        assert not slot_bootable({"state": "invalid", "version": "1.2.24"})
+        assert not slot_bootable({"state": "aborted", "version": "1.2.24"})
+
+
+class TestDeviceName:
+    def test_wifiprt(self):
+        body = (
+            "I (2473101) Main: m_our_device_name EKG-2d-25-b0\n"
+            "I (2473101) WiFi: EKG-2d-25-b0\n"
+        )
+        assert KettleHttpClient._parse_device_name(body) == "EKG-2d-25-b0"
+
+    def test_missing(self):
+        assert KettleHttpClient._parse_device_name("CLI Command:") is None

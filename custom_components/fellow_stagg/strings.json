@@ -48,11 +48,43 @@
         "data": {
           "base_url": "Kettle URL"
         }
+      },
+      "wifi_setup": {
+        "title": "Set up Wi-Fi over Bluetooth",
+        "description": "Put the kettle in Wi-Fi setup mode from its menu first, and keep the Fellow app closed (it holds the Bluetooth connection, and its own setup also makes the kettle download new firmware). Home Assistant then sends the network details straight to the kettle; nothing goes through Fellow's servers.",
+        "data": {
+          "ssid": "Network name (SSID)",
+          "password": "Password"
+        },
+        "data_description": {
+          "ssid": "2.4 GHz network; the kettle has no 5 GHz radio.",
+          "password": "Leave empty for an open network."
+        }
+      },
+      "bluetooth_menu": {
+        "title": "{name}",
+        "description": "The kettle is not on Wi-Fi yet, or its address could not be read.",
+        "menu_options": {
+          "wifi_setup": "Set up Wi-Fi over Bluetooth",
+          "bluetooth_configure": "Enter the kettle's address"
+        }
+      },
+      "dhcp_confirm": {
+        "title": "Fellow Stagg discovered",
+        "description": "Add the Fellow Stagg kettle at {base_url}?"
       }
     },
     "error": {
       "required": "This field is required.",
-      "not_fellow_stagg": "No Fellow Stagg kettle CLI found at this URL."
+      "not_fellow_stagg": "No Fellow Stagg kettle CLI found at this URL.",
+      "ble_unreachable": "Could not connect to the kettle over Bluetooth. Is it in range of Home Assistant's Bluetooth adapter or a Bluetooth proxy, and is the Fellow app closed?",
+      "not_in_setup_mode": "The kettle did not accept the Wi-Fi setup. Put it in Wi-Fi setup mode from its menu and try again.",
+      "pop_rejected": "The kettle rejected the setup key. Put it in Wi-Fi setup mode from its menu and try again.",
+      "handshake_failed": "The secure Bluetooth session with the kettle failed. Try again.",
+      "set_config_failed": "The kettle did not accept the network details.",
+      "wrong_password": "The kettle could not join the network: wrong password.",
+      "network_not_found": "The kettle could not find that network. Check the name; it must be a 2.4 GHz network.",
+      "wifi_timeout": "The kettle did not get onto the network in time. Check the name and password and try again."
     },
     "abort": {
       "already_configured": "This kettle is already configured.",
@@ -61,21 +93,87 @@
       "invalid_discovery_info": "Invalid discovery information.",
       "ignored": "Discovery ignored.",
       "reconfigure_successful": "The kettle URL was updated.",
-      "unknown": "Unexpected error."
+      "unknown": "Unexpected error.",
+      "ble_unreachable": "Could not connect to the kettle over Bluetooth. Is it in range of Home Assistant's Bluetooth adapter or a Bluetooth proxy, and is the Fellow app closed?"
     },
     "progress": {
-      "scan_network": "Scanning your network for Fellow Stagg kettles…"
+      "scan_network": "Scanning your network for Fellow Stagg kettles…",
+      "wifi_connecting": "Sending the Wi-Fi details for {ssid} and waiting for the kettle to connect…"
     }
   },
   "options": {
     "step": {
       "init": {
+        "title": "Fellow Stagg options",
+        "menu_options": {
+          "polling": "Polling intervals",
+          "switch_firmware": "Switch firmware",
+          "upload_firmware": "Upload firmware (recovery)",
+          "wifi_setup": "Set up Wi-Fi (Bluetooth)"
+        }
+      },
+      "polling": {
         "title": "Polling options",
         "data": {
           "polling_interval_seconds": "Polling interval (seconds)",
           "polling_interval_countdown_seconds": "Fast polling interval when active (seconds)"
         }
+      },
+      "switch_firmware": {
+        "title": "Switch firmware",
+        "description": "The kettle runs **{running_version}** ({running_partition}). This switches it to **{target_version}** ({target_partition}), which is already stored on the kettle, and restarts it. That takes about 10 seconds.\n\nBlock the kettle's internet access first, or it may update itself again.",
+        "data": {
+          "confirm": "Yes, switch the kettle's firmware"
+        }
+      },
+      "upload_firmware": {
+        "title": "Upload firmware",
+        "description": "Pick a firmware .img file to flash onto the kettle. Recovery tool for when the kettle's previous firmware is gone. The kettle verifies the image's signature and rejects a wrong or corrupt file, so it can't be bricked. Block the kettle's internet access first. The kettle restarts into the uploaded firmware.",
+        "data": {
+          "firmware_file": "Firmware .img file"
+        }
+      },
+      "wifi_setup": {
+        "title": "Set up Wi-Fi over Bluetooth",
+        "description": "Put the kettle in Wi-Fi setup mode from its menu first, and keep the Fellow app closed (it holds the Bluetooth connection, and its own setup also makes the kettle download new firmware). Home Assistant then sends the network details straight to the kettle; nothing goes through Fellow's servers.",
+        "data": {
+          "ssid": "Network name (SSID)",
+          "password": "Password"
+        },
+        "data_description": {
+          "ssid": "2.4 GHz network; the kettle has no 5 GHz radio.",
+          "password": "Leave empty for an open network."
+        }
       }
+    },
+    "progress": {
+      "switching": "Switching the kettle to {target_version} and waiting for it to restart…",
+      "uploading": "Uploading firmware {version} and waiting for the kettle to restart…",
+      "wifi_connecting": "Sending the Wi-Fi details for {ssid} and waiting for the kettle to connect…"
+    },
+    "error": {
+      "not_confirmed": "Tick the box to confirm the switch.",
+      "kettle_heating": "The kettle is heating. Switch firmware when it's idle.",
+      "invalid_firmware": "That file is not a valid Fellow Stagg kettle firmware image.",
+      "read_failed": "Could not read the uploaded file. Please try again.",
+      "ble_unreachable": "Could not connect to the kettle over Bluetooth. Is it in range of Home Assistant's Bluetooth adapter or a Bluetooth proxy, and is the Fellow app closed?",
+      "not_in_setup_mode": "The kettle did not accept the Wi-Fi setup. Put it in Wi-Fi setup mode from its menu and try again.",
+      "pop_rejected": "The kettle rejected the setup key. Put it in Wi-Fi setup mode from its menu and try again.",
+      "handshake_failed": "The secure Bluetooth session with the kettle failed. Try again.",
+      "set_config_failed": "The kettle did not accept the network details.",
+      "wrong_password": "The kettle could not join the network: wrong password.",
+      "network_not_found": "The kettle could not find that network. Check the name; it must be a 2.4 GHz network.",
+      "wifi_timeout": "The kettle did not get onto the network in time. Check the name and password and try again."
+    },
+    "abort": {
+      "no_other_firmware": "The kettle has no other valid firmware to switch to.",
+      "firmware_switched": "Done: the kettle now runs {target_version}.",
+      "firmware_switch_failed": "The kettle didn't come back on {target_version} within a minute. Check the **Firmware version** sensor in a moment; if the switch didn't take, the kettle keeps its previous firmware.",
+      "firmware_uploaded": "Done: the kettle restarted on firmware {version}.",
+      "firmware_upload_failed": "The kettle didn't come back after the firmware {version} upload within the time limit. Check the Firmware version sensor; if it didn't take, the kettle keeps its previous firmware.",
+      "not_loaded": "The kettle isn't loaded yet; try again in a moment.",
+      "ble_unreachable": "Could not connect to the kettle over Bluetooth. Is it in range of Home Assistant's Bluetooth adapter or a Bluetooth proxy, and is the Fellow app closed?",
+      "wifi_setup_done": "The kettle is now on {ssid} at {ip}."
     }
   },
   "entity": {
@@ -213,6 +311,9 @@
       },
       "chime": {
         "name": "Ready chime"
+      },
+      "revert_firmware_updates": {
+        "name": "Lock firmware"
       }
     },
     "time": {
@@ -245,12 +346,36 @@
     "send_cli": {
       "name": "Send CLI command",
       "description": "Send a raw HTTP CLI command to the kettle (for testing)."
+    },
+    "install_firmware": {
+      "name": "Install firmware (recovery)",
+      "description": "Flash a local firmware .img onto the kettle via its own upload endpoint. Recovery tool for when the kettle's previous firmware is gone. The kettle verifies the image and rejects a wrong or corrupt file. The kettle reboots into the uploaded firmware.",
+      "fields": {
+        "path": {
+          "name": "Firmware file path",
+          "description": "Absolute path to the .img file, readable by Home Assistant (e.g. under /config, /media or /share)."
+        },
+        "entry_id": {
+          "description": "Optional config entry id (needed if multiple kettles)",
+          "name": "Kettle (config entry)"
+        }
+      }
     }
   },
   "device_automation": {
     "trigger_type": {
       "placed_on_base": "Kettle placed on base",
       "lifted_off_base": "Kettle lifted off base"
+    }
+  },
+  "issues": {
+    "cli_muted": {
+      "title": "Kettle firmware {version} stopped sharing its data",
+      "description": "The kettle is running firmware {version}, which no longer returns any readings over Wi-Fi, so most of its entities show *unknown*. Commands still work.\n\nThe previous firmware ({other_version}) is still on the kettle. To go back:\n1. Block the kettle's internet access on your router (keep local Wi-Fi), or it will update itself again.\n2. Open the Fellow Stagg integration, choose **Configure**, then **Switch firmware**.\n\nOptionally turn on **Lock firmware** afterwards, so Home Assistant switches back if the kettle updates itself again."
+    },
+    "firmware_staged": {
+      "title": "Firmware {staged} is waiting on the kettle",
+      "description": "The kettle runs {running}, but it has downloaded firmware {staged} into its other partition ({partition}). It may boot that version on its own at its next update cycle or reset.\n\nThe kettle downloads updates when it can reach the internet, and setting it up with the Fellow app also makes it download one. Firmware 1.2.24 stopped sharing data over Wi-Fi; later versions are untested with this integration.\n\nTo stay on {running}: block the kettle's internet access on your router (local Wi-Fi keeps working) and turn on **Lock firmware**. This message goes away once {staged} is no longer waiting, or once it is running."
     }
   }
 }
