@@ -352,3 +352,30 @@ def test_real_1_1_75_image_validates():
     info = parse_esp_app_image(_NAS_IMAGE.read_bytes())
     assert info["project"] == EKG_PROJECT_NAME
     assert info["version"] == "1.1.75SSP"
+
+
+class TestFirmwareHelpers:
+    def test_newer(self):
+        from kettle_http import firmware_newer
+        assert firmware_newer("1.2.26", "1.1.76SSP")
+        assert not firmware_newer("1.1.76SSP", "1.2.26")
+        assert not firmware_newer("1.1.76SSP", "1.1.76SSP")
+
+    def test_bootable_accepts_undef(self):
+        from kettle_http import slot_bootable
+        assert slot_bootable({"state": "undef", "version": "1.2.24"})
+        assert slot_bootable({"state": "valid", "version": "1.1.76SSP"})
+        assert not slot_bootable({"state": "invalid", "version": "1.2.24"})
+        assert not slot_bootable({"state": "aborted", "version": "1.2.24"})
+
+
+class TestDeviceName:
+    def test_wifiprt(self):
+        body = (
+            "I (2473101) Main: m_our_device_name EKG-2d-25-b0\n"
+            "I (2473101) WiFi: EKG-2d-25-b0\n"
+        )
+        assert KettleHttpClient._parse_device_name(body) == "EKG-2d-25-b0"
+
+    def test_missing(self):
+        assert KettleHttpClient._parse_device_name("CLI Command:") is None

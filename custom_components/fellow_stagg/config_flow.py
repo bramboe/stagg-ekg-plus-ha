@@ -35,6 +35,7 @@ from homeassistant.components import persistent_notification
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import format_mac
 from homeassistant.components.file_upload import process_uploaded_file
 from homeassistant.helpers.selector import (
     FileSelector,
@@ -43,6 +44,9 @@ from homeassistant.helpers.selector import (
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
 )
 
 from .const import (
@@ -51,6 +55,11 @@ from .const import (
     OPT_POLLING_INTERVAL_COUNTDOWN,
     POLLING_INTERVAL_COUNTDOWN_SECONDS,
     POLLING_INTERVAL_SECONDS,
+)
+from .ble_provisioning import (
+    ProvisioningError,
+    async_provision_wifi,
+    async_read_kettle_info,
 )
 from .kettle_http import FirmwareImageError, parse_esp_app_image
 
@@ -61,11 +70,7 @@ BLE_NAME_PREFIXES = ("ekg", "stagg", "fellow")
 BLE_SERVICE_UUID = "021a9004-0382-4aea-bff4-6b3f1c5adfb4"
 BLE_SERVICE_UUID_EKG_PRO = "7aebf330-6cb1-46e4-b23b-7cc2262c605e"
 
-# EKG Pro GATT characteristics (Primary Service 7AEBF330-...). CONTROL is 8 bytes; EXTRA has firmware + binary.
-# WiFi IP may be first 4 bytes of CONTROL (binary IPv4) or in EXTRA after ASCII; try both then scan all readable.
-BLE_CHAR_CONTROL = "2291c4b4-5d7f-4477-a88b-b266edb97142"   # CONTROL_CHAR, 8 bytes, auth 0x02
-BLE_CHAR_EXTRA = "2291c4b7-5d7f-4477-a88b-b266edb97142"     # EXTRA_CHAR, firmware + binary
-BLE_WIFI_IP_CHAR_UUID = BLE_CHAR_CONTROL  # legacy name; we try CONTROL then EXTRA then all
+# The kettle's GATT characteristics (IP, name, MAC, Wi-Fi setup) live in ble_provisioning.py.
 
 # IPv4 pattern for matching IP from BLE characteristic or manufacturer data
 _IPV4_RE = re.compile(r"\b(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b")
@@ -377,18 +382,6 @@ async def trigger_network_discovery(hass: Any) -> None:
         _LOGGER.warning("Fellow Stagg: network discovery scan failed: %s", e)
 
 
-def _parse_binary_ipv4(data: bytes) -> str | None:
-    """Parse first 4 bytes as binary IPv4; return dotted string only if private/link-local."""
-    if not data or len(data) < 4:
-        return None
-    a, b, c, d = data[0], data[1], data[2], data[3]
-    ip = f"{a}.{b}.{c}.{d}"
-    # Accept only private/link-local: 10.x, 172.16-31.x, 192.168.x, 169.254.x
-    if (a == 10) or (a == 172 and 16 <= b <= 31) or (a == 192 and b == 168) or (a == 169 and b == 254):
-        return ip
-    return None
-
-
 def _extract_ip_from_data(data: bytes) -> str | None:
     """Try to find an IPv4 address in raw bytes (e.g. manufacturer data or GATT value)."""
     if not data:
@@ -410,106 +403,151 @@ def _extract_ip_from_data(data: bytes) -> str | None:
     return None
 
 
-async def _try_get_wifi_ip_from_ble(hass: Any, address: str) -> str | None:
-    """Try to retrieve WiFi IP from Fellow Stagg EKG Pro over BLE (connect and read GATT).
-    Uses EKG Pro protocol: CONTROL_CHAR (8 bytes, first 4 may be binary IPv4), EXTRA_CHAR (firmware + binary).
-    Sends control authorization (0x02) first so device may expose IP. Returns http://IP or None.
-    """
-    try:
-        ble_device = bluetooth.async_ble_device_from_address(hass, address, connectable=True)
-        if not ble_device:
-            return None
-    except Exception:
+async def _async_ble_connect(hass: Any, address: str) -> Any:
+    """Open a GATT connection to the kettle (through a proxy if needed); None if unreachable."""
+    ble_device = bluetooth.async_ble_device_from_address(hass, address, connectable=True)
+    if not ble_device:
         return None
+    from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 
-    try:
-        from bleak_retry_connector import (
-            BleakClientWithServiceCache,
-            establish_connection,
-        )
-    except ImportError:
-        return None
+    return await establish_connection(
+        BleakClientWithServiceCache,
+        ble_device,
+        ble_device.name or address,
+        timeout=15.0,
+    )
 
-    ip_found: str | None = None
+
+async def _async_ble_kettle_info(hass: Any, address: str) -> dict[str, Any] | None:
+    """Read IP, SSID, name, MAC and firmware from the kettle over BLE (read-only)."""
     client = None
     try:
-        client = await establish_connection(
-            BleakClientWithServiceCache,
-            ble_device,
-            ble_device.name or ble_device.address or address,
-            timeout=8.0,
-        )
-        if not client.is_connected:
+        client = await _async_ble_connect(hass, address)
+        if client is None:
             return None
-
-        # EKG Pro: send control authorization (0x02) so device may expose WiFi IP in characteristics
-        try:
-            await asyncio.wait_for(
-                client.write_gatt_char(BLE_CHAR_CONTROL, bytes([0x02, 0, 0, 0, 0, 0, 0, 0])),
-                timeout=2.0,
-            )
-            await asyncio.sleep(0.2)
-        except (asyncio.TimeoutError, Exception):
-            pass
-
-        # Try CONTROL_CHAR (8 bytes): first 4 bytes can be binary IPv4 on some firmware
-        try:
-            value = await asyncio.wait_for(
-                client.read_gatt_char(BLE_CHAR_CONTROL), timeout=2.0
-            )
-            if isinstance(value, (bytes, bytearray)) and len(value) >= 4:
-                ip_found = _parse_binary_ipv4(bytes(value))
-        except (asyncio.TimeoutError, Exception):
-            pass
-
-        # Try EXTRA_CHAR: firmware version (ASCII) then 0x00 then binary; IP may be in first 4 or after null
-        if not ip_found:
-            try:
-                value = await asyncio.wait_for(
-                    client.read_gatt_char(BLE_CHAR_EXTRA), timeout=2.0
-                )
-                if isinstance(value, (bytes, bytearray)) and len(value) >= 4:
-                    ip_found = _parse_binary_ipv4(bytes(value))
-                    if not ip_found and len(value) >= 16:
-                        # Skip ASCII prefix (e.g. "1.1.75SSP C\0"); try 4 bytes at offset 12
-                        ip_found = _parse_binary_ipv4(bytes(value[12:16]))
-                    if not ip_found and 0 in value and len(value) > value.index(0) + 4:
-                        idx = value.index(0) + 1
-                        ip_found = _parse_binary_ipv4(bytes(value[idx : idx + 4]))
-            except (asyncio.TimeoutError, Exception):
-                pass
-
-        # Fallback: scan all readable characteristics for binary or text IPv4
-        if not ip_found:
-            for service in client.services:
-                for char in service.characteristics:
-                    if "read" not in char.properties:
-                        continue
-                    try:
-                        value = await asyncio.wait_for(
-                            client.read_gatt_char(char.uuid), timeout=2.0
-                        )
-                        if isinstance(value, (bytes, bytearray)):
-                            ip_found = _parse_binary_ipv4(bytes(value))
-                            if not ip_found:
-                                ip_found = _extract_ip_from_data(bytes(value))
-                            if ip_found:
-                                break
-                    except (asyncio.TimeoutError, Exception):
-                        continue
-                if ip_found:
-                    break
-    except (asyncio.TimeoutError, Exception):
-        pass
+        return await async_read_kettle_info(client)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("Fellow Stagg: reading kettle info over BLE failed: %s", err)
+        return None
     finally:
         if client is not None:
             try:
                 await client.disconnect()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 pass
-    if ip_found:
-        return f"http://{ip_found}"
-    return None
+
+
+async def _async_ble_wifi_setup(
+    hass: Any, address: str, ssid: str, password: str
+) -> dict[str, Any]:
+    """Put the kettle on a Wi-Fi network over BLE; returns the kettle info incl. its new IP."""
+    client = await _async_ble_connect(hass, address)
+    if client is None:
+        raise ProvisioningError("ble_unreachable")
+    try:
+        status = await async_provision_wifi(client, ssid, password)
+        info = await async_read_kettle_info(client)
+    finally:
+        try:
+            await client.disconnect()
+        except Exception:  # noqa: BLE001
+            pass
+    info["ip"] = status.ip
+    info["ssid"] = status.ssid or ssid
+    return info
+
+
+def _find_ble_address(hass: Any, entry: config_entries.ConfigEntry) -> str | None:
+    """BLE address of an entry's kettle: stored at setup, else a visible EKG-* by device name."""
+    if address := (entry.data or {}).get("ble_address"):
+        return address
+    device_name = ((entry.data or {}).get("device_name") or "").lower()
+    candidates = [
+        info for info in async_discovered_service_info(hass, connectable=True)
+        if (info.name or "").lower().startswith("ekg") or _has_stagg_service(info)
+    ]
+    for info in candidates:
+        if device_name and (info.name or "").lower() == device_name:
+            return info.address
+    return candidates[0].address if len(candidates) == 1 else None
+
+
+def _wifi_setup_schema(ssid: str = "") -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required("ssid", default=ssid): str,
+            vol.Optional("password", default=""): TextSelector(
+                TextSelectorConfig(type=TextSelectorType.PASSWORD)
+            ),
+        }
+    )
+
+
+class _WifiSetupMixin:
+    """Shared Wi-Fi setup steps for the config flow and the options flow.
+
+    The using class sets self._wifi_address and implements _async_wifi_setup_done(info).
+    """
+
+    _wifi_address: str | None = None
+    _wifi_task: asyncio.Task | None = None
+    _wifi_input: dict[str, Any] | None = None
+    _wifi_error: str | None = None
+    _wifi_info: dict[str, Any] | None = None
+
+    async def async_step_wifi_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Ask for the network; the kettle has to be in Wi-Fi setup mode."""
+        if user_input is not None:
+            self._wifi_input = user_input
+            self._wifi_task = None
+            return await self.async_step_wifi_connecting()
+        errors = {"base": self._wifi_error} if self._wifi_error else {}
+        self._wifi_error = None
+        default_ssid = (self._wifi_input or {}).get("ssid", "")
+        return self.async_show_form(
+            step_id="wifi_setup",
+            data_schema=_wifi_setup_schema(default_ssid),
+            errors=errors,
+        )
+
+    async def async_step_wifi_connecting(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        if self._wifi_task is None:
+            self._wifi_task = self.hass.async_create_task(
+                _async_ble_wifi_setup(
+                    self.hass,
+                    self._wifi_address,
+                    self._wifi_input["ssid"],
+                    self._wifi_input.get("password") or "",
+                )
+            )
+        if not self._wifi_task.done():
+            return self.async_show_progress(
+                step_id="wifi_connecting",
+                progress_action="wifi_connecting",
+                progress_task=self._wifi_task,
+                description_placeholders={"ssid": self._wifi_input["ssid"]},
+            )
+        try:
+            self._wifi_info = self._wifi_task.result()
+        except ProvisioningError as err:
+            _LOGGER.warning("Fellow Stagg Wi-Fi setup failed: %s (%s)", err.reason, err)
+            self._wifi_error = err.reason
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Fellow Stagg Wi-Fi setup failed")
+            self._wifi_error = "ble_unreachable"
+        self._wifi_task = None
+        return self.async_show_progress_done(
+            next_step_id="wifi_setup" if self._wifi_error else "wifi_finish"
+        )
+
+    async def async_step_wifi_finish(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        return await self._async_wifi_setup_done(self._wifi_info or {})
 
 
 def _options_schema(entry: config_entries.ConfigEntry) -> vol.Schema:
@@ -531,7 +569,7 @@ def _options_schema(entry: config_entries.ConfigEntry) -> vol.Schema:
     )
 
 
-class FellowStaggOptionsFlowHandler(config_entries.OptionsFlow):
+class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow):
     """Handle Fellow Stagg options (polling intervals) and switching the kettle's firmware."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
@@ -557,7 +595,31 @@ class FellowStaggOptionsFlowHandler(config_entries.OptionsFlow):
         if coordinator.firmware_switch_target() is not None:
             menu.append("switch_firmware")
         menu.append("upload_firmware")
+        if _find_ble_address(self.hass, self._entry):
+            menu.append("wifi_setup")
         return self.async_show_menu(step_id="init", menu_options=menu)
+
+    async def async_step_wifi_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Move the kettle to another Wi-Fi network (or re-join after a password change)."""
+        self._wifi_address = _find_ble_address(self.hass, self._entry)
+        if not self._wifi_address:
+            return self.async_abort(reason="ble_unreachable")
+        return await super().async_step_wifi_setup(user_input)
+
+    async def _async_wifi_setup_done(self, info: dict[str, Any]) -> FlowResult:
+        data = {**self._entry.data, "base_url": f"http://{info['ip']}", "ble_address": self._wifi_address}
+        if info.get("name"):
+            data["device_name"] = info["name"]
+        if info.get("mac"):
+            data["mac"] = format_mac(info["mac"])
+        self.hass.config_entries.async_update_entry(self._entry, data=data)
+        self.hass.config_entries.async_schedule_reload(self._entry.entry_id)
+        return self.async_abort(
+            reason="wifi_setup_done",
+            description_placeholders={"ssid": info.get("ssid") or "?", "ip": info["ip"]},
+        )
 
     async def async_step_polling(
         self, user_input: dict[str, Any] | None = None
@@ -721,11 +783,61 @@ class FellowStaggOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
 
-class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the Fellow Stagg integration."""
 
     VERSION = 2
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+
+    def _ble_entry_data(self) -> dict[str, Any]:
+        """BLE address/name and the kettle's device name/MAC learned during this flow."""
+        keys = ("ble_address", "ble_name", "device_name", "mac")
+        return {k: self.context[k] for k in keys if self.context.get(k)}
+
+    async def _async_ble_suggested_url(self, address: str) -> str | None:
+        """Read the kettle's info over BLE; remember name/MAC and return http://IP if on Wi-Fi."""
+        info = await _async_ble_kettle_info(self.hass, address)
+        if not info:
+            return None
+        if info.get("name"):
+            self.context["device_name"] = info["name"]
+        if info.get("mac"):
+            self.context["mac"] = format_mac(info["mac"])
+        return f"http://{info['ip']}" if info.get("ip") else None
+
+    async def async_step_wifi_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        self._wifi_address = self.context.get("ble_address")
+        if not self._wifi_address:
+            return self.async_abort(reason="ble_unreachable")
+        return await super().async_step_wifi_setup(user_input)
+
+    async def _async_wifi_setup_done(self, info: dict[str, Any]) -> FlowResult:
+        """Kettle is on Wi-Fi: add it with its new address."""
+        base_url = f"http://{info['ip']}"
+        if info.get("name"):
+            self.context["device_name"] = info["name"]
+        if info.get("mac"):
+            self.context["mac"] = format_mac(info["mac"])
+        session = async_get_clientsession(self.hass)
+        for _ in range(10):  # the web server needs a moment after joining the network
+            if await _probe_kettle(session, base_url):
+                break
+            await asyncio.sleep(2)
+        if self.unique_id is None or str(self.unique_id).startswith("ble:"):
+            await self.async_set_unique_id(base_url, raise_on_progress=False)
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            if entry.source == SOURCE_IGNORE:
+                continue
+            if self.context.get("mac") and entry.data.get("mac") == self.context["mac"]:
+                self.hass.config_entries.async_update_entry(
+                    entry, data={**entry.data, "base_url": base_url, **self._ble_entry_data()}
+                )
+                await self.hass.config_entries.async_reload(entry.entry_id)
+                return self.async_abort(reason="already_configured")
+        data = {"base_url": base_url, **self._ble_entry_data()}
+        return self.async_create_entry(title=f"Fellow Stagg ({base_url})", data=data)
 
     @staticmethod
     @callback
@@ -764,6 +876,61 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="reconfigure",
             data_schema=vol.Schema({vol.Required("base_url", default=current): str}),
             errors=errors,
+        )
+
+    async def async_step_dhcp(self, discovery_info: Any) -> FlowResult:
+        """The kettle (hostname EKG-xx-xx-xx) got a DHCP lease: follow IP changes, or offer it."""
+        ip = str(discovery_info.ip)
+        hostname = (discovery_info.hostname or "").lower()
+        mac = format_mac(discovery_info.macaddress)
+        base_url = f"http://{ip}"
+        session = async_get_clientsession(self.hass)
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            if entry.source == SOURCE_IGNORE:
+                continue
+            same_kettle = (
+                entry.data.get("mac") == mac
+                or (entry.data.get("device_name") or "").lower() == hostname
+                or _norm_url(entry.data.get("base_url")) == _norm_url(base_url)
+            )
+            if not same_kettle:
+                continue
+            updates: dict[str, Any] = {}
+            if entry.data.get("mac") != mac:
+                updates["mac"] = mac
+            if _norm_url(entry.data.get("base_url")) != _norm_url(base_url) and await _probe_kettle(
+                session, base_url
+            ):
+                updates["base_url"] = base_url
+            if updates:
+                self.hass.config_entries.async_update_entry(entry, data={**entry.data, **updates})
+                if "base_url" in updates:
+                    _LOGGER.info("Fellow Stagg moved to %s; updating the integration", base_url)
+                    self.hass.config_entries.async_schedule_reload(entry.entry_id)
+            return self.async_abort(reason="already_configured")
+
+        if not await _probe_kettle(session, base_url):
+            return self.async_abort(reason="not_fellow_stagg")
+        await self.async_set_unique_id(base_url)
+        self._abort_if_unique_id_configured()
+        self.context["mac"] = mac
+        self.context["device_name"] = discovery_info.hostname
+        self.context["title_placeholders"] = {"base_url": base_url}
+        self.context["dhcp_base_url"] = base_url
+        return await self.async_step_dhcp_confirm()
+
+    async def async_step_dhcp_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        base_url = self.context["dhcp_base_url"]
+        if user_input is not None:
+            return self.async_create_entry(
+                title=f"Fellow Stagg ({base_url})",
+                data={"base_url": base_url, **self._ble_entry_data()},
+            )
+        self._set_confirm_only()
+        return self.async_show_form(
+            step_id="dhcp_confirm", description_placeholders={"base_url": base_url}
         )
 
     async def async_step_zeroconf(
@@ -874,10 +1041,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             if suggested_url:
                 data: dict[str, Any] = {"base_url": suggested_url}
-                if self.context.get("ble_address"):
-                    data["ble_address"] = self.context["ble_address"]
-                if self.context.get("ble_name"):
-                    data["ble_name"] = self.context["ble_name"]
+                data.update(self._ble_entry_data())
                 return self.async_create_entry(
                     title=f"Fellow Stagg ({suggested_url})",
                     data=data,
@@ -914,10 +1078,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return self.async_abort(reason="already_configured")
             self._abort_if_unique_id_configured()
             data = {"base_url": base_url}
-            if self.context.get("ble_address"):
-                data["ble_address"] = self.context["ble_address"]
-            if self.context.get("ble_name"):
-                data["ble_name"] = self.context["ble_name"]
+            data.update(self._ble_entry_data())
             return self.async_create_entry(
                 title=f"Fellow Stagg ({base_url})",
                 data=data,
@@ -975,7 +1136,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # If not in advertisement, try connecting and reading GATT characteristics
         if not suggested_url and address and connectable:
-            suggested_url = await _try_get_wifi_ip_from_ble(self.hass, address)
+            suggested_url = await self._async_ble_suggested_url(address)
         elif not suggested_url and address and not connectable:
             _LOGGER.debug(
                 "Fellow Stagg: BLE discovery from non-connectable controller; skip GATT read for %s",
@@ -1056,13 +1217,11 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             title="Fellow Stagg kettle discovered",
             notification_id=_ble_notification_id,
         )
-        return self.async_show_form(
-            step_id="bluetooth",
-            data_schema=_bluetooth_schema("", ""),
-            description_placeholders={
-                "name": name,
-                "hint": "Find the IP in your router or on the kettle's WiFi settings, then enter http://IP",
-            },
+        # No IP: the kettle is probably not on Wi-Fi yet, so offer setting it up over Bluetooth
+        return self.async_show_menu(
+            step_id="bluetooth_menu",
+            menu_options=["wifi_setup", "bluetooth_configure"],
+            description_placeholders={"name": name},
         )
 
     async def async_step_bluetooth_configure(
@@ -1090,10 +1249,7 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     await self.async_set_unique_id(base_url)
                     self._abort_if_unique_id_configured()
                     data = {"base_url": base_url}
-                    if self.context.get("ble_address"):
-                        data["ble_address"] = self.context["ble_address"]
-                    if self.context.get("ble_name"):
-                        data["ble_name"] = self.context["ble_name"]
+                    data.update(self._ble_entry_data())
                     return self.async_create_entry(
                         title=f"Fellow Stagg ({base_url})",
                         data=data,
@@ -1165,8 +1321,15 @@ class FellowStaggConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                     break
                         break
                 if not suggested_url:
-                    suggested_url = await _try_get_wifi_ip_from_ble(self.hass, choice)
+                    suggested_url = await self._async_ble_suggested_url(choice)
                 self.context["ble_suggested_url"] = suggested_url or None
+                if not suggested_url:
+                    # Not on Wi-Fi (or unknown IP): offer setting up Wi-Fi over Bluetooth
+                    return self.async_show_menu(
+                        step_id="bluetooth_menu",
+                        menu_options=["wifi_setup", "bluetooth_configure"],
+                        description_placeholders={"name": discovered[choice]},
+                    )
                 return await self.async_step_bluetooth_configure(suggested_url)
 
         # Show form: dropdown of devices + "Scan network" + "Enter URL manually", or scan + manual if no BLE

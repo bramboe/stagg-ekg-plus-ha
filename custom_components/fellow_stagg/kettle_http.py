@@ -77,6 +77,24 @@ def other_ota_slot(firmware: dict[str, Any] | None) -> str | None:
   return None
 
 
+def slot_bootable(slot: dict[str, Any]) -> bool:
+  """A partition holding an image we may boot: anything but invalid/aborted.
+
+  After switching back and forth the root page can report `state undef` (no otadata entry) for an
+  intact image; esp_ota_set_boot_partition verifies the image itself.
+  """
+  return bool(slot.get("version")) and slot.get("state") not in ("invalid", "aborted")
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+  return tuple(int(n) for n in re.findall(r"\d+", version or ""))
+
+
+def firmware_newer(candidate: str, current: str) -> bool:
+  """True if firmware `candidate` (e.g. 1.2.26) is newer than `current` (e.g. 1.1.76SSP)."""
+  return _version_key(candidate) > _version_key(current)
+
+
 class KettleHttpClient:
   """Lightweight client around the kettle's HTTP CLI API."""
 
@@ -434,6 +452,16 @@ class KettleHttpClient:
   def _parse_clock_mode(body: str) -> int | None:
     m = re.search(r"\bclockmode\s*=\s*(\d+)", body or "", re.IGNORECASE)
     return int(m.group(1)) if m and int(m.group(1)) in (0, 1, 2) else None
+
+  async def async_get_device_name(self, session: ClientSession) -> str | None:
+    """The kettle's own name (EKG-xx-xx-xx), also its DHCP hostname and BLE name."""
+    body = await self._cli_command(session, "wifiprt")
+    return self._parse_device_name(body)
+
+  @staticmethod
+  def _parse_device_name(body: str) -> str | None:
+    m = re.search(r"m_our_device_name\s+(EKG-[0-9A-Fa-f-]+)", body or "")
+    return m.group(1) if m else None
 
   @staticmethod
   def _parse_fwinfo(body: str) -> str | None:

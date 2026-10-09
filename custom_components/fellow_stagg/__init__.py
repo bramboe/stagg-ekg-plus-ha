@@ -41,8 +41,10 @@ from homeassistant.exceptions import HomeAssistantError
 from .kettle_http import (
   FirmwareImageError,
   KettleHttpClient,
+  firmware_newer,
   other_ota_slot,
   parse_esp_app_image,
+  slot_bootable,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -89,8 +91,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     except Exception:
       self.wifi_address = None
 
+    mac = (entry.data or {}).get("mac")
     self.device_info = DeviceInfo(
       identifiers={(DOMAIN, entry.entry_id)},
+      connections={(dr.CONNECTION_NETWORK_MAC, mac)} if mac else set(),
       name="Fellow Stagg EKG Pro",
       manufacturer="Fellow",
       model="Stagg EKG Pro",
@@ -119,6 +123,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self._guard_gave_up = False
     self._cli_muted_polls = 0
     self._cli_muted_issue = False
+    self._firmware_staged_issue: str | None = None
+    # Options at setup; data-only updates (new IP, learned name) must not trigger the reload listener
+    self.options_snapshot = dict(entry.options or {})
 
   def notify_command_sent(self) -> None:
     """Call after sending a command so polling uses fast interval for a short window."""
@@ -191,7 +198,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     """The other OTA partition and its version, if it holds valid firmware."""
     name = other_ota_slot(self.firmware)
     slot = ((self.firmware or {}).get("slots") or {}).get(name) if name else None
-    if not slot or slot.get("state") != "valid":
+    if not slot or not slot_bootable(slot):
       return None
     return name, slot.get("version") or "?"
 
@@ -252,7 +259,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     if not pinned or not firmware or firmware.get("running") == pinned:
       return
     slot = (firmware.get("slots") or {}).get(pinned) or {}
-    if slot.get("state") != "valid":
+    if not slot_bootable(slot):
       return
     now = monotonic()
     if self._last_partition_switch is not None and now - self._last_partition_switch < _FIRMWARE_SWITCH_COOLDOWN_SECONDS:
@@ -315,6 +322,37 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       ir.async_delete_issue(self.hass, DOMAIN, issue_id)
       self._cli_muted_issue = False
 
+  def _update_firmware_staged_issue(self) -> None:
+    """Raise a Repairs issue when newer firmware sits unused in the other partition.
+
+    The kettle downloads updates in the background (and the Fellow app's Wi-Fi setup triggers one
+    with `httpfw`), so the next update cycle or a reset could boot it without anyone noticing.
+    """
+    firmware = self.firmware or {}
+    other = other_ota_slot(firmware)
+    slot = ((firmware.get("slots") or {}).get(other) or {}) if other else {}
+    staged = slot.get("version") if slot and slot_bootable(slot) else None
+    running = firmware.get("current_version")
+    if staged and running and firmware_newer(staged, running):
+      if self._firmware_staged_issue != staged:
+        ir.async_create_issue(
+          self.hass,
+          DOMAIN,
+          f"firmware_staged_{self._entry_id}",
+          is_fixable=False,
+          severity=ir.IssueSeverity.WARNING,
+          translation_key="firmware_staged",
+          translation_placeholders={
+            "staged": staged,
+            "partition": other,
+            "running": running,
+          },
+        )
+        self._firmware_staged_issue = staged
+    elif firmware and self._firmware_staged_issue is not None:
+      ir.async_delete_issue(self.hass, DOMAIN, f"firmware_staged_{self._entry_id}")
+      self._firmware_staged_issue = None
+
   async def _async_update_data(self) -> dict[str, Any] | None:
     """Fetch data from the kettle."""
     _LOGGER.debug("Polling Fellow Stagg kettle at %s", self._base_url)
@@ -374,6 +412,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       await self._maybe_sync_clock(data)
       await self._maybe_revert_firmware()
       self._update_cli_muted_issue(data)
+      self._update_firmware_staged_issue()
       # Instant (fast) polling when heating, countdown active, or right after a command
       # Use idle interval when kettle is off base (lifted) or on hold
       heating = bool(data and data.get("power"))
@@ -802,7 +841,23 @@ def _async_register_services(hass: HomeAssistant) -> None:
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
   """Reload the entry when options (polling intervals) change."""
+  coordinator = (hass.data.get(DOMAIN) or {}).get(entry.entry_id)
+  if coordinator is not None and dict(entry.options or {}) == coordinator.options_snapshot:
+    return  # only entry data changed; whoever changed it reloads if needed
   await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def _async_learn_device_name(
+  hass: HomeAssistant, entry: ConfigEntry, coordinator: "FellowStaggDataUpdateCoordinator"
+) -> None:
+  """Store the kettle's name (its DHCP hostname) so DHCP discovery can follow IP changes."""
+  try:
+    name = await coordinator.kettle.async_get_device_name(coordinator.session)
+  except Exception as err:  # noqa: BLE001 - muted CLI (1.2.24) or offline: try next setup
+    _LOGGER.debug("Could not read the kettle's device name: %s", err)
+    return
+  if name and entry.data.get("device_name") != name:
+    hass.config_entries.async_update_entry(entry, data={**entry.data, "device_name": name})
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -841,6 +896,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
   hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
   entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+  if not entry.data.get("device_name"):
+    entry.async_create_background_task(
+      hass, _async_learn_device_name(hass, entry, coordinator), "fellow_stagg_device_name"
+    )
   await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
   # Unhide "Kettle on base" binary sensor so it's visible in the UI
   ent_reg = er.async_get(hass)

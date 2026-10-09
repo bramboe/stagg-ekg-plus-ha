@@ -30,6 +30,7 @@
   "dependencies": [
     "bluetooth",
     "bluetooth_adapters",
+    "dhcp",
     "file_upload",
     "frontend",
     "http",
@@ -37,13 +38,18 @@
     "persistent_notification",
     "zeroconf"
   ],
+  "dhcp": [
+    {
+      "hostname": "ekg-*"
+    }
+  ],
   "documentation": "https://github.com/bramboe/stagg-ekg-plus-ha",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/bramboe/stagg-ekg-plus-ha/issues",
   "requirements": [
     "bleak-retry-connector>=4.0.0"
   ],
-  "version": "0.5.0b6",
+  "version": "0.5.0b7",
   "zeroconf": [
     "_http._tcp.local."
   ]
