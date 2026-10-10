@@ -374,6 +374,10 @@
           "name": "Bouilloire (entrée de configuration)"
         }
       }
+    },
+    "get_settings_snapshot": {
+      "name": "Lire les paramètres",
+      "description": "Lire les paramètres natifs/BLE pour des tests accompagnés. Aucune commande de réglage ou de chauffe envoyée. Contient heure/paramètres, aucun identifiant réseau."
     }
   },
   "device_automation": {

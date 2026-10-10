@@ -489,3 +489,57 @@ def test_hostname_ending_in_cli_is_not_a_cli_path():
     client = KettleHttpClient("http://mycli")
     assert client._cli_url == "http://mycli/cli"
     assert client._root_url == "http://mycli/"
+
+
+def test_ble_settings_snapshot_is_read_only_and_rejects_stale_connection():
+    async def run():
+        fake = FakeBle()
+        ble = make_ble(fake)
+        await ble.async_poll()
+        transport = KettleTransport("ble", "http://must-not-be-used", ble)
+        before = list(fake.writes)
+        snapshot = await transport.async_get_settings_snapshot(None)
+        assert bytes.fromhex(snapshot["settings_hex"]) == LIVE_SETTINGS
+        assert snapshot["firmware"] == "1.2.26"
+        assert snapshot["decoded"]["units"] == "C"
+        assert fake.writes == before
+        assert transport.legacy is None
+        await fake.disconnect()
+        with pytest.raises(UnsupportedCapability):
+            await transport.async_get_settings_snapshot(None)
+        assert fake.writes == before
+        await ble.async_close()
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("method,args,command,settings", [
+    ("async_set_hold_duration", (30,), "setsetting hold 30", "hold=30"),
+    ("async_set_language", (1,), "setsetting language 1", "language=1"),
+    ("async_set_boil", (True,), "setsetting boil 1", "boil=1"),
+    ("async_set_chime", (False,), "setsetting chime 0", "chime=0"),
+    ("async_set_altitude", (100,), "setaltitudem 100", "altitude=100 m"),
+    ("async_set_clock_mode", (1,), "setdigital", "clockmode=1"),
+    ("async_set_clock_mode", (2,), "setanalog", "clockmode=2"),
+    ("async_set_schedule_temperature", (90,), "setsetting schtempr 194", "schtempr=194"),
+    ("async_set_schedule_time", (8, 30), "setsetting schtime 2078", "schtime=8:30"),
+    ("async_set_schedule_repeat", (1,), "setsetting Repeat_sched 1", "Repeat_sched=1"),
+    ("async_set_schedon", (2,), "setsetting schedon 2", "schedon=2"),
+    ("async_set_schedule_mode", ("daily",), "setsetting schedon 2", "schedon=2"),
+    ("async_set_schedule_enabled", (False,), "setsetting schedon 0", "schedon=0"),
+    ("async_set_clock", (7, 5, 0), "setclock 7 5 0", ""),
+])
+def test_legacy_controls_keep_command_and_actual_parser_readback(method, args, command, settings):
+    async def run():
+        transport = KettleTransport("wifi", "http://kettle")
+        transport.http_backend = "legacy_cli"
+        async def reply(session, cmd):
+            if cmd == "state":
+                return "mode=S_Off units=1 clock=07:05 tempr=20 C temprT=90 C nw=0"
+            if cmd == "prtsettings":
+                return settings
+            return "OK"
+        transport.legacy._cli_command = AsyncMock(side_effect=reply)
+        await getattr(transport, method)(None, *args)
+        calls = [call.args[1] for call in transport.legacy._cli_command.await_args_list]
+        assert calls == [command, "state", "prtsettings"]
+    asyncio.run(run())

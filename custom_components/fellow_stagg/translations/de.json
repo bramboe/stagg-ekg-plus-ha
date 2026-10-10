@@ -374,6 +374,10 @@
           "name": "Wasserkocher (Config-Entry)"
         }
       }
+    },
+    "get_settings_snapshot": {
+      "name": "Einstellungsaufnahme lesen",
+      "description": "Native/BLE-Einstellungen für begleitete Tests lesen. Kein Einstellungs- oder Leistungsbefehl wird gesendet. Enthält Uhrzeit/Einstellungen, keine Netzwerkkennungen."
     }
   },
   "device_automation": {

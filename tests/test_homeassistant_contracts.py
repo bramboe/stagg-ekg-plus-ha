@@ -260,3 +260,20 @@ def test_water_status_does_not_infer_sufficient_water_from_ble_state():
         assert get_dry_boil_status({"backend": backend, "no_water": True}) == "Refill Kettle"
     assert get_dry_boil_status({"backend": "legacy_cli", "no_water": False}) == "Water Detected"
     assert get_dry_boil_status({"backend": "legacy_cli", "no_water": True}) == "Refill Kettle"
+
+
+def test_settings_snapshot_service_uses_response_and_requires_existing_kettle(tmp_path):
+    async def run():
+        config_entry = entry()
+        hass = await make_hass(tmp_path, config_entry)
+        with patch("custom_components.fellow_stagg.async_get_clientsession", return_value=object()):
+            coordinator = FellowStaggDataUpdateCoordinator(hass, config_entry)
+        from custom_components.fellow_stagg import _async_register_services
+        hass.data[DOMAIN] = {config_entry.entry_id: coordinator}
+        _async_register_services(hass)
+        coordinator.kettle.async_get_settings_snapshot = AsyncMock(return_value={"settings_hex": "00 01", "backend": "ble"})
+        response = await hass.services.async_call(DOMAIN, "get_settings_snapshot", {}, blocking=True, return_response=True)
+        assert response == {"settings_hex": "00 01", "backend": "ble"}
+        coordinator.kettle.async_get_settings_snapshot.assert_awaited_once_with(coordinator.session)
+        await hass.async_stop()
+    asyncio.run(run())

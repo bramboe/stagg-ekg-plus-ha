@@ -193,6 +193,19 @@ class KettleBleClient:
                     raise
                 raise CommandUncertain("Power write unconfirmed; no retry or transport fallback was sent") from err
 
+    async def async_get_settings_snapshot(self, session=None):
+        """Read B5 on the current connection; never reconnect or dispatch a write."""
+        async with self._command_lock:
+            if not self.fresh:
+                raise UnsupportedCapability("A current BLE connection is required for a settings snapshot")
+            generation = self._generation
+            raw = bytes(await asyncio.wait_for(self.client.read_gatt_char(B5), WRITE_TIMEOUT))
+            if generation != self._generation or not self.fresh:
+                raise ConnectionError("BLE connection changed during settings snapshot")
+            decoded = decode_settings(raw)
+            return {"backend": "ble", "firmware": self.firmware,
+                    "settings_hex": raw.hex(" "), "decoded": decoded}
+
     async def _settings_write(self, payload, key, expected):
         async with self._command_lock:
             await self.ensure_connected()

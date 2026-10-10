@@ -374,6 +374,10 @@
           "name": "Kettle (config entry)"
         }
       }
+    },
+    "get_settings_snapshot": {
+      "name": "Read settings snapshot",
+      "description": "Read native/BLE settings for supervised testing. No setting or power command is sent. Contains clock/settings values, no network identifiers."
     }
   },
   "device_automation": {

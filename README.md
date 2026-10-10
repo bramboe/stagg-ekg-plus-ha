@@ -1,6 +1,6 @@
 # Fellow Stagg EKG Pro — Home Assistant
 
-Local integration for the **EKG Pro**, with legacy HTTP CLI, native HTTP and Bluetooth transports. Version 0.6.0b1 is an opt-in beta pending supervised hardware acceptance. Physical heater-stop, active-proxy operation and Apple HomeKit acceptance remain open; see docs/HARDWARE_ACCEPTANCE.md.
+Local integration for the **EKG Pro**, with legacy HTTP CLI, native HTTP and Bluetooth transports. Version 0.6.0b2 is an opt-in beta pending supervised hardware acceptance. Physical heater-stop, active-proxy operation and Apple HomeKit acceptance remain open; see docs/HARDWARE_ACCEPTANCE.md.
 
 The older **EKG+** is a different model and is not supported by this integration.
 
@@ -26,6 +26,10 @@ A usable legacy CLI takes precedence over native HTTP detection, preserving the 
 There is no guaranteed control/recovery path for a 1.2.24 kettle in this beta. BLE visibility alone does not prove protocol compatibility. Firmware upload/switching remains disabled on legacy as well as native/BLE: an earlier successful upload is evidence for that operation, but does not validate the complete safety and recovery/error-handling contract.
 
 **Native HTTP power control is not enabled.** Its normal on/off command has not been hardware validated. Firmware 1.2.26 needs BLE for power control on this branch. Hold, schedule, display language, altitude and other settings remain available on legacy CLI; they are unavailable on native/BLE until validated. Existing registry entities are retained.
+
+## Supervised beta testing
+
+0.6.0b2 adds the read-only `fellow_stagg.get_settings_snapshot` action for the agreed hardware acceptance process. It does **not** yet restore the missing extended BLE controls. See [the first test procedure](docs/SUPERVISED_TESTS.md); do not interpret this beta as complete feature parity. The existing 0.6.0b1 review fixes are included.
 
 ## Installation and configuration
 

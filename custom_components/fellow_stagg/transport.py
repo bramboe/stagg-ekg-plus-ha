@@ -130,6 +130,14 @@ class KettleTransport:
         """Compatibility alias; current_mode is unused, units never toggle heat."""
         return await self.async_set_units(session, unit)
 
+    async def async_get_settings_snapshot(self, session):
+        async with self._command_lock:
+            if self.ble and self.ble.fresh:
+                return await self.ble.async_get_settings_snapshot()
+            if self.http_backend == "native_http":
+                return await self.native.async_get_settings_snapshot(session)
+            raise UnsupportedCapability("Settings snapshots require connected BLE or detected native HTTP")
+
     async def async_get_partitions(self, session):
         return await self.legacy.async_get_partitions(session) if self.legacy else None
 

@@ -20,6 +20,14 @@ class NativeHttpClient:
             response.raise_for_status()
             return decode_settings(await response.read())
 
+    async def async_get_settings_snapshot(self, session):
+        """Read the settings record without dispatching any write."""
+        async with session.get(self.root + API, timeout=TIMEOUT, allow_redirects=False) as response:
+            response.raise_for_status()
+            raw = await response.read()
+        return {"backend": "native_http", "settings_hex": raw.hex(" "),
+                "decoded": decode_settings(raw)}
+
     async def async_poll(self, session, **kwargs):
         async with session.get(self.root + "temp", timeout=TIMEOUT, allow_redirects=False) as response:
             response.raise_for_status()

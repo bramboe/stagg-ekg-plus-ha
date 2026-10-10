@@ -132,3 +132,13 @@ install_firmware:
     entry_id:
       description: Optional config entry id (needed if multiple kettles)
       example: 1234567890abcdef
+
+get_settings_snapshot:
+  name: Read settings snapshot
+  description: Read the 17-byte native/BLE settings record for supervised testing. No setting or power command is sent. Requires an existing connection. The result includes clock/settings values, but no network identifiers.
+  fields:
+    entry_id:
+      name: Kettle configuration
+      description: Required when multiple kettles are configured.
+      selector:
+        text:

@@ -465,6 +465,22 @@ def _async_register_services(hass: HomeAssistant) -> None:
       raise HomeAssistantError("Multiple kettles configured; entry_id is required")
     return next(iter(entries.values()), None)
 
+  async def get_settings_snapshot_handler(call):
+    """Collect a read-only protocol record for supervised hardware acceptance."""
+    coord = _get_coordinator(call.data.get("entry_id"))
+    if coord is None:
+      raise HomeAssistantError("No matching kettle configuration is loaded")
+    try:
+      return await coord.kettle.async_get_settings_snapshot(coord.session)
+    except Exception as err:
+      raise HomeAssistantError("Settings snapshot failed; no write was sent") from err
+
+  hass.services.async_register(
+    DOMAIN, "get_settings_snapshot", get_settings_snapshot_handler,
+    vol.Schema({vol.Optional("entry_id"): str}),
+    supports_response=SupportsResponse.ONLY,
+  )
+
   async def send_cli_handler(call):
     command = (call.data.get("command") or "").strip()
     coord = _get_coordinator(call.data.get("entry_id"))

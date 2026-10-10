@@ -374,6 +374,10 @@
           "name": "Waterkoker (config-entry)"
         }
       }
+    },
+    "get_settings_snapshot": {
+      "name": "Instellingenmomentopname lezen",
+      "description": "Lees native/BLE-instellingen voor begeleide tests. Er wordt geen instelling of aan/uit-commando verstuurd. Bevat klok- en instellingswaarden, geen netwerkidentificatie."
     }
   },
   "device_automation": {
