@@ -41,6 +41,10 @@ class FellowStaggClockSyncSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordina
   _attr_translation_key = "sync_clock"
   _attr_should_poll = False
 
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_legacy
+
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.unique_prefix}_sync_clock"
@@ -74,6 +78,10 @@ class FellowStaggPreBoilSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinato
   _attr_icon = "mdi:water-boiler"
   _attr_entity_category = EntityCategory.CONFIG
 
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_legacy
+
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.unique_prefix}_pre_boil"
@@ -104,6 +112,10 @@ class FellowStaggChimeSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator]
   _attr_icon = "mdi:bell-ring"
   _attr_entity_category = EntityCategory.CONFIG
 
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_legacy
+
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.unique_prefix}_chime"
@@ -127,11 +139,9 @@ class FellowStaggChimeSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator]
 
 
 class FellowStaggRevertFirmwareUpdatesSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator], RestoreEntity, SwitchEntity):
-  """Pin the running OTA partition; if the kettle updates itself, switch it back.
+  """Retain the existing identity and pin preference for read-only monitoring.
 
-  The kettle can't be told to skip updates (its update URL is a signed setting), but an update
-  always lands in the partition it isn't running, so switching back keeps the pinned firmware.
-  The coordinator does the reverting (with a cooldown and a daily limit).
+  Automatic partition switching is disabled pending supervised validation.
   """
 
   _attr_has_entity_name = True
@@ -160,6 +170,7 @@ class FellowStaggRevertFirmwareUpdatesSwitch(CoordinatorEntity[FellowStaggDataUp
     pinned = self.coordinator.guard_partition
     slots = (self.coordinator.firmware or {}).get("slots") or {}
     return {
+      "mode": "monitor_only",
       "pinned_partition": pinned,
       "pinned_version": (slots.get(pinned) or {}).get("version") if pinned else None,
     }

@@ -38,6 +38,10 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
   _attr_has_entity_name = True
   _attr_translation_key = "update_schedule"
 
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_legacy
+
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.unique_prefix}_update_schedule"
@@ -81,7 +85,7 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
   @property
   def available(self) -> bool:
     """Only allow pressing when kettle is lifted (not on base)."""
-    if not super().available or not self.coordinator.data:
+    if not super().available or not self.coordinator.kettle.supports_legacy or not self.coordinator.data:
       return False
     return bool(self.coordinator.data.get("lifted"))
 
@@ -92,8 +96,8 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
     session = self.coordinator.session
 
     # Use latest state (same as binary_sensor.fellow_stagg_*_on_base)
-    await self.coordinator.async_request_refresh()
-    is_lifted = bool(self.coordinator.data and self.coordinator.data.get("lifted"))
+    fresh = await self.coordinator.async_fetch_state()
+    is_lifted = bool(fresh and fresh.get("lifted"))
 
     if not is_lifted:
       _LOGGER.info("Kettle is on base: playing error chime only (no bricky command).")

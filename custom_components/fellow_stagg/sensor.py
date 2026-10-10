@@ -36,7 +36,7 @@ def get_friendly_screen_name(data: dict[str, Any] | None) -> str | None:
     """Translate technical screen names to human-readable ones."""
     if not data: return None
     raw = data.get("screen_name")
-    if not raw: return "Unknown"
+    if not raw: return None
     
     raw_lower = raw.lower().replace(" ", "").replace(".png", "")
     
@@ -64,14 +64,16 @@ def get_hold_status(data: dict[str, Any] | None) -> str | None:
         if minutes:
             return f"Active ({minutes} min)"
         return "Active"
-    return "Off"
+    return "Off" if is_holding is not None else None
 
 
 def get_schedule_config(data: dict[str, Any] | None) -> str | None:
     """Return the actual schedule configuration: mode plus time and temp when set."""
     if not data:
         return None
-    mode = (data.get("schedule_mode") or "off").lower()
+    if data.get("schedule_mode") is None:
+        return None
+    mode = data["schedule_mode"].lower()
     if mode == "off":
         return "Off"
     sched_time = data.get("schedule_time")
@@ -117,7 +119,7 @@ def get_boil_point(data: dict[str, Any] | None) -> float | None:
 
 
 VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
-    "power": lambda data: "On" if data and data.get("power") else "Off",
+    "power": lambda data: None if not data or data.get("power") is None else ("On" if data["power"] else "Off"),
     "current_temp": get_current_temp,
     "hold": get_hold_status,
     "clock": lambda data: data.get("clock") if data else None,
@@ -134,6 +136,9 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
 def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
     # Order: main status first (no category), then diagnostic (entity_category=DIAGNOSTIC)
     return [
+        FellowStaggSensorEntityDescription(key="backend", translation_key="backend", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="device_state", translation_key="device_state", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="pwm", translation_key="pwm", entity_category=EntityCategory.DIAGNOSTIC, entity_registry_enabled_default=False),
         # Main – primary status
         FellowStaggSensorEntityDescription(key="current_temp", translation_key="current_temp", icon="mdi:thermometer", device_class=SensorDeviceClass.TEMPERATURE),
         FellowStaggSensorEntityDescription(key="brew_timer", translation_key="brew_timer", icon="mdi:timer-sand", device_class=SensorDeviceClass.DURATION, native_unit_of_measurement=UnitOfTime.SECONDS),
@@ -176,6 +181,9 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
 
     @property
     def native_value(self) -> str | None:
+        if self.entity_description.key in {"backend", "device_state", "pwm"}:
+            key = "mode" if self.entity_description.key == "device_state" else self.entity_description.key
+            return (self.coordinator.data or {}).get(key)
         # Device info sensors (from config, not from polled data)
         if self.entity_description.key == "wifi_address":
             return self.coordinator.wifi_address

@@ -11,7 +11,7 @@ from . import FellowStaggDataUpdateCoordinator
 from .const import DOMAIN
 
 # Network/identity details are not needed to debug parsing issues
-TO_REDACT = {"base_url", "ble_address", "wifi_address"}
+TO_REDACT = {"base_url", "ble_address", "wifi_address", "mac", "device_name", "ble_name", "ssid", "password", "pop", "serial_number"}
 
 
 async def async_get_config_entry_diagnostics(
@@ -21,13 +21,16 @@ async def async_get_config_entry_diagnostics(
     coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     data = dict(coordinator.data or {})
+    # Raw CLI output can contain SSIDs, addresses and signed update URLs.
+    data.pop("raw", None)
+    data.pop("firmware", None)
 
     return {
         "entry": {
             "version": entry.version,
             "source": entry.source,
             "data": async_redact_data(dict(entry.data), TO_REDACT),
-            "options": dict(entry.options),
+            "options": async_redact_data(dict(entry.options), TO_REDACT),
         },
         "coordinator": {
             "update_interval": (
@@ -36,6 +39,11 @@ async def async_get_config_entry_diagnostics(
                 else None
             ),
             "last_update_success": coordinator.last_update_success,
+            "connection_mode": coordinator.kettle.mode,
+            "backend": coordinator.kettle.backend,
+            "http_backend": coordinator.kettle.http_backend,
+            "ble_state_fresh": bool(coordinator.kettle.ble and coordinator.kettle.ble.fresh),
+            "ble_capabilities": sorted(coordinator.kettle.ble.capabilities) if coordinator.kettle.ble else [],
             "sync_clock_enabled": coordinator.sync_clock_enabled,
             "last_schedule_time": coordinator.last_schedule_time,
             "last_schedule_temp_c": coordinator.last_schedule_temp_c,

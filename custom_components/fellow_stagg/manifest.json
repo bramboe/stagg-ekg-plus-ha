@@ -1,6 +1,6 @@
 {
   "domain": "fellow_stagg",
-  "name": "Fellow Stagg EKG Pro (HTTP CLI)",
+  "name": "Fellow Stagg EKG Pro",
   "bluetooth": [
     {
       "local_name": "Stagg*",

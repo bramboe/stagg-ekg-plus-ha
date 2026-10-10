@@ -101,15 +101,17 @@ class FellowStaggClimate(
         return self.coordinator.max_temp
 
     @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         """Return True if the kettle is powered on."""
         if not self.coordinator.data:
-            return False
-        return bool(self.coordinator.data.get("power"))
+            return None
+        return self.coordinator.data.get("power")
 
     @property
-    def hvac_mode(self) -> HVACMode:
+    def hvac_mode(self) -> HVACMode | None:
         """Return current operation (Heat when on, Off when off)."""
+        if self.is_on is None:
+            return None
         return HVACMode.HEAT if self.is_on else HVACMode.OFF
 
     @property
@@ -118,7 +120,7 @@ class FellowStaggClimate(
         Return the current running action.
         HomeKit's HeaterCooler uses this to show 'Heating' vs 'Idle'.
         """
-        if not self.coordinator.data:
+        if not self.coordinator.data or self.is_on is None:
             return None
         
         # "mode" can be present but None (e.g. before the first successful poll),
@@ -235,8 +237,6 @@ class FellowStaggClimate(
         async with self._command_lock:
             await self.coordinator.kettle.async_set_power(self.coordinator.session, True)
             self.coordinator.notify_command_sent()
-            if self.coordinator.data:
-                self.coordinator.data["power"] = True
             self.async_write_ha_state()
             await asyncio.sleep(0.5)
             await self.coordinator.async_request_refresh()
@@ -246,8 +246,6 @@ class FellowStaggClimate(
         async with self._command_lock:
             await self.coordinator.kettle.async_set_power(self.coordinator.session, False)
             self.coordinator.notify_command_sent()
-            if self.coordinator.data:
-                self.coordinator.data["power"] = False
             self.async_write_ha_state()
             await asyncio.sleep(0.5)
             await self.coordinator.async_request_refresh()

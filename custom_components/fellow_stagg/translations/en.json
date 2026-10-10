@@ -3,10 +3,10 @@
     "flow_title": "Fellow Stagg ({base_url})",
     "step": {
       "user": {
-        "title": "Add Fellow Stagg kettle",
-        "description": "{message}",
+        "title": "Connection",
+        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi.",
         "data": {
-          "device_or_manual": "Discovered kettle"
+          "connection_mode": "Connection mode"
         }
       },
       "user_manual": {
@@ -72,6 +72,14 @@
       "dhcp_confirm": {
         "title": "Fellow Stagg discovered",
         "description": "Add the Fellow Stagg kettle at {base_url}?"
+      },
+      "transport_device": {
+        "title": "Connection",
+        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi.",
+        "data": {
+          "ble_address": "Bluetooth address",
+          "base_url": "Kettle URL"
+        }
       }
     },
     "error": {
@@ -84,7 +92,10 @@
       "set_config_failed": "The kettle did not accept the network details.",
       "wrong_password": "The kettle could not join the network: wrong password.",
       "network_not_found": "The kettle could not find that network. Check the name; it must be a 2.4 GHz network.",
-      "wifi_timeout": "The kettle did not get onto the network in time. Check the name and password and try again."
+      "wifi_timeout": "The kettle did not get onto the network in time. Check the name and password and try again.",
+      "active_proxy_required": "An active Bluetooth adapter or ESPHome Bluetooth Proxy must be able to reach the kettle.",
+      "ble_address_required": "Enter the kettle Bluetooth address.",
+      "wifi_url_required": "This mode needs a kettle Wi-Fi URL."
     },
     "abort": {
       "already_configured": "This kettle is already configured.",
@@ -109,7 +120,8 @@
           "polling": "Polling intervals",
           "switch_firmware": "Switch firmware",
           "upload_firmware": "Upload firmware (recovery)",
-          "wifi_setup": "Set up Wi-Fi (Bluetooth)"
+          "wifi_setup": "Set up Wi-Fi (Bluetooth)",
+          "connection": "Connection"
         }
       },
       "polling": {
@@ -144,6 +156,14 @@
           "ssid": "2.4 GHz network; the kettle has no 5 GHz radio.",
           "password": "Leave empty for an open network."
         }
+      },
+      "connection": {
+        "title": "Connection",
+        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi.",
+        "data": {
+          "connection_mode": "Connection mode",
+          "ble_address": "Bluetooth address"
+        }
       }
     },
     "progress": {
@@ -163,7 +183,10 @@
       "set_config_failed": "The kettle did not accept the network details.",
       "wrong_password": "The kettle could not join the network: wrong password.",
       "network_not_found": "The kettle could not find that network. Check the name; it must be a 2.4 GHz network.",
-      "wifi_timeout": "The kettle did not get onto the network in time. Check the name and password and try again."
+      "wifi_timeout": "The kettle did not get onto the network in time. Check the name and password and try again.",
+      "active_proxy_required": "An active Bluetooth adapter or ESPHome Bluetooth Proxy must be able to reach the kettle.",
+      "ble_address_required": "Enter the kettle Bluetooth address.",
+      "wifi_url_required": "This mode needs a kettle Wi-Fi URL."
     },
     "abort": {
       "no_other_firmware": "The kettle has no other valid firmware to switch to.",
@@ -234,6 +257,15 @@
       },
       "boil_point": {
         "name": "Boiling point"
+      },
+      "backend": {
+        "name": "Connection used"
+      },
+      "device_state": {
+        "name": "Device state"
+      },
+      "pwm": {
+        "name": "Internal PWM value"
       }
     },
     "binary_sensor": {
@@ -313,7 +345,7 @@
         "name": "Ready chime"
       },
       "revert_firmware_updates": {
-        "name": "Lock firmware"
+        "name": "Monitor firmware changes"
       }
     },
     "time": {
@@ -370,12 +402,12 @@
   },
   "issues": {
     "cli_muted": {
-      "title": "Kettle firmware {version} stopped sharing its data",
-      "description": "The kettle is running firmware {version}, which no longer returns any readings over Wi-Fi, so most of its entities show *unknown*. Commands still work.\n\nThe previous firmware ({other_version}) is still on the kettle. To go back:\n1. Block the kettle's internet access on your router (keep local Wi-Fi), or it will update itself again.\n2. Open the Fellow Stagg integration, choose **Configure**, then **Switch firmware**.\n\nOptionally turn on **Lock firmware** afterwards, so Home Assistant switches back if the kettle updates itself again."
+      "title": "No valid CLI data",
+      "description": "Firmware {version} does not return valid CLI data. Native HTTP is detected from valid responses; BLE is available for 1.2.26. This integration does not switch firmware automatically. The other partition reports {other_version}."
     },
     "firmware_staged": {
-      "title": "Firmware {staged} is waiting on the kettle",
-      "description": "The kettle runs {running}, but it has downloaded firmware {staged} into its other partition ({partition}). It may boot that version on its own at its next update cycle or reset.\n\nThe kettle downloads updates when it can reach the internet, and setting it up with the Fellow app also makes it download one. Firmware 1.2.24 stopped sharing data over Wi-Fi; later versions are untested with this integration.\n\nTo stay on {running}: block the kettle's internet access on your router (local Wi-Fi keeps working) and turn on **Lock firmware**. This message goes away once {staged} is no longer waiting, or once it is running."
+      "title": "Firmware {staged} is stored on the kettle",
+      "description": "The kettle runs {running}; partition {partition} contains {staged}, which may start after a restart. This integration monitors firmware changes and does not switch partitions automatically. Manage updates using the official device settings. Router controls can block internet access while retaining local Wi-Fi."
     }
   }
 }

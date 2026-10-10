@@ -48,6 +48,10 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
   _attr_options = MODE_OPTIONS
   _attr_should_poll = False
 
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_legacy
+
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.unique_prefix}_schedule_mode"
@@ -67,8 +71,6 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
     self.coordinator.last_schedule_mode = option
     from datetime import datetime
     self.coordinator._last_mode_change = datetime.now()
-    if self.coordinator.data is not None:
-        self.coordinator.data["schedule_mode"] = option
     self.async_write_ha_state()
 
 
@@ -80,6 +82,10 @@ class FellowStaggClockModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoordina
   _attr_options = CLOCK_MODE_OPTIONS
   _attr_should_poll = False
   _attr_entity_category = EntityCategory.CONFIG
+
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_legacy
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
@@ -150,6 +156,10 @@ class FellowStaggHoldDurationSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
   _attr_should_poll = False
   _attr_entity_category = EntityCategory.CONFIG
 
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_legacy
+
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.unique_prefix}_hold_duration_select"
@@ -184,6 +194,10 @@ class FellowStaggLanguageSelect(CoordinatorEntity[FellowStaggDataUpdateCoordinat
   _attr_icon = "mdi:translate"
   _attr_should_poll = False
   _attr_entity_category = EntityCategory.CONFIG
+
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_legacy
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)

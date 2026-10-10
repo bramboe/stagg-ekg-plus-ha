@@ -3,10 +3,10 @@
     "flow_title": "Fellow Stagg ({base_url})",
     "step": {
       "user": {
-        "title": "Fellow Stagg-waterkoker toevoegen",
-        "description": "{message}",
+        "title": "Verbinding",
+        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle.",
         "data": {
-          "device_or_manual": "Gevonden waterkoker"
+          "connection_mode": "Verbindingsmodus"
         }
       },
       "user_manual": {
@@ -72,6 +72,14 @@
       "dhcp_confirm": {
         "title": "Fellow Stagg gevonden",
         "description": "De Fellow Stagg-waterkoker op {base_url} toevoegen?"
+      },
+      "transport_device": {
+        "title": "Verbinding",
+        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle.",
+        "data": {
+          "ble_address": "Bluetooth-adres",
+          "base_url": "Kettle-URL"
+        }
       }
     },
     "error": {
@@ -84,7 +92,10 @@
       "set_config_failed": "De waterkoker accepteerde de netwerkgegevens niet.",
       "wrong_password": "De waterkoker kon niet met het netwerk verbinden: verkeerd wachtwoord.",
       "network_not_found": "De waterkoker kon dat netwerk niet vinden. Controleer de naam; het moet een 2,4 GHz-netwerk zijn.",
-      "wifi_timeout": "De waterkoker kwam niet op tijd op het netwerk. Controleer naam en wachtwoord en probeer het opnieuw."
+      "wifi_timeout": "De waterkoker kwam niet op tijd op het netwerk. Controleer naam en wachtwoord en probeer het opnieuw.",
+      "active_proxy_required": "Een actieve Bluetooth-adapter of ESPHome Bluetooth Proxy moet de kettle kunnen bereiken.",
+      "ble_address_required": "Vul het Bluetooth-adres van de kettle in.",
+      "wifi_url_required": "Deze modus vereist een wifi-URL van de kettle."
     },
     "abort": {
       "already_configured": "Deze waterkoker is al geconfigureerd.",
@@ -109,7 +120,8 @@
           "polling": "Pollingintervallen",
           "switch_firmware": "Firmware wisselen",
           "upload_firmware": "Firmware uploaden (herstel)",
-          "wifi_setup": "Wifi instellen (Bluetooth)"
+          "wifi_setup": "Wifi instellen (Bluetooth)",
+          "connection": "Verbinding"
         }
       },
       "polling": {
@@ -144,6 +156,14 @@
           "ssid": "2,4 GHz-netwerk; de waterkoker heeft geen 5 GHz.",
           "password": "Leeg laten voor een open netwerk."
         }
+      },
+      "connection": {
+        "title": "Verbinding",
+        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle.",
+        "data": {
+          "connection_mode": "Verbindingsmodus",
+          "ble_address": "Bluetooth-adres"
+        }
       }
     },
     "progress": {
@@ -163,7 +183,10 @@
       "set_config_failed": "De waterkoker accepteerde de netwerkgegevens niet.",
       "wrong_password": "De waterkoker kon niet met het netwerk verbinden: verkeerd wachtwoord.",
       "network_not_found": "De waterkoker kon dat netwerk niet vinden. Controleer de naam; het moet een 2,4 GHz-netwerk zijn.",
-      "wifi_timeout": "De waterkoker kwam niet op tijd op het netwerk. Controleer naam en wachtwoord en probeer het opnieuw."
+      "wifi_timeout": "De waterkoker kwam niet op tijd op het netwerk. Controleer naam en wachtwoord en probeer het opnieuw.",
+      "active_proxy_required": "Een actieve Bluetooth-adapter of ESPHome Bluetooth Proxy moet de kettle kunnen bereiken.",
+      "ble_address_required": "Vul het Bluetooth-adres van de kettle in.",
+      "wifi_url_required": "Deze modus vereist een wifi-URL van de kettle."
     },
     "abort": {
       "no_other_firmware": "De waterkoker heeft geen andere geldige firmware om naar over te schakelen.",
@@ -234,6 +257,15 @@
       },
       "boil_point": {
         "name": "Kookpunt"
+      },
+      "backend": {
+        "name": "Gebruikte verbinding"
+      },
+      "device_state": {
+        "name": "Toestelstatus"
+      },
+      "pwm": {
+        "name": "Interne PWM-waarde"
       }
     },
     "binary_sensor": {
@@ -313,7 +345,7 @@
         "name": "Pieptoon bij gereed"
       },
       "revert_firmware_updates": {
-        "name": "Firmware vergrendelen"
+        "name": "Firmwarewijzigingen volgen"
       }
     },
     "time": {
@@ -370,12 +402,12 @@
   },
   "issues": {
     "cli_muted": {
-      "title": "Waterkoker-firmware {version} deelt geen gegevens meer",
-      "description": "De waterkoker draait firmware {version}, die via wifi geen metingen meer teruggeeft, dus de meeste entiteiten staan op *onbekend*. Opdrachten werken nog wel.\n\nDe vorige firmware ({other_version}) staat nog op de waterkoker. Zo ga je terug:\n1. Blokkeer de internettoegang van de waterkoker in je router (lokale wifi blijft werken), anders werkt hij zichzelf opnieuw bij.\n2. Open de Fellow Stagg-integratie, kies **Configureren** en dan **Firmware wisselen**.\n\nZet daarna eventueel **Firmware vergrendelen** aan, zodat Home Assistant terugschakelt als de waterkoker zichzelf opnieuw bijwerkt."
+      "title": "Geen geldige CLI-gegevens",
+      "description": "Firmware {version} geeft geen geldige CLI-gegevens. Native HTTP wordt herkend aan geldige antwoorden; BLE is beschikbaar voor 1.2.26. De integratie wisselt firmware niet automatisch. De andere partitie meldt {other_version}."
     },
     "firmware_staged": {
-      "title": "Firmware {staged} staat klaar op de waterkoker",
-      "description": "De waterkoker draait {running}, maar heeft firmware {staged} gedownload in zijn andere partitie ({partition}). Hij kan die versie zelf opstarten bij zijn volgende updatecyclus of een reset.\n\nDe waterkoker downloadt updates zodra hij internet heeft, en instellen via de Fellow-app laat hem er ook een downloaden. Firmware 1.2.24 deelde geen gegevens meer via wifi; latere versies zijn niet getest met deze integratie.\n\nOm op {running} te blijven: blokkeer het internet van de waterkoker in je router (lokale wifi blijft werken) en zet **Firmware vergrendelen** aan. Deze melding verdwijnt zodra {staged} niet meer klaarstaat of draait."
+      "title": "Firmware {staged} staat op de kettle",
+      "description": "De kettle gebruikt {running}; partitie {partition} bevat {staged}. Die versie kan na een herstart actief worden. Deze integratie volgt firmwarewijzigingen en wisselt geen partities automatisch. Beheer updates via de officiële toestelinstellingen. Je kunt internettoegang op de router blokkeren en lokale wifi behouden."
     }
   }
 }

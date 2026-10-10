@@ -45,6 +45,10 @@ class FellowStaggAltitude(CoordinatorEntity[FellowStaggDataUpdateCoordinator], N
   _attr_native_unit_of_measurement = "m"
   _attr_entity_category = EntityCategory.CONFIG
 
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_legacy
+
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.unique_prefix}_altitude"
@@ -67,6 +71,10 @@ class FellowStaggScheduleTemperature(RestoreNumber):
   _attr_translation_key = "schedule_temperature"
   _attr_mode = NumberMode.BOX
   _attr_native_step = 1.0
+
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_legacy
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__()

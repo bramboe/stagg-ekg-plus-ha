@@ -29,7 +29,6 @@ from homeassistant.config_entries import SOURCE_IGNORE, SOURCE_ZEROCONF
 from homeassistant.components import bluetooth, network
 from homeassistant.components.bluetooth import (
     async_discovered_service_info,
-    BluetoothServiceInfoBleak,
 )
 from homeassistant.components import persistent_notification
 from homeassistant.core import callback
@@ -61,7 +60,8 @@ from .ble_provisioning import (
     async_provision_wifi,
     async_read_kettle_info,
 )
-from .kettle_http import FirmwareImageError, parse_esp_app_image
+from .kettle_http import FirmwareImageError, parse_esp_app_image, KettleHttpClient
+from .native_http import NativeHttpClient
 
 # BLE local_name prefixes that identify a Stagg kettle (must match manifest bluetooth matchers)
 # EKG is the canonical prefix for Fellow Stagg EKG Pro; name always starts with EKG
@@ -180,14 +180,18 @@ def _looks_like_kettle_cli(body: str) -> bool:
 
 
 async def _probe_kettle(session: Any, base_url: str) -> bool:
-    """GET base_url/cli?cmd=state and return True if response is our kettle."""
-    url = f"{base_url.rstrip('/')}{CLI_PROBE_PATH}?cmd={CLI_PROBE_CMD}"
+    """Detect native HTTP or legacy CLI using read-only probes."""
     try:
-        async with session.get(url, timeout=CLI_PROBE_TIMEOUT) as resp:
-            if resp.status != 200:
-                return False
-            text = await resp.text()
-            return _looks_like_kettle_cli(text)
+        client = KettleHttpClient(base_url)
+        data = await client.async_poll(session)
+        if data.get("mode") and not data.get("cli_muted"):
+            return True
+    except Exception:
+        pass
+    try:
+        client = KettleHttpClient(base_url)
+        await NativeHttpClient(client._root_url).async_poll(session)
+        return True
     except Exception:
         return False
 
@@ -591,13 +595,27 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
         coordinator = self._coordinator()
         if coordinator is None:
             return await self.async_step_polling(user_input)
-        menu = ["polling"]
-        if coordinator.firmware_switch_target() is not None:
-            menu.append("switch_firmware")
-        menu.append("upload_firmware")
-        if _find_ble_address(self.hass, self._entry):
+        menu = ["connection", "polling"]
+        mode = self._entry.options.get("connection_mode", self._entry.data.get("connection_mode", "wifi"))
+        if mode != "ble" and _find_ble_address(self.hass, self._entry):
             menu.append("wifi_setup")
         return self.async_show_menu(step_id="init", menu_options=menu)
+
+    async def async_step_connection(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            mode = user_input["connection_mode"]
+            address = (user_input.get("ble_address") or "").strip()
+            if mode in ("ble", "auto") and not address:
+                errors["base"] = "ble_address_required"
+            elif mode != "ble" and not self._entry.data.get("base_url"):
+                errors["base"] = "wifi_url_required"
+            else:
+                return self.async_create_entry(title="", data={**self._entry.options, **user_input})
+        return self.async_show_form(step_id="connection", errors=errors, data_schema=vol.Schema({
+            vol.Required("connection_mode", default=self._entry.options.get("connection_mode", self._entry.data.get("connection_mode", "wifi"))): vol.In(["wifi", "ble", "auto"]),
+            vol.Optional("ble_address", default=self._entry.options.get("ble_address", self._entry.data.get("ble_address", ""))): str,
+        }))
 
     async def async_step_wifi_setup(
         self, user_input: dict[str, Any] | None = None
@@ -626,7 +644,7 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
     ) -> FlowResult:
         """Polling intervals."""
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            return self.async_create_entry(title="", data={**self._entry.options, **user_input})
         return self.async_show_form(
             step_id="polling",
             data_schema=_options_schema(self._entry),
@@ -1026,203 +1044,17 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
             description_placeholders={"base_url": base_url},
         )
 
-    async def async_step_bluetooth(
-        self, discovery_info: BluetoothServiceInfoBleak | dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle BLE discovery: Stagg kettle found; try to get WiFi URL, then ask user to confirm or enter URL."""
-        # Form submit: user clicked Add (dict without address, or None when we already have unique_id)
-        is_form_submit = discovery_info is None or (
-            isinstance(discovery_info, dict) and "address" not in discovery_info
-        )
-        if is_form_submit:
-            user_input = discovery_info if isinstance(discovery_info, dict) else {}
-            suggested_url = self.context.get("ble_suggested_url") or (
-                self.unique_id if self.unique_id and str(self.unique_id).startswith("http") else None
-            )
-            if suggested_url:
-                data: dict[str, Any] = {"base_url": suggested_url}
-                data.update(self._ble_entry_data())
-                return self.async_create_entry(
-                    title=f"Fellow Stagg ({suggested_url})",
-                    data=data,
-                )
-            base_url = (user_input.get("base_url") or "").strip()
-            if not base_url:
-                return self.async_show_form(
-                    step_id="bluetooth",
-                    data_schema=_bluetooth_schema("", user_input.get("base_url", "")),
-                    errors={"base_url": "required"},
-                    description_placeholders={
-                        "name": self.context.get("ble_name", "Stagg kettle"),
-                        "hint": "Find the IP in your router or on the kettle's WiFi settings, then enter http://IP",
-                    },
-                )
-            session = async_get_clientsession(self.hass)
-            if not await _probe_kettle(session, base_url):
-                return self.async_show_form(
-                    step_id="bluetooth",
-                    data_schema=_bluetooth_schema("", base_url),
-                    errors={"base_url": "not_fellow_stagg"},
-                    description_placeholders={
-                        "name": self.context.get("ble_name", "Stagg kettle"),
-                        "hint": "Find the IP in your router or on the kettle's WiFi settings, then enter http://IP",
-                    },
-                )
-            await self.async_set_unique_id(base_url)
-            # If this base_url is already configured, save BLE address on that entry and abort (no duplicate)
-            for entry in self.hass.config_entries.async_entries(DOMAIN):
-                if entry.unique_id == base_url and self.context.get("ble_address"):
-                    self.hass.config_entries.async_update_entry(
-                        entry, data={**entry.data, "ble_address": self.context["ble_address"]}
-                    )
+    async def async_step_bluetooth(self, discovery_info=None):
+        if discovery_info is not None:
+            address = discovery_info.get("address") if isinstance(discovery_info, dict) else discovery_info.address
+            name = discovery_info.get("name") if isinstance(discovery_info, dict) else discovery_info.name
+            if not address or not _is_stagg_ble_device(name):
+                return self.async_abort(reason="invalid_discovery_info")
+            self.context["ble_address"] = address
+            for entry in self._async_current_entries():
+                if _normalize_ble_address(entry.options.get("ble_address") or entry.data.get("ble_address")) == _normalize_ble_address(address):
                     return self.async_abort(reason="already_configured")
-            self._abort_if_unique_id_configured()
-            data = {"base_url": base_url}
-            data.update(self._ble_entry_data())
-            return self.async_create_entry(
-                title=f"Fellow Stagg ({base_url})",
-                data=data,
-            )
-
-        # Initial discovery: get address and name (dict uses .get, object uses getattr)
-        address = (
-            discovery_info.get("address", "") if isinstance(discovery_info, dict)
-            else (getattr(discovery_info, "address", None) or "")
-        )
-        if not address:
-            return self.async_abort(reason="invalid_discovery_info")
-        # HA may pass name as "name" or "local_name"; EKG kettle name always starts with EKG
-        def _get_name() -> str:
-            if isinstance(discovery_info, dict):
-                return (discovery_info.get("name") or discovery_info.get("local_name") or "").strip() or ""
-            return (getattr(discovery_info, "name", None) or getattr(discovery_info, "local_name", None) or "").strip() or ""
-        name = _get_name()
-        connectable = (
-            discovery_info.get("connectable", True) if isinstance(discovery_info, dict)
-            else (getattr(discovery_info, "connectable", True) if discovery_info is not None else True)
-        )
-        # Accept if name starts with EKG/Stagg/Fellow, or if matched by our service UUID (kettle advertises EKG*)
-        # We "loosen up" the check by trusting the manifest.json matchers (Stagg*, EKG*, Fellow*, or UUIDs).
-        # if not _is_stagg_ble_device(name) and not _has_stagg_service(discovery_info):
-        #     return self.async_abort(reason="not_stagg_kettle")
-        # Skip discovery if this BLE device is already added (avoid "discovered again" notification)
-        normalized_addr = _normalize_ble_address(address)
-        entries = self.hass.config_entries.async_entries(DOMAIN)
-        if normalized_addr:
-            for entry in entries:
-                if _normalize_ble_address(entry.data.get("ble_address")) == normalized_addr:
-                    # Dismiss any old discovery notification; kettle is already added
-                    persistent_notification.async_dismiss(
-                        self.hass, f"fellow_stagg_discovery_ble_{normalized_addr}"
-                    )
-                    return self.async_abort(reason="already_configured")
-        name = name or "Stagg kettle"
-        self.context["ble_name"] = name
-        self.context["ble_address"] = address
-        self.context["ble_connectable"] = connectable
-
-        # Try to find IP in manufacturer / advertisement data (no connection)
-        suggested_url: str | None = None
-        manufacturer_data = (
-            discovery_info.get("manufacturer_data", {}) if isinstance(discovery_info, dict)
-            else (getattr(discovery_info, "manufacturer_data", None) or {})
-        )
-        for _mid, data in manufacturer_data.items():
-            if isinstance(data, (bytes, bytearray)):
-                ip = _extract_ip_from_data(bytes(data))
-                if ip:
-                    suggested_url = f"http://{ip}"
-                    break
-
-        # If not in advertisement, try connecting and reading GATT characteristics
-        if not suggested_url and address and connectable:
-            suggested_url = await self._async_ble_suggested_url(address)
-        elif not suggested_url and address and not connectable:
-            _LOGGER.debug(
-                "Fellow Stagg: BLE discovery from non-connectable controller; skip GATT read for %s",
-                address,
-            )
-
-        self.context["ble_suggested_url"] = suggested_url or None
-
-        # Set unique_id so the discovery card shows the Ignore button (frontend requires it)
-        if suggested_url:
-            await self.async_set_unique_id(suggested_url)
-            # If this URL is already configured, save BLE address and abort without showing notification
-            suggested_norm = _norm_url(suggested_url)
-            for entry in self.hass.config_entries.async_entries(DOMAIN):
-                if _norm_url(entry.data.get("base_url")) == suggested_norm:
-                    self.hass.config_entries.async_update_entry(
-                        entry, data={**entry.data, "ble_address": address, "ble_name": name}
-                    )
-                    _nid = f"fellow_stagg_discovery_ble_{normalized_addr}" if normalized_addr else f"fellow_stagg_discovery_ble_{address}"
-                    persistent_notification.async_dismiss(self.hass, _nid)
-                    return self.async_abort(reason="already_configured")
-            self._abort_if_unique_id_configured(updates={"base_url": suggested_url})
-            self._set_confirm_only()
-            # One notification per kettle (by BLE MAC address - the unique differentiator)
-            _ble_notification_id = f"fellow_stagg_discovery_ble_{normalized_addr}" if normalized_addr else f"fellow_stagg_discovery_ble_{address}"
-            persistent_notification.async_create(
-                self.hass,
-                f"A Fellow Stagg kettle (**{name}**) was discovered at **{suggested_url}**.\n\n"
-                "[**Add or ignore in Discovered**](/config/integrations)",
-                title="Fellow Stagg kettle discovered",
-                notification_id=_ble_notification_id,
-            )
-            return self.async_show_form(
-                step_id="bluetooth",
-                data_schema=vol.Schema({}),
-                description_placeholders={
-                    "name": name,
-                    "hint": "Find the IP in your router or on the kettle's WiFi settings, then enter http://IP",
-                },
-            )
-        # No URL yet: if exactly one entry (not ignored) has no BLE address, assume same kettle and link it (no notification)
-        entries_without_ble = [
-            e for e in self.hass.config_entries.async_entries(DOMAIN)
-            if e.source != SOURCE_IGNORE and not (e.data.get("ble_address") or "").strip()
-        ]
-        if normalized_addr and len(entries_without_ble) == 1:
-            entry = entries_without_ble[0]
-            self.hass.config_entries.async_update_entry(
-                entry, data={**entry.data, "ble_address": address, "ble_name": name}
-            )
-            _nid = f"fellow_stagg_discovery_ble_{normalized_addr}"
-            persistent_notification.async_dismiss(self.hass, _nid)
-            return self.async_abort(reason="already_configured")
-
-        # Single kettle already configured: treat this BLE device as that kettle (avoid repeated "discovered" notifications)
-        all_entries = [
-            e for e in self.hass.config_entries.async_entries(DOMAIN)
-            if e.source != SOURCE_IGNORE
-        ]
-        if len(all_entries) == 1:
-            entry = all_entries[0]
-            self.hass.config_entries.async_update_entry(
-                entry, data={**entry.data, "ble_address": address, "ble_name": name}
-            )
-            _nid = f"fellow_stagg_discovery_ble_{normalized_addr}" if normalized_addr else f"fellow_stagg_discovery_ble_{address}"
-            persistent_notification.async_dismiss(self.hass, _nid)
-            return self.async_abort(reason="already_configured")
-
-        # No URL yet: use BLE address as unique_id so Ignore button still appears
-        await self.async_set_unique_id(f"ble:{address}")
-        self._abort_if_unique_id_configured()
-        # One notification per kettle (by BLE MAC address - the unique differentiator)
-        _ble_notification_id = f"fellow_stagg_discovery_ble_{normalized_addr}" if normalized_addr else f"fellow_stagg_discovery_ble_{address}"
-        persistent_notification.async_create(
-            self.hass,
-            f"A Fellow Stagg kettle (**{name}**) was discovered.\n\n"
-            "[**Add or ignore in Discovered**](/config/integrations)",
-            title="Fellow Stagg kettle discovered",
-            notification_id=_ble_notification_id,
-        )
-        # No IP: the kettle is probably not on Wi-Fi yet, so offer setting it up over Bluetooth
-        return self.async_show_menu(
-            step_id="bluetooth_menu",
-            menu_options=["wifi_setup", "bluetooth_configure"],
-            description_placeholders={"name": name},
-        )
+        return await self.async_step_user()
 
     async def async_step_bluetooth_configure(
         self, user_input: dict[str, Any] | str | None = None
@@ -1274,23 +1106,48 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
             },
         )
 
-    async def async_step_user(
+    async def async_step_user(self, user_input=None):
+        if user_input is not None:
+            self.context["connection_mode"] = user_input["connection_mode"]
+            if user_input["connection_mode"] == "wifi":
+                return await self.async_step_user_manual()
+            return await self.async_step_transport_device()
+        return self.async_show_form(step_id="user", data_schema=vol.Schema({
+            vol.Required("connection_mode", default="auto"): vol.In(["auto", "wifi", "ble"]),
+        }))
+
+    async def async_step_transport_device(self, user_input=None):
+        mode = self.context.get("connection_mode", "auto")
+        errors = {}
+        if user_input is not None:
+            address = user_input["ble_address"].strip()
+            url = (user_input.get("base_url") or "").strip()
+            device = bluetooth.async_ble_device_from_address(self.hass, address, connectable=True)
+            if device is None:
+                errors["base"] = "active_proxy_required"
+            elif mode == "auto" and not await _probe_kettle(async_get_clientsession(self.hass), url):
+                errors["base"] = "cannot_connect"
+            else:
+                await self.async_set_unique_id("ble:" + _normalize_ble_address(address))
+                self._abort_if_unique_id_configured()
+                for entry in self._async_current_entries():
+                    same_address = _normalize_ble_address(entry.options.get("ble_address") or entry.data.get("ble_address")) == _normalize_ble_address(address)
+                    same_url = bool(url) and _norm_url(entry.data.get("base_url")) == _norm_url(url)
+                    if same_address or same_url:
+                        return self.async_abort(reason="already_configured")
+                data = {"connection_mode": mode, "ble_address": address}
+                if mode != "ble":
+                    data["base_url"] = url
+                return self.async_create_entry(title="Fellow Stagg", data=data)
+        schema = {vol.Required("ble_address", default=self.context.get("ble_address", "")): str}
+        if mode == "auto":
+            schema[vol.Required("base_url")] = str
+        return self.async_show_form(step_id="transport_device", data_schema=vol.Schema(schema), errors=errors)
+
+    async def async_step_discovery_menu(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step: pick a discovered BLE device or enter URL manually."""
-        # Kick off a background network discovery scan so devices can appear in Discovered
-        # even if BLE discovery does not find the kettle.
-        if not self.context.get("background_scan_started"):
-            self.context["background_scan_started"] = True
-
-            async def _bg_scan() -> None:
-                try:
-                    await trigger_network_discovery(self.hass)
-                except Exception as err:
-                    _LOGGER.debug("Fellow Stagg: background network scan failed: %s", err)
-
-            self.hass.async_create_task(_bg_scan())
-
         # Build list of discovered Stagg/EKG/Fellow BLE devices (name always starts with EKG for this kettle)
         discovered: dict[str, str] = {}
         for info in async_discovered_service_info(self.hass):

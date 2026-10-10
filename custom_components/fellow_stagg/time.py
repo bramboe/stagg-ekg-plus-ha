@@ -36,6 +36,10 @@ class FellowStaggScheduleTimeEntity(
   _attr_icon = "mdi:clock-edit"
   _attr_should_poll = False
 
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_legacy
+
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.unique_prefix}_schedule_time"
@@ -59,8 +63,4 @@ class FellowStaggScheduleTimeEntity(
       hour,
       minute,
     )
-    if self.coordinator.data is not None:
-      self.coordinator.data["schedule_time"] = {"hour": hour, "minute": minute}
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
-    if self.coordinator.data is not None:
-      self.coordinator.async_set_updated_data(self.coordinator.data)
