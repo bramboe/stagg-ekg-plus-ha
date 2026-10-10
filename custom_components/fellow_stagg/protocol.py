@@ -34,6 +34,10 @@ def decode_settings(raw: bytes) -> dict:
     if not 40 <= temp <= 100:
         raise ProtocolError("Setpoint out of range")
     data = {"target_temp": temp, "units": "C" if mask & 0x200 else "F", "raw_units": "C" if mask & 0x200 else "F"}
+    if mask & 1:
+        altitude = int.from_bytes(raw[2:4], "little")
+        meters = (altitude & 0x7fff) * (1 if altitude & 0x8000 else 0.3048)
+        data["altitude_m"] = meters if 0 <= meters <= 3000 else None
     for key, (selected, offset, allowed) in EXTENDED_FIELDS.items():
         if mask & selected:
             data[key] = raw[offset] if raw[offset] in allowed else None
@@ -106,7 +110,11 @@ EXTENDED_FIELDS = {
 def preference_payload(key, value):
     """Select only a physically observed B5 preference, preserving other fields."""
     raw = bytearray(17)
-    if key == "boil":
+    if key == "altitude_m":
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 3000 or value % 30:
+            raise ValueError("Altitude must be 0–3000 meters in steps of 30")
+        struct.pack_into("<HH", raw, 0, 1, 0x8000 | int(value))
+    elif key == "boil":
         if not isinstance(value, bool):
             raise ValueError("Pre-boil must be boolean")
         struct.pack_into("<H", raw, 0, 0x400 | (0x800 if value else 0))
@@ -124,6 +132,9 @@ class PreferenceControls:
 
     async def _preference(self, session, key, value):
         raise NotImplementedError
+
+    async def async_set_altitude(self, session, meters):
+        await self._preference(session, "altitude_m", meters)
 
     async def async_set_clock_mode(self, session, mode):
         await self._preference(session, "clock_mode", int(mode))

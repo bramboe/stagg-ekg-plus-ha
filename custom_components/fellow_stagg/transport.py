@@ -44,6 +44,16 @@ class KettleTransport:
             return await self.__getattr__(method)(session, *args)
         return await self._settings(method, session, *args)
 
+    @property
+    def supports_altitude(self):
+        return self.supports_preferences
+
+    async def async_set_altitude(self, session, meters):
+        # Preserve the established CLI path and its accepted values on legacy firmware.
+        if self.supports_legacy:
+            return await self.__getattr__("async_set_altitude")(session, meters)
+        return await self._settings("async_set_altitude", session, meters)
+
     async def async_set_clock_mode(self, session, mode):
         return await self._preference("async_set_clock_mode", session, mode)
 

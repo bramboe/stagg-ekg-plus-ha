@@ -42,13 +42,16 @@ class FellowStaggAltitude(CoordinatorEntity[FellowStaggDataUpdateCoordinator], N
   _attr_icon = "mdi:image-filter-hdr"
   _attr_native_min_value = MIN_ALTITUDE_M
   _attr_native_max_value = MAX_ALTITUDE_M
-  _attr_native_step = 10
   _attr_native_unit_of_measurement = "m"
   _attr_entity_category = EntityCategory.CONFIG
 
   @property
   def available(self) -> bool:
-    return super().available and self.coordinator.kettle.supports_legacy
+    return super().available and self.coordinator.kettle.supports_altitude
+
+  @property
+  def native_step(self) -> float:
+    return 10 if self.coordinator.kettle.supports_legacy else 30
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)

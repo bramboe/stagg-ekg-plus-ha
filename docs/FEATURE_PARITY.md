@@ -29,3 +29,7 @@ The dry-boil status had a false affirmative: a non-NoWater state became “Water
 ## Update in 0.6.0b3
 
 The table above records the pre-b3 reassessment. Clock display, hold duration, language, pre-boil and chime are now implemented on native HTTP/BLE using observed read fields and statically traced selective write dispatch. New chime-level number provides 0–10, keeping the original switch identity (on=level 1, off=0). Physical writes require the next supervised tests. Clock sync, schedule, altitude, Bricky and missing telemetry remain open on native/BLE; firmware mutation remains intentionally disabled. This is still not full original feature parity.
+
+## Update in 0.6.0b5
+
+Altitude is now decoded and controllable via native HTTP/BLE using a selective B5 write with verified readback. Physical reads for 0/120/0m are confirmed on 1.2.26 C; integration write acceptance is pending docs/ALTITUDE_TEST.md. Original altitude identity and legacy CLI behavior remain. New native/BLE controls use the physically reported 30m menu steps. Schedule once/daily remains unsupported: B5 omits Repeat_sched, and the current kettle's CLI returns only its form. This release does not claim complete feature parity.

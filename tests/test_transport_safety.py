@@ -561,6 +561,8 @@ def test_user_hardware_settings_captures(hex_frame, key, value):
 
 
 @pytest.mark.parametrize("method,value,payload_hex,result_hex", [
+    ("async_set_altitude", 120, "01 00 78 80 00 00 00 00 00 00 00 00 00 00 00 00 00", "ff 17 78 80 50 80 c1 80 00 00 38 0f 01 1e 00 00 af"),
+    ("async_set_altitude", 0, "01 00 00 80 00 00 00 00 00 00 00 00 00 00 00 00 00", "ff 17 00 80 51 80 c1 80 00 00 39 0f 01 1e 00 00 b1"),
     ("async_set_clock_mode", 2, "20 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 00", "f7 17 00 00 a4 80 c0 80 00 00 24 0c 02 1e 00 00 54"),
     ("async_set_hold_duration", 15, "40 00 00 00 00 00 00 00 00 00 00 00 00 0f 00 00 00", "f7 17 00 00 a4 80 c0 80 00 00 24 0c 01 0f 00 00 54"),
     ("async_set_chime_level", 10, "80 00 00 00 00 00 00 00 00 00 00 00 00 00 0a 00 00", "f7 17 00 00 a4 80 c0 80 00 00 24 0c 01 1e 0a 00 54"),
@@ -663,4 +665,47 @@ def test_live_trace_records_reads_and_notifications_without_write_or_reconnect()
             await transport.async_start_ble_trace(10)
         await transport.async_close()
         assert not ble._trace.events
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("hex_frame,expected", [
+    ("ff 17 78 80 50 80 c1 80 00 00 38 0f 01 1e 00 00 af", 120),
+    ("ff 17 00 80 51 80 c1 80 00 00 39 0f 01 1e 00 00 b1", 0),
+    ("f7 17 e8 03 64 80 c0 80 00 00 1b 0a 01 1e 00 00 39", 304.8),
+])
+def test_altitude_hardware_records_and_feet_conversion(hex_frame, expected):
+    assert decode_settings(bytes.fromhex(hex_frame))["altitude_m"] == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("value", [True, "120", -30, 100, 3001, float("nan"), float("inf")])
+def test_invalid_altitude_never_dispatches(value):
+    async def run():
+        client = NativeHttpClient("http://kettle/")
+        client._write = AsyncMock()
+        with pytest.raises(ValueError):
+            await client.async_set_altitude(None, value)
+        client._write.assert_not_awaited()
+    asyncio.run(run())
+
+
+def test_altitude_disconnect_is_uncertain_and_never_falls_back():
+    async def run():
+        fake = FakeBle()
+        ble = make_ble(fake)
+        await ble.async_poll()
+        original = fake.write_gatt_char
+        async def write(char, payload, response=True):
+            await original(char, payload, response)
+            if char == B5:
+                await fake.disconnect()
+        fake.write_gatt_char = write
+        transport = KettleTransport("auto", "http://kettle", ble=ble)
+        transport.http_backend = "native_http"
+        transport.native.async_set_altitude = AsyncMock()
+        before = len(fake.writes)
+        with pytest.raises(CommandUncertain):
+            await transport.async_set_altitude(None, 120)
+        assert fake.writes[before:] == [(B5, bytes.fromhex("01 00 78 80") + bytes(13))]
+        transport.native.async_set_altitude.assert_not_awaited()
+        await transport.async_close()
     asyncio.run(run())

@@ -305,3 +305,31 @@ def test_extended_native_controls_keep_ids_and_use_observed_values(tmp_path):
         assert coordinator.data["clock_mode"] == 2
         await hass.async_stop()
     asyncio.run(run())
+
+
+def test_altitude_keeps_identity_and_transport_specific_step(tmp_path):
+    async def run():
+        config_entry = entry()
+        hass = await make_hass(tmp_path, config_entry)
+        with patch("custom_components.fellow_stagg.async_get_clientsession", return_value=object()):
+            coordinator = FellowStaggDataUpdateCoordinator(hass, config_entry)
+        from custom_components.fellow_stagg.number import FellowStaggAltitude
+        entity = FellowStaggAltitude(coordinator)
+        coordinator.kettle.http_backend = "native_http"
+        coordinator.async_set_updated_data({"altitude_m": 120})
+        assert entity.available
+        assert entity.native_value == 120
+        assert entity.native_step == 30
+        assert entity.unique_id == "stable_entry_id_altitude"
+        coordinator.kettle.native.async_set_altitude = AsyncMock()
+        coordinator.async_request_refresh = AsyncMock()
+        await entity.async_set_native_value(0)
+        coordinator.kettle.native.async_set_altitude.assert_awaited_once_with(coordinator.session, 0)
+        assert coordinator.data["altitude_m"] == 120
+        coordinator.kettle.http_backend = "legacy_cli"
+        assert entity.native_step == 10
+        assert entity.available
+        coordinator.kettle.http_backend = None
+        assert not entity.available
+        await hass.async_stop()
+    asyncio.run(run())
