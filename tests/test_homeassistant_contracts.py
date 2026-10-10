@@ -194,8 +194,10 @@ def test_local_schedule_edit_keeps_actual_sensor_data(tmp_path):
             (FellowStaggScheduleModeSelect(coordinator), "async_select_option", "daily"),
             (FellowStaggScheduleTimeEntity(coordinator), "async_set_value", time(8, 30)),
         ]:
-            entity.async_write_ha_state = lambda: None
+            from unittest.mock import Mock
+            entity.async_write_ha_state = Mock()
             await getattr(entity, method)(value)
+            entity.async_write_ha_state.assert_called_once()
         assert coordinator.data["schedule_mode"] == "off"
         assert coordinator.data["schedule_time"] == {"hour": 7, "minute": 0}
         assert coordinator.last_schedule_time == {"hour": 8, "minute": 30}

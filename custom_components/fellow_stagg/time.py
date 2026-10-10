@@ -64,3 +64,4 @@ class FellowStaggScheduleTimeEntity(
       minute,
     )
     self.coordinator.last_schedule_time = {"hour": hour, "minute": minute}
+    self.async_write_ha_state()
