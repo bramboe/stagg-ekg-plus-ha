@@ -306,6 +306,9 @@
       },
       "altitude": {
         "name": "Höhe"
+      },
+      "chime_level": {
+        "name": "Signaltonstufe"
       }
     },
     "button": {

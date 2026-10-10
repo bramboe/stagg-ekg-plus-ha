@@ -80,7 +80,7 @@ class FellowStaggPreBoilSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinato
 
   @property
   def available(self) -> bool:
-    return super().available and self.coordinator.kettle.supports_legacy
+    return super().available and self.coordinator.kettle.supports_preferences
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
@@ -114,7 +114,7 @@ class FellowStaggChimeSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator]
 
   @property
   def available(self) -> bool:
-    return super().available and self.coordinator.kettle.supports_legacy
+    return super().available and self.coordinator.kettle.supports_preferences
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)

@@ -10,7 +10,7 @@ import struct
 from time import monotonic
 
 from .protocol import (
-    B1, B4, B5, B6, B7, CommandUncertain, ProtocolError, UnsupportedCapability,
+    PreferenceControls, preference_payload, B1, B4, B5, B6, B7, CommandUncertain, ProtocolError, UnsupportedCapability,
     decode_settings, decode_status, temperature_payload, units_payload,
 )
 
@@ -20,7 +20,7 @@ WRITE_TIMEOUT = 8
 TRANSITION_TIMEOUT = 15
 
 
-class KettleBleClient:
+class KettleBleClient(PreferenceControls):
     def __init__(self, connect, update=lambda: None):
         self._connect = connect
         self._update = update
@@ -212,8 +212,12 @@ class KettleBleClient:
             self._require_supported("settings_write")
             try:
                 await asyncio.wait_for(self.client.write_gatt_char(B5, payload, response=True), WRITE_TIMEOUT)
-                for _ in range(3):
+                generation = self._generation
+                deadline = monotonic() + 8
+                while monotonic() < deadline:
                     data = decode_settings(bytes(await asyncio.wait_for(self.client.read_gatt_char(B5), WRITE_TIMEOUT)))
+                    if generation != self._generation or not self.fresh:
+                        raise ConnectionError("Connection lost during settings verification")
                     self.data.update(data)
                     if data[key] == expected:
                         self._update()
@@ -222,6 +226,9 @@ class KettleBleClient:
             except Exception as err:
                 raise CommandUncertain("BLE settings write unconfirmed; no retry was sent") from err
             raise CommandUncertain("BLE settings readback did not match")
+
+    async def _preference(self, session, key, value):
+        await self._settings_write(preference_payload(key, value), key, value)
 
     async def async_set_temperature(self, session, temp_c, **kwargs):
         await self._settings_write(temperature_payload(temp_c), "target_temp", round(temp_c * 2) / 2)

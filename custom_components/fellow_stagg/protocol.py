@@ -33,7 +33,17 @@ def decode_settings(raw: bytes) -> dict:
     temp = decode_temperature(target)
     if not 40 <= temp <= 100:
         raise ProtocolError("Setpoint out of range")
-    return {"target_temp": temp, "units": "C" if mask & 0x200 else "F", "raw_units": "C" if mask & 0x200 else "F"}
+    data = {"target_temp": temp, "units": "C" if mask & 0x200 else "F", "raw_units": "C" if mask & 0x200 else "F"}
+    for key, (selected, offset, allowed) in EXTENDED_FIELDS.items():
+        if mask & selected:
+            data[key] = raw[offset] if raw[offset] in allowed else None
+    if mask & 0x80:
+        data["chime"] = bool(data["chime_level"]) if data["chime_level"] is not None else None
+    if mask & 0x400:
+        data["boil"] = bool(mask & 0x800)
+    if mask & 0x10 and raw[11] < 24 and raw[10] < 60:
+        data["clock"] = f"{raw[11]:02d}:{raw[10]:02d}"
+    return data
 
 
 def temperature_payload(temp_c: float) -> bytes:
@@ -83,3 +93,52 @@ def decode_native_status(raw: dict) -> dict:
     return {"current_temp": temp("temp", 0, 120), "target_temp": temp("temp_set", 40, 100),
             "mode": mode, "power": False if mode == "S_OFF" else True if mode in STATES.values() and mode != "S_NOWATER" else None,
             "hold": mode == "S_HOLD", "no_water": mode == "S_NOWATER", "pwm": raw.get("pwm")}
+
+
+EXTENDED_FIELDS = {
+    "clock_mode": (0x20, 12, {0, 1, 2}),
+    "hold_minutes": (0x40, 13, {0, 15, 30, 45, 60}),
+    "chime_level": (0x80, 14, set(range(11))),
+    "language": (0x1000, 15, set(range(7))),
+}
+
+
+def preference_payload(key, value):
+    """Select only a physically observed B5 preference, preserving other fields."""
+    raw = bytearray(17)
+    if key == "boil":
+        if not isinstance(value, bool):
+            raise ValueError("Pre-boil must be boolean")
+        struct.pack_into("<H", raw, 0, 0x400 | (0x800 if value else 0))
+    else:
+        mask, offset, allowed = EXTENDED_FIELDS[key]
+        if isinstance(value, bool) or value not in allowed:
+            raise ValueError("Unsupported preference value")
+        struct.pack_into("<H", raw, 0, mask)
+        raw[offset] = value
+    return bytes(raw)
+
+
+class PreferenceControls:
+    """Shared selective settings controls; implementations verify readback."""
+
+    async def _preference(self, session, key, value):
+        raise NotImplementedError
+
+    async def async_set_clock_mode(self, session, mode):
+        await self._preference(session, "clock_mode", int(mode))
+
+    async def async_set_hold_duration(self, session, minutes):
+        await self._preference(session, "hold_minutes", minutes)
+
+    async def async_set_language(self, session, language):
+        await self._preference(session, "language", language)
+
+    async def async_set_chime_level(self, session, level):
+        await self._preference(session, "chime_level", level)
+
+    async def async_set_chime(self, session, enabled):
+        await self.async_set_chime_level(session, int(bool(enabled)))
+
+    async def async_set_boil(self, session, enabled):
+        await self._preference(session, "boil", bool(enabled))

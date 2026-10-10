@@ -277,3 +277,31 @@ def test_settings_snapshot_service_uses_response_and_requires_existing_kettle(tm
         coordinator.kettle.async_get_settings_snapshot.assert_awaited_once_with(coordinator.session)
         await hass.async_stop()
     asyncio.run(run())
+
+
+def test_extended_native_controls_keep_ids_and_use_observed_values(tmp_path):
+    async def run():
+        config_entry = entry()
+        hass = await make_hass(tmp_path, config_entry)
+        with patch("custom_components.fellow_stagg.async_get_clientsession", return_value=object()):
+            coordinator = FellowStaggDataUpdateCoordinator(hass, config_entry)
+        coordinator.kettle.http_backend = "native_http"
+        coordinator.async_set_updated_data({"clock_mode": 2, "hold_minutes": 30, "language": 1, "boil": True, "chime": True, "chime_level": 10})
+        from custom_components.fellow_stagg.select import FellowStaggClockModeSelect, FellowStaggHoldDurationSelect, FellowStaggLanguageSelect
+        from custom_components.fellow_stagg.switch import FellowStaggPreBoilSwitch, FellowStaggChimeSwitch
+        from custom_components.fellow_stagg.number import FellowStaggChimeLevel
+        entities = [FellowStaggClockModeSelect(coordinator), FellowStaggHoldDurationSelect(coordinator), FellowStaggLanguageSelect(coordinator), FellowStaggPreBoilSwitch(coordinator), FellowStaggChimeSwitch(coordinator), FellowStaggChimeLevel(coordinator)]
+        assert all(entity.available for entity in entities)
+        assert entities[0].current_option == "analog"
+        assert entities[1].current_option == "30 min"
+        assert entities[3].is_on is True
+        assert entities[4].is_on is True
+        assert entities[5].native_value == 10
+        assert entities[5].unique_id == "stable_entry_id_chime_level"
+        coordinator.kettle.native.async_set_clock_mode = AsyncMock()
+        coordinator.async_request_refresh = AsyncMock()
+        await entities[0].async_select_option("digital")
+        coordinator.kettle.native.async_set_clock_mode.assert_awaited_once_with(coordinator.session, 1)
+        assert coordinator.data["clock_mode"] == 2
+        await hass.async_stop()
+    asyncio.run(run())

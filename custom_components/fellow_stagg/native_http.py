@@ -2,15 +2,16 @@
 from __future__ import annotations
 
 import asyncio
+from time import monotonic
 from aiohttp import ClientTimeout
 
-from .protocol import CommandUncertain, decode_native_status, decode_settings, temperature_payload, units_payload
+from .protocol import PreferenceControls, preference_payload, CommandUncertain, decode_native_status, decode_settings, temperature_payload, units_payload
 
 TIMEOUT = ClientTimeout(total=10)
 API = "api?i=0,p=0,d=0,t=3,s=1"
 
 
-class NativeHttpClient:
+class NativeHttpClient(PreferenceControls):
     def __init__(self, root: str):
         self.root = root
         self._lock = asyncio.Lock()
@@ -42,7 +43,8 @@ class NativeHttpClient:
                 async with session.post(self.root + API, data=payload, timeout=TIMEOUT, allow_redirects=False) as response:
                     response.raise_for_status()
                     await response.read()
-                for _ in range(3):
+                deadline = monotonic() + 8
+                while monotonic() < deadline:
                     actual = (await self.settings(session))[key]
                     matches = abs(actual - expected) <= tolerance if isinstance(expected, (int, float)) else actual == expected
                     if matches:
@@ -51,6 +53,9 @@ class NativeHttpClient:
             except Exception as err:
                 raise CommandUncertain("Settings write not confirmed; no retry was sent") from err
             raise CommandUncertain("Settings write did not match readback")
+
+    async def _preference(self, session, key, value):
+        await self._write(session, preference_payload(key, value), key, value)
 
     async def async_set_temperature(self, session, temp_c, **kwargs):
         await self._write(session, temperature_payload(temp_c), "target_temp", round(temp_c * 2) / 2, 0.01)

@@ -543,3 +543,79 @@ def test_legacy_controls_keep_command_and_actual_parser_readback(method, args, c
         calls = [call.args[1] for call in transport.legacy._cli_command.await_args_list]
         assert calls == [command, "state", "prtsettings"]
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("hex_frame,key,value", [
+    ("f7 17 00 00 a4 80 c0 80 00 00 1d 0c 02 1e 00 00 44", "clock_mode", 2),
+    ("f7 17 00 00 a4 80 c0 80 00 00 1d 0c 01 1e 00 00 45", "clock_mode", 1),
+    ("f7 17 00 00 a4 80 c0 80 00 00 1d 0c 01 0f 00 00 46", "hold_minutes", 15),
+    ("f7 17 00 00 a4 80 c0 80 00 00 1e 0c 01 3c 00 00 47", "hold_minutes", 60),
+    ("f7 17 00 00 a4 80 c0 80 00 00 1f 0c 01 1e 00 01 49", "language", 1),
+    ("f7 17 00 00 a4 80 c0 80 00 00 22 0c 01 1e 0a 00 4e", "chime_level", 10),
+    ("f7 17 00 00 a4 80 c0 80 00 00 22 0c 01 1e 00 00 4f", "chime", False),
+    ("f7 1f 00 00 a4 80 c0 80 00 00 23 0c 01 1e 00 00 50", "boil", True),
+    ("f7 17 00 00 a4 80 c0 80 00 00 24 0c 02 1e 00 00 54", "boil", False),
+])
+def test_user_hardware_settings_captures(hex_frame, key, value):
+    assert decode_settings(bytes.fromhex(hex_frame))[key] == value
+
+
+@pytest.mark.parametrize("method,value,payload_hex,result_hex", [
+    ("async_set_clock_mode", 2, "20 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 00", "f7 17 00 00 a4 80 c0 80 00 00 24 0c 02 1e 00 00 54"),
+    ("async_set_hold_duration", 15, "40 00 00 00 00 00 00 00 00 00 00 00 00 0f 00 00 00", "f7 17 00 00 a4 80 c0 80 00 00 24 0c 01 0f 00 00 54"),
+    ("async_set_chime_level", 10, "80 00 00 00 00 00 00 00 00 00 00 00 00 00 0a 00 00", "f7 17 00 00 a4 80 c0 80 00 00 24 0c 01 1e 0a 00 54"),
+    ("async_set_language", 1, "00 10 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00", "f7 17 00 00 a4 80 c0 80 00 00 24 0c 01 1e 00 01 54"),
+    ("async_set_boil", True, "00 0c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00", "f7 1f 00 00 a4 80 c0 80 00 00 24 0c 01 1e 00 00 54"),
+    ("async_set_chime", False, "80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00", "f7 17 00 00 a4 80 c0 80 00 00 24 0c 01 1e 00 00 54"),
+])
+@pytest.mark.parametrize("backend", ["ble", "native_http"])
+def test_selective_preference_writes_verified_without_power_command(method, value, payload_hex, result_hex, backend):
+    async def run():
+        expected_payload = bytes.fromhex(payload_hex)
+        if backend == "ble":
+            fake = FakeBle()
+            ble = make_ble(fake)
+            await ble.async_poll()
+            original = fake.write_gatt_char
+            async def write(char, payload, response=True):
+                await original(char, payload, response)
+                if char == B5:
+                    assert payload == expected_payload
+                    fake.settings = bytes.fromhex(result_hex)
+            fake.write_gatt_char = write
+            transport = KettleTransport("ble", ble=ble)
+            before = len(fake.writes)
+            await getattr(transport, method)(None, value)
+            assert fake.writes[before:] == [(B5, expected_payload)]
+            assert transport.supports_preferences
+            await transport.async_close()
+        else:
+            session = Session()
+            def post(url, data, **kwargs):
+                session.posts.append((url, data))
+                session.settings = bytes.fromhex(result_hex)
+                return Response(raw=b"OK")
+            session.post = post
+            transport = KettleTransport("wifi", "http://kettle")
+            transport.http_backend = "native_http"
+            await getattr(transport, method)(session, value)
+            assert session.posts == [("http://kettle/api?i=0,p=0,d=0,t=3,s=1", expected_payload)]
+    asyncio.run(run())
+
+
+def test_preference_delayed_readback_does_not_rewrite():
+    async def run():
+        client = NativeHttpClient("http://kettle/")
+        session = Session()
+        old = LIVE_SETTINGS
+        changed = bytes.fromhex("f7 17 00 00 a4 80 c0 80 00 00 24 0c 02 1e 00 00 54")
+        reads = 0
+        def get(url, **kwargs):
+            nonlocal reads
+            reads += 1
+            return Response(raw=old if reads <= 4 else changed)
+        session.get = get
+        await client.async_set_clock_mode(session, 2)
+        assert reads == 5
+        assert len(session.posts) == 1
+    asyncio.run(run())

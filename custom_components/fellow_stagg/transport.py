@@ -35,6 +35,35 @@ class KettleTransport:
     def supports_legacy(self):
         return self.http_backend == "legacy_cli"
 
+    @property
+    def supports_preferences(self):
+        return self.supports_legacy or self.http_backend == "native_http" or bool(self.ble and self.ble.fresh and self.ble.supports_settings)
+
+    async def _preference(self, method, session, *args):
+        if self.supports_legacy and not (self.ble and self.ble.fresh and self.ble.supports_settings):
+            return await self.__getattr__(method)(session, *args)
+        return await self._settings(method, session, *args)
+
+    async def async_set_clock_mode(self, session, mode):
+        return await self._preference("async_set_clock_mode", session, mode)
+
+    async def async_set_hold_duration(self, session, minutes):
+        return await self._preference("async_set_hold_duration", session, minutes)
+
+    async def async_set_language(self, session, language):
+        return await self._preference("async_set_language", session, language)
+
+    async def async_set_chime(self, session, enabled):
+        return await self._preference("async_set_chime", session, enabled)
+
+    async def async_set_boil(self, session, enabled):
+        return await self._preference("async_set_boil", session, enabled)
+
+    async def async_set_chime_level(self, session, level):
+        if self.supports_legacy and not (self.ble and self.ble.fresh and self.ble.supports_settings):
+            raise UnsupportedCapability("Numeric chime uses native/BLE; legacy switch remains supported")
+        return await self._settings("async_set_chime_level", session, level)
+
     async def _http_poll(self, session, **kwargs):
         if self.http_backend == "native_http":
             return await self.native.async_poll(session, **kwargs)

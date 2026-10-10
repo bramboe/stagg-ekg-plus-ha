@@ -25,3 +25,7 @@ The earlier broad claim that original functionality was preserved was too strong
 The supplied screenshots confirm live temperature, target, units and Off state, while the legacy-only controls above are unavailable. They do not establish whether connection mode is BLE-only or hybrid, nor prove physical power control. Unknown clock/screen/schedule/boil point/Wi-Fi values reflect fields not decoded by this BLE implementation. They are not evidence that those fields cannot be implemented.
 
 The dry-boil status had a false affirmative: a non-NoWater state became “Water Detected”. This does not prove sufficient water. Native/BLE now return unknown unless NoWater is reported; the legacy status behavior remains intact. NoWater being clear is a fault-status result, not a water-level measurement.
+
+## Update in 0.6.0b3
+
+The table above records the pre-b3 reassessment. Clock display, hold duration, language, pre-boil and chime are now implemented on native HTTP/BLE using observed read fields and statically traced selective write dispatch. New chime-level number provides 0–10, keeping the original switch identity (on=level 1, off=0). Physical writes require the next supervised tests. Clock sync, schedule, altitude, Bricky and missing telemetry remain open on native/BLE; firmware mutation remains intentionally disabled. This is still not full original feature parity.

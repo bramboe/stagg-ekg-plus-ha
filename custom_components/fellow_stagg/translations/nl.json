@@ -306,6 +306,9 @@
       },
       "altitude": {
         "name": "Hoogte"
+      },
+      "chime_level": {
+        "name": "Chimeniveau"
       }
     },
     "button": {

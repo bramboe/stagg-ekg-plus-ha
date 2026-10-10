@@ -1,6 +1,6 @@
 # Fellow Stagg EKG Pro — Home Assistant
 
-Local integration for the **EKG Pro**, with legacy HTTP CLI, native HTTP and Bluetooth transports. Version 0.6.0b2 is an opt-in beta pending supervised hardware acceptance. Physical heater-stop, active-proxy operation and Apple HomeKit acceptance remain open; see docs/HARDWARE_ACCEPTANCE.md.
+Local integration for the **EKG Pro**, with legacy HTTP CLI, native HTTP and Bluetooth transports. Version 0.6.0b3 is an opt-in beta pending supervised hardware acceptance. Physical heater-stop, active-proxy operation and Apple HomeKit acceptance remain open; see docs/HARDWARE_ACCEPTANCE.md.
 
 The older **EKG+** is a different model and is not supported by this integration.
 
@@ -9,8 +9,8 @@ The older **EKG+** is a different model and is not supported by this integration
 | Mode | Network access to the kettle | Supported operations |
 |---|---|---|
 | Wi-Fi, legacy CLI firmware | Local HTTP | Existing controls, schedules, display settings, sensors and HomeKit climate |
-| Wi-Fi, native HTTP (1.2.26) | Local HTTP | Temperature, target, state and verified target/units changes |
-| Bluetooth only (1.2.26) | **No HTTP client, Wi-Fi probe or Wi-Fi provisioning** | B1 live state/temperature, B5 target/units, guarded B6 power |
+| Wi-Fi, native HTTP (1.2.26) | Local HTTP | Temperature, target, state, target/units and selective preferences |
+| Bluetooth only (1.2.26) | **No HTTP client, Wi-Fi probe or Wi-Fi provisioning** | B1 live state/temperature, B5 target/units/preferences, guarded B6 power |
 | Automatic / hybrid | Both configured transports | BLE live state and supported controls; HTTP supplements data and provides available capabilities |
 
 A usable legacy CLI takes precedence over native HTTP detection, preserving the older firmware's full feature set. Native HTTP is detected from valid `/temp` and 17-byte `/api` responses, not a firmware version string alone.
@@ -25,11 +25,13 @@ A usable legacy CLI takes precedence over native HTTP detection, preserving the 
 
 There is no guaranteed control/recovery path for a 1.2.24 kettle in this beta. BLE visibility alone does not prove protocol compatibility. Firmware upload/switching remains disabled on legacy as well as native/BLE: an earlier successful upload is evidence for that operation, but does not validate the complete safety and recovery/error-handling contract.
 
-**Native HTTP power control is not enabled.** Its normal on/off command has not been hardware validated. Firmware 1.2.26 needs BLE for power control on this branch. Hold, schedule, display language, altitude and other settings remain available on legacy CLI; they are unavailable on native/BLE until validated. Existing registry entities are retained.
+**Native HTTP power control is not enabled.** Its normal on/off command has not been hardware validated. Firmware 1.2.26 needs BLE for power control on this branch. Clock display, hold duration, language, chime level and pre-boil now use selective B5 settings (native HTTP uses the same record). Their physical-menu read mappings were observed; writes still need supervised acceptance. Schedule, clock sync, altitude and Bricky remain legacy-only. Existing registry entities are retained.
 
 ## Supervised beta testing
 
-0.6.0b2 adds the read-only `fellow_stagg.get_settings_snapshot` action for the agreed hardware acceptance process. It does **not** yet restore the missing extended BLE controls. See [the first test procedure](docs/SUPERVISED_TESTS.md); do not interpret this beta as complete feature parity. The existing 0.6.0b1 review fixes are included.
+0.6.0b3 adds clock display, hold duration, language, pre-boil and numeric chime controls from the supervised 1.2.26 captures. Writes select one field, are never repeated, and allow up to eight seconds of readback observation. Read observations do not prove write behavior: test one control at a time with the kettle off and check its physical menu. Existing entity identities and the original chime switch remain; a new 0–10 number exposes the complete chime value. Turning the chime switch on sets level 1; use the number for other levels.
+
+The read-only `fellow_stagg.get_settings_snapshot` action remains available. Complete original-feature parity is still open; see `docs/FEATURE_PARITY.md`.
 
 ## Installation and configuration
 

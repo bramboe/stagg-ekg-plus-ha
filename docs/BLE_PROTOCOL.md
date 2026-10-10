@@ -53,3 +53,9 @@ The current implementation is in `protocol.py`, `kettle_ble.py` and `native_http
 - **Native HTTP:** `/temp` JSON plus `/api?i=0,p=0,d=0,t=3,s=1` 17-byte GET/POST settings. Native power is intentionally unsupported.
 
 The older table describes historical observations and must not be used to assume all-zero B1 records are valid current standby evidence. Readable firmware transitions do not confirm physical heater-stop; see HARDWARE_ACCEPTANCE.md.
+
+### 0.6.0b3 preference evidence
+
+Supervised physical-menu captures on 1.2.26 C confirmed byte 12 clock mode (digital=1, analog=2), byte 13 hold minutes (15/30/60), byte 14 chime level (0/1/10), byte 15 language (English=0, French=1), mask value bit 0x0800 pre-boil. Clock bytes 10/11 are minute/hour; byte 16 changes with settings revisions but is not interpreted as a monotonic safety counter.
+
+Selective write selectors from FUN_400ed24c: clock 0x20, hold 0x40, chime 0x80, language 0x1000; pre-boil selector 0x400/value 0x800. Payloads are 17 bytes with every unrelated field zero. These mappings correct the earlier unverified interpretation of chime/language. Physical read evidence and firmware write-dispatch evidence are distinct from integration write acceptance, which remains open. Delayed readback is observed for up to eight seconds, without repeating the write. B6 power behavior is unchanged.

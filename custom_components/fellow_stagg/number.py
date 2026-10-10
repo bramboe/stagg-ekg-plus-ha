@@ -29,6 +29,7 @@ async def async_setup_entry(
   async_add_entities([
     FellowStaggScheduleTemperature(coordinator),
     FellowStaggAltitude(coordinator),
+    FellowStaggChimeLevel(coordinator),
   ])
 
 
@@ -144,3 +145,35 @@ class FellowStaggScheduleTemperature(RestoreNumber):
     self.coordinator.last_schedule_temp_c = float(temp_c)
     _LOGGER.debug("Setting schedule temperature to %s (local only; press Update Schedule to send)", value)
     self.async_write_ha_state()
+
+
+class FellowStaggChimeLevel(CoordinatorEntity[FellowStaggDataUpdateCoordinator], NumberEntity):
+  """Numeric chime setting observed on 1.2.26; preserve the existing switch."""
+
+  _attr_has_entity_name = True
+  _attr_translation_key = "chime_level"
+  _attr_entity_category = EntityCategory.CONFIG
+  _attr_native_min_value = 0
+  _attr_native_max_value = 10
+  _attr_native_step = 1
+  _attr_mode = NumberMode.SLIDER
+  _attr_icon = "mdi:volume-high"
+
+  def __init__(self, coordinator):
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.unique_prefix}_chime_level"
+    self._attr_device_info = coordinator.device_info
+
+  @property
+  def available(self):
+    return super().available and self.coordinator.kettle.supports_preferences and (self.coordinator.data or {}).get("chime_level") is not None
+
+  @property
+  def native_value(self):
+    return (self.coordinator.data or {}).get("chime_level")
+
+  async def async_set_native_value(self, value):
+    if not float(value).is_integer() or not 0 <= value <= 10:
+      raise ValueError("Chime must be an integer from 0 to 10")
+    await self.coordinator.kettle.async_set_chime_level(self.coordinator.session, int(value))
+    await self.coordinator.async_request_refresh()
