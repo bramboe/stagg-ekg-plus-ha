@@ -249,3 +249,14 @@ def test_existing_entity_unique_ids_across_all_platforms(tmp_path):
         assert {"stable_entry_id_" + suffix for suffix in expected} <= ids
         await hass.async_stop()
     asyncio.run(run())
+
+
+def test_water_status_does_not_infer_sufficient_water_from_ble_state():
+    from custom_components.fellow_stagg.sensor import get_dry_boil_status
+    assert get_dry_boil_status(None) is None
+    assert get_dry_boil_status({}) is None
+    for backend in ("ble", "native_http"):
+        assert get_dry_boil_status({"backend": backend, "mode": "S_OFF", "no_water": False}) is None
+        assert get_dry_boil_status({"backend": backend, "no_water": True}) == "Refill Kettle"
+    assert get_dry_boil_status({"backend": "legacy_cli", "no_water": False}) == "Water Detected"
+    assert get_dry_boil_status({"backend": "legacy_cli", "no_water": True}) == "Refill Kettle"

@@ -18,3 +18,10 @@ Hybrid retains legacy controls only when the configured Wi-Fi endpoint actually 
 A regression was found in the local schedule-time editor: the requested time was stored but no HA state update was published. Fixed by publishing the editor's state without overwriting the device's actual schedule sensor. The regression test now checks publication, not just the stored value.
 
 The earlier broad claim that original functionality was preserved was too strong. Parser, safety and identity tests passed, but end-to-end tests for every original feature on actual supported firmware and Apple HomeKit were not performed. Further reported failures need firmware/mode and concrete operations to distinguish intentional limitations from new regressions. Release 0.6.0b1 remains unchanged; branch fixes require a subsequent version to reach installed users.
+
+
+## Screenshot confirmation (firmware 1.2.26 C, active backend BLE)
+
+The supplied screenshots confirm live temperature, target, units and Off state, while the legacy-only controls above are unavailable. They do not establish whether connection mode is BLE-only or hybrid, nor prove physical power control. Unknown clock/screen/schedule/boil point/Wi-Fi values reflect fields not decoded by this BLE implementation. They are not evidence that those fields cannot be implemented.
+
+The dry-boil status had a false affirmative: a non-NoWater state became “Water Detected”. This does not prove sufficient water. Native/BLE now return unknown unless NoWater is reported; the legacy status behavior remains intact. NoWater being clear is a fault-status result, not a water-level measurement.

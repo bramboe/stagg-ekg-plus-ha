@@ -118,6 +118,19 @@ def get_boil_point(data: dict[str, Any] | None) -> float | None:
     return round(temp_c, 1)
 
 
+def get_dry_boil_status(data: dict[str, Any] | None) -> str | None:
+    """Report known water evidence without treating absence of a fault as water."""
+    if not data or data.get("no_water") is None:
+        return None
+    if data["no_water"]:
+        return "Refill Kettle"
+    # Native/BLE currently infer no_water only from the operating state.
+    # Not being in S_NoWater does not establish sufficient water in the kettle.
+    if data.get("backend") in ("ble", "native_http"):
+        return None
+    return "Water Detected"
+
+
 VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "power": lambda data: None if not data or data.get("power") is None else ("On" if data["power"] else "Off"),
     "current_temp": get_current_temp,
@@ -127,7 +140,7 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "screen_name": get_friendly_screen_name,
     "programmed_unit": lambda data: "Celsius" if data and data.get("raw_units") == "C" else ("Fahrenheit" if data and data.get("raw_units") == "F" else "Unknown"),
     "firmware_version": lambda data: data.get("firmware_version") if data else None,
-    "dry_boil_detection": lambda data: "Refill Kettle" if data and data.get("no_water") else ("Water Detected" if data is not None else None),
+    "dry_boil_detection": get_dry_boil_status,
     "brew_timer": get_brew_timer,
     "boil_point": get_boil_point,
 }
