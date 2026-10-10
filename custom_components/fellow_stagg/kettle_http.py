@@ -6,6 +6,8 @@ import logging
 import re
 import struct
 import time
+import math
+from urllib.parse import quote_plus, urlsplit
 from typing import Any
 
 from aiohttp import ClientResponseError, ClientSession, ClientTimeout
@@ -35,7 +37,8 @@ def parse_esp_app_image(data: bytes) -> dict[str, Any]:
   """Validate an ESP32 app image and return its {version, project} app descriptor.
 
   Checks the ESP image magic byte and the app-description struct the EKG firmware carries,
-  so a wrong or corrupt file is rejected before it is ever sent to the kettle. Raises
+  to reject obviously incompatible files. This does not verify the full image, its
+  checksum, signature, trust chain or bootability. Raises
   FirmwareImageError on anything that is not a Fellow Stagg firmware image.
   """
   if not data:
@@ -99,7 +102,7 @@ class KettleHttpClient:
   """Lightweight client around the kettle's HTTP CLI API."""
 
   def __init__(self, base_url: str, cli_path: str = "/cli") -> None:
-    base = (base_url or "").split("?")[0].rstrip("/")
+    base = (base_url or "").strip().rstrip("/")
     if not base:
       raise ValueError("A kettle base URL is required")
 
@@ -107,13 +110,18 @@ class KettleHttpClient:
     if not base.startswith(("http://", "https://")):
       base = f"http://{base}"
 
-    if base.endswith(cli_path.strip("/")):
+    parts = urlsplit(base)
+    if parts.scheme not in ("http", "https") or not parts.hostname or parts.username or parts.password or parts.fragment or parts.query or parts.path not in ("", "/", cli_path):
+      raise ValueError("Use a kettle HTTP URL without credentials or extra paths")
+
+    if parts.path == cli_path:
       self._cli_url = base
     else:
       self._cli_url = f"{base}{cli_path if cli_path.startswith('/') else '/' + cli_path}"
     self._root_url = self._cli_url.rsplit("/", 1)[0] + "/"
 
     # prtsettings cache so fast (1s) polling doesn't hammer the kettle with extra requests
+    self._write_lock = asyncio.Lock()
     self._settings_body: str | None = None
     self._settings_fetched_at: float = 0.0
 
@@ -142,7 +150,9 @@ class KettleHttpClient:
 
     The image is validated first (see parse_esp_app_image). The kettle writes it to the
     inactive OTA partition, verifies the signature/hash itself, and boots it. A bad or wrong
-    image is rejected by the kettle, not flashed. The raw file is the POST body, matching the
+    image may be rejected by the kettle, but this is not a guarantee of safe recovery.
+    The integration disables this operation pending hardware validation.
+    The raw file is the POST body, matching the
     kettle's own /upload web page.
     """
     parse_esp_app_image(data)  # raises FirmwareImageError on a bad/wrong file
@@ -266,52 +276,47 @@ class KettleHttpClient:
     return data
 
   async def async_set_power(self, session: ClientSession, power_on: bool) -> None:
-    state = "S_Heat" if power_on else "S_Off"
-    await self._cli_command(session, f"setstate {state}")
+    async with self._write_lock:
+      state = self._parse_mode(await self._cli_command(session, "state"))
+      if not state:
+        raise ValueError("Fresh legacy state is required before power control")
+      if self._parse_power(state) is power_on:
+        return
+      await self._cli_command(session, "setstate S_Heat" if power_on else "setstate S_Off")
+      for _ in range(5):
+        state = self._parse_mode(await self._cli_command(session, "state"))
+        if self._parse_power(state) is power_on:
+          return
+        await asyncio.sleep(0.5)
+      raise ValueError("Legacy power write was not confirmed; no retry sent")
 
   async def async_set_temperature(self, session: ClientSession, temp_c: float, **_: Any) -> None:
     # The CLI stores the target as whole degrees Fahrenheit (verified live: it does
     # not accept 0.5 °C or fractional values). Round to the nearest whole °F so a
     # 0.5 °C request lands on the closest achievable value (~0.56 °C resolution).
+    if not math.isfinite(temp_c) or not 40 <= temp_c <= 100:
+      raise ValueError("Temperature must be between 40 and 100 Celsius")
     temp_f = round((temp_c * 1.8) + 32.0)
-    await self._cli_command(session, f"setsetting settempr {temp_f}")
+    async with self._write_lock:
+      await self._cli_command(session, f"setsetting settempr {temp_f}")
+      body = await self._cli_command(session, "state")
+      actual, _ = self._parse_target_temp(body)
+      if actual is None or abs(actual - (temp_f - 32) / 1.8) > 0.1:
+        raise ValueError("Legacy target write was not confirmed; no retry sent")
 
   async def async_set_units(self, session: ClientSession, unit: str) -> None:
+    if unit.upper() not in ("C", "F"):
+      raise ValueError("Units must be C or F")
     cmd = "setunitsc" if unit.upper() == "C" else "setunitsf"
-    await self._cli_command(session, cmd)
+    async with self._write_lock:
+      await self._cli_command(session, cmd)
+      body = await self._cli_command(session, "state")
+      if self._parse_units_flag(body) != unit.upper():
+        raise ValueError("Legacy units write was not confirmed; no retry sent")
 
   async def async_set_units_safe(self, session: ClientSession, unit: str, current_mode: str = "S_Off") -> None:
-    """Set units and perform the 3-step refresh to update the kettle's screen."""
-    unit_cmd = "setunitsc" if unit.upper() == "C" else "setunitsf"
-    
-    # Normalize mode for comparison
-    mode_is_off = current_mode.upper() == "S_OFF"
-    
-    # If the kettle is in standby (S_Off), we don't need a UI refresh blip.
-    if mode_is_off:
-        await self._cli_command(session, unit_cmd)
-        return
-
-    # If it's ON, perform the ultra-fast 'Invisible Refresh' sequence (50ms delays)
-    # 1. Turn off clock (blank display)
-    await self._cli_command(session, "setsetting clockmode 0")
-    await asyncio.sleep(0.05)
-    
-    # 2. Toggle Power (forces screen to reload its units variable)
-    await self._cli_command(session, "setstate S_Off")
-    await asyncio.sleep(0.05)
-    
-    # 3. Change the Unit
-    await self._cli_command(session, unit_cmd)
-    await asyncio.sleep(0.05)
-    
-    # 4. Turn Power back ON
-    await self._cli_command(session, "setstate S_Heat")
-    await asyncio.sleep(0.05)
-
-    # 5. Restore clock mode using direct commands
-    # We try to infer the mode from the raw units toggle or default to digital
-    await self._cli_command(session, "setdigital")
+    """Change units without restarting heat or changing display preferences."""
+    await self.async_set_units(session, unit)
 
   async def async_set_schedon(self, session: ClientSession, value: int) -> None:
     """Directly set the schedon value (0=off, 1=once, 2=daily)."""
@@ -332,6 +337,8 @@ class KettleHttpClient:
 
   async def async_set_schedule_temperature(self, session: ClientSession, temp_c: int) -> None:
     """Set the schedule temperature (in Celsius)."""
+    if not math.isfinite(temp_c) or not 40 <= temp_c <= 100:
+      raise ValueError("Temperature must be between 40 and 100 Celsius")
     temp_f = round((temp_c * 1.8) + 32.0)
     await self._cli_command(session, f"setsetting schtempr {temp_f}")
 
@@ -433,14 +440,14 @@ class KettleHttpClient:
     encoded = self._encode_cli_command(command)
     url = f"{self._cli_url}?cmd={encoded}"
     try:
-      async with session.get(url, timeout=_REQUEST_TIMEOUT) as resp:
+      async with session.get(url, timeout=_REQUEST_TIMEOUT, allow_redirects=False) as resp:
         resp.raise_for_status()
         return await resp.text()
     except ClientResponseError: raise
 
   @staticmethod
   def _encode_cli_command(command: str) -> str:
-    return str(command).replace(" ", "+").replace("\n", "%0A")
+    return quote_plus(str(command))
 
   @staticmethod
   def _parse_mode(body: str) -> str | None:

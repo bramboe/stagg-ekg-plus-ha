@@ -25,3 +25,9 @@ spec = importlib.util.spec_from_file_location(
 ble_provisioning = importlib.util.module_from_spec(spec)
 sys.modules["ble_provisioning"] = ble_provisioning
 spec.loader.exec_module(ble_provisioning)
+
+# Load transport modules as a private package so protocol tests also run without HA.
+import types
+_transport_package = types.ModuleType("stagg_test")
+_transport_package.__path__ = [str(MODULE_PATH.parent)]
+sys.modules["stagg_test"] = _transport_package
