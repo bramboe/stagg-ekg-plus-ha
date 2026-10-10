@@ -4,18 +4,37 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   tests:
-    name: Lint and unit tests
+    name: Protocol and legacy regressions (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install dependencies
+        run: pip install aiohttp cryptography packaging pytest ruff
+      - name: Lint
+        run: ruff check --select E9,F custom_components/fellow_stagg tests
+      - name: Protocol and legacy regressions
+        run: pytest tests/ -q
+
+  homeassistant:
+    name: Home Assistant 2026.10 contracts and migration
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
-      - name: Install dependencies
-        run: pip install aiohttp cryptography pytest ruff
-      - name: Ruff (syntax errors and undefined names)
-        run: ruff check --select E9,F custom_components/fellow_stagg
-      - name: Pytest
-        run: pytest tests/ -q
+          python-version: "3.14"
+      - name: Install Home Assistant and import dependencies
+        run: pip install homeassistant==2026.10.0 aiousbwatcher==1.1.2 serialx==1.11.0 aiohasupervisor==0.6.0 pytest
+      - name: Actual registry, climate, configuration and diagnostics contracts
+        run: python -m pytest tests/ -q

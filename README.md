@@ -1,101 +1,85 @@
-# Fellow Stagg EKG Pro (HTTP CLI) – Home Assistant Custom Integration
+# Fellow Stagg EKG Pro — Home Assistant
 
-![Fellow Coffee logo](https://raw.githubusercontent.com/bramboe/stagg-ekg-plus-ha/main/branding/icon.svg)
+Local integration for the **EKG Pro**, with legacy HTTP CLI, native HTTP and Bluetooth transports. This is a development branch pending review and supervised hardware acceptance. It has not been released or deployed.
 
-Home Assistant integration for the Fellow Stagg **EKG Pro** using the kettle’s HTTP CLI API over WiFi (no Bluetooth required for control). Control power, target temperature, schedule, hold, units, brew presets and more via the kettle’s `/cli` endpoint.
+The older **EKG+** is a different model and is not supported by this integration.
 
-> **Note:** despite the repository name, this integration is for the **EKG Pro** (WiFi). It does **not** work with the older EKG+ (BLE-only) model — for that, see [levi/stagg-ekg-plus-ha](https://github.com/levi/stagg-ekg-plus-ha).
+## Connection modes
+
+| Mode | Network access to the kettle | Supported operations |
+|---|---|---|
+| Wi-Fi, legacy CLI firmware | Local HTTP | Existing controls, schedules, display settings, sensors and HomeKit climate |
+| Wi-Fi, native HTTP (1.2.26) | Local HTTP | Temperature, target, state and verified target/units changes |
+| Bluetooth only (1.2.26) | **No HTTP client, Wi-Fi probe or Wi-Fi provisioning** | B1 live state/temperature, B5 target/units, guarded B6 power |
+| Automatic / hybrid | Both configured transports | BLE live state and supported controls; HTTP supplements data and provides available capabilities |
+
+A usable legacy CLI takes precedence over native HTTP detection, preserving the older firmware's full feature set. Native HTTP is detected from valid `/temp` and 17-byte `/api` responses, not a firmware version string alone.
+
+**Native HTTP power control is not enabled.** Its normal on/off command has not been hardware validated. Firmware 1.2.26 needs BLE for power control on this branch. Hold, schedule, display language, altitude and other settings remain available on legacy CLI; they are unavailable on native/BLE until validated. Existing registry entities are retained.
+
+## Installation and configuration
+
+1. Add `https://github.com/bramboe/stagg-ekg-plus-ha` to HACS as an Integration custom repository.
+2. For this development branch, review the changes and hardware acceptance plan before installing a test build. Do not replace a working installation without a backup.
+3. In **Settings → Devices & services → Add integration**, select **Fellow Stagg EKG Pro**.
+4. Choose `wifi`, `ble`, or `auto`. Wi-Fi needs the kettle URL; Bluetooth needs its address as discovered by Home Assistant. Automatic mode needs both.
+5. Use **Configure → Connection** to change an existing entry's mode. Keep the same entry to preserve entity IDs, history and HomeKit pairing. Polling options are retained when connection settings change, and vice versa.
+
+Existing entries default to **Wi-Fi**. They are not silently switched to Bluetooth or assigned new unique IDs. The existing version 1 → 2 migration remains in place and is tested with actual Home Assistant entity and device registries.
+
+Home Assistant 2026.10.0 is the tested runtime. The existing HACS minimum is retained, with an older-coordinator compatibility path; earlier Home Assistant releases have not been acceptance-tested for the new transports.
+
+## Bluetooth and ESPHome proxies
+
+Home Assistant chooses the reachable connectable adapter/proxy. Configure an ESPHome Bluetooth Proxy with active GATT support in Home Assistant; a passive advertisement receiver is insufficient. No separate proxy is selected or configured by this integration. Close the Fellow app, which may occupy the kettle's single BLE connection.
+
+The integration checks reachable connectable devices and GATT characteristic properties. It subscribes to B1/B5 and, on 1.2.26, opens a fresh dispatcher session and requests a 2-second B1 interval through B4. B4 writes affect only the notification interval; no Wi-Fi-disable, event injection, OTA download or direct heater commands are used.
+
+A disconnect invalidates safety state immediately. A silent B1 stream expires after approximately five seconds even if the BLE connection remains open. Reconnects restore subscriptions. Unload releases the connection and cancels the local freshness timer; it does not reset a global firmware interval that another app might use.
+
+Wi-Fi setup over Bluetooth remains an explicit, experimental option for an existing Wi-Fi entry with a known BLE address. Its persistence across a kettle reboot is still unconfirmed. Bluetooth-only mode does not offer it. The integration no longer scans whole subnets automatically at startup.
+
+## Power and write verification
+
+For BLE, every power request is serialized and waits for a **new, advancing B1 notification** after the request starts. A repeated request for the already observed power state is a no-op. The only enabled toggle transitions are:
+
+- ON from `S_Off`: exactly one B6 `2\n`; confirm a fresh active state.
+- OFF from `S_Heat`: exactly one B6 `2\n`; confirm a fresh `S_Off`.
+
+Other source states, including `S_Hold`, are rejected until tested. Unknown, malformed, repeated or stale frames cannot authorize a toggle. A write timeout, disconnect or cancellation never triggers a retry or a write through another transport. An uncertain toggle remains blocked until a subsequent advancing notification confirms the requested state.
+
+**Firmware state transitions were observed in the referenced hardware investigation. Physical heater-stop confirmation remains open.** This branch does not treat GATT ACK or `S_Off` alone as proof of a physical safety function. See [hardware acceptance](docs/HARDWARE_ACCEPTANCE.md).
+
+Native HTTP and BLE target/units writes read back settings. Legacy target, units, power and supported settings also verify readback. Units changes never restart heat or alter the clock display. Schedule application publishes confirmed device values and raises an error on mismatch; editing a local schedule does not overwrite the actual-state sensor.
+
+B1 temperature decoding follows the firmware's `(C + 50) × 10` representation. A zero probe value is unknown. Temperature accuracy and physical knob synchronization still require acceptance testing. Legacy Fahrenheit quantization is retained; native/BLE setpoints use half-degree Celsius encoding.
+
+## Entities, HomeKit and diagnostics
+
+The existing climate entity and entity/device identifiers are retained. Heat/off modes, target temperature, presets and turn-on/off features remain the HomeKit interface. HomeKit end-to-end tests with an Apple controller remain open. Unsupported native HTTP power calls fail explicitly.
+
+Existing sensors and controls remain registered. Controls without a validated backend are unavailable; missing measurements are unknown. New diagnostic sensors expose the selected backend, raw device state and optional PWM value. A communication failure marks entities unavailable instead of indefinitely presenting cached heating state as current.
+
+Diagnostics remove raw CLI output and firmware-page bodies and redact network addresses, names, MAC addresses, SSIDs and credentials in entry data/options. No cloud connection or telemetry is added.
+
+## Firmware and privacy
+
+Automatic partition switching, firmware upload and recovery are **disabled pending hardware validation**. The existing firmware-monitor switch keeps its unique ID and stored preference, but never reboots or changes firmware. The registered `install_firmware` service reports that firmware changes are disabled.
+
+Use official device settings to manage updates. Router controls can restrict the kettle's internet access while allowing local HTTP. Bluetooth-only mode means this integration does not connect over kettle Wi-Fi; it does **not** turn off the kettle's radio or prevent the kettle itself from using an already configured network.
+
+The `send_cli` service now permits only `state`, `fwinfo`, `prtsettings` and `pwmprt` diagnostics. Arbitrary commands, including firmware and wireless-disable actions, are rejected. With multiple kettles, services require `entry_id` instead of choosing an arbitrary device. Existing typed controls/services remain available where their backend is supported.
+
+The device's local control interface has no integration-level authentication. Use appropriate local-network access controls.
+
+## Development and validation
+
+- Lightweight tests: `pip install aiohttp cryptography packaging pytest ruff`; `python -m pytest tests/ -q`.
+- Runtime contracts: install Home Assistant 2026.10.0 plus the import dependencies listed in `.github/workflows/ci.yml`, then run the same tests.
+- Lint: `ruff check --select E9,F custom_components/fellow_stagg tests`.
+- CI defines Python 3.13/3.14 protocol tests and a real Home Assistant 2026.10 migration/configuration/climate/diagnostics job. Remote CI has not run until the branch is published.
+- [Current audit and phased roadmap](docs/DEVELOPMENT_AUDIT.md).
+- [Protocol evidence](docs/BLE_PROTOCOL.md).
+- [Hardware acceptance and release gates](docs/HARDWARE_ACCEPTANCE.md).
 
 **Author:** [bramboe](https://github.com/bramboe)
-
-## Install via HACS (Custom Repository)
-1. In Home Assistant: **HACS** → **Integrations** → ⋮ (three dots) → **Custom repositories**.
-2. Click **Add** and enter:
-   - **Repository:** `https://github.com/bramboe/stagg-ekg-plus-ha`
-   - **Category:** Integration
-3. Click **Add**, then go to **HACS** → **Integrations** → **Explore & download repositories**, search for **Fellow Stagg EKG Pro (HTTP CLI)**, install.
-4. Restart Home Assistant.
-
-## Add the integration
-- **BLE discovery:** If you have Bluetooth enabled in Home Assistant, the integration discovers Stagg kettles by their BLE name (“EKG-xx-xx-xx”) or service. It reads the kettle's Wi-Fi IP, name and MAC straight from the kettle over BLE, so the address is pre-filled.
-- **Wi-Fi setup without the Fellow app (experimental):** if the kettle is not on Wi-Fi yet, choose **Set up Wi-Fi over Bluetooth**, put the kettle in Wi-Fi setup mode from its menu and enter your network name and password. Home Assistant sends them directly to the kettle (ESP-IDF provisioning, encrypted). Unlike the Fellow app, this does **not** make the kettle download new firmware. To move an added kettle to another network, use **Configure → Set up Wi-Fi (Bluetooth)**. Needs a Bluetooth adapter or proxy that supports active connections near the kettle, and the Fellow app closed (the kettle accepts one Bluetooth connection at a time). **Known issue:** the new network may not survive a reboot of the kettle (it fell back to its previous network once in testing); check the Wi-Fi address after the kettle restarts.
-- **DHCP:** when the kettle (hostname `EKG-xx-xx-xx`) gets a new IP address, the integration follows it automatically.
-- **mDNS discovery:** The integration also probes mDNS `_http._tcp` services. If your kettle advertises over mDNS, it may appear under Settings → Devices & Services → “Discovered”.
-- **Manual:** Settings → Devices & Services → Add Integration → search “Fellow Stagg EKG Pro (HTTP CLI)” → enter the kettle’s base URL (e.g. `http://192.168.1.xx`). The `/cli` path is added automatically.
-
-If the kettle’s IP address changes later, use **Reconfigure** on the integration entry to update the URL — entities and history are preserved.
-
-## Requirements
-- **Device:** Fellow Stagg **EKG Pro** with WiFi. Not for the older EKG+ (BLE-only) model.
-- Kettle firmware must support the HTTP CLI (`/cli?cmd=state`, `setstate`, `setsetting`, etc. — firmware 1.1.x). Firmware **1.2.24** no longer returns CLI output, so readings stay *unknown*; see [Firmware 1.2.24](#firmware-1224).
-- Kettle and Home Assistant on the same network.
-- Home Assistant 2024.4 or newer.
-
-## Functionality
-
-- **Climate:** On/off and target temperature (HomeKit-compatible), with **brew presets** (white/green/oolong/black tea, pour-over coffee, french press, boil).
-- **Schedule:** Schedule time, mode (off / once / daily), and schedule temperature. Changes are applied only when you press the **Update Schedule** button (or call the `set_schedule` service).
-- **Hold:** Hold duration select (Off / 15 / 30 / 45 / 60 min); Hold Mode sensor.
-- **Sensors:** Current temperature, brew timer (with phase), power, clock, schedule, current screen, unit type, firmware version, dry-boil detection, Wi-Fi/Bluetooth address.
-- **Binary sensors:** Kettle on base, heating, **water ready**, no water.
-- **Selects:** Schedule mode, clock display mode (off / digital / analog), temperature unit (°C / °F), hold duration, **display language**.
-- **Numbers:** Schedule temperature, **altitude** (boiling-point compensation, in feet).
-- **Switches:** Sync clock (survives restarts), pre-boil, ready chime, **Lock firmware** (beta).
-- **Buttons:** Update Schedule, Launch Bricky (only when kettle is lifted; otherwise plays an error chime).
-- **Services:** `heat_to` (set temperature + start in one call), `play_chime` (beep patterns on the kettle’s buzzer), `set_schedule`, `update_schedule`, `disable_schedule`, `send_cli` (raw CLI commands, supports response data).
-- **Device triggers:** kettle placed on / lifted off base.
-- **Diagnostics:** downloadable diagnostics dump (network details redacted).
-- **Blueprint:** [wake-up kettle](blueprints/automation/fellow_stagg_wake_up.yaml) — heat the kettle at your wake-up time and chime when ready.
-- **Languages:** English, Nederlands, Deutsch, Français.
-
-Polling interval is 5 seconds by default (1 second while heating); both are configurable via the integration’s **Configure** dialog.
-
-## Firmware 1.2.24
-
-If the kettle downloads newer firmware into its spare partition, Home Assistant raises a **Repairs** issue ("Firmware … is waiting on the kettle") so you can block its internet and lock the firmware before it boots. Setting the kettle up with the Fellow app makes it download firmware too (the app sends the CLI command `httpfw` over Bluetooth); the Wi-Fi setup in this integration doesn't.
-
-The kettle updates itself over the internet, and firmware 1.2.24 (Sep 2026) stopped returning CLI output, so the integration can't read the kettle anymore ([#5](https://github.com/bramboe/stagg-ekg-plus-ha/issues/5)). The kettle keeps the previous firmware in its other partition, and this integration (0.5.0 beta) can switch back to it:
-
-1. **Block the kettle's internet access** on your router (keep local Wi-Fi). Otherwise it updates itself again within about 30 minutes.
-2. Open the integration, choose **Configure** → **Switch firmware**. It shows the version the kettle runs and the one it switches to, and asks you to confirm. The kettle restarts in about 10 seconds; the dialog waits and tells you when it's back on the new version.
-3. Optional: turn on the **Lock firmware** switch. It keeps the kettle on the version it runs when you turn it on: if the kettle updates itself anyway, Home Assistant switches it back (at most 3 times a day; after that it tells you to block the internet access instead).
-
-Home Assistant shows a **Repairs** notice when the kettle runs firmware that hides its data. The **Firmware version** sensor lists the version in each partition. The kettle itself can't be told to skip updates over the CLI, so blocking its internet access is the only reliable way to stay on a version. Manual steps and background are in [docs/CLI_TESTING.md](docs/CLI_TESTING.md#rolling-back-from-1224).
-
-### Recovery: upload firmware (beta)
-
-If the kettle's previous firmware is ever gone — for example a manufacturer update overwrites the last good partition — you can flash a known-good image (such as the signed `1.1.75SSP`) back onto it with the `fellow_stagg.install_firmware` service. It uses the kettle's own `/upload` endpoint; the kettle verifies the image's signature and rejects a wrong or corrupt file, so it can't be bricked by a bad upload.
-
-```yaml
-action: fellow_stagg.install_firmware
-data:
-  path: /share/firmware_1.1.75SSP.img   # readable by Home Assistant (/config, /media or /share)
-```
-
-The kettle writes the image to its inactive partition, verifies it, and reboots into it (~30 s). Keep a copy of a working `.img` somewhere safe for this. Note: this relies on the `/upload` endpoint, which exists on 1.1.x firmware; whether a future firmware keeps it is not guaranteed.
-
-## ⚠️ Security note
-
-The kettle’s HTTP CLI endpoint is **completely unauthenticated**: anyone on your local network can control the kettle (and so can this integration). Fellow has stated they have no plans for an official remote-control API. Keep the kettle on a trusted (or isolated IoT) network segment if this concerns you.
-
-## Discovery not showing?
-- **mDNS:** Many networks/routers don’t show the kettle in mDNS. The kettle may not advertise `_http._tcp`, so nothing appears under “Discovered”.
-- **BLE:** BLE discovery only runs when **Bluetooth is enabled** in Home Assistant and the kettle is **on and in range**.
-- **Reliable way:** Add the integration manually with the kettle’s URL (e.g. `http://192.168.1.86`). You can find the kettle’s IP in your router’s DHCP/client list.
-
-## Troubleshooting
-- Ensure the kettle is reachable (e.g. `curl "http://<kettle-ip>/cli?cmd=state"`).
-- Confirm the kettle’s WiFi is connected and the HTTP CLI is enabled (firmware 1.1.x / 1.2.x with CLI).
-- Download diagnostics from the device page when reporting issues.
-- See [docs/CLI_TESTING.md](docs/CLI_TESTING.md) for the full CLI command reference (live-tested).
-
-## Development
-- Parser unit tests: `pip install aiohttp pytest && pytest tests/`
-- Lint: `ruff check --select E9,F custom_components/fellow_stagg`
-- CI runs hassfest, HACS validation, ruff and pytest on every push.
-
-## Support
-
-If this integration is useful to you, consider buying me a coffee ☕
-
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/bramboe)

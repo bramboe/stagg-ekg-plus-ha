@@ -37,7 +37,19 @@ Each request is a write followed by a read of the same characteristic. Implement
 | `2291c4b9-…` | read | Wi-Fi MAC as text (`24:DC:C3:2D:25:B0`) |
 
 After provisioning, the Fellow app writes `wifion`, `wifista` and **`httpfw`** to `2291c4b6`;
-`httpfw` makes the kettle download and stage new firmware. The integration never writes there.
+`httpfw` makes the kettle download and stage new firmware. The legacy provisioning module never writes there. The 1.2.26 control backend permits only the guarded normal button command `2\n`; units and targets use B5. It never sends `httpfw`.
 
 The Fellow app's 128-bit "device ID" is not readable from any of these characteristics; it is
 probably exchanged over the encrypted `prov_cst` endpoint or assigned by Fellow's cloud.
+
+## Firmware 1.2.26 control protocol
+
+The current implementation is in `protocol.py`, `kettle_ble.py` and `native_http.py`.
+
+- **B1:** 16-byte records, little-endian sequence at bytes 4–5 and state at byte 6. Tested states: Off=0, StartupToTempr=1, Heat=5, Hold=7, NoWater=8. Unknown values are exposed as unknown and cannot authorize toggles. Bytes 12–13 encode temperature as `(C + 50) * 10`; zero is an invalid probe. Formula is from firmware, with physical calibration pending.
+- **B5:** 17-byte settings; mask at 0–1, target at 4–5. High bit of target denotes half-degree Celsius; otherwise whole Fahrenheit. Unit value is mask bit `0x200`; `0x100` selects a units write. Target writes select mask `0x0002`. Only selected fields are written; unrelated fields are zero.
+- **B4:** `<HHI>` type/ordinal/value. Type 0 ordinal 0 with a fresh random session; type 3 ordinal 1 value 2000 requests quick status every 2 s. Other command types are not exposed.
+- **B6:** one `2\n`, with response, only after a new advancing B1 notification and only from hardware-tested source states. No automatic retries or fallback after dispatch. Settings writes use B5, not arbitrary B6 CLI.
+- **Native HTTP:** `/temp` JSON plus `/api?i=0,p=0,d=0,t=3,s=1` 17-byte GET/POST settings. Native power is intentionally unsupported.
+
+The older table describes historical observations and must not be used to assume all-zero B1 records are valid current standby evidence. Readable firmware transitions do not confirm physical heater-stop; see HARDWARE_ACCEPTANCE.md.

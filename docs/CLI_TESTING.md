@@ -1,3 +1,5 @@
+> Historical investigation reference. On the current development branch, automatic firmware switching and upload are disabled. Use `DEVELOPMENT_AUDIT.md` and `HARDWARE_ACCEPTANCE.md` for current capabilities; rollback instructions below are not enabled integration actions.
+
 # Fellow Stagg EKG Pro – HTTP CLI testing
 
 The kettle exposes an HTTP CLI at `http://<KETTLE_IP>/cli`. Commands are sent as a GET query: `?cmd=<command>`, with spaces encoded as `+`.

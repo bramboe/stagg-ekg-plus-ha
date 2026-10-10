@@ -1,9 +1,7 @@
-# Fellow Stagg EKG Pro (HTTP CLI)
+# Fellow Stagg EKG Pro
 
-![Fellow Coffee logo](https://raw.githubusercontent.com/bramboe/stagg-ekg-plus-ha/main/branding/icon.svg)
+Local Home Assistant integration with legacy HTTP CLI, native HTTP and BLE transports. The current development branch is pending review and supervised hardware acceptance.
 
-Home Assistant integration for the **Fellow Stagg EKG Pro** kettle. Control power, target temperature, schedule, hold, and more via the kettle's HTTP CLI over WiFi (and optional BLE discovery).
+Existing configurations and entity/device identifiers are retained. Legacy CLI controls remain supported. Firmware 1.2.26 adds native HTTP reading/settings and guarded BLE power control through Home Assistant Bluetooth or an active ESPHome Bluetooth Proxy.
 
-- **Install:** Add this repo in HACS → Integrations → Custom repositories, then install from Explore & download.
-- **Setup:** Add integration → discover via BLE or mDNS, or enter the kettle URL manually (e.g. `http://192.168.1.86`).
-- **Docs:** [README](https://github.com/bramboe/stagg-ekg-plus-ha) · [Issues](https://github.com/bramboe/stagg-ekg-plus-ha/issues)
+Native HTTP-only power control remains disabled until validated. Automatic firmware changes and arbitrary raw CLI writes are disabled. See README.md and docs/HARDWARE_ACCEPTANCE.md for capabilities and release gates.
