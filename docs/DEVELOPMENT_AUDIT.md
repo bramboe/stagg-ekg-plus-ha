@@ -79,7 +79,7 @@ The following changes are intentional and should be reviewed before release:
 | Native HTTP and BLE | Implemented for validated operations | Active proxy, physical transitions and temperature validation |
 | Safety, privacy and error handling | Implemented, automated tests | Power-loss/radio-loss acceptance |
 | HA migration, climate, translations and CI definitions | Local real-HA tests | Remote CI and Apple HomeKit acceptance |
-| PR and release | Not created / not published | User review and GitHub write connection; no merge/deploy authorization |
+| Branch, PR and release | Branch published; PR not created | User review before PR; no merge/deploy authorization |
 
 The full product acceptance trajectory is **not complete** until the hardware and remote CI gates pass. No physical kettle commands, firmware updates, Wi-Fi-disable operations, merges or deployments were performed during this development work.
 
