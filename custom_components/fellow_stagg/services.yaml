@@ -142,3 +142,33 @@ get_settings_snapshot:
       description: Required when multiple kettles are configured.
       selector:
         text:
+
+start_ble_trace:
+  name: Start live BLE recording
+  description: Record existing B1/B5 notifications and read B5 every second. No power/settings commands or reconnects. Memory only; automatically stops within 120 seconds.
+  fields:
+    duration:
+      name: Duration
+      default: 60
+      selector:
+        number:
+          min: 10
+          max: 120
+          unit_of_measurement: s
+    entry_id:
+      description: Required with multiple kettles.
+      selector:
+        text:
+get_ble_trace:
+  name: Read live BLE recording
+  description: Return timestamped B1/B5 frames. By default stops recording; set stop to false to read progress. No network identifiers are captured.
+  fields:
+    stop:
+      name: Stop recording
+      default: true
+      selector:
+        boolean:
+    entry_id:
+      description: Required with multiple kettles.
+      selector:
+        text:

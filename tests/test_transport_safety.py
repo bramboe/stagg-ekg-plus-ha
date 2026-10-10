@@ -619,3 +619,48 @@ def test_preference_delayed_readback_does_not_rewrite():
         assert reads == 5
         assert len(session.posts) == 1
     asyncio.run(run())
+
+
+def test_live_trace_is_bounded_and_excludes_identity_characteristics():
+    from stagg_test.ble_trace import BleTrace
+    trace = BleTrace()
+    trace.start(60)
+    for _ in range(305):
+        trace.record(B1, frame(1), "notification")
+    trace.record(B7, b"private-identity!", "notification")
+    trace.record(B5, b"invalid", "read")
+    result = trace.result()
+    assert len(result["frames"]) == 300
+    assert result["dropped"] == 5
+    assert all(event["characteristic"] == "B1" for event in result["frames"])
+    trace.deadline = 0
+    trace.record(B1, frame(2), "notification")
+    assert not trace.active
+    assert trace.reason == "duration_elapsed"
+
+
+def test_live_trace_records_reads_and_notifications_without_write_or_reconnect():
+    async def run():
+        fake = FakeBle()
+        ble = make_ble(fake)
+        await ble.async_poll()
+        transport = KettleTransport("ble", ble=ble)
+        before = list(fake.writes)
+        await transport.async_start_ble_trace(10)
+        await asyncio.sleep(0.02)
+        result = await transport.async_get_ble_trace(stop=False)
+        assert result["active"]
+        assert any(e["source"] == "read" and e["characteristic"] == "B5" for e in result["frames"])
+        assert any(e["source"] == "notification" and e["characteristic"] == "B1" for e in result["frames"])
+        with pytest.raises(UnsupportedCapability):
+            await transport.async_start_ble_trace(10)
+        stopped = await transport.async_get_ble_trace()
+        assert not stopped["active"]
+        assert ble._trace_task.done()
+        assert fake.writes == before
+        await fake.disconnect()
+        with pytest.raises(UnsupportedCapability):
+            await transport.async_start_ble_trace(10)
+        await transport.async_close()
+        assert not ble._trace.events
+    asyncio.run(run())

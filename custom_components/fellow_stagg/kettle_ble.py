@@ -15,6 +15,8 @@ from .protocol import (
 )
 
 
+from .ble_trace import BleTrace
+
 STATE_TIMEOUT = 7
 WRITE_TIMEOUT = 8
 TRANSITION_TIMEOUT = 15
@@ -38,6 +40,8 @@ class KettleBleClient(PreferenceControls):
         self._pending_since = 0.0
         self._closed = False
         self._expiry_handle = None
+        self._trace = BleTrace()
+        self._trace_task = None
 
     @property
     def supports_writes(self):
@@ -72,6 +76,7 @@ class KettleBleClient(PreferenceControls):
     def _notify(self, generation, characteristic, raw):
         if generation != self._generation or not self.client or not self.client.is_connected:
             return
+        self._trace.record(characteristic, bytes(raw), "notification")
         try:
             if characteristic == B1:
                 data = decode_status(bytes(raw))
@@ -193,6 +198,49 @@ class KettleBleClient(PreferenceControls):
                     raise
                 raise CommandUncertain("Power write unconfirmed; no retry or transport fallback was sent") from err
 
+    async def async_start_ble_trace(self, duration=60):
+        """Record existing notifications and read B5; never reconnect or write."""
+        if not self.fresh:
+            raise UnsupportedCapability("A current BLE connection is required")
+        if self._trace_task and not self._trace_task.done():
+            raise UnsupportedCapability("A BLE recording is already active")
+        self._trace.start(duration)
+        generation = self._generation
+        self._trace_task = asyncio.create_task(self._trace_loop(generation))
+        return {"active": True, "duration": duration, "interval": 1, "characteristics": ["B1", "B5"]}
+
+    async def _trace_loop(self, generation):
+        try:
+            while self._trace.active and monotonic() < self._trace.deadline:
+                async with self._command_lock:
+                    if generation != self._generation or not self.fresh:
+                        self._trace.stop("connection_lost")
+                        return
+                    raw = bytes(await asyncio.wait_for(self.client.read_gatt_char(B5), WRITE_TIMEOUT))
+                    if generation != self._generation or not self.fresh:
+                        self._trace.stop("connection_lost")
+                        return
+                    self._trace.record(B5, raw, "read")
+                await asyncio.sleep(min(1, max(0, self._trace.deadline - monotonic())))
+            if self._trace.active:
+                self._trace.stop("duration_elapsed")
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            self._trace.stop("read_failed")
+
+    async def async_get_ble_trace(self, stop=True):
+        if stop:
+            if self._trace.active:
+                self._trace.stop()
+            if self._trace_task and not self._trace_task.done():
+                self._trace_task.cancel()
+                try:
+                    await self._trace_task
+                except asyncio.CancelledError:
+                    pass
+        return self._trace.result()
+
     async def async_get_settings_snapshot(self, session=None):
         """Read B5 on the current connection; never reconnect or dispatch a write."""
         async with self._command_lock:
@@ -241,6 +289,8 @@ class KettleBleClient(PreferenceControls):
         await self.async_set_units(session, unit)
 
     async def async_close(self):
+        await self.async_get_ble_trace(stop=True)
+        self._trace.events.clear()
         self._closed = True
         if self._expiry_handle:
             self._expiry_handle.cancel()

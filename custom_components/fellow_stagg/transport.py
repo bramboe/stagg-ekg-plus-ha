@@ -159,6 +159,16 @@ class KettleTransport:
         """Compatibility alias; current_mode is unused, units never toggle heat."""
         return await self.async_set_units(session, unit)
 
+    async def async_start_ble_trace(self, duration=60):
+        if not self.ble:
+            raise UnsupportedCapability("BLE must be configured for live recording")
+        return await self.ble.async_start_ble_trace(duration)
+
+    async def async_get_ble_trace(self, stop=True):
+        if not self.ble:
+            raise UnsupportedCapability("BLE must be configured for live recording")
+        return await self.ble.async_get_ble_trace(stop)
+
     async def async_get_settings_snapshot(self, session):
         async with self._command_lock:
             if self.ble and self.ble.fresh:

@@ -381,6 +381,14 @@
     "get_settings_snapshot": {
       "name": "Einstellungsaufnahme lesen",
       "description": "Native/BLE-Einstellungen für begleitete Tests lesen. Kein Einstellungs- oder Leistungsbefehl wird gesendet. Enthält Uhrzeit/Einstellungen, keine Netzwerkkennungen."
+    },
+    "start_ble_trace": {
+      "name": "Live-BLE-Aufnahme starten",
+      "description": "Schreibgeschützte B1/B5-Aufnahme im Speicher, maximal 120 Sekunden."
+    },
+    "get_ble_trace": {
+      "name": "Live-BLE-Aufnahme lesen",
+      "description": "Nachrichten mit Zeitstempeln lesen; stoppt standardmäßig die Aufnahme."
     }
   },
   "device_automation": {

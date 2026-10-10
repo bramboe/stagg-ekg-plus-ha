@@ -381,6 +381,14 @@
     "get_settings_snapshot": {
       "name": "Instellingenmomentopname lezen",
       "description": "Lees native/BLE-instellingen voor begeleide tests. Er wordt geen instelling of aan/uit-commando verstuurd. Bevat klok- en instellingswaarden, geen netwerkidentificatie."
+    },
+    "start_ble_trace": {
+      "name": "Live BLE-opname starten",
+      "description": "Alleen-lezen B1/B5-opname in het geheugen, maximaal 120 seconden."
+    },
+    "get_ble_trace": {
+      "name": "Live BLE-opname uitlezen",
+      "description": "Lees berichten met tijdstempels; stopt standaard de opname."
     }
   },
   "device_automation": {

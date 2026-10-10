@@ -381,6 +381,14 @@
     "get_settings_snapshot": {
       "name": "Lire les paramètres",
       "description": "Lire les paramètres natifs/BLE pour des tests accompagnés. Aucune commande de réglage ou de chauffe envoyée. Contient heure/paramètres, aucun identifiant réseau."
+    },
+    "start_ble_trace": {
+      "name": "Démarrer un enregistrement BLE",
+      "description": "Enregistrement B1/B5 en lecture seule, en mémoire, 120 secondes maximum."
+    },
+    "get_ble_trace": {
+      "name": "Lire un enregistrement BLE",
+      "description": "Lire les messages horodatés ; arrête par défaut cet enregistrement."
     }
   },
   "device_automation": {

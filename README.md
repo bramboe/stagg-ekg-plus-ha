@@ -1,6 +1,6 @@
 # Fellow Stagg EKG Pro — Home Assistant
 
-Local integration for the **EKG Pro**, with legacy HTTP CLI, native HTTP and Bluetooth transports. Version 0.6.0b3 is an opt-in beta pending supervised hardware acceptance. Physical heater-stop, active-proxy operation and Apple HomeKit acceptance remain open; see docs/HARDWARE_ACCEPTANCE.md.
+Local integration for the **EKG Pro**, with legacy HTTP CLI, native HTTP and Bluetooth transports. Version 0.6.0b4 is an opt-in beta pending supervised hardware acceptance. Physical heater-stop, active-proxy operation and Apple HomeKit acceptance remain open; see docs/HARDWARE_ACCEPTANCE.md.
 
 The older **EKG+** is a different model and is not supported by this integration.
 
@@ -26,6 +26,10 @@ A usable legacy CLI takes precedence over native HTTP detection, preserving the 
 There is no guaranteed control/recovery path for a 1.2.24 kettle in this beta. BLE visibility alone does not prove protocol compatibility. Firmware upload/switching remains disabled on legacy as well as native/BLE: an earlier successful upload is evidence for that operation, but does not validate the complete safety and recovery/error-handling contract.
 
 **Native HTTP power control is not enabled.** Its normal on/off command has not been hardware validated. Firmware 1.2.26 needs BLE for power control on this branch. Clock display, hold duration, language, chime level and pre-boil now use selective B5 settings (native HTTP uses the same record). Their physical-menu read mappings were observed; writes still need supervised acceptance. Schedule, clock sync, altitude and Bricky remain legacy-only. Existing registry entities are retained.
+
+## Live BLE recording
+
+0.6.0b4 adds opt-in `fellow_stagg.start_ble_trace` and `fellow_stagg.get_ble_trace` actions. Record existing B1/B5 notifications and one B5 read per second for 10–120 seconds. Read progress with `stop: false`, or stop and return the full timestamped recording with `stop: true`. Data stays in a bounded memory buffer and is cleared on unload; no cloud upload or remote assistant connection is created. Only B1/B5 are captured; this cannot reveal a field never transmitted on those characteristics. See [the procedure](docs/LIVE_BLE_TRACE.md).
 
 ## Supervised beta testing
 

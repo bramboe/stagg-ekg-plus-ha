@@ -465,6 +465,32 @@ def _async_register_services(hass: HomeAssistant) -> None:
       raise HomeAssistantError("Multiple kettles configured; entry_id is required")
     return next(iter(entries.values()), None)
 
+  async def start_ble_trace_handler(call):
+    coord = _get_coordinator(call.data.get("entry_id"))
+    if coord is None:
+      raise HomeAssistantError("No matching kettle configuration is loaded")
+    try:
+      return await coord.kettle.async_start_ble_trace(call.data.get("duration", 60))
+    except Exception as err:
+      raise HomeAssistantError("BLE recording could not start; an existing current connection is required") from err
+
+  async def get_ble_trace_handler(call):
+    coord = _get_coordinator(call.data.get("entry_id"))
+    if coord is None:
+      raise HomeAssistantError("No matching kettle configuration is loaded")
+    return await coord.kettle.async_get_ble_trace(call.data.get("stop", True))
+
+  hass.services.async_register(
+    DOMAIN, "start_ble_trace", start_ble_trace_handler,
+    vol.Schema({vol.Optional("entry_id"): str, vol.Optional("duration", default=60): vol.All(vol.Coerce(int), vol.Range(min=10, max=120))}),
+    supports_response=SupportsResponse.ONLY,
+  )
+  hass.services.async_register(
+    DOMAIN, "get_ble_trace", get_ble_trace_handler,
+    vol.Schema({vol.Optional("entry_id"): str, vol.Optional("stop", default=True): bool}),
+    supports_response=SupportsResponse.ONLY,
+  )
+
   async def get_settings_snapshot_handler(call):
     """Collect a read-only protocol record for supervised hardware acceptance."""
     coord = _get_coordinator(call.data.get("entry_id"))

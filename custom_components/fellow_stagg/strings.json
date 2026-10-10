@@ -381,6 +381,14 @@
     "get_settings_snapshot": {
       "name": "Read settings snapshot",
       "description": "Read native/BLE settings for supervised testing. No setting or power command is sent. Contains clock/settings values, no network identifiers."
+    },
+    "start_ble_trace": {
+      "name": "Start live BLE recording",
+      "description": "Read-only B1/B5 recording, memory only, maximum 120 seconds."
+    },
+    "get_ble_trace": {
+      "name": "Read live BLE recording",
+      "description": "Read timestamped frames; stops recording by default."
     }
   },
   "device_automation": {
