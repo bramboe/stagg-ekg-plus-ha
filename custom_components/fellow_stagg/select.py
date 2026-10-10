@@ -99,10 +99,12 @@ class FellowStaggClockModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoordina
     if mode == 0: return "off"
     if mode == 1: return "digital"
     if mode == 2: return "analog"
-    return "digital"
+    return None
 
   async def async_select_option(self, option: str) -> None:
     opt = option.lower()
+    if opt not in CLOCK_MODE_OPTIONS:
+      raise ValueError(f"Invalid clock mode {option}")
     if opt == "off": value = 0
     elif opt == "digital": value = 1
     else: value = 2
@@ -135,6 +137,8 @@ class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCo
     return None
 
   async def async_select_option(self, option: str) -> None:
+    if option not in UNIT_OPTIONS:
+      raise ValueError(f"Invalid temperature unit {option}")
     unit = "C" if option == "Celsius" else "F"
     self.coordinator.notify_command_sent()
     await self.coordinator.kettle.async_set_units(self.coordinator.session, unit)
@@ -167,9 +171,11 @@ class FellowStaggHoldDurationSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
         return "Off"
     if minutes in (15, 30, 45, 60):
         return f"{minutes} min"
-    return "15 min"
+    return None
 
   async def async_select_option(self, option: str) -> None:
+    if option not in HOLD_OPTIONS:
+        raise ValueError(f"Invalid hold duration {option}")
     if option == "Off":
         minutes = 0
     else:

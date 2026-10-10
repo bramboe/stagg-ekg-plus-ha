@@ -18,3 +18,7 @@ These settings have selective BLE/native writes and readback. Earlier physical-m
 Automatic clock synchronization remains legacy-only. Full schedule programming, Bricky and play-chime remain unavailable on native HTTP/BLE. Do not use arbitrary commands to bypass these capability restrictions.
 
 Physical heater-stop is a separate test: only with water, physical presence and the physical stop control accessible. First establish observable heating, request Off once from HA, then confirm both reported Off and cessation of physical heating. Stop physically if needed; never repeat an uncertain toggle. Do not combine this with preference acceptance.
+
+## Readout correction after 0.6.0b7
+
+The development branch now reports unknown for missing clock mode, hold duration, pre-boil and chime values instead of inventing Digital, 15 minutes or Off. Invalid clock/hold/unit selections are rejected before any write. This correction does not alter entity identities or the command format; it is not yet part of the published 0.6.0b7 tag.

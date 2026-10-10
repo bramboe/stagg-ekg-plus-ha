@@ -91,7 +91,8 @@ class FellowStaggPreBoilSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinato
   def is_on(self) -> bool | None:
     if self.coordinator.data is None:
       return None
-    return bool(self.coordinator.data.get("boil"))
+    value = self.coordinator.data.get("boil")
+    return bool(value) if value is not None else None
 
   async def async_turn_on(self, **kwargs: Any) -> None:
     self.coordinator.notify_command_sent()
@@ -125,7 +126,8 @@ class FellowStaggChimeSwitch(CoordinatorEntity[FellowStaggDataUpdateCoordinator]
   def is_on(self) -> bool | None:
     if self.coordinator.data is None:
       return None
-    return bool(self.coordinator.data.get("chime"))
+    value = self.coordinator.data.get("chime")
+    return bool(value) if value is not None else None
 
   async def async_turn_on(self, **kwargs: Any) -> None:
     self.coordinator.notify_command_sent()

@@ -382,3 +382,33 @@ def test_wifi_actions_have_bounded_schemas_and_response_receipts(tmp_path):
         coordinator.kettle.async_restore_standby_display.assert_awaited_once_with(coordinator.session)
         await hass.async_stop()
     asyncio.run(run())
+
+
+def test_preference_controls_never_invent_missing_values_or_dispatch_invalid_options(tmp_path):
+    async def run():
+        config_entry = entry()
+        hass = await make_hass(tmp_path, config_entry)
+        with patch("custom_components.fellow_stagg.async_get_clientsession", return_value=object()):
+            coordinator = FellowStaggDataUpdateCoordinator(hass, config_entry)
+        from custom_components.fellow_stagg.select import FellowStaggClockModeSelect, FellowStaggHoldDurationSelect, FellowStaggTemperatureUnitSelect
+        from custom_components.fellow_stagg.switch import FellowStaggPreBoilSwitch, FellowStaggChimeSwitch
+        clock, hold, units = (cls(coordinator) for cls in (FellowStaggClockModeSelect, FellowStaggHoldDurationSelect, FellowStaggTemperatureUnitSelect))
+        boil, chime = FellowStaggPreBoilSwitch(coordinator), FellowStaggChimeSwitch(coordinator)
+        for data in ({}, {"clock_mode": None, "hold_minutes": None, "boil": None, "chime": None}):
+            coordinator.async_set_updated_data(data)
+            assert clock.current_option is None and hold.current_option is None
+            assert boil.is_on is None and chime.is_on is None
+        coordinator.async_set_updated_data({"clock_mode": 0, "hold_minutes": 0, "boil": False, "chime": False})
+        assert clock.current_option == "off" and hold.current_option == "Off"
+        assert boil.is_on is False and chime.is_on is False
+        coordinator.kettle.async_set_clock_mode = AsyncMock()
+        coordinator.kettle.async_set_hold_duration = AsyncMock()
+        coordinator.kettle.async_set_units = AsyncMock()
+        for entity in (clock, hold, units):
+            with pytest.raises(ValueError):
+                await entity.async_select_option("invalid")
+        coordinator.kettle.async_set_clock_mode.assert_not_awaited()
+        coordinator.kettle.async_set_hold_duration.assert_not_awaited()
+        coordinator.kettle.async_set_units.assert_not_awaited()
+        await hass.async_stop()
+    asyncio.run(run())
