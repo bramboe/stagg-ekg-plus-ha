@@ -19,6 +19,6 @@ Automatic clock synchronization remains legacy-only. Full schedule programming, 
 
 Physical heater-stop is a separate test: only with water, physical presence and the physical stop control accessible. First establish observable heating, request Off once from HA, then confirm both reported Off and cessation of physical heating. Stop physically if needed; never repeat an uncertain toggle. Do not combine this with preference acceptance.
 
-## Readout correction after 0.6.0b7
+## Readout correction in 0.6.0b8
 
-The development branch now reports unknown for missing clock mode, hold duration, pre-boil and chime values instead of inventing Digital, 15 minutes or Off. Invalid clock/hold/unit selections are rejected before any write. This correction does not alter entity identities or the command format; it is not yet part of the published 0.6.0b7 tag.
+Release 0.6.0b8 reports unknown for missing clock mode, hold duration, pre-boil and chime values instead of inventing Digital, 15 minutes or Off. Invalid clock/hold/unit selections are rejected before any write. This correction does not alter entity identities or the command format..

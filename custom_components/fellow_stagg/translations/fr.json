@@ -134,7 +134,8 @@
         "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi.",
         "data": {
           "connection_mode": "Mode de connexion",
-          "ble_address": "Adresse Bluetooth"
+          "ble_address": "Adresse Bluetooth",
+          "base_url": "URL Wi-Fi de la bouilloire (requise pour Wi-Fi/auto)"
         }
       },
       "wifi_setup": {
@@ -168,7 +169,9 @@
       "set_config_failed": "Paramètres réseau refusés.",
       "wrong_password": "Mot de passe Wi-Fi incorrect.",
       "network_not_found": "Réseau introuvable. Vérifiez son nom et utilisez le 2,4 GHz.",
-      "wifi_timeout": "Délai de connexion Wi-Fi dépassé. Vérifiez le réseau et le mot de passe."
+      "wifi_timeout": "Délai de connexion Wi-Fi dépassé. Vérifiez le réseau et le mot de passe.",
+      "not_fellow_stagg": "État inaccessible à cette adresse. Vérifiez la connexion Wi-Fi et l’URL.",
+      "invalid_url": "Utilisez une URL HTTP sans identifiants ni chemins supplémentaires."
     },
     "abort": {
       "no_other_firmware": "La bouilloire n'a pas d'autre firmware valide vers lequel basculer.",

@@ -412,3 +412,49 @@ def test_preference_controls_never_invent_missing_values_or_dispatch_invalid_opt
         coordinator.kettle.async_set_units.assert_not_awaited()
         await hass.async_stop()
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("mode", ["wifi", "auto"])
+def test_ble_entry_can_add_wifi_url_without_recreating_entities(tmp_path, mode):
+    async def run():
+        config_entry = entry(data={"connection_mode": "ble", "ble_address": "AA:BB:CC:DD:EE:FF"}, options={"polling_interval": 10})
+        hass = await make_hass(tmp_path, config_entry)
+        flow = FellowStaggOptionsFlowHandler(config_entry)
+        flow.hass = hass
+        form = await flow.async_step_connection()
+        assert "base_url" in {key.schema for key in form["data_schema"].schema}
+        with patch("custom_components.fellow_stagg.config_flow.async_get_clientsession", return_value=object()), patch("custom_components.fellow_stagg.config_flow._probe_kettle", new_callable=AsyncMock, return_value=True) as probe:
+            result = await flow.async_step_connection({"connection_mode": mode, "ble_address": "AA:BB:CC:DD:EE:FF", "base_url": "192.0.2.86"})
+        probe.assert_awaited_once()
+        assert config_entry.data["base_url"] == "http://192.0.2.86"
+        assert config_entry.entry_id == "stable_entry_id" and config_entry.unique_id == "kettle-id"
+        assert result["data"]["connection_mode"] == mode
+        assert result["data"]["polling_interval"] == 10
+        assert "base_url" not in result["data"]
+        await hass.async_stop()
+    asyncio.run(run())
+
+
+def test_connection_errors_preserve_input_and_ble_mode_never_probes_http(tmp_path):
+    async def run():
+        config_entry = entry(data={"connection_mode": "ble", "ble_address": "AA:BB:CC:DD:EE:FF"})
+        hass = await make_hass(tmp_path, config_entry)
+        flow = FellowStaggOptionsFlowHandler(config_entry)
+        flow.hass = hass
+        with patch("custom_components.fellow_stagg.config_flow.async_get_clientsession", return_value=object()), patch("custom_components.fellow_stagg.config_flow._probe_kettle", new_callable=AsyncMock, return_value=False) as probe:
+            result = await flow.async_step_connection({"connection_mode": "auto", "base_url": "192.0.2.86"})
+            assert result["errors"] == {"base_url": "not_fellow_stagg"}
+            defaults = result["data_schema"]({})
+            assert defaults["connection_mode"] == "auto" and defaults["base_url"] == "192.0.2.86"
+            assert "base_url" not in config_entry.data
+            probe.reset_mock()
+            result = await flow.async_step_connection({"connection_mode": "ble", "base_url": "http://user:secret@192.0.2.86"})
+            assert result["type"] == "create_entry"
+            probe.assert_not_awaited()
+            assert "base_url" not in config_entry.data
+        with patch("custom_components.fellow_stagg.config_flow.async_get_clientsession", return_value=object()), patch("custom_components.fellow_stagg.config_flow._probe_kettle", new_callable=AsyncMock) as probe:
+            result = await flow.async_step_connection({"connection_mode": "wifi", "base_url": "http://user:secret@192.0.2.86"})
+            assert result["errors"] == {"base_url": "invalid_url"}
+            probe.assert_not_awaited()
+        await hass.async_stop()
+    asyncio.run(run())

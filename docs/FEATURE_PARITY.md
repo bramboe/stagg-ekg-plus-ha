@@ -59,3 +59,7 @@ Altitude is now decoded and controllable via native HTTP/BLE using a selective B
 Wi-Fi CLI Once→Daily→Once and Off were physically confirmed while preserving a physically configured 18:00/96 °C plan. The new response-only set_existing_schedule_mode action exposes only this tested operation; full time/temperature programming remains legacy-only. The native/BLE reader now exposes planning enabled/time/temperature, while actual once/daily stays unknown. BLE-only scheduling controls remain disabled; selecting BLE-only does not erase a planning already stored in the kettle.
 
 The new restore_standby_display Wi-Fi action cycles Clock Off and restores the original digital/analog setting with readback. Off→Digital removed the reported stale display information in hardware; Analog restoration still needs hardware acceptance. The bare refresh GUI command did not remove it. This is an explicit recovery action, not an automatic display cycle after every command. See WIFI_PLANNING_DISPLAY.md for limitations and remaining hardware checks.
+
+## Update in 0.6.0b8
+
+The Connection options form now accepts a kettle Wi-Fi URL, allowing an existing BLE-only entry to switch to Wi-Fi or auto without deleting it or changing entity IDs. Wi-Fi/auto use read-only native/legacy probes before saving; BLE-only never probes HTTP. Failed validation preserves the selected mode and entered URL. Missing preference readouts remain unknown rather than inventing Digital, 15 minutes or Off. Scheduling restrictions in 0.6.0b7 are unchanged.

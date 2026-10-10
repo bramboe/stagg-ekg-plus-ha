@@ -596,18 +596,40 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
 
     async def async_step_connection(self, user_input=None):
         errors = {}
+        values = {
+            "connection_mode": self._entry.options.get("connection_mode", self._entry.data.get("connection_mode", "wifi")),
+            "ble_address": self._entry.options.get("ble_address", self._entry.data.get("ble_address", "")),
+            "base_url": self._entry.data.get("base_url", ""),
+        }
         if user_input is not None:
-            mode = user_input["connection_mode"]
-            address = (user_input.get("ble_address") or "").strip()
+            values.update(user_input)
+            mode = values["connection_mode"]
+            address = (values.get("ble_address") or "").strip()
+            url = (values.get("base_url") or "").strip()
             if mode in ("ble", "auto") and not address:
                 errors["base"] = "ble_address_required"
-            elif mode != "ble" and not self._entry.data.get("base_url"):
-                errors["base"] = "wifi_url_required"
-            else:
-                return self.async_create_entry(title="", data={**self._entry.options, **user_input})
+            elif mode != "ble":
+                if not url:
+                    errors["base_url"] = "wifi_url_required"
+                else:
+                    try:
+                        url = KettleHttpClient(url).root_url.rstrip("/")
+                        if not await _probe_kettle(async_get_clientsession(self.hass), url):
+                            errors["base_url"] = "not_fellow_stagg"
+                    except ValueError:
+                        errors["base_url"] = "invalid_url"
+            if not errors:
+                if mode != "ble":
+                    self.hass.config_entries.async_update_entry(
+                        self._entry, data={**self._entry.data, "base_url": url}
+                    )
+                return self.async_create_entry(title="", data={
+                    **self._entry.options, "connection_mode": mode, "ble_address": address,
+                })
         return self.async_show_form(step_id="connection", errors=errors, data_schema=vol.Schema({
-            vol.Required("connection_mode", default=self._entry.options.get("connection_mode", self._entry.data.get("connection_mode", "wifi"))): vol.In(["wifi", "ble", "auto"]),
-            vol.Optional("ble_address", default=self._entry.options.get("ble_address", self._entry.data.get("ble_address", ""))): str,
+            vol.Required("connection_mode", default=values["connection_mode"]): vol.In(["wifi", "ble", "auto"]),
+            vol.Optional("ble_address", default=values["ble_address"]): str,
+            vol.Optional("base_url", default=values["base_url"]): str,
         }))
 
     async def async_step_wifi_setup(

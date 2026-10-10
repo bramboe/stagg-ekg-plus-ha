@@ -146,7 +146,8 @@
         "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi.",
         "data": {
           "connection_mode": "Connection mode",
-          "ble_address": "Bluetooth address"
+          "ble_address": "Bluetooth address",
+          "base_url": "Kettle Wi-Fi URL (required for Wi-Fi/auto)"
         }
       }
     },
@@ -168,7 +169,9 @@
       "wifi_timeout": "The kettle did not get onto the network in time. Check the name and password and try again.",
       "active_proxy_required": "An active Bluetooth adapter or ESPHome Bluetooth Proxy must be able to reach the kettle.",
       "ble_address_required": "Enter the kettle Bluetooth address.",
-      "wifi_url_required": "This mode needs a kettle Wi-Fi URL."
+      "wifi_url_required": "This mode needs a kettle Wi-Fi URL.",
+      "not_fellow_stagg": "Could not read kettle state at this address. Check its Wi-Fi connection and URL.",
+      "invalid_url": "Use a kettle HTTP URL without credentials or extra paths."
     },
     "abort": {
       "no_other_firmware": "The kettle has no other valid firmware to switch to.",

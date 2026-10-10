@@ -146,7 +146,8 @@
         "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle.",
         "data": {
           "connection_mode": "Verbindingsmodus",
-          "ble_address": "Bluetooth-adres"
+          "ble_address": "Bluetooth-adres",
+          "base_url": "Wifi-adres van de ketel (vereist voor wifi/auto)"
         }
       }
     },
@@ -168,7 +169,9 @@
       "wifi_timeout": "De waterkoker kwam niet op tijd op het netwerk. Controleer naam en wachtwoord en probeer het opnieuw.",
       "active_proxy_required": "Een actieve Bluetooth-adapter of ESPHome Bluetooth Proxy moet de kettle kunnen bereiken.",
       "ble_address_required": "Vul het Bluetooth-adres van de kettle in.",
-      "wifi_url_required": "Deze modus vereist een wifi-URL van de kettle."
+      "wifi_url_required": "Deze modus vereist een wifi-URL van de kettle.",
+      "not_fellow_stagg": "Kan de ketelstatus op dit adres niet uitlezen. Controleer het wifi-adres en de verbinding.",
+      "invalid_url": "Gebruik een HTTP-adres van de ketel zonder inloggegevens of extra paden."
     },
     "abort": {
       "no_other_firmware": "De waterkoker heeft geen andere geldige firmware om naar over te schakelen.",

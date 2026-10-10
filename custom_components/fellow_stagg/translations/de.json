@@ -134,7 +134,8 @@
         "description": "Wählen Sie WLAN, Bluetooth oder beides. Nur Bluetooth verbindet sich nicht per WLAN mit dem Kessel.",
         "data": {
           "connection_mode": "Verbindungsmodus",
-          "ble_address": "Bluetooth-Adresse"
+          "ble_address": "Bluetooth-Adresse",
+          "base_url": "WLAN-URL des Wasserkochers (für WLAN/auto erforderlich)"
         }
       },
       "wifi_setup": {
@@ -168,7 +169,9 @@
       "set_config_failed": "Die Netzwerkdaten wurden abgelehnt.",
       "wrong_password": "Falsches WLAN-Passwort.",
       "network_not_found": "Netzwerk nicht gefunden. Prüfen Sie den Namen und verwenden Sie 2,4 GHz.",
-      "wifi_timeout": "WLAN-Verbindung abgelaufen. Prüfen Sie Netzwerkname und Passwort."
+      "wifi_timeout": "WLAN-Verbindung abgelaufen. Prüfen Sie Netzwerkname und Passwort.",
+      "not_fellow_stagg": "Kesselstatus an dieser Adresse nicht lesbar. WLAN-Verbindung und URL prüfen.",
+      "invalid_url": "HTTP-URL ohne Zugangsdaten oder zusätzliche Pfade verwenden."
     },
     "abort": {
       "no_other_firmware": "Der Wasserkocher hat keine andere gültige Firmware zum Wechseln.",
