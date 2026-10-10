@@ -63,3 +63,8 @@ The new restore_standby_display Wi-Fi action cycles Clock Off and restores the o
 ## Update in 0.6.0b8
 
 The Connection options form now accepts a kettle Wi-Fi URL, allowing an existing BLE-only entry to switch to Wi-Fi or auto without deleting it or changing entity IDs. Wi-Fi/auto use read-only native/legacy probes before saving; BLE-only never probes HTTP. Failed validation preserves the selected mode and entered URL. Missing preference readouts remain unknown rather than inventing Digital, 15 minutes or Off. Scheduling restrictions in 0.6.0b7 are unchanged.
+
+
+## Update in 0.6.0b9
+
+The existing Schedule mode select and Update schedule button now expose the tested native Wi-Fi existing-plan mode operation. BLE-only scheduling remains disabled; full time/temperature programming remains legacy-only. The Connection form can prefill a missing Wi-Fi URL from a read-only B4 request on the existing fresh BLE connection, falling back to manual entry. This is not evidence that full planning support is complete.

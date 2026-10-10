@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import secrets
 import struct
+from ipaddress import IPv4Address, IPv4Network
 from time import monotonic
 
 from .protocol import (
@@ -298,6 +299,22 @@ class KettleBleClient(PreferenceControls):
                         cleanup = "failed"
             return {"backend": "ble", "firmware": self.firmware, "status": status,
                     "command_sent": command_sent, "cleanup": cleanup, **capture.result()}
+
+    async def async_get_wifi_url(self):
+        """Read only the current connection's B4 address; never provision or use HTTP."""
+        async with self._command_lock:
+            if not self.fresh:
+                return None
+            generation = self._generation
+            raw = bytes(await asyncio.wait_for(self.client.read_gatt_char(B4), WRITE_TIMEOUT))
+            if generation != self._generation or not self.fresh:
+                raise ConnectionError("BLE connection changed during address read")
+            if len(raw) < 4:
+                return None
+            address = IPv4Address(raw[:4])
+            if not any(address in IPv4Network(net) for net in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16")):
+                return None
+            return f"http://{address}"
 
     async def async_get_settings_snapshot(self, session=None):
         """Read B5 on the current connection; never reconnect or dispatch a write."""

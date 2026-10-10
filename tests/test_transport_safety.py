@@ -798,3 +798,29 @@ def test_schedule_console_heating_state_is_rejected():
         assert fake.writes == before
         await ble.async_close()
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("raw,expected", [(bytes([192, 168, 20, 86])+b'\x00\x00PRIVATE_SSID', "http://192.168.20.86"), (bytes(4), None), (b'\x01\x02', None), (bytes([8, 8, 8, 8]), None), (bytes([127, 0, 0, 1]), None)])
+def test_wifi_address_read_is_read_only_and_never_exports_ssid(raw, expected):
+    async def run():
+        ble = KettleBleClient(AsyncMock())
+        ble.client = SimpleNamespace(is_connected=True, read_gatt_char=AsyncMock(return_value=raw), write_gatt_char=AsyncMock())
+        ble._received_at = kettle_ble.monotonic()
+        assert await ble.async_get_wifi_url() == expected
+        ble.client.read_gatt_char.assert_awaited_once_with(B4)
+        ble.client.write_gatt_char.assert_not_awaited()
+        ble._connect.assert_not_awaited()
+    asyncio.run(run())
+
+
+def test_wifi_address_read_rejects_connection_change():
+    async def run():
+        ble = KettleBleClient(AsyncMock())
+        async def read(_):
+            ble._generation += 1
+            return bytes([192, 168, 20, 86])
+        ble.client = SimpleNamespace(is_connected=True, read_gatt_char=read)
+        ble._received_at = kettle_ble.monotonic()
+        with pytest.raises(ConnectionError):
+            await ble.async_get_wifi_url()
+    asyncio.run(run())

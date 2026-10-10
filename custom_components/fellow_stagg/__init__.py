@@ -349,7 +349,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
       now = datetime.now()
       is_editing = self._last_mode_change and (now - self._last_mode_change).total_seconds() < 30
-      if not is_editing:
+      if not is_editing and self.kettle.supports_legacy:
           self.last_schedule_mode = device_mode
 
       await self._maybe_sync_clock(data)

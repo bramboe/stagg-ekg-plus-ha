@@ -50,7 +50,7 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
 
   @property
   def available(self) -> bool:
-    return super().available and self.coordinator.kettle.supports_legacy
+    return super().available and self.coordinator.kettle.supports_schedule_mode
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
@@ -61,7 +61,7 @@ class FellowStaggScheduleModeSelect(CoordinatorEntity[FellowStaggDataUpdateCoord
   def current_option(self) -> str | None:
     if self.coordinator.last_schedule_mode is not None:
       return self.coordinator.last_schedule_mode
-    return "off"
+    return (self.coordinator.data or {}).get("schedule_mode")
 
   async def async_select_option(self, option: str) -> None:
     """Store selected mode locally only. User must press Update Schedule to send to the kettle."""

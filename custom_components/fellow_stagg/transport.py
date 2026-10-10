@@ -37,6 +37,10 @@ class KettleTransport(WifiControls):
         return self.http_backend == "legacy_cli"
 
     @property
+    def supports_schedule_mode(self):
+        return self.supports_legacy or (self.mode != "ble" and self.http_backend == "native_http")
+
+    @property
     def supports_preferences(self):
         return self.supports_legacy or self.http_backend == "native_http" or bool(self.ble and self.ble.fresh and self.ble.supports_settings)
 

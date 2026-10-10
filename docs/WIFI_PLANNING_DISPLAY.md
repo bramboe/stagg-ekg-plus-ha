@@ -36,3 +36,10 @@ The response verifies clock settings only. Check the display visually. There is 
 On 1.2.26 C, with an existing 18:00 / 96 °C plan, the user physically confirmed Once→Daily→Once through Wi-Fi CLI, followed by Off. Time and temperature were preserved. Planning Off and S_Off were read back. A separate approved Clock Off→Digital cycle removed the stale information visually. These tests do not prove schedule execution, recurrence after a day/reboot, BLE mode changes or physical heater-stop.
 
 Other hardware acceptance remains: hold duration, language, chime level, pre-boil, altitude writes, clock synchronization and physical heater-stop. Read observations and static write mappings are not substitutes for checking each control in the installed integration. Firmware mutation, wireless disable and unverified Bricky behavior remain unavailable.
+
+
+## 0.6.0b9: existing Home Assistant controls
+
+On a detected native HTTP connection, the original Schedule mode select and Update schedule button now apply the tested existing-plan mode operation. Select Off/Once/Daily, then press Update schedule. Once/Daily require a physically configured plan, standby and at least 15 minutes before its next occurrence; check the physical menu after applying. Time and temperature editors remain unavailable. No default Daily/Once is inferred when the device mode is unknown. BLE-only keeps both controls unavailable. Legacy full programming remains on its original path.
+
+The Connection form can prefill a missing Wi-Fi URL by reading B4 on the integration's current fresh BLE connection. Only an RFC1918/link-local IPv4 address is exposed; SSID bytes are discarded. It does not provision Wi-Fi, scan arbitrary GATT characteristics, open another BLE connection or use HTTP while opening the form. An unavailable/invalid address leaves the manual field. Saving Wi-Fi/auto still validates the endpoint through read-only HTTP probes. Hardware validation of B4 address retrieval on the installed 1.2.26 C kettle remains open.

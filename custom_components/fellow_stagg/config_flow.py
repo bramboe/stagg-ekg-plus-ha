@@ -601,7 +601,20 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
             "ble_address": self._entry.options.get("ble_address", self._entry.data.get("ble_address", "")),
             "base_url": self._entry.data.get("base_url", ""),
         }
+        # Reuse the integration's active GATT connection; do not compete with it.
+        # Reading an address is allowed in BLE-only; HTTP remains opt-in below.
+        if not values["base_url"] and (user_input is None or user_input.get("connection_mode") != "ble"):
+            coordinator = self._coordinator()
+            ble = getattr(getattr(coordinator, "kettle", None), "ble", None)
+            if ble is not None:
+                try:
+                    values["base_url"] = await ble.async_get_wifi_url() or ""
+                except Exception:
+                    pass  # Optional discovery; retain the manual field without logging raw B4.
         if user_input is not None:
+            user_input = dict(user_input)
+            if not user_input.get("base_url") and values["base_url"]:
+                user_input["base_url"] = values["base_url"]
             values.update(user_input)
             mode = values["connection_mode"]
             address = (values.get("ble_address") or "").strip()

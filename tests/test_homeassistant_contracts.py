@@ -458,3 +458,61 @@ def test_connection_errors_preserve_input_and_ble_mode_never_probes_http(tmp_pat
             probe.assert_not_awaited()
         await hass.async_stop()
     asyncio.run(run())
+
+
+def test_connection_prefills_url_from_existing_ble_without_http(tmp_path):
+    async def run():
+        from types import SimpleNamespace
+        config_entry = entry(data={"connection_mode": "ble", "ble_address": "AA:BB:CC:DD:EE:FF"})
+        hass = await make_hass(tmp_path, config_entry)
+        reader = AsyncMock(return_value="http://192.0.2.86")
+        hass.data[DOMAIN] = {config_entry.entry_id: SimpleNamespace(kettle=SimpleNamespace(ble=SimpleNamespace(async_get_wifi_url=reader)))}
+        flow = FellowStaggOptionsFlowHandler(config_entry)
+        flow.hass = hass
+        with patch("custom_components.fellow_stagg.config_flow._probe_kettle", new_callable=AsyncMock) as probe:
+            result = await flow.async_step_connection()
+            assert result["data_schema"]({})["base_url"] == "http://192.0.2.86"
+            probe.assert_not_awaited()
+            assert "base_url" not in config_entry.data
+        reader.side_effect = TimeoutError()
+        result = await flow.async_step_connection()
+        assert result["data_schema"]({})["base_url"] == ""
+        await hass.async_stop()
+    asyncio.run(run())
+
+
+def test_native_schedule_mode_uses_existing_entities_without_full_programming(tmp_path):
+    async def run():
+        config_entry = entry()
+        hass = await make_hass(tmp_path, config_entry)
+        with patch("custom_components.fellow_stagg.async_get_clientsession", return_value=object()):
+            coordinator = FellowStaggDataUpdateCoordinator(hass, config_entry)
+        from custom_components.fellow_stagg.select import FellowStaggScheduleModeSelect
+        from custom_components.fellow_stagg.button import FellowStaggUpdateScheduleButton
+        from custom_components.fellow_stagg.number import FellowStaggScheduleTemperature
+        from custom_components.fellow_stagg.time import FellowStaggScheduleTimeEntity
+        select, button = FellowStaggScheduleModeSelect(coordinator), FellowStaggUpdateScheduleButton(coordinator)
+        coordinator.kettle.http_backend = "native_http"
+        coordinator.async_set_updated_data({"schedule_enabled": True, "schedule_mode": None})
+        assert select.available and button.available
+        assert select.current_option is None
+        assert not FellowStaggScheduleTemperature(coordinator).available
+        assert not FellowStaggScheduleTimeEntity(coordinator).available
+        assert select.unique_id == "stable_entry_id_schedule_mode"
+        assert button.unique_id == "stable_entry_id_update_schedule"
+        select.async_write_ha_state = lambda: None
+        coordinator.async_request_refresh = AsyncMock()
+        coordinator.kettle.async_set_existing_schedule_mode = AsyncMock()
+        with pytest.raises(ValueError, match="Choose Schedule mode"):
+            await button.async_press()
+        for mode in ("daily", "once", "off"):
+            await select.async_select_option(mode)
+            await button.async_press()
+            coordinator.kettle.async_set_existing_schedule_mode.assert_awaited_with(coordinator.session, mode)
+            assert coordinator.data["schedule_mode"] is None
+        assert button.extra_state_attributes["operation"] == "existing_schedule_mode_only"
+        coordinator.kettle.mode = "ble"
+        coordinator.kettle.http_backend = None
+        assert not select.available and not button.available
+        await hass.async_stop()
+    asyncio.run(run())

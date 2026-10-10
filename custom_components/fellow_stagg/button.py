@@ -40,16 +40,31 @@ class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoo
 
   @property
   def available(self) -> bool:
-    return super().available and self.coordinator.kettle.supports_legacy
+    return super().available and self.coordinator.kettle.supports_schedule_mode
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)
     self._attr_unique_id = f"{coordinator.unique_prefix}_update_schedule"
     self._attr_device_info = coordinator.device_info
 
+  @property
+  def extra_state_attributes(self):
+    return {
+      "operation": "full_schedule" if self.coordinator.kettle.supports_legacy else "existing_schedule_mode_only",
+      "once_daily_confirmation": "readback" if self.coordinator.kettle.supports_legacy else "physical_menu_required",
+    }
+
   async def async_press(self) -> None:
     if not self.coordinator.data:
       raise ValueError("No coordinator data available to update schedule")
+
+    if not self.coordinator.kettle.supports_legacy:
+      mode = self.coordinator.last_schedule_mode
+      if mode not in ("off", "once", "daily"):
+        raise ValueError("Choose Schedule mode first; Once/Daily require an existing physical future plan")
+      await self.coordinator.kettle.async_set_existing_schedule_mode(self.coordinator.session, mode)
+      await self.coordinator.async_request_refresh()
+      return
 
     sched = self.coordinator.data.get("schedule_time") or self.coordinator.last_schedule_time or {}
     hour = int(sched.get("hour", 0))
