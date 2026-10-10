@@ -1,6 +1,6 @@
 # Fellow Stagg EKG Pro — Home Assistant
 
-Local integration for the **EKG Pro**, with legacy HTTP CLI, native HTTP and Bluetooth transports. This is a development branch pending review and supervised hardware acceptance. It has not been released or deployed.
+Local integration for the **EKG Pro**, with legacy HTTP CLI, native HTTP and Bluetooth transports. Version 0.6.0b1 is an opt-in beta pending supervised hardware acceptance. Physical heater-stop, active-proxy operation and Apple HomeKit acceptance remain open; see docs/HARDWARE_ACCEPTANCE.md.
 
 The older **EKG+** is a different model and is not supported by this integration.
 
