@@ -125,6 +125,11 @@ class KettleHttpClient:
     self._settings_body: str | None = None
     self._settings_fetched_at: float = 0.0
 
+  @property
+  def root_url(self) -> str:
+    """Return the normalized kettle HTTP root URL."""
+    return self._root_url
+
   async def async_get_firmware_version(self, session: ClientSession) -> str | None:
     """Fetch the firmware version once (it doesn't change between polls)."""
     body = await self._cli_command(session, "fwinfo")
@@ -315,7 +320,7 @@ class KettleHttpClient:
         raise ValueError("Legacy units write was not confirmed; no retry sent")
 
   async def async_set_units_safe(self, session: ClientSession, unit: str, current_mode: str = "S_Off") -> None:
-    """Change units without restarting heat or changing display preferences."""
+    """Compatibility alias; current_mode is unused, units never toggle heat."""
     await self.async_set_units(session, unit)
 
   async def async_set_schedon(self, session: ClientSession, value: int) -> None:

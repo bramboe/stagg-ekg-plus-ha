@@ -118,8 +118,6 @@
         "title": "Fellow Stagg-opties",
         "menu_options": {
           "polling": "Pollingintervallen",
-          "switch_firmware": "Firmware wisselen",
-          "upload_firmware": "Firmware uploaden (herstel)",
           "wifi_setup": "Wifi instellen (Bluetooth)",
           "connection": "Verbinding"
         }
@@ -129,20 +127,6 @@
         "data": {
           "polling_interval_seconds": "Polling-interval (seconden)",
           "polling_interval_countdown_seconds": "Snel polling-interval bij activiteit (seconden)"
-        }
-      },
-      "switch_firmware": {
-        "title": "Firmware wisselen",
-        "description": "De waterkoker draait **{running_version}** ({running_partition}). Dit schakelt over naar **{target_version}** ({target_partition}), die al op de waterkoker staat, en herstart hem. Dat duurt ongeveer 10 seconden.\n\nBlokkeer eerst de internettoegang van de waterkoker, anders werkt hij zichzelf mogelijk opnieuw bij.",
-        "data": {
-          "confirm": "Ja, wissel de firmware van de waterkoker"
-        }
-      },
-      "upload_firmware": {
-        "title": "Firmware uploaden",
-        "description": "Kies een firmware-.img-bestand om naar de waterkoker te flashen. Hersteltool voor als de vorige firmware van de waterkoker weg is. De waterkoker controleert de handtekening van het image en weigert een verkeerd of beschadigd bestand, dus bricken kan niet. Blokkeer eerst de internettoegang van de waterkoker. De waterkoker herstart in de geüploade firmware.",
-        "data": {
-          "firmware_file": "Firmware-.img-bestand"
         }
       },
       "wifi_setup": {
@@ -167,8 +151,6 @@
       }
     },
     "progress": {
-      "switching": "De waterkoker schakelt over naar {target_version}; wachten tot hij herstart is…",
-      "uploading": "Firmware {version} wordt geüpload; wachten tot de waterkoker herstart…",
       "wifi_connecting": "Wifi-gegevens voor {ssid} worden verstuurd; wachten tot de waterkoker verbonden is…"
     },
     "error": {
@@ -377,11 +359,11 @@
     },
     "send_cli": {
       "name": "CLI-commando verzenden",
-      "description": "Stuur een ruw HTTP CLI-commando naar de waterkoker (voor testen)."
+      "description": "Alleen-lezen CLI-diagnostiek: state, fwinfo, prtsettings of pwmprt."
     },
     "install_firmware": {
-      "name": "Firmware installeren (herstel)",
-      "description": "Flash een lokaal firmware-.img naar de waterkoker via zijn eigen upload-endpoint. Hersteltool voor als de vorige firmware van de waterkoker weg is. De waterkoker controleert het image en weigert een verkeerd of beschadigd bestand. De waterkoker herstart in de geüploade firmware.",
+      "name": "Firmware installeren (tijdelijk uitgeschakeld)",
+      "description": "Tijdelijk uitgeschakeld op alle verbindingen in afwachting van veiligheids- en recoveryvalidatie. Behouden voor compatibiliteit; er wordt geen bestand gelezen of toestelcommando verstuurd.",
       "fields": {
         "path": {
           "name": "Pad naar firmwarebestand",

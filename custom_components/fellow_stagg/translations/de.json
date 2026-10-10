@@ -118,8 +118,6 @@
         "title": "Fellow Stagg Optionen",
         "menu_options": {
           "polling": "Abfrageintervalle",
-          "switch_firmware": "Firmware wechseln",
-          "upload_firmware": "Firmware hochladen (Wiederherstellung)",
           "connection": "Verbindung",
           "wifi_setup": "WLAN über Bluetooth einrichten"
         }
@@ -129,20 +127,6 @@
         "data": {
           "polling_interval_seconds": "Abfrageintervall (Sekunden)",
           "polling_interval_countdown_seconds": "Schnelles Abfrageintervall bei Aktivität (Sekunden)"
-        }
-      },
-      "switch_firmware": {
-        "title": "Firmware wechseln",
-        "description": "Der Wasserkocher läuft mit **{running_version}** ({running_partition}). Dies wechselt zu **{target_version}** ({target_partition}), die bereits auf dem Wasserkocher gespeichert ist, und startet ihn neu. Das dauert etwa 10 Sekunden.\n\nSperre zuerst den Internetzugang des Wasserkochers, sonst aktualisiert er sich womöglich erneut.",
-        "data": {
-          "confirm": "Ja, Firmware des Wasserkochers wechseln"
-        }
-      },
-      "upload_firmware": {
-        "title": "Firmware hochladen",
-        "description": "Wähle eine Firmware-.img-Datei zum Flashen auf den Wasserkocher. Wiederherstellungswerkzeug, falls die vorherige Firmware weg ist. Der Wasserkocher prüft die Signatur des Images und lehnt eine falsche oder beschädigte Datei ab, ein Bricken ist also ausgeschlossen. Sperre zuerst den Internetzugang des Wasserkochers. Der Wasserkocher startet in der hochgeladenen Firmware neu.",
-        "data": {
-          "firmware_file": "Firmware-.img-Datei"
         }
       },
       "connection": {
@@ -167,8 +151,6 @@
       }
     },
     "progress": {
-      "switching": "Der Wasserkocher wechselt zu {target_version}; warte auf den Neustart…",
-      "uploading": "Firmware {version} wird hochgeladen; warte auf den Neustart des Wasserkochers…",
       "wifi_connecting": "WLAN-Daten für {ssid} werden übertragen. Verbindung wird geprüft…"
     },
     "error": {
@@ -377,11 +359,11 @@
     },
     "send_cli": {
       "name": "CLI-Befehl senden",
-      "description": "Einen rohen HTTP-CLI-Befehl an den Wasserkocher senden (zum Testen)."
+      "description": "Schreibgeschützte CLI-Diagnose: state, fwinfo, prtsettings oder pwmprt."
     },
     "install_firmware": {
-      "name": "Firmware installieren (Wiederherstellung)",
-      "description": "Flasht ein lokales Firmware-.img über den eigenen Upload-Endpunkt des Wasserkochers. Wiederherstellungswerkzeug, falls die vorherige Firmware des Wasserkochers weg ist. Der Wasserkocher prüft das Image und lehnt eine falsche oder beschädigte Datei ab. Der Wasserkocher startet in der hochgeladenen Firmware neu.",
+      "name": "Firmware installieren (vorübergehend deaktiviert)",
+      "description": "Auf allen Verbindungen bis zur Sicherheits- und Wiederherstellungsprüfung deaktiviert. Für Kompatibilität beibehalten; keine Datei wird gelesen und kein Gerätebefehl gesendet.",
       "fields": {
         "path": {
           "name": "Pfad zur Firmware-Datei",

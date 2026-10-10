@@ -136,14 +136,8 @@ class FellowStaggTemperatureUnitSelect(CoordinatorEntity[FellowStaggDataUpdateCo
 
   async def async_select_option(self, option: str) -> None:
     unit = "C" if option == "Celsius" else "F"
-    data = self.coordinator.data or {}
-    current_mode = data.get("mode") or "S_Off"
     self.coordinator.notify_command_sent()
-    await self.coordinator.kettle.async_set_units_safe(
-        self.coordinator.session,
-        unit,
-        current_mode
-    )
+    await self.coordinator.kettle.async_set_units(self.coordinator.session, unit)
     await self.coordinator.async_request_refresh()
 
 class FellowStaggHoldDurationSelect(CoordinatorEntity[FellowStaggDataUpdateCoordinator], SelectEntity):

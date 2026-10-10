@@ -118,8 +118,6 @@
         "title": "Fellow Stagg options",
         "menu_options": {
           "polling": "Polling intervals",
-          "switch_firmware": "Switch firmware",
-          "upload_firmware": "Upload firmware (recovery)",
           "wifi_setup": "Set up Wi-Fi (Bluetooth)",
           "connection": "Connection"
         }
@@ -129,20 +127,6 @@
         "data": {
           "polling_interval_seconds": "Polling interval (seconds)",
           "polling_interval_countdown_seconds": "Fast polling interval when active (seconds)"
-        }
-      },
-      "switch_firmware": {
-        "title": "Switch firmware",
-        "description": "The kettle runs **{running_version}** ({running_partition}). This switches it to **{target_version}** ({target_partition}), which is already stored on the kettle, and restarts it. That takes about 10 seconds.\n\nBlock the kettle's internet access first, or it may update itself again.",
-        "data": {
-          "confirm": "Yes, switch the kettle's firmware"
-        }
-      },
-      "upload_firmware": {
-        "title": "Upload firmware",
-        "description": "Pick a firmware .img file to flash onto the kettle. Recovery tool for when the kettle's previous firmware is gone. The kettle verifies the image's signature and rejects a wrong or corrupt file, so it can't be bricked. Block the kettle's internet access first. The kettle restarts into the uploaded firmware.",
-        "data": {
-          "firmware_file": "Firmware .img file"
         }
       },
       "wifi_setup": {
@@ -167,8 +151,6 @@
       }
     },
     "progress": {
-      "switching": "Switching the kettle to {target_version} and waiting for it to restart…",
-      "uploading": "Uploading firmware {version} and waiting for the kettle to restart…",
       "wifi_connecting": "Sending the Wi-Fi details for {ssid} and waiting for the kettle to connect…"
     },
     "error": {
@@ -377,11 +359,11 @@
     },
     "send_cli": {
       "name": "Send CLI command",
-      "description": "Send a raw HTTP CLI command to the kettle (for testing)."
+      "description": "Read-only diagnostic CLI command: state, fwinfo, prtsettings or pwmprt."
     },
     "install_firmware": {
-      "name": "Install firmware (recovery)",
-      "description": "Flash a local firmware .img onto the kettle via its own upload endpoint. Recovery tool for when the kettle's previous firmware is gone. The kettle verifies the image and rejects a wrong or corrupt file. The kettle reboots into the uploaded firmware.",
+      "name": "Install firmware (temporarily disabled)",
+      "description": "Temporarily disabled on all transports pending safety and recovery validation. Retained for compatibility; no file is read and no kettle command is sent.",
       "fields": {
         "path": {
           "name": "Firmware file path",

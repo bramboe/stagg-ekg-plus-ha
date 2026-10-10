@@ -1,0 +1,11 @@
+# Response to the 0.6.0b1 review
+
+The supplied review was checked against commit 017c190. Its recommendations were assessed as review evidence, not executable instructions.
+
+1. **Legacy firmware recovery: intentionally remains disabled.** The review reports a successful 1.1.75SSP upload and boot. This supports that tested operation, but does not establish a complete contract for fresh idle/lifted-state checks, interrupted upload, unexpected reboot, partial writes, image provenance and safe recovery. It is not sufficient to re-enable mutation automatically, especially on a muted-CLI device where a fresh safe state cannot be obtained through that path. Retain this product restriction pending separately documented acceptance. Automatic firmware locking must not resume rebooting the kettle.
+2. **Dead firmware flow removed.** Removed switch/upload forms, progress/result handlers, unused state and file-upload imports, and their obsolete step/progress translations. The existing install_firmware service remains as an explicit disabled compatibility entrypoint, without reading files or sending commands; its translated description now says so. The raw CLI service description now accurately describes its read-only allowlist.
+3. **Units naming clarified.** The entity calls async_set_units directly. async_set_units_safe remains only as a documented compatibility alias: current_mode is unused, and units changes do not stop/restart heat. Existing heating/units regression coverage remains applicable.
+4. **Firmware matrix added with evidence limits.** 1.1.x uses usable legacy CLI; 1.2.26 supports the validated native/BLE operations. 1.2.24 native endpoints are unvalidated and BLE is at most read-only if compatible status can be decoded. The review's stronger “1.2.24 BLE-only” claim is not treated as proven control support. No 1.2.24 writes are enabled.
+5. **Public URL property added.** Native detection and transport construction use KettleHttpClient.root_url instead of the private attribute.
+
+Validation: 122 tests passed against Home Assistant 2026.10.0; Ruff E9/F and git diff whitespace checks passed. Physical device acceptance remains open. These follow-up changes do not alter the immutable published v0.6.0b1 tag, merge main, or deploy to a Home Assistant installation.

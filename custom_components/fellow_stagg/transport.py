@@ -22,7 +22,7 @@ class KettleTransport:
         self._command_lock = asyncio.Lock()
         # BLE-only must not even instantiate the HTTP clients.
         self.legacy = KettleHttpClient(base_url) if mode != "ble" and base_url else None
-        self.native = NativeHttpClient(self.legacy._root_url) if self.legacy else None
+        self.native = NativeHttpClient(self.legacy.root_url) if self.legacy else None
         self.ble = ble if mode != "wifi" else None
         self.http_backend = None
         self.backend = None
@@ -127,6 +127,7 @@ class KettleTransport:
         return await self._settings("async_set_units", session, unit)
 
     async def async_set_units_safe(self, session, unit, current_mode="S_OFF"):
+        """Compatibility alias; current_mode is unused, units never toggle heat."""
         return await self.async_set_units(session, unit)
 
     async def async_get_partitions(self, session):

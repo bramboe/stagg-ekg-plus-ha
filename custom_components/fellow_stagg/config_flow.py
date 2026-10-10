@@ -35,10 +35,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import format_mac
-from homeassistant.components.file_upload import process_uploaded_file
 from homeassistant.helpers.selector import (
-    FileSelector,
-    FileSelectorConfig,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -60,7 +57,7 @@ from .ble_provisioning import (
     async_provision_wifi,
     async_read_kettle_info,
 )
-from .kettle_http import FirmwareImageError, parse_esp_app_image, KettleHttpClient
+from .kettle_http import KettleHttpClient
 from .native_http import NativeHttpClient
 
 # BLE local_name prefixes that identify a Stagg kettle (must match manifest bluetooth matchers)
@@ -190,7 +187,7 @@ async def _probe_kettle(session: Any, base_url: str) -> bool:
         pass
     try:
         client = KettleHttpClient(base_url)
-        await NativeHttpClient(client._root_url).async_poll(session)
+        await NativeHttpClient(client.root_url).async_poll(session)
         return True
     except Exception:
         return False
@@ -574,16 +571,12 @@ def _options_schema(entry: config_entries.ConfigEntry) -> vol.Schema:
 
 
 class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow):
-    """Handle Fellow Stagg options (polling intervals) and switching the kettle's firmware."""
+    """Handle connection, polling and Wi-Fi provisioning options."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         # Don't assign to self.config_entry (deprecated since HA 2024.11);
         # keep our own reference for compatibility with older versions.
         self._entry = config_entry
-        self._target: tuple[str, str] | None = None  # (partition, version) being switched to
-        self._switch_task: asyncio.Task | None = None
-        self._upload_task: asyncio.Task | None = None
-        self._upload_version: str | None = None  # version of the firmware being uploaded
 
     def _coordinator(self) -> Any:
         return (self.hass.data.get(DOMAIN) or {}).get(self._entry.entry_id)
@@ -591,7 +584,7 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Show a menu with polling, firmware switching (if available) and firmware upload."""
+        """Show supported connection, polling and Wi-Fi provisioning options."""
         coordinator = self._coordinator()
         if coordinator is None:
             return await self.async_step_polling(user_input)
@@ -650,155 +643,6 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
             data_schema=_options_schema(self._entry),
         )
 
-    async def async_step_switch_firmware(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Confirm booting the firmware in the kettle's other partition (setpart + reset)."""
-        coordinator = self._coordinator()
-        target = coordinator.firmware_switch_target() if coordinator is not None else None
-        if target is None:
-            return self.async_abort(reason="no_other_firmware")
-        firmware = coordinator.firmware or {}
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            data = coordinator.data or {}
-            if not user_input.get("confirm"):
-                errors["base"] = "not_confirmed"
-            elif data.get("power") and not data.get("cli_muted"):
-                errors["base"] = "kettle_heating"
-            else:
-                self._target = target
-                return await self.async_step_switching()
-        return self.async_show_form(
-            step_id="switch_firmware",
-            data_schema=vol.Schema({vol.Required("confirm", default=False): bool}),
-            description_placeholders={
-                "running_version": firmware.get("current_version") or "?",
-                "running_partition": firmware.get("running") or "?",
-                "target_version": target[1],
-                "target_partition": target[0],
-            },
-            errors=errors,
-        )
-
-    async def async_step_switching(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Switch and wait for the kettle to come back on the target firmware."""
-        partition, version = self._target
-        if self._switch_task is None:
-            self._switch_task = self.hass.async_create_task(
-                self._coordinator().async_switch_partition_and_wait(partition)
-            )
-        if not self._switch_task.done():
-            return self.async_show_progress(
-                step_id="switching",
-                progress_action="switching",
-                progress_task=self._switch_task,
-                description_placeholders={"target_version": version},
-            )
-        try:
-            switched = self._switch_task.result()
-        except Exception:  # noqa: BLE001
-            _LOGGER.exception("Switching the Fellow Stagg firmware failed")
-            switched = False
-        return self.async_show_progress_done(
-            next_step_id="switch_done" if switched else "switch_failed"
-        )
-
-    async def async_step_switch_done(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        return self.async_abort(
-            reason="firmware_switched", description_placeholders={"target_version": self._target[1]}
-        )
-
-    async def async_step_switch_failed(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        return self.async_abort(
-            reason="firmware_switch_failed", description_placeholders={"target_version": self._target[1]}
-        )
-
-    async def async_step_upload_firmware(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Pick a firmware .img from the browser and flash it onto the kettle."""
-        coordinator = self._coordinator()
-        if coordinator is None:
-            return self.async_abort(reason="not_loaded")
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            try:
-                data = await self._read_uploaded_firmware(user_input["firmware_file"])
-                info = parse_esp_app_image(data)
-            except FirmwareImageError as err:
-                _LOGGER.warning("Rejected firmware upload: %s", err)
-                errors["base"] = "invalid_firmware"
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.warning("Could not read uploaded firmware: %s", err)
-                errors["base"] = "read_failed"
-            else:
-                kettle_data = coordinator.data or {}
-                if kettle_data.get("power") and not kettle_data.get("cli_muted"):
-                    errors["base"] = "kettle_heating"
-                else:
-                    self._firmware_blob = data
-                    self._upload_version = info["version"]
-                    return await self.async_step_uploading()
-        return self.async_show_form(
-            step_id="upload_firmware",
-            data_schema=vol.Schema(
-                {vol.Required("firmware_file"): FileSelector(FileSelectorConfig(accept=".img,.bin"))}
-            ),
-            errors=errors,
-        )
-
-    async def _read_uploaded_firmware(self, file_id: str) -> bytes:
-        """Read the uploaded file's bytes off disk (blocking, so run in the executor)."""
-        def _read() -> bytes:
-            with process_uploaded_file(self.hass, file_id) as path:
-                return path.read_bytes()
-
-        return await self.hass.async_add_executor_job(_read)
-
-    async def async_step_uploading(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Flash the uploaded firmware and wait for the kettle to come back."""
-        if self._upload_task is None:
-            self._upload_task = self.hass.async_create_task(
-                self._coordinator().async_install_firmware_and_wait(self._firmware_blob)
-            )
-        if not self._upload_task.done():
-            return self.async_show_progress(
-                step_id="uploading",
-                progress_action="uploading",
-                progress_task=self._upload_task,
-                description_placeholders={"version": self._upload_version or "?"},
-            )
-        try:
-            installed = self._upload_task.result()
-        except Exception:  # noqa: BLE001
-            _LOGGER.exception("Uploading the Fellow Stagg firmware failed")
-            installed = False
-        return self.async_show_progress_done(
-            next_step_id="upload_done" if installed else "upload_failed"
-        )
-
-    async def async_step_upload_done(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        return self.async_abort(
-            reason="firmware_uploaded", description_placeholders={"version": self._upload_version or "?"}
-        )
-
-    async def async_step_upload_failed(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        return self.async_abort(
-            reason="firmware_upload_failed", description_placeholders={"version": self._upload_version or "?"}
-        )
 
 
 class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=DOMAIN):

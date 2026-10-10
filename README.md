@@ -15,6 +15,16 @@ The older **EKG+** is a different model and is not supported by this integration
 
 A usable legacy CLI takes precedence over native HTTP detection, preserving the older firmware's full feature set. Native HTTP is detected from valid `/temp` and 17-byte `/api` responses, not a firmware version string alone.
 
+### Firmware compatibility
+
+| Firmware | Legacy CLI | Native HTTP | BLE |
+|---|---|---|---|
+| 1.1.x with usable CLI | Existing control path | Not required | Writes not enabled |
+| 1.2.24 with muted CLI | No usable state/control | Not validated; endpoints may be absent | Read-only if compatible GATT/status is detected; not hardware acceptance-tested |
+| 1.2.26 | Used only if usable | Validated status/target/units endpoints | Validated protocol operations; integration hardware acceptance remains open |
+
+There is no guaranteed control/recovery path for a 1.2.24 kettle in this beta. BLE visibility alone does not prove protocol compatibility. Firmware upload/switching remains disabled on legacy as well as native/BLE: an earlier successful upload is evidence for that operation, but does not validate the complete safety and recovery/error-handling contract.
+
 **Native HTTP power control is not enabled.** Its normal on/off command has not been hardware validated. Firmware 1.2.26 needs BLE for power control on this branch. Hold, schedule, display language, altitude and other settings remain available on legacy CLI; they are unavailable on native/BLE until validated. Existing registry entities are retained.
 
 ## Installation and configuration

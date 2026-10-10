@@ -118,8 +118,6 @@
         "title": "Options Fellow Stagg",
         "menu_options": {
           "polling": "Intervalles d'interrogation",
-          "switch_firmware": "Changer de firmware",
-          "upload_firmware": "Téléverser le firmware (récupération)",
           "connection": "Connexion",
           "wifi_setup": "Configurer le Wi-Fi par Bluetooth"
         }
@@ -129,20 +127,6 @@
         "data": {
           "polling_interval_seconds": "Intervalle d'interrogation (secondes)",
           "polling_interval_countdown_seconds": "Intervalle rapide pendant l'activité (secondes)"
-        }
-      },
-      "switch_firmware": {
-        "title": "Changer de firmware",
-        "description": "La bouilloire utilise **{running_version}** ({running_partition}). Cette action passe à **{target_version}** ({target_partition}), déjà présent sur la bouilloire, et la redémarre. Cela prend environ 10 secondes.\n\nBloquez d'abord l'accès Internet de la bouilloire, sinon elle risque de se mettre de nouveau à jour.",
-        "data": {
-          "confirm": "Oui, changer le firmware de la bouilloire"
-        }
-      },
-      "upload_firmware": {
-        "title": "Téléverser le firmware",
-        "description": "Choisissez un fichier firmware .img à flasher sur la bouilloire. Outil de récupération si le firmware précédent a disparu. La bouilloire vérifie la signature de l'image et rejette un fichier erroné ou corrompu ; elle ne peut donc pas être « brickée ». Bloquez d'abord l'accès Internet de la bouilloire. La bouilloire redémarre sur le firmware téléversé.",
-        "data": {
-          "firmware_file": "Fichier firmware .img"
         }
       },
       "connection": {
@@ -167,8 +151,6 @@
       }
     },
     "progress": {
-      "switching": "Passage de la bouilloire à {target_version} ; attente du redémarrage…",
-      "uploading": "Téléversement du firmware {version} ; attente du redémarrage de la bouilloire…",
       "wifi_connecting": "Envoi des paramètres Wi-Fi de {ssid} et vérification de la connexion…"
     },
     "error": {
@@ -377,11 +359,11 @@
     },
     "send_cli": {
       "name": "Envoyer une commande CLI",
-      "description": "Envoyer une commande CLI HTTP brute à la bouilloire (pour les tests)."
+      "description": "Diagnostic CLI en lecture seule : state, fwinfo, prtsettings ou pwmprt."
     },
     "install_firmware": {
-      "name": "Installer le firmware (récupération)",
-      "description": "Flashe un fichier firmware .img local sur la bouilloire via son propre point de téléversement. Outil de récupération si le firmware précédent de la bouilloire a disparu. La bouilloire vérifie l'image et rejette un fichier erroné ou corrompu. La bouilloire redémarre sur le firmware téléversé.",
+      "name": "Installer le firmware (temporairement désactivé)",
+      "description": "Désactivé sur toutes les connexions en attente de validation de sécurité et de récupération. Conservé pour compatibilité ; aucun fichier lu ni commande envoyée.",
       "fields": {
         "path": {
           "name": "Chemin du fichier firmware",

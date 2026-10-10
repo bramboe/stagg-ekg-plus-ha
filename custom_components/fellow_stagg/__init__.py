@@ -556,12 +556,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
       await coord.kettle.async_play_chime(coord.session, beeps)
 
   async def install_firmware_handler(call):
-    """Flash a local firmware .img onto the kettle via its /uploadfw endpoint.
-
-    Recovery tool: if the kettle's previous firmware is ever gone (e.g. overwritten by a
-    manufacturer update), upload a known-good image such as the signed 1.1.75SSP. The kettle
-    verifies the image itself and rejects anything that doesn't belong to it.
-    """
+    """Retain service compatibility; firmware mutation is temporarily disabled."""
     raise HomeAssistantError("Firmware changes are disabled pending hardware validation")
 
   hass.services.async_register(

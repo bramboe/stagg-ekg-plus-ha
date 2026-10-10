@@ -103,10 +103,10 @@ play_chime:
 
 send_cli:
   name: Send CLI command
-  description: Send a raw HTTP CLI command to the kettle (for testing). Call with return response to get the raw CLI text back.
+  description: Read-only diagnostic CLI command (state, fwinfo, prtsettings or pwmprt). Call with return response to get the CLI text.
   fields:
     command:
-      description: CLI command string (e.g. fwinfo, temp, buz sos, prtsettings)
+      description: Read-only CLI command (state, fwinfo, prtsettings or pwmprt)
       example: fwinfo
       required: true
       selector:
@@ -116,12 +116,11 @@ send_cli:
       example: 1234567890abcdef
 
 install_firmware:
-  name: Install firmware (recovery)
+  name: Install firmware (temporarily disabled)
   description: >-
-    Flash a local firmware .img onto the kettle via its own upload endpoint. Recovery tool for
-    when the kettle's previous firmware is gone. The kettle verifies the image and rejects a
-    wrong or corrupt file. The file must be readable by Home Assistant (e.g. under /config,
-    /media or /share). The kettle reboots into the uploaded firmware.
+    Temporarily disabled on every transport pending supervised safety and recovery validation.
+    Retained for service compatibility; always returns an error without reading the file or
+    contacting the kettle.
   fields:
     path:
       name: Firmware file path

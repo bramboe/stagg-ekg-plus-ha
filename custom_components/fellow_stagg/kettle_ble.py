@@ -217,6 +217,7 @@ class KettleBleClient:
         await self._settings_write(units_payload(unit), "units", unit.upper())
 
     async def async_set_units_safe(self, session, unit, current_mode="S_OFF"):
+        """Compatibility alias; current_mode is unused, units never toggle heat."""
         await self.async_set_units(session, unit)
 
     async def async_close(self):
