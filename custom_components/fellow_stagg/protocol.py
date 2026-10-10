@@ -47,6 +47,13 @@ def decode_settings(raw: bytes) -> dict:
         data["boil"] = bool(mask & 0x800)
     if mask & 0x10 and raw[11] < 24 and raw[10] < 60:
         data["clock"] = f"{raw[11]:02d}:{raw[10]:02d}"
+    if mask & 4:
+        enabled = bool(mask & 8)
+        schedule_temp = decode_temperature(int.from_bytes(raw[6:8], "little"))
+        data.update(schedule_enabled=enabled,
+                    schedule_time={"hour": raw[9], "minute": raw[8]} if raw[9] < 24 and raw[8] < 60 else None,
+                    schedule_temp_c=schedule_temp if 40 <= schedule_temp <= 100 else None,
+                    schedule_mode=None if enabled else "off")
     return data
 
 

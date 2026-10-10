@@ -1,5 +1,25 @@
 # Original HACS feature parity reassessment
 
+## Current beta: 0.6.0b7
+
+| Function | Legacy HTTP CLI | 1.2.26 native HTTP | 1.2.26 BLE-only |
+|---|---|---|---|
+| Target, units | Supported | Supported | Supported |
+| Power | Existing control | Unavailable | Guarded Off/Heat; physical heater-stop acceptance open |
+| Clock display, hold, language, chime, pre-boil | Existing controls | Selective write and readback | Selective write and readback |
+| Altitude | Existing 10m steps | 30m steps and readback | 30m steps and readback |
+| Automatic clock synchronization | Existing control | Unavailable | Unavailable |
+| Full schedule programming | Existing controls | Unavailable | Unavailable |
+| Existing schedule Off/Once/Daily | Existing controls | Explicit Wi-Fi action; Once/Daily require physical confirmation | Disabled |
+| Schedule readout | Existing fields | Enabled/time/temperature; Once/Daily unknown | Enabled/time/temperature; Once/Daily unknown |
+| Standby display restoration | Not added | Explicit Wi-Fi action, planning must be off | Unavailable |
+| Play chime / Bricky | Existing controls | Unavailable | Unavailable |
+
+Supported means implemented, not completion of every hardware acceptance test. See OTHER_FEATURE_TESTS.md for the remaining preference tests. BLE-only never sends these Wi-Fi actions and never automatically erases an existing physical schedule. Hybrid uses capabilities of each available transport. Entity identities remain unchanged.
+
+## Historical reassessment
+
+
 Compared against 75d0f46. Source inspection and automated tests do not establish complete hardware acceptance. Retaining unique IDs is not the same as retaining operational behavior.
 
 | Original feature | Usable legacy CLI | 1.2.26 native HTTP | 1.2.26 BLE |
@@ -33,3 +53,9 @@ The table above records the pre-b3 reassessment. Clock display, hold duration, l
 ## Update in 0.6.0b5
 
 Altitude is now decoded and controllable via native HTTP/BLE using a selective B5 write with verified readback. Physical reads for 0/120/0m are confirmed on 1.2.26 C; integration write acceptance is pending docs/ALTITUDE_TEST.md. Original altitude identity and legacy CLI behavior remain. New native/BLE controls use the physically reported 30m menu steps. Schedule once/daily remains unsupported: B5 omits Repeat_sched, and the current kettle's CLI returns only its form. This release does not claim complete feature parity.
+
+## Update after 1.2.26 C hardware tests
+
+Wi-Fi CLI Once→Daily→Once and Off were physically confirmed while preserving a physically configured 18:00/96 °C plan. The new response-only set_existing_schedule_mode action exposes only this tested operation; full time/temperature programming remains legacy-only. The native/BLE reader now exposes planning enabled/time/temperature, while actual once/daily stays unknown. BLE-only scheduling controls remain disabled; selecting BLE-only does not erase a planning already stored in the kettle.
+
+The new restore_standby_display Wi-Fi action cycles Clock Off and restores the original digital/analog setting with readback. Off→Digital removed the reported stale display information in hardware; Analog restoration still needs hardware acceptance. The bare refresh GUI command did not remove it. This is an explicit recovery action, not an automatic display cycle after every command. See WIFI_PLANNING_DISPLAY.md for limitations and remaining hardware checks.

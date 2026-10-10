@@ -235,7 +235,7 @@ class FellowStaggSensor(CoordinatorEntity[FellowStaggDataUpdateCoordinator], Sen
             return attrs
         if self.entity_description.key == "schedule_mode" and self.coordinator.data:
             data = self.coordinator.data
-            attrs: dict[str, Any] = {"mode": data.get("schedule_mode") or "off"}
+            attrs: dict[str, Any] = {"mode": data.get("schedule_mode")}
             if data.get("schedule_time"):
                 attrs["schedule_time"] = data.get("schedule_time")
             if data.get("schedule_temp_c") is not None:

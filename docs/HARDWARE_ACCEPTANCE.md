@@ -1,6 +1,6 @@
 # Hardware acceptance before release
 
-Status: open. Automated fake-device tests validate control logic, not physical kettle safety. No new hardware operations were executed while implementing this branch.
+Status: open. Automated fake-device tests validate control logic, not physical kettle safety. Hardware tests now confirm Wi-Fi changes of an existing plan Once→Daily→Once→Off, and Clock Off→Digital removing stale standby display information. Full plan programming, analog restoration and physical heater-stop remain open.
 
 Record firmware, integration commit, Home Assistant version, proxy firmware and mode for each run. Keep device identifiers/SSID out of public logs. Use water and remain physically present for heating tests, with the kettle's physical stop control accessible. Stop after an uncertain power write; do not repeat a toggle to guess its outcome.
 

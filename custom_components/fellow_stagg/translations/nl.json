@@ -393,6 +393,19 @@
     "probe_schedule_console": {
       "name": "Planningsconsole onderzoeken",
       "description": "Experimenteel: vraag eenmaal prtsettings op en luister acht seconden op B6. Geeft alleen herkende planningsvelden en opnametellingen terug. Vereist actuele standby-status; wijzigt geen planning of aan/uit-instelling."
+    },
+    "set_existing_schedule_mode": {
+      "name": "Modus bestaande planning wijzigen (wifi)",
+      "description": "Wijzig een fysiek ingestelde toekomstige planning naar eenmalig/dagelijks, of schakel deze uit. Vereist firmware 1.2.26 en wifi. Eenmalig/dagelijks kan niet worden teruggelezen: controleer het ketelmenu. Tijd en temperatuur blijven gelijk.",
+      "fields": {
+        "mode": {
+          "name": "Modus"
+        }
+      }
+    },
+    "restore_standby_display": {
+      "name": "Standbyscherm herstellen (wifi)",
+      "description": "Zet de standbyklok tijdelijk uit en herstel de oorspronkelijke digitale/analoge weergave. Vereist firmware 1.2.26, wifi, standby en planning uit. Controleer het scherm."
     }
   },
   "device_automation": {

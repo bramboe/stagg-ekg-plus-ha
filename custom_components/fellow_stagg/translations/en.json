@@ -393,6 +393,19 @@
     "probe_schedule_console": {
       "name": "Probe schedule console",
       "description": "Experimental: send one read-only prtsettings query and listen on B6 for eight seconds. Returns only recognized schedule fields and capture counts. Requires current standby state; no schedule or power setting is changed."
+    },
+    "set_existing_schedule_mode": {
+      "name": "Change existing schedule mode (Wi-Fi)",
+      "description": "Change a physically configured future schedule to once/daily, or disable it. Firmware 1.2.26 with Wi-Fi required. Once/daily cannot be read back: check the physical menu. Does not change time or temperature.",
+      "fields": {
+        "mode": {
+          "name": "Mode"
+        }
+      }
+    },
+    "restore_standby_display": {
+      "name": "Restore standby display (Wi-Fi)",
+      "description": "Temporarily turn the standby clock off and restore its original digital/analog mode. Requires firmware 1.2.26, Wi-Fi, standby and planning off. Check the visual result."
     }
   },
   "device_automation": {

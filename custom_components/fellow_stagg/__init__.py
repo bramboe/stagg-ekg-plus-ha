@@ -344,7 +344,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       elif device_schedon == 2:
           device_mode = "daily"
       else:
-          device_mode = "off" if device_schedon == 0 else None
+          device_mode = "off" if device_schedon == 0 or data.get("schedule_enabled") is False else None
       data["schedule_mode"] = device_mode
 
       now = datetime.now()
@@ -518,6 +518,39 @@ def _async_register_services(hass: HomeAssistant) -> None:
 
   hass.services.async_register(
     DOMAIN, "get_settings_snapshot", get_settings_snapshot_handler,
+    vol.Schema({vol.Optional("entry_id"): str}),
+    supports_response=SupportsResponse.ONLY,
+  )
+
+  async def set_existing_schedule_mode_handler(call):
+    coord = _get_coordinator(call.data.get("entry_id"))
+    if coord is None:
+      raise HomeAssistantError("No matching kettle configuration is loaded")
+    try:
+      result = await coord.kettle.async_set_existing_schedule_mode(coord.session, call.data["mode"])
+    except Exception as err:
+      raise HomeAssistantError(str(err)) from err
+    await coord.async_request_refresh()
+    return result
+
+  async def restore_standby_display_handler(call):
+    coord = _get_coordinator(call.data.get("entry_id"))
+    if coord is None:
+      raise HomeAssistantError("No matching kettle configuration is loaded")
+    try:
+      result = await coord.kettle.async_restore_standby_display(coord.session)
+    except Exception as err:
+      raise HomeAssistantError(str(err)) from err
+    await coord.async_request_refresh()
+    return result
+
+  hass.services.async_register(
+    DOMAIN, "set_existing_schedule_mode", set_existing_schedule_mode_handler,
+    vol.Schema({vol.Optional("entry_id"): str, vol.Required("mode"): vol.In(["off", "once", "daily"])}),
+    supports_response=SupportsResponse.ONLY,
+  )
+  hass.services.async_register(
+    DOMAIN, "restore_standby_display", restore_standby_display_handler,
     vol.Schema({vol.Optional("entry_id"): str}),
     supports_response=SupportsResponse.ONLY,
   )

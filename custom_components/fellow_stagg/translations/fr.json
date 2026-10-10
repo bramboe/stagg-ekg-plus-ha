@@ -393,6 +393,19 @@
     "probe_schedule_console": {
       "name": "Examiner la console de programmation",
       "description": "Expérimental : demander prtsettings une seule fois en lecture seule et écouter B6 pendant huit secondes. Renvoie uniquement les champs de programmation reconnus et les compteurs. Nécessite un état de veille actuel ; ne modifie ni la programmation ni la marche/arrêt."
+    },
+    "set_existing_schedule_mode": {
+      "name": "Modifier une programmation existante (Wi-Fi)",
+      "description": "Choisir unique/quotidien pour une programmation future configurée sur la bouilloire, ou la désactiver. Nécessite le firmware 1.2.26 et le Wi-Fi. Le mode ne peut pas être relu : vérifier le menu. Heure et température conservées.",
+      "fields": {
+        "mode": {
+          "name": "Mode"
+        }
+      }
+    },
+    "restore_standby_display": {
+      "name": "Restaurer l’écran de veille (Wi-Fi)",
+      "description": "Désactiver brièvement l’horloge puis restaurer son mode numérique/analogique initial. Nécessite le firmware 1.2.26, le Wi-Fi, la veille et une programmation désactivée. Vérifier l’écran."
     }
   },
   "device_automation": {

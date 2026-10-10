@@ -355,3 +355,30 @@ def test_schedule_console_service_has_response_and_no_arbitrary_command(tmp_path
         assert coordinator.kettle.async_probe_schedule_console.await_count == 1
         await hass.async_stop()
     asyncio.run(run())
+
+
+def test_wifi_actions_have_bounded_schemas_and_response_receipts(tmp_path):
+    import voluptuous as vol
+    async def run():
+        config_entry = entry()
+        hass = await make_hass(tmp_path, config_entry)
+        with patch("custom_components.fellow_stagg.async_get_clientsession", return_value=object()):
+            coordinator = FellowStaggDataUpdateCoordinator(hass, config_entry)
+        from custom_components.fellow_stagg import _async_register_services
+        hass.data[DOMAIN] = {config_entry.entry_id: coordinator}
+        coordinator.async_request_refresh = AsyncMock()
+        receipt = {"requested_mode": "daily", "actual_mode": None, "mode_verified": False}
+        coordinator.kettle.async_set_existing_schedule_mode = AsyncMock(return_value=receipt)
+        coordinator.kettle.async_restore_standby_display = AsyncMock(return_value={"clock_restored": True})
+        _async_register_services(hass)
+        result = await hass.services.async_call(DOMAIN, "set_existing_schedule_mode", {"mode": "daily"}, blocking=True, return_response=True)
+        assert result == receipt
+        coordinator.kettle.async_set_existing_schedule_mode.assert_awaited_once_with(coordinator.session, "daily")
+        for invalid in ({"mode": "toggle"}, {"mode": "daily", "command": "2"}, {"mode": "daily", "hour": 0}):
+            with pytest.raises(vol.Invalid):
+                await hass.services.async_call(DOMAIN, "set_existing_schedule_mode", invalid, blocking=True, return_response=True)
+        response = await hass.services.async_call(DOMAIN, "restore_standby_display", {}, blocking=True, return_response=True)
+        assert response["clock_restored"] is True
+        coordinator.kettle.async_restore_standby_display.assert_awaited_once_with(coordinator.session)
+        await hass.async_stop()
+    asyncio.run(run())

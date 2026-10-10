@@ -7,10 +7,11 @@ from aiohttp import ClientError
 
 from .kettle_http import KettleHttpClient
 from .native_http import NativeHttpClient
+from .wifi_controls import WifiControls
 from .protocol import CommandUncertain, ProtocolError, UnsupportedCapability
 
 
-class KettleTransport:
+class KettleTransport(WifiControls):
     def __init__(self, mode, base_url=None, ble=None):
         if mode not in ("wifi", "ble", "auto"):
             raise ValueError("Unknown connection mode")

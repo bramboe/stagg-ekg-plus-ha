@@ -182,3 +182,27 @@ probe_schedule_console:
       description: Required when more than one kettle is configured.
       selector:
         text:
+
+set_existing_schedule_mode:
+  name: Change existing schedule mode (Wi-Fi)
+  description: Firmware 1.2.26 with Wi-Fi only. Change the mode of an existing future schedule without changing its time or temperature. Once/daily requires checking the physical menu; it cannot be read back.
+  fields:
+    entry_id:
+      selector:
+        text:
+    mode:
+      required: true
+      selector:
+        select:
+          options:
+            - "off"
+            - "once"
+            - "daily"
+
+restore_standby_display:
+  name: Restore standby display (Wi-Fi)
+  description: Firmware 1.2.26 with Wi-Fi only. Cycle the standby clock off and restore its original mode. Requires standby with planning off; check the visual result.
+  fields:
+    entry_id:
+      selector:
+        text:
