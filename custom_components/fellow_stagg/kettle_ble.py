@@ -16,6 +16,9 @@ from .protocol import (
 
 
 from .ble_trace import BleTrace
+from .schedule_probe import ScheduleConsoleCapture
+
+SCHEDULE_PROBE_SECONDS = 8
 
 STATE_TIMEOUT = 7
 WRITE_TIMEOUT = 8
@@ -240,6 +243,61 @@ class KettleBleClient(PreferenceControls):
                 except asyncio.CancelledError:
                     pass
         return self._trace.result()
+
+    async def async_probe_schedule_console(self):
+        """One fixed read-only CLI query; no reconnect, replay or power command."""
+        async with self._command_lock:
+            if not self.fresh or not self.supports_writes:
+                raise UnsupportedCapability("An existing current 1.2.26 BLE connection is required")
+            if self.data.get("power") is not False:
+                raise UnsupportedCapability("Console investigation requires current standby state; no command sent")
+            client, generation = self.client, self._generation
+            char = client.services.get_characteristic(B6)
+            properties = set(char.properties) if char else set()
+            if not {"notify", "write"} <= properties:
+                raise UnsupportedCapability("B6 notify and acknowledged write are required; no command sent")
+            capture = ScheduleConsoleCapture()
+            active = True
+            subscription_attempted = False
+            command_sent = False
+            status = "subscription_failed"
+            def received(sender, raw):
+                if active and self.client is client and generation == self._generation:
+                    capture.feed(raw)
+            try:
+                subscription_attempted = True
+                await asyncio.wait_for(client.start_notify(B6, received), WRITE_TIMEOUT)
+                if not self.fresh or generation != self._generation:
+                    raise ConnectionError("Connection changed before diagnostic query")
+                status = "query_outcome_unknown"
+                # The firmware handler only prints settings. Never accept caller-supplied CLI.
+                command_sent = True
+                await asyncio.wait_for(client.write_gatt_char(B6, b"prtsettings\n", response=True), WRITE_TIMEOUT)
+                status = "observing"
+                deadline = monotonic() + SCHEDULE_PROBE_SECONDS
+                while monotonic() < deadline:
+                    if not self.fresh or generation != self._generation:
+                        raise ConnectionError("Connection lost during diagnostic query")
+                    if self.data.get("power") is not False:
+                        status = "device_left_standby"
+                        break
+                    await asyncio.sleep(min(0.1, max(0, deadline - monotonic())))
+                else:
+                    status = "completed"
+            except (ConnectionError, OSError, TimeoutError):
+                # Report partial evidence; an absent response is not proof of absent support.
+                status = "connection_or_timeout_error"
+            finally:
+                active = False
+                cleanup = "not_needed"
+                if subscription_attempted and client.is_connected:
+                    try:
+                        await asyncio.wait_for(client.stop_notify(B6), WRITE_TIMEOUT)
+                        cleanup = "stopped"
+                    except Exception:
+                        cleanup = "failed"
+            return {"backend": "ble", "firmware": self.firmware, "status": status,
+                    "command_sent": command_sent, "cleanup": cleanup, **capture.result()}
 
     async def async_get_settings_snapshot(self, session=None):
         """Read B5 on the current connection; never reconnect or dispatch a write."""

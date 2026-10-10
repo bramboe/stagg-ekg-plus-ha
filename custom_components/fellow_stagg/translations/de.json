@@ -389,6 +389,10 @@
     "get_ble_trace": {
       "name": "Live-BLE-Aufnahme lesen",
       "description": "Nachrichten mit Zeitstempeln lesen; stoppt standardmäßig die Aufnahme."
+    },
+    "probe_schedule_console": {
+      "name": "Zeitplan-Konsole untersuchen",
+      "description": "Experimentell: prtsettings einmal schreibgeschützt abfragen und acht Sekunden auf B6 lauschen. Gibt nur erkannte Zeitplanfelder und Erfassungszähler zurück. Erfordert aktuellen Standby-Status; ändert weder Zeitplan noch Ein/Aus-Einstellung."
     }
   },
   "device_automation": {

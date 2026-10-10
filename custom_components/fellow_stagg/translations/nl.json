@@ -389,6 +389,10 @@
     "get_ble_trace": {
       "name": "Live BLE-opname uitlezen",
       "description": "Lees berichten met tijdstempels; stopt standaard de opname."
+    },
+    "probe_schedule_console": {
+      "name": "Planningsconsole onderzoeken",
+      "description": "Experimenteel: vraag eenmaal prtsettings op en luister acht seconden op B6. Geeft alleen herkende planningsvelden en opnametellingen terug. Vereist actuele standby-status; wijzigt geen planning of aan/uit-instelling."
     }
   },
   "device_automation": {

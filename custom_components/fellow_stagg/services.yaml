@@ -172,3 +172,13 @@ get_ble_trace:
       description: Required with multiple kettles.
       selector:
         text:
+
+probe_schedule_console:
+  name: Probe schedule console
+  description: Experimental read-only investigation. Listen on B6 for eight seconds after one fixed prtsettings query. No schedule or power settings are written. Returns only recognized schedule fields and capture counts.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Required when more than one kettle is configured.
+      selector:
+        text:

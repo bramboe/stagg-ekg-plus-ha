@@ -169,6 +169,12 @@ class KettleTransport:
         """Compatibility alias; current_mode is unused, units never toggle heat."""
         return await self.async_set_units(session, unit)
 
+    async def async_probe_schedule_console(self):
+        if not self.ble:
+            raise UnsupportedCapability("BLE must be configured for the console diagnostic")
+        async with self._command_lock:
+            return await self.ble.async_probe_schedule_console()
+
     async def async_start_ble_trace(self, duration=60):
         if not self.ble:
             raise UnsupportedCapability("BLE must be configured for live recording")

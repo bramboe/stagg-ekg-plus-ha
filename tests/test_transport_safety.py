@@ -709,3 +709,92 @@ def test_altitude_disconnect_is_uncertain_and_never_falls_back():
         transport.native.async_set_altitude.assert_not_awaited()
         await transport.async_close()
     asyncio.run(run())
+
+
+def test_schedule_console_fragmented_capture_excludes_arbitrary_text():
+    from stagg_test.schedule_probe import ScheduleConsoleCapture
+    capture = ScheduleConsoleCapture()
+    capture.feed(b"SSID private\nst: Repeat_sch")
+    capture.feed(b"ed 1\nst: schedon 2\nst: schtime 4116\nst: schtempr 32948 2C\npassword secret\n")
+    result = capture.result()
+    assert result["settings"] == {"Repeat_sched": 1, "schedon": 2, "schtime": 4116, "schtempr": 32948}
+    assert "private" not in str(result) and "secret" not in str(result)
+    capture.feed(bytes(5000))
+    assert capture.result()["captured_bytes"] == 4096
+    assert capture.result()["truncated"]
+
+
+@pytest.mark.parametrize("reply", [True, False])
+def test_schedule_console_single_read_query_and_subscription_cleanup(monkeypatch, reply):
+    async def run():
+        monkeypatch.setattr(kettle_ble, "SCHEDULE_PROBE_SECONDS", 0.01)
+        fake = FakeBle()
+        ble = make_ble(fake)
+        await ble.async_poll()
+        fake.stop_notify = AsyncMock()
+        def output():
+            fake.callbacks[B6](B6, b"st: Repeat_sched 1\nst: schedon 2\n")
+        async def write(char, payload, response=True):
+            assert (char, payload, response) == (B6, b"prtsettings\n", True)
+            fake.writes.append((char, payload))
+            if reply:
+                output()
+        fake.write_gatt_char = write
+        before = len(fake.writes)
+        result = await ble.async_probe_schedule_console()
+        assert fake.writes[before:] == [(B6, b"prtsettings\n")]
+        assert result["status"] == "completed" and result["cleanup"] == "stopped"
+        assert result["settings"] == ({"Repeat_sched": 1, "schedon": 2} if reply else {})
+        assert fake.state == 0
+        fake.stop_notify.assert_awaited_once_with(B6)
+        output()  # A late callback after cleanup must not change the returned capture.
+        assert result["notifications"] == int(reply)
+        await ble.async_close()
+    asyncio.run(run())
+
+
+def test_schedule_console_no_notify_capability_sends_nothing():
+    async def run():
+        fake = FakeBle()
+        ble = make_ble(fake)
+        await ble.async_poll()
+        fake.services = SimpleNamespace(get_characteristic=lambda char: SimpleNamespace(properties=["write"]))
+        before = list(fake.writes)
+        with pytest.raises(UnsupportedCapability):
+            await ble.async_probe_schedule_console()
+        assert fake.writes == before
+        await ble.async_close()
+    asyncio.run(run())
+
+
+def test_schedule_console_disconnect_does_not_reconnect_or_repeat(monkeypatch):
+    async def run():
+        monkeypatch.setattr(kettle_ble, "SCHEDULE_PROBE_SECONDS", 0.01)
+        fake = FakeBle()
+        ble = make_ble(fake)
+        await ble.async_poll()
+        ble._connect = AsyncMock()
+        async def write(char, payload, response=True):
+            fake.writes.append((char, payload))
+            await fake.disconnect()
+        fake.write_gatt_char = write
+        before = len(fake.writes)
+        result = await ble.async_probe_schedule_console()
+        assert result["status"] == "connection_or_timeout_error"
+        assert fake.writes[before:] == [(B6, b"prtsettings\n")]
+        ble._connect.assert_not_awaited()
+        await ble.async_close()
+    asyncio.run(run())
+
+
+def test_schedule_console_heating_state_is_rejected():
+    async def run():
+        fake = FakeBle(state=5)
+        ble = make_ble(fake)
+        await ble.async_poll()
+        before = list(fake.writes)
+        with pytest.raises(UnsupportedCapability):
+            await ble.async_probe_schedule_console()
+        assert fake.writes == before
+        await ble.async_close()
+    asyncio.run(run())

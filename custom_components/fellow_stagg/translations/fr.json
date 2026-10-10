@@ -389,6 +389,10 @@
     "get_ble_trace": {
       "name": "Lire un enregistrement BLE",
       "description": "Lire les messages horodatés ; arrête par défaut cet enregistrement."
+    },
+    "probe_schedule_console": {
+      "name": "Examiner la console de programmation",
+      "description": "Expérimental : demander prtsettings une seule fois en lecture seule et écouter B6 pendant huit secondes. Renvoie uniquement les champs de programmation reconnus et les compteurs. Nécessite un état de veille actuel ; ne modifie ni la programmation ni la marche/arrêt."
     }
   },
   "device_automation": {

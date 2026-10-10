@@ -333,3 +333,25 @@ def test_altitude_keeps_identity_and_transport_specific_step(tmp_path):
         assert not entity.available
         await hass.async_stop()
     asyncio.run(run())
+
+
+def test_schedule_console_service_has_response_and_no_arbitrary_command(tmp_path):
+    async def run():
+        from custom_components.fellow_stagg import _async_register_services
+        from custom_components.fellow_stagg import vol
+        config_entry = entry()
+        hass = await make_hass(tmp_path, config_entry)
+        with patch("custom_components.fellow_stagg.async_get_clientsession", return_value=object()):
+            coordinator = FellowStaggDataUpdateCoordinator(hass, config_entry)
+        hass.data[DOMAIN] = {config_entry.entry_id: coordinator}
+        expected = {"status": "completed", "settings": {"Repeat_sched": 1}}
+        coordinator.kettle.async_probe_schedule_console = AsyncMock(return_value=expected)
+        _async_register_services(hass)
+        result = await hass.services.async_call(DOMAIN, "probe_schedule_console", {}, blocking=True, return_response=True)
+        assert result == expected
+        coordinator.kettle.async_probe_schedule_console.assert_awaited_once_with()
+        with pytest.raises(vol.Invalid):
+            await hass.services.async_call(DOMAIN, "probe_schedule_console", {"command": "2"}, blocking=True, return_response=True)
+        assert coordinator.kettle.async_probe_schedule_console.await_count == 1
+        await hass.async_stop()
+    asyncio.run(run())

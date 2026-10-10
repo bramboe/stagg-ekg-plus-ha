@@ -389,6 +389,10 @@
     "get_ble_trace": {
       "name": "Read live BLE recording",
       "description": "Read timestamped frames; stops recording by default."
+    },
+    "probe_schedule_console": {
+      "name": "Probe schedule console",
+      "description": "Experimental: send one read-only prtsettings query and listen on B6 for eight seconds. Returns only recognized schedule fields and capture counts. Requires current standby state; no schedule or power setting is changed."
     }
   },
   "device_automation": {
