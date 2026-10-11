@@ -1,5 +1,7 @@
 # Fellow Stagg EKG Pro — Home Assistant
 
+![Fellow Coffee logo](https://raw.githubusercontent.com/bramboe/stagg-ekg-plus-ha/main/branding/icon.svg)
+
 Local Home Assistant integration for the **Fellow Stagg EKG Pro**, using Wi-Fi, Bluetooth or both. Control temperature, view live kettle status and use the settings supported by your firmware and connection. No cloud account is required by the integration.
 
 **Current version: 0.6.5.** The older **Stagg EKG+** is a different model and is not supported.
