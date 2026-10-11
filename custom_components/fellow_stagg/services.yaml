@@ -1,0 +1,209 @@
+set_schedule:
+  name: Set schedule
+  description: Set scheduled time/temperature and optionally enable schedule.
+  fields:
+    hour:
+      description: Hour in 24h format (0-23)
+      example: 7
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 23
+    minute:
+      description: Minute (0-59)
+      example: 30
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 59
+    temperature_c:
+      description: Target temperature in Celsius. Provide temperature_c or temperature_f.
+      example: 90
+      selector:
+        number:
+          min: 40
+          max: 100
+          unit_of_measurement: "°C"
+    temperature_f:
+      description: Target temperature in Fahrenheit (optional alternative to temperature_c)
+      example: 203
+      selector:
+        number:
+          min: 104
+          max: 212
+          unit_of_measurement: "°F"
+    enable:
+      description: Enable schedule after setting it (default true)
+      example: true
+      selector:
+        boolean:
+    daily:
+      description: Repeat the schedule daily instead of once (default false)
+      example: false
+      selector:
+        boolean:
+    entry_id:
+      description: Optional config entry id (needed if multiple kettles)
+      example: 1234567890abcdef
+
+disable_schedule:
+  name: Disable schedule
+  description: Disable scheduled start on the kettle.
+  fields:
+    entry_id:
+      description: Optional config entry id (needed if multiple kettles)
+      example: 1234567890abcdef
+
+update_schedule:
+  name: Update schedule
+  description: Apply the current schedule time/temp/mode from entities to the kettle.
+  fields:
+    entry_id:
+      description: Optional config entry id (needed if multiple kettles)
+      example: 1234567890abcdef
+
+heat_to:
+  name: Heat to temperature
+  description: Set the target temperature and start heating in one call.
+  fields:
+    temperature:
+      description: Target temperature in Celsius (40-100)
+      example: 96
+      required: true
+      selector:
+        number:
+          min: 40
+          max: 100
+          unit_of_measurement: "°C"
+    entry_id:
+      description: Optional config entry id (needed if multiple kettles)
+      example: 1234567890abcdef
+
+play_chime:
+  name: Play chime
+  description: Play a chime on the kettle's buzzer (e.g. as a "tea is ready" notification).
+  fields:
+    pattern:
+      description: Chime pattern
+      example: beep
+      default: beep
+      selector:
+        select:
+          options:
+            - beep
+            - double_beep
+            - alert
+            - error
+            - sos
+    entry_id:
+      description: Optional config entry id (needed if multiple kettles)
+      example: 1234567890abcdef
+
+send_cli:
+  name: Send CLI command
+  description: Read-only diagnostic CLI command (state, fwinfo, prtsettings or pwmprt). Call with return response to get the CLI text.
+  fields:
+    command:
+      description: Read-only CLI command (state, fwinfo, prtsettings or pwmprt)
+      example: fwinfo
+      required: true
+      selector:
+        text:
+    entry_id:
+      description: Optional config entry id (needed if multiple kettles)
+      example: 1234567890abcdef
+
+install_firmware:
+  name: Install firmware
+  description: >-
+    Install a local Fellow Stagg image through the detected legacy HTTP CLI or native HTTP 1.2.26 while
+    the kettle is in fresh standby. Native HTTP and BLE are unsupported.
+    The path must be allowed by Home Assistant. Installation is reported only
+    after the requested version is read back on the other partition. No retry.
+  fields:
+    path:
+      name: Firmware file path
+      description: Absolute path to the .img file, readable by Home Assistant.
+      example: /share/firmware_1.1.75SSP.img
+      required: true
+      selector:
+        text:
+    entry_id:
+      description: Optional config entry id (needed if multiple kettles)
+      example: 1234567890abcdef
+
+get_settings_snapshot:
+  name: Read settings snapshot
+  description: Read the 17-byte native/BLE settings record for supervised testing. No setting or power command is sent. Requires an existing connection. The result includes clock/settings values, but no network identifiers.
+  fields:
+    entry_id:
+      name: Kettle configuration
+      description: Required when multiple kettles are configured.
+      selector:
+        text:
+
+start_ble_trace:
+  name: Start live BLE recording
+  description: Record existing B1/B5 notifications and read B5 every second. No power/settings commands or reconnects. Memory only; automatically stops within 120 seconds.
+  fields:
+    duration:
+      name: Duration
+      default: 60
+      selector:
+        number:
+          min: 10
+          max: 120
+          unit_of_measurement: s
+    entry_id:
+      description: Required with multiple kettles.
+      selector:
+        text:
+get_ble_trace:
+  name: Read live BLE recording
+  description: Return timestamped B1/B5 frames. By default stops recording; set stop to false to read progress. No network identifiers are captured.
+  fields:
+    stop:
+      name: Stop recording
+      default: true
+      selector:
+        boolean:
+    entry_id:
+      description: Required with multiple kettles.
+      selector:
+        text:
+
+probe_schedule_console:
+  name: Probe schedule console
+  description: Experimental read-only investigation. Listen on B6 for eight seconds after one fixed prtsettings query. No schedule or power settings are written. Returns only recognized schedule fields and capture counts.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Required when more than one kettle is configured.
+      selector:
+        text:
+
+set_existing_schedule_mode:
+  name: Change existing schedule mode (Wi-Fi)
+  description: Firmware 1.2.26 with Wi-Fi only. Change the mode of an existing future schedule without changing its time or temperature. Once/daily requires checking the physical menu; it cannot be read back.
+  fields:
+    entry_id:
+      selector:
+        text:
+    mode:
+      required: true
+      selector:
+        select:
+          options:
+            - "off"
+            - "once"
+            - "daily"
+
+restore_standby_display:
+  name: Restore standby display (Wi-Fi)
+  description: Firmware 1.2.26 with Wi-Fi only. Cycle the standby clock off and restore its original mode. Requires standby with planning off; check the visual result.
+  fields:
+    entry_id:
+      selector:
+        text:

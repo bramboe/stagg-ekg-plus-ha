@@ -1,0 +1,57 @@
+blueprint:
+  name: "Fellow Stagg: notify when water is ready"
+  description: >
+    Send a notification (and optionally play a chime on the kettle) when the
+    Fellow Stagg EKG Pro's water is ready.
+  domain: automation
+  source_url: https://github.com/bramboe/stagg-ekg-plus-ha/blob/main/blueprints/automation/fellow_stagg_notify_ready.yaml
+  input:
+    water_ready:
+      name: Water ready sensor
+      description: The kettle's "Water ready" binary sensor.
+      selector:
+        entity:
+          domain: binary_sensor
+          integration: fellow_stagg
+    notify_target:
+      name: Notify service
+      description: The notify service to call (e.g. notify.mobile_app_your_phone).
+      selector:
+        text:
+    message:
+      name: Message
+      default: The kettle is ready.
+      selector:
+        text:
+    play_chime:
+      name: Play a chime on the kettle
+      default: false
+      selector:
+        boolean:
+    kettle_device:
+      name: Kettle device (for the chime)
+      description: Only used when "Play a chime" is on.
+      default: ""
+      selector:
+        device:
+          integration: fellow_stagg
+
+mode: single
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input water_ready
+    to: "on"
+
+action:
+  - service: !input notify_target
+    data:
+      message: !input message
+  - if:
+      - condition: template
+        value_template: "{{ play_chime }}"
+    then:
+      - service: fellow_stagg.play_chime
+        data:
+          pattern: beep

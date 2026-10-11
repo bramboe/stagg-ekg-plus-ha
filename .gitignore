@@ -1,0 +1,8 @@
+/scripts
+.DS_Store
+__pycache__/
+*.pyc
+
+work/
+.pytest_cache/
+.ruff_cache/

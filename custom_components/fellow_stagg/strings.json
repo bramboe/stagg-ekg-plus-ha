@@ -1,0 +1,464 @@
+{
+  "config": {
+    "flow_title": "Fellow Stagg ({base_url})",
+    "step": {
+      "user": {
+        "title": "Connection",
+        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi.",
+        "data": {
+          "connection_mode": "Connection mode"
+        }
+      },
+      "user_manual": {
+        "title": "Enter kettle URL",
+        "description": "{message}",
+        "data": {
+          "base_url": "Kettle URL"
+        }
+      },
+      "bluetooth": {
+        "title": "Kettle discovered ({name})",
+        "description": "{hint}",
+        "data": {
+          "action": "Action",
+          "base_url": "Kettle URL"
+        }
+      },
+      "bluetooth_configure": {
+        "title": "Configure {name}",
+        "description": "{hint}",
+        "data": {
+          "action": "Action",
+          "base_url": "Kettle URL"
+        }
+      },
+      "zeroconf": {
+        "title": "Kettle discovered",
+        "description": "A Fellow Stagg kettle was found at {base_url}. Add it to Home Assistant?"
+      },
+      "scan_network_result": {
+        "title": "Network scan results",
+        "data": {
+          "scan_result": "Found kettles"
+        }
+      },
+      "reconfigure": {
+        "title": "Change kettle URL",
+        "description": "Enter the kettle's new URL (e.g. after its IP address changed).",
+        "data": {
+          "base_url": "Kettle URL"
+        }
+      },
+      "wifi_setup": {
+        "title": "Set up Wi-Fi over Bluetooth",
+        "description": "Put the kettle in Wi-Fi setup mode from its menu first, and keep the Fellow app closed (it holds the Bluetooth connection, and its own setup also makes the kettle download new firmware). Home Assistant then sends the network details straight to the kettle; nothing goes through Fellow's servers.",
+        "data": {
+          "ssid": "Network name (SSID)",
+          "password": "Password"
+        },
+        "data_description": {
+          "ssid": "Pick a network the kettle can see, or type a hidden one. 2.4 GHz only; the kettle has no 5 GHz radio.",
+          "password": "Leave empty for an open network."
+        }
+      },
+      "bluetooth_menu": {
+        "title": "{name}",
+        "description": "The kettle is not on Wi-Fi yet, or its address could not be read.",
+        "menu_options": {
+          "wifi_setup": "Set up Wi-Fi over Bluetooth",
+          "bluetooth_configure": "Enter the kettle's address"
+        }
+      },
+      "dhcp_confirm": {
+        "title": "Fellow Stagg discovered",
+        "description": "Add the Fellow Stagg kettle at {base_url}?"
+      },
+      "transport_device": {
+        "title": "Connection",
+        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi.",
+        "data": {
+          "ble_address": "Bluetooth address",
+          "base_url": "Kettle URL"
+        }
+      }
+    },
+    "error": {
+      "required": "This field is required.",
+      "not_fellow_stagg": "No Fellow Stagg kettle CLI found at this URL.",
+      "ble_unreachable": "Could not connect to the kettle over Bluetooth. Is it in range of Home Assistant's Bluetooth adapter or a Bluetooth proxy, and is the Fellow app closed?",
+      "not_in_setup_mode": "The kettle did not accept the Wi-Fi setup. Put it in Wi-Fi setup mode from its menu and try again.",
+      "pop_rejected": "The kettle rejected the setup key. Put it in Wi-Fi setup mode from its menu and try again.",
+      "handshake_failed": "The secure Bluetooth session with the kettle failed. Try again.",
+      "set_config_failed": "The kettle did not accept the network details.",
+      "wrong_password": "The kettle could not join the network: wrong password.",
+      "network_not_found": "The kettle could not find that network. Check the name; it must be a 2.4 GHz network.",
+      "wifi_timeout": "The kettle did not get onto the network in time. Check the name and password and try again.",
+      "active_proxy_required": "An active Bluetooth adapter or ESPHome Bluetooth Proxy must be able to reach the kettle.",
+      "ble_address_required": "Enter the kettle Bluetooth address.",
+      "wifi_url_required": "This mode needs a kettle Wi-Fi URL."
+    },
+    "abort": {
+      "already_configured": "This kettle is already configured.",
+      "invalid_host": "Invalid host.",
+      "not_fellow_stagg": "This device is not a Fellow Stagg kettle.",
+      "invalid_discovery_info": "Invalid discovery information.",
+      "ignored": "Discovery ignored.",
+      "reconfigure_successful": "The kettle URL was updated.",
+      "unknown": "Unexpected error.",
+      "ble_unreachable": "Could not connect to the kettle over Bluetooth. Is it in range of Home Assistant's Bluetooth adapter or a Bluetooth proxy, and is the Fellow app closed?"
+    },
+    "progress": {
+      "scan_network": "Scanning your network for Fellow Stagg kettles…",
+      "wifi_scan": "Scanning for Wi-Fi networks the kettle can see…",
+      "wifi_connecting": "Sending the Wi-Fi details for {ssid} and waiting for the kettle to connect…"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Fellow Stagg options",
+        "menu_options": {
+          "polling": "Polling intervals",
+          "wifi_setup": "Set up Wi-Fi (Bluetooth)",
+          "connection": "Connection",
+          "switch_firmware": "Switch firmware",
+          "upload_firmware": "Upload firmware (recovery)"
+        }
+      },
+      "polling": {
+        "title": "Polling options",
+        "data": {
+          "polling_interval_seconds": "Polling interval (seconds)",
+          "polling_interval_countdown_seconds": "Fast polling interval when active (seconds)"
+        }
+      },
+      "wifi_setup": {
+        "title": "Set up Wi-Fi over Bluetooth",
+        "description": "Put the kettle in Wi-Fi setup mode from its menu first, and keep the Fellow app closed (it holds the Bluetooth connection, and its own setup also makes the kettle download new firmware). Home Assistant then sends the network details straight to the kettle; nothing goes through Fellow's servers.",
+        "data": {
+          "ssid": "Network name (SSID)",
+          "password": "Password"
+        },
+        "data_description": {
+          "ssid": "Pick a network the kettle can see, or type a hidden one. 2.4 GHz only; the kettle has no 5 GHz radio.",
+          "password": "Leave empty for an open network."
+        }
+      },
+      "connection": {
+        "title": "Connection",
+        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi.",
+        "data": {
+          "connection_mode": "Connection mode",
+          "ble_address": "Bluetooth address",
+          "base_url": "Kettle Wi-Fi URL (required for Wi-Fi/auto)"
+        }
+      },
+      "switch_firmware": {
+        "title": "Switch firmware",
+        "description": "The kettle runs **{running_version}** ({running_partition}). This switches it to **{target_version}** ({target_partition}), which is already stored on the kettle, and restarts it. That takes about 10 seconds.\n\nBlock the kettle's internet access first, or it may update itself again.",
+        "data": {
+          "confirm": "Yes, switch the kettle's firmware"
+        }
+      },
+      "upload_firmware": {
+        "title": "Upload firmware",
+        "description": "Select a trusted Fellow Stagg .img or .bin image. Available over the legacy HTTP CLI or native HTTP firmware 1.2.26, with the kettle in standby. BLE-only cannot upload firmware. The integration checks the image header and size; this does not establish authenticity or guarantee recovery. Keep power connected until completion. The kettle restarts; success requires reading back the requested version on the other partition.",
+        "data": {
+          "firmware_file": "Firmware .img file"
+        }
+      }
+    },
+    "progress": {
+      "wifi_connecting": "Sending the Wi-Fi details for {ssid} and waiting for the kettle to connect…",
+      "wifi_scan": "Scanning for Wi-Fi networks the kettle can see…",
+      "switching": "Switching the kettle to {target_version} and waiting for it to restart…",
+      "uploading": "Uploading firmware {version} and waiting for the kettle to restart…"
+    },
+    "error": {
+      "not_confirmed": "Tick the box to confirm the switch.",
+      "kettle_heating": "The kettle is heating. Switch firmware when it's idle.",
+      "invalid_firmware": "That file is not a valid Fellow Stagg kettle firmware image.",
+      "read_failed": "Could not read the uploaded file. Please try again.",
+      "ble_unreachable": "Could not connect to the kettle over Bluetooth. Is it in range of Home Assistant's Bluetooth adapter or a Bluetooth proxy, and is the Fellow app closed?",
+      "not_in_setup_mode": "The kettle did not accept the Wi-Fi setup. Put it in Wi-Fi setup mode from its menu and try again.",
+      "pop_rejected": "The kettle rejected the setup key. Put it in Wi-Fi setup mode from its menu and try again.",
+      "handshake_failed": "The secure Bluetooth session with the kettle failed. Try again.",
+      "set_config_failed": "The kettle did not accept the network details.",
+      "wrong_password": "The kettle could not join the network: wrong password.",
+      "network_not_found": "The kettle could not find that network. Check the name; it must be a 2.4 GHz network.",
+      "wifi_timeout": "The kettle did not get onto the network in time. Check the name and password and try again.",
+      "active_proxy_required": "An active Bluetooth adapter or ESPHome Bluetooth Proxy must be able to reach the kettle.",
+      "ble_address_required": "Enter the kettle Bluetooth address.",
+      "wifi_url_required": "This mode needs a kettle Wi-Fi URL.",
+      "not_fellow_stagg": "Could not read kettle state at this address. Check its Wi-Fi connection and URL.",
+      "invalid_url": "Use a kettle HTTP URL without credentials or extra paths."
+    },
+    "abort": {
+      "no_other_firmware": "The kettle is running {running_version} and its other partition holds no valid firmware to switch to. Use Upload firmware (recovery) to put a different version there first.",
+      "firmware_same_version": "Both partitions are running {running_version}, so there is nothing to upgrade or downgrade to. Use Upload firmware (recovery) to flash a different version first; then you can switch back and forth.",
+      "firmware_switched": "Done: the kettle now runs {target_version}.",
+      "firmware_switch_failed": "The kettle didn't come back on {target_version} within a minute. Check the **Firmware version** sensor in a moment; if the switch didn't take, the kettle keeps its previous firmware.",
+      "firmware_uploaded": "Done: the kettle restarted on firmware {version}.",
+      "firmware_upload_failed": "The kettle didn't come back after the firmware {version} upload within the time limit. Check the Firmware version sensor; if it didn't take, the kettle keeps its previous firmware.",
+      "not_loaded": "The kettle isn't loaded yet; try again in a moment.",
+      "ble_unreachable": "Could not connect to the kettle over Bluetooth. Is it in range of Home Assistant's Bluetooth adapter or a Bluetooth proxy, and is the Fellow app closed?",
+      "wifi_setup_done": "The kettle is now on {ssid} at {ip}.",
+      "legacy_firmware_required": "Switching partitions needs the kettle\u2019s legacy Wi-Fi HTTP interface (setpart/reset). It is on {running_version} over {transport} now, so switching is not available. It works on firmware whose local CLI responds, e.g. after a rollback.",
+      "firmware_upload_unavailable": "Uploading firmware needs the kettle's Wi-Fi HTTP connection, but it is on {transport} now. Set the connection mode to Auto (Configure \u2192 Connection) and enter the kettle's URL, then try again. Bluetooth-only cannot upload firmware.",
+      "firmware_not_read": "Home Assistant can't read the kettle's firmware partitions over {transport}. Switching and uploading firmware need the kettle's Wi-Fi HTTP connection \u2014 set the connection mode to Auto (Configure \u2192 Connection) and enter the kettle's URL, then try again.",
+      "firmware_http_unreachable": "A kettle URL is set ({url}), but Home Assistant can't reach the kettle over HTTP there, so firmware switching and upload aren't available. Check the kettle is powered on and reachable at that address from Home Assistant's network (not just over Bluetooth), then try again."
+    }
+  },
+  "entity": {
+    "climate": {
+      "kettle": {
+        "name": "Kettle",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "white_tea": "White tea",
+              "green_tea": "Green tea",
+              "oolong_tea": "Oolong tea",
+              "pour_over_coffee": "Pour-over coffee",
+              "french_press": "French press",
+              "black_tea": "Black tea",
+              "boil": "Boil"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "current_temp": {
+        "name": "Current temperature"
+      },
+      "brew_timer": {
+        "name": "Brew timer"
+      },
+      "wifi_address": {
+        "name": "Wi-Fi address"
+      },
+      "bluetooth_address": {
+        "name": "Bluetooth address"
+      },
+      "power": {
+        "name": "Power"
+      },
+      "hold": {
+        "name": "Hold mode"
+      },
+      "clock": {
+        "name": "Clock"
+      },
+      "schedule_mode": {
+        "name": "Schedule"
+      },
+      "screen_name": {
+        "name": "Current screen"
+      },
+      "programmed_unit": {
+        "name": "Unit type"
+      },
+      "dry_boil_detection": {
+        "name": "Dry-boil detection"
+      },
+      "firmware_version": {
+        "name": "Firmware version"
+      },
+      "boil_point": {
+        "name": "Boiling point"
+      },
+      "backend": {
+        "name": "Connection used"
+      },
+      "device_state": {
+        "name": "Device state"
+      },
+      "pwm": {
+        "name": "Internal PWM value"
+      },
+      "eta": {
+        "name": "Time to target"
+      },
+      "heating_rate": {
+        "name": "Heating rate"
+      },
+      "last_command": {
+        "name": "Last command result"
+      }
+    },
+    "binary_sensor": {
+      "on_base": {
+        "name": "Kettle on base"
+      },
+      "heating": {
+        "name": "Heating"
+      },
+      "water_ready": {
+        "name": "Water ready"
+      },
+      "no_water": {
+        "name": "No water"
+      }
+    },
+    "select": {
+      "schedule_mode": {
+        "name": "Schedule mode",
+        "state": {
+          "off": "Off",
+          "once": "Once",
+          "daily": "Daily"
+        }
+      },
+      "clock_mode": {
+        "name": "Clock display mode",
+        "state": {
+          "off": "Off",
+          "digital": "Digital",
+          "analog": "Analog"
+        }
+      },
+      "temperature_unit": {
+        "name": "Temperature unit"
+      },
+      "hold_duration": {
+        "name": "Hold duration"
+      },
+      "language": {
+        "name": "Display language",
+        "state": {
+          "english": "English",
+          "french": "French",
+          "spanish": "Spanish",
+          "chinese_simplified": "Chinese (Simplified)",
+          "chinese_traditional": "Chinese (Traditional)",
+          "korean": "Korean",
+          "japanese": "Japanese"
+        }
+      }
+    },
+    "number": {
+      "schedule_temperature": {
+        "name": "Schedule temperature"
+      },
+      "altitude": {
+        "name": "Altitude"
+      },
+      "chime_level": {
+        "name": "Chime level"
+      }
+    },
+    "button": {
+      "update_schedule": {
+        "name": "Update schedule"
+      },
+      "launch_bricky": {
+        "name": "Launch Bricky (lift kettle)"
+      }
+    },
+    "switch": {
+      "sync_clock": {
+        "name": "Sync clock"
+      },
+      "pre_boil": {
+        "name": "Pre-boil"
+      },
+      "chime": {
+        "name": "Ready chime"
+      },
+      "revert_firmware_updates": {
+        "name": "Lock firmware"
+      }
+    },
+    "time": {
+      "schedule_time": {
+        "name": "Schedule time"
+      }
+    }
+  },
+  "services": {
+    "set_schedule": {
+      "name": "Set schedule",
+      "description": "Set scheduled time/temperature and optionally enable the schedule."
+    },
+    "disable_schedule": {
+      "name": "Disable schedule",
+      "description": "Disable scheduled start on the kettle."
+    },
+    "update_schedule": {
+      "name": "Update schedule",
+      "description": "Apply the current schedule time/temp/mode from entities to the kettle."
+    },
+    "heat_to": {
+      "name": "Heat to temperature",
+      "description": "Set the target temperature and start heating in one call."
+    },
+    "play_chime": {
+      "name": "Play chime",
+      "description": "Play a chime on the kettle's buzzer."
+    },
+    "send_cli": {
+      "name": "Send CLI command",
+      "description": "Read-only diagnostic CLI command: state, fwinfo, prtsettings or pwmprt."
+    },
+    "install_firmware": {
+      "name": "Install firmware (temporarily disabled)",
+      "description": "Temporarily disabled on all transports pending safety and recovery validation. Retained for compatibility; no file is read and no kettle command is sent.",
+      "fields": {
+        "path": {
+          "name": "Firmware file path",
+          "description": "Absolute path to the .img file, readable by Home Assistant (e.g. under /config, /media or /share)."
+        },
+        "entry_id": {
+          "description": "Optional config entry id (needed if multiple kettles)",
+          "name": "Kettle (config entry)"
+        }
+      }
+    },
+    "get_settings_snapshot": {
+      "name": "Read settings snapshot",
+      "description": "Read native/BLE settings for supervised testing. No setting or power command is sent. Contains clock/settings values, no network identifiers."
+    },
+    "start_ble_trace": {
+      "name": "Start live BLE recording",
+      "description": "Read-only B1/B5 recording, memory only, maximum 120 seconds."
+    },
+    "get_ble_trace": {
+      "name": "Read live BLE recording",
+      "description": "Read timestamped frames; stops recording by default."
+    },
+    "probe_schedule_console": {
+      "name": "Probe schedule console",
+      "description": "Experimental: send one read-only prtsettings query and listen on B6 for eight seconds. Returns only recognized schedule fields and capture counts. Requires current standby state; no schedule or power setting is changed."
+    },
+    "set_existing_schedule_mode": {
+      "name": "Change existing schedule mode (Wi-Fi)",
+      "description": "Change a physically configured future schedule to once/daily, or disable it. Firmware 1.2.26 with Wi-Fi required. Once/daily cannot be read back: check the physical menu. Does not change time or temperature.",
+      "fields": {
+        "mode": {
+          "name": "Mode"
+        }
+      }
+    },
+    "restore_standby_display": {
+      "name": "Restore standby display (Wi-Fi)",
+      "description": "Temporarily turn the standby clock off and restore its original digital/analog mode. Requires firmware 1.2.26, Wi-Fi, standby and planning off. Check the visual result."
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "placed_on_base": "Kettle placed on base",
+      "lifted_off_base": "Kettle lifted off base"
+    }
+  },
+  "issues": {
+    "cli_muted": {
+      "title": "No valid CLI data",
+      "description": "Firmware {version} does not return valid CLI data. Native HTTP is detected from valid responses; BLE is available for 1.2.26. This integration does not switch firmware automatically. The other partition reports {other_version}."
+    },
+    "firmware_staged": {
+      "title": "Firmware {staged} is stored on the kettle",
+      "description": "The kettle runs {running}; partition {partition} contains {staged}, which may start after a restart. Turn on the **Lock firmware** switch to have Home Assistant switch the kettle back to its pinned firmware (over the legacy HTTP CLI) whenever it updates itself. A router rule that blocks the kettle's internet while keeping local Wi-Fi is more reliable if you can set one."
+    }
+  }
+}

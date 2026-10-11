@@ -1,0 +1,46 @@
+blueprint:
+  name: "Fellow Stagg: auto-off after a delay"
+  description: >
+    Turn the Fellow Stagg EKG Pro off after it has been on (heating or holding)
+    for a chosen number of minutes. A safety/energy helper for when you forget.
+  domain: automation
+  source_url: https://github.com/bramboe/stagg-ekg-plus-ha/blob/main/blueprints/automation/fellow_stagg_auto_off.yaml
+  input:
+    kettle:
+      name: Kettle
+      description: The Fellow Stagg climate entity.
+      selector:
+        entity:
+          domain: climate
+          integration: fellow_stagg
+    minutes:
+      name: Minutes before turning off
+      default: 30
+      selector:
+        number:
+          min: 1
+          max: 240
+          unit_of_measurement: min
+          mode: box
+
+mode: restart
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input kettle
+    to: "heat"
+    for:
+      minutes: !input minutes
+
+condition:
+  - condition: state
+    entity_id: !input kettle
+    state: "heat"
+
+action:
+  - service: climate.set_hvac_mode
+    target:
+      entity_id: !input kettle
+    data:
+      hvac_mode: "off"

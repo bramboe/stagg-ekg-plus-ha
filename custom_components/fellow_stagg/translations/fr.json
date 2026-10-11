@@ -1,0 +1,464 @@
+{
+  "config": {
+    "flow_title": "Fellow Stagg ({base_url})",
+    "step": {
+      "user": {
+        "title": "Connexion",
+        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi.",
+        "data": {
+          "connection_mode": "Mode de connexion"
+        }
+      },
+      "user_manual": {
+        "title": "Saisir l'URL de la bouilloire",
+        "description": "{message}",
+        "data": {
+          "base_url": "URL de la bouilloire"
+        }
+      },
+      "bluetooth": {
+        "title": "Bouilloire découverte ({name})",
+        "description": "{hint}",
+        "data": {
+          "action": "Action",
+          "base_url": "URL de la bouilloire"
+        }
+      },
+      "bluetooth_configure": {
+        "title": "Configurer {name}",
+        "description": "{hint}",
+        "data": {
+          "action": "Action",
+          "base_url": "URL de la bouilloire"
+        }
+      },
+      "zeroconf": {
+        "title": "Bouilloire découverte",
+        "description": "Une bouilloire Fellow Stagg a été trouvée à l'adresse {base_url}. L'ajouter à Home Assistant ?"
+      },
+      "scan_network_result": {
+        "title": "Résultats de l'analyse du réseau",
+        "data": {
+          "scan_result": "Bouilloires trouvées"
+        }
+      },
+      "reconfigure": {
+        "title": "Modifier l'URL de la bouilloire",
+        "description": "Saisissez la nouvelle URL de la bouilloire (p. ex. après un changement d'adresse IP).",
+        "data": {
+          "base_url": "URL de la bouilloire"
+        }
+      },
+      "transport_device": {
+        "title": "Connexion",
+        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi.",
+        "data": {
+          "ble_address": "Adresse Bluetooth",
+          "base_url": "URL de la bouilloire"
+        }
+      },
+      "wifi_setup": {
+        "title": "Configurer le Wi-Fi par Bluetooth",
+        "description": "Activez le mode de configuration Wi-Fi sur la bouilloire et fermez l’application Fellow. Les identifiants sont transmis directement par Bluetooth. Vérifiez après redémarrage que le réseau est conservé.",
+        "data": {
+          "ssid": "Nom du réseau (SSID)",
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "ssid": "Choisissez un réseau visible par la bouilloire, ou saisissez un réseau masqué. 2,4 GHz uniquement ; le 5 GHz n’est pas pris en charge.",
+          "password": "Laissez vide pour un réseau ouvert."
+        }
+      },
+      "bluetooth_menu": {
+        "title": "{name}",
+        "description": "La bouilloire n’est pas encore connectée au Wi-Fi ou son adresse est inconnue.",
+        "menu_options": {
+          "wifi_setup": "Configurer le Wi-Fi par Bluetooth",
+          "bluetooth_configure": "Saisir l’adresse de la bouilloire"
+        }
+      },
+      "dhcp_confirm": {
+        "title": "Fellow Stagg détectée",
+        "description": "Ajouter la Fellow Stagg à {base_url} ?"
+      }
+    },
+    "error": {
+      "required": "Ce champ est obligatoire.",
+      "not_fellow_stagg": "Aucune CLI Fellow Stagg trouvée à cette URL.",
+      "active_proxy_required": "Un adaptateur Bluetooth actif ou un proxy Bluetooth ESPHome doit pouvoir atteindre la bouilloire.",
+      "ble_address_required": "Saisissez l’adresse Bluetooth de la bouilloire.",
+      "wifi_url_required": "Ce mode nécessite une URL Wi-Fi de la bouilloire.",
+      "ble_unreachable": "Connexion Bluetooth impossible. Vérifiez la portée, le proxy Bluetooth actif et que l’application Fellow est fermée.",
+      "not_in_setup_mode": "Activez le mode de configuration Wi-Fi sur la bouilloire, puis réessayez.",
+      "pop_rejected": "Clé de configuration refusée. Réactivez le mode de configuration.",
+      "handshake_failed": "Échec de la session Bluetooth sécurisée.",
+      "set_config_failed": "Paramètres réseau refusés.",
+      "wrong_password": "Mot de passe Wi-Fi incorrect.",
+      "network_not_found": "Réseau introuvable. Vérifiez son nom et utilisez le 2,4 GHz.",
+      "wifi_timeout": "Délai de connexion Wi-Fi dépassé. Vérifiez le réseau et le mot de passe."
+    },
+    "abort": {
+      "already_configured": "Cette bouilloire est déjà configurée.",
+      "invalid_host": "Hôte non valide.",
+      "not_fellow_stagg": "Cet appareil n'est pas une bouilloire Fellow Stagg.",
+      "invalid_discovery_info": "Informations de découverte non valides.",
+      "ignored": "Découverte ignorée.",
+      "reconfigure_successful": "L'URL de la bouilloire a été mise à jour.",
+      "unknown": "Erreur inattendue.",
+      "ble_unreachable": "Connexion Bluetooth impossible. Vérifiez la portée, le proxy Bluetooth actif et que l’application Fellow est fermée."
+    },
+    "progress": {
+      "scan_network": "Analyse du réseau à la recherche de bouilloires Fellow Stagg…",
+      "wifi_scan": "Recherche des réseaux Wi-Fi visibles par la bouilloire…",
+      "wifi_connecting": "Envoi des paramètres Wi-Fi de {ssid} et vérification de la connexion…"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options Fellow Stagg",
+        "menu_options": {
+          "polling": "Intervalles d'interrogation",
+          "connection": "Connexion",
+          "wifi_setup": "Configurer le Wi-Fi par Bluetooth",
+          "switch_firmware": "Changer de firmware",
+          "upload_firmware": "Téléverser le firmware (récupération)"
+        }
+      },
+      "polling": {
+        "title": "Options d'interrogation",
+        "data": {
+          "polling_interval_seconds": "Intervalle d'interrogation (secondes)",
+          "polling_interval_countdown_seconds": "Intervalle rapide pendant l'activité (secondes)"
+        }
+      },
+      "connection": {
+        "title": "Connexion",
+        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi.",
+        "data": {
+          "connection_mode": "Mode de connexion",
+          "ble_address": "Adresse Bluetooth",
+          "base_url": "URL Wi-Fi de la bouilloire (requise pour Wi-Fi/auto)"
+        }
+      },
+      "wifi_setup": {
+        "title": "Configurer le Wi-Fi par Bluetooth",
+        "description": "Activez le mode de configuration Wi-Fi sur la bouilloire et fermez l’application Fellow. Les identifiants sont transmis directement par Bluetooth. Vérifiez après redémarrage que le réseau est conservé.",
+        "data": {
+          "ssid": "Nom du réseau (SSID)",
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "ssid": "Choisissez un réseau visible par la bouilloire, ou saisissez un réseau masqué. 2,4 GHz uniquement ; le 5 GHz n’est pas pris en charge.",
+          "password": "Laissez vide pour un réseau ouvert."
+        }
+      },
+      "switch_firmware": {
+        "title": "Changer de firmware",
+        "description": "La bouilloire utilise **{running_version}** ({running_partition}). Cette action passe à **{target_version}** ({target_partition}), déjà présent sur la bouilloire, et la redémarre. Cela prend environ 10 secondes.\n\nBloquez d'abord l'accès Internet de la bouilloire, sinon elle risque de se mettre de nouveau à jour.",
+        "data": {
+          "confirm": "Oui, changer le firmware de la bouilloire"
+        }
+      },
+      "upload_firmware": {
+        "title": "Téléverser le firmware",
+        "description": "Choisissez une image Fellow Stagg de confiance (.img ou .bin). Disponible via la CLI HTTP historique ou HTTP natif sur le firmware 1.2.26, bouilloire en veille. Aucun téléversement en mode BLE seul. Les contrôles de taille et d’en-tête ne prouvent pas l’authenticité ni la possibilité de récupération. Maintenez l’alimentation jusqu’à la fin. La réussite nécessite la lecture de la version demandée sur l’autre partition.",
+        "data": {
+          "firmware_file": "Fichier firmware .img"
+        }
+      }
+    },
+    "progress": {
+      "wifi_connecting": "Envoi des paramètres Wi-Fi de {ssid} et vérification de la connexion…",
+      "wifi_scan": "Recherche des réseaux Wi-Fi visibles par la bouilloire…",
+      "switching": "Passage de la bouilloire à {target_version} ; attente du redémarrage…",
+      "uploading": "Téléversement du firmware {version} ; attente du redémarrage de la bouilloire…"
+    },
+    "error": {
+      "not_confirmed": "Cochez la case pour confirmer.",
+      "kettle_heating": "La bouilloire est en train de chauffer. Changez de firmware lorsqu'elle est inactive.",
+      "invalid_firmware": "Ce fichier n'est pas une image firmware valide pour la bouilloire Fellow Stagg.",
+      "read_failed": "Impossible de lire le fichier téléversé. Veuillez réessayer.",
+      "active_proxy_required": "Un adaptateur Bluetooth actif ou un proxy Bluetooth ESPHome doit pouvoir atteindre la bouilloire.",
+      "ble_address_required": "Saisissez l’adresse Bluetooth de la bouilloire.",
+      "wifi_url_required": "Ce mode nécessite une URL Wi-Fi de la bouilloire.",
+      "ble_unreachable": "Connexion Bluetooth impossible. Vérifiez la portée, le proxy Bluetooth actif et que l’application Fellow est fermée.",
+      "not_in_setup_mode": "Activez le mode de configuration Wi-Fi sur la bouilloire, puis réessayez.",
+      "pop_rejected": "Clé de configuration refusée. Réactivez le mode de configuration.",
+      "handshake_failed": "Échec de la session Bluetooth sécurisée.",
+      "set_config_failed": "Paramètres réseau refusés.",
+      "wrong_password": "Mot de passe Wi-Fi incorrect.",
+      "network_not_found": "Réseau introuvable. Vérifiez son nom et utilisez le 2,4 GHz.",
+      "wifi_timeout": "Délai de connexion Wi-Fi dépassé. Vérifiez le réseau et le mot de passe.",
+      "not_fellow_stagg": "État inaccessible à cette adresse. Vérifiez la connexion Wi-Fi et l’URL.",
+      "invalid_url": "Utilisez une URL HTTP sans identifiants ni chemins supplémentaires."
+    },
+    "abort": {
+      "no_other_firmware": "La bouilloire ex\u00e9cute {running_version} et son autre partition ne contient aucun firmware valide vers lequel basculer. Utilisez d\u2019abord T\u00e9l\u00e9verser le firmware (r\u00e9cup\u00e9ration) pour y placer une autre version.",
+      "firmware_same_version": "Les deux partitions ex\u00e9cutent {running_version} : il n\u2019y a donc rien \u00e0 mettre \u00e0 niveau ni \u00e0 r\u00e9trograder. Utilisez T\u00e9l\u00e9verser le firmware (r\u00e9cup\u00e9ration) pour flasher d\u2019abord une autre version ; vous pourrez ensuite basculer de l\u2019une \u00e0 l\u2019autre.",
+      "firmware_switched": "Terminé : la bouilloire utilise maintenant {target_version}.",
+      "firmware_switch_failed": "La bouilloire n'est pas revenue sur {target_version} en moins d'une minute. Vérifiez dans un instant le capteur **Version du micrologiciel** ; si le changement n'a pas abouti, la bouilloire conserve son firmware précédent.",
+      "firmware_uploaded": "Terminé : la bouilloire a redémarré sur le firmware {version}.",
+      "firmware_upload_failed": "La bouilloire n'est pas revenue à temps après le téléversement du firmware {version}. Vérifiez le capteur de version du firmware ; si cela n'a pas abouti, la bouilloire conserve son firmware précédent.",
+      "not_loaded": "La bouilloire n'est pas encore chargée ; réessayez dans un instant.",
+      "ble_unreachable": "Connexion Bluetooth impossible. Vérifiez la portée, le proxy Bluetooth actif et que l’application Fellow est fermée.",
+      "wifi_setup_done": "La bouilloire est connectée à {ssid} à l’adresse {ip}.",
+      "legacy_firmware_required": "Basculer de partition n\u00e9cessite l\u2019interface HTTP Wi-Fi historique (setpart/reset). La bouilloire est sur {running_version} via {transport}, le basculement n\u2019est donc pas disponible. Cela fonctionne avec un firmware dont la CLI locale r\u00e9pond, p.\u202fex. apr\u00e8s un rollback.",
+      "firmware_upload_unavailable": "Le t\u00e9l\u00e9versement du firmware n\u00e9cessite la connexion HTTP Wi-Fi de la bouilloire, mais elle est sur {transport}. R\u00e9glez le mode de connexion sur Auto (Configurer \u2192 Connection) et saisissez l'URL de la bouilloire, puis r\u00e9essayez. Le mode BLE seul ne permet pas le t\u00e9l\u00e9versement.",
+      "firmware_not_read": "Home Assistant ne peut pas lire les partitions du firmware via {transport}. Le changement et le t\u00e9l\u00e9versement du firmware n\u00e9cessitent la connexion HTTP Wi-Fi \u2014 r\u00e9glez le mode de connexion sur Auto (Configurer \u2192 Connection) et saisissez l'URL, puis r\u00e9essayez.",
+      "firmware_http_unreachable": "Une URL est d\u00e9finie ({url}), mais Home Assistant ne peut pas joindre la bouilloire en HTTP \u00e0 cette adresse ; le changement et le t\u00e9l\u00e9versement du firmware sont donc indisponibles. V\u00e9rifiez que la bouilloire est allum\u00e9e et joignable \u00e0 cette adresse depuis le r\u00e9seau de Home Assistant (pas seulement en Bluetooth), puis r\u00e9essayez."
+    }
+  },
+  "entity": {
+    "climate": {
+      "kettle": {
+        "name": "Bouilloire",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "white_tea": "Thé blanc",
+              "green_tea": "Thé vert",
+              "oolong_tea": "Thé oolong",
+              "pour_over_coffee": "Café filtre",
+              "french_press": "Cafetière à piston",
+              "black_tea": "Thé noir",
+              "boil": "Ébullition"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "current_temp": {
+        "name": "Température actuelle"
+      },
+      "brew_timer": {
+        "name": "Minuteur d'infusion"
+      },
+      "wifi_address": {
+        "name": "Adresse Wi-Fi"
+      },
+      "bluetooth_address": {
+        "name": "Adresse Bluetooth"
+      },
+      "power": {
+        "name": "Alimentation"
+      },
+      "hold": {
+        "name": "Mode maintien"
+      },
+      "clock": {
+        "name": "Horloge"
+      },
+      "schedule_mode": {
+        "name": "Programmation"
+      },
+      "screen_name": {
+        "name": "Écran actuel"
+      },
+      "programmed_unit": {
+        "name": "Unité"
+      },
+      "dry_boil_detection": {
+        "name": "Détection de chauffe à sec"
+      },
+      "firmware_version": {
+        "name": "Version du micrologiciel"
+      },
+      "boil_point": {
+        "name": "Point d'ébullition"
+      },
+      "backend": {
+        "name": "Connexion utilisée"
+      },
+      "device_state": {
+        "name": "État de l’appareil"
+      },
+      "pwm": {
+        "name": "Valeur PWM interne"
+      },
+      "eta": {
+        "name": "Temps jusqu'à la cible"
+      },
+      "heating_rate": {
+        "name": "Vitesse de chauffe"
+      },
+      "last_command": {
+        "name": "Résultat de la dernière commande"
+      }
+    },
+    "binary_sensor": {
+      "on_base": {
+        "name": "Bouilloire sur la base"
+      },
+      "heating": {
+        "name": "Chauffe"
+      },
+      "water_ready": {
+        "name": "Eau prête"
+      },
+      "no_water": {
+        "name": "Pas d'eau"
+      }
+    },
+    "select": {
+      "schedule_mode": {
+        "name": "Mode de programmation",
+        "state": {
+          "off": "Désactivé",
+          "once": "Une fois",
+          "daily": "Quotidien"
+        }
+      },
+      "clock_mode": {
+        "name": "Affichage de l'horloge",
+        "state": {
+          "off": "Désactivé",
+          "digital": "Numérique",
+          "analog": "Analogique"
+        }
+      },
+      "temperature_unit": {
+        "name": "Unité de température"
+      },
+      "hold_duration": {
+        "name": "Durée de maintien"
+      },
+      "language": {
+        "name": "Langue d'affichage",
+        "state": {
+          "english": "Anglais",
+          "french": "Français",
+          "spanish": "Espagnol",
+          "chinese_simplified": "Chinois (simplifié)",
+          "chinese_traditional": "Chinois (traditionnel)",
+          "korean": "Coréen",
+          "japanese": "Japonais"
+        }
+      }
+    },
+    "number": {
+      "schedule_temperature": {
+        "name": "Température programmée"
+      },
+      "altitude": {
+        "name": "Altitude"
+      },
+      "chime_level": {
+        "name": "Niveau sonore"
+      }
+    },
+    "button": {
+      "update_schedule": {
+        "name": "Mettre à jour la programmation"
+      },
+      "launch_bricky": {
+        "name": "Lancer Bricky (soulever la bouilloire)"
+      }
+    },
+    "switch": {
+      "sync_clock": {
+        "name": "Synchroniser l'horloge"
+      },
+      "pre_boil": {
+        "name": "Pré-ébullition"
+      },
+      "chime": {
+        "name": "Signal sonore prêt"
+      },
+      "revert_firmware_updates": {
+        "name": "Verrouiller le firmware"
+      }
+    },
+    "time": {
+      "schedule_time": {
+        "name": "Heure programmée"
+      }
+    }
+  },
+  "services": {
+    "set_schedule": {
+      "name": "Définir la programmation",
+      "description": "Définir l'heure/la température programmées et activer éventuellement la programmation."
+    },
+    "disable_schedule": {
+      "name": "Désactiver la programmation",
+      "description": "Désactiver le démarrage programmé de la bouilloire."
+    },
+    "update_schedule": {
+      "name": "Mettre à jour la programmation",
+      "description": "Envoyer l'heure/la température/le mode actuels des entités à la bouilloire."
+    },
+    "heat_to": {
+      "name": "Chauffer à la température",
+      "description": "Définir la température cible et démarrer la chauffe en un seul appel."
+    },
+    "play_chime": {
+      "name": "Jouer un signal sonore",
+      "description": "Jouer un signal sonore sur le buzzer de la bouilloire."
+    },
+    "send_cli": {
+      "name": "Envoyer une commande CLI",
+      "description": "Diagnostic CLI en lecture seule : state, fwinfo, prtsettings ou pwmprt."
+    },
+    "install_firmware": {
+      "name": "Installer le firmware (temporairement désactivé)",
+      "description": "Désactivé sur toutes les connexions en attente de validation de sécurité et de récupération. Conservé pour compatibilité ; aucun fichier lu ni commande envoyée.",
+      "fields": {
+        "path": {
+          "name": "Chemin du fichier firmware",
+          "description": "Chemin absolu vers le fichier .img, lisible par Home Assistant (par ex. sous /config, /media ou /share)."
+        },
+        "entry_id": {
+          "description": "ID d'entrée de configuration facultatif (nécessaire si plusieurs bouilloires)",
+          "name": "Bouilloire (entrée de configuration)"
+        }
+      }
+    },
+    "get_settings_snapshot": {
+      "name": "Lire les paramètres",
+      "description": "Lire les paramètres natifs/BLE pour des tests accompagnés. Aucune commande de réglage ou de chauffe envoyée. Contient heure/paramètres, aucun identifiant réseau."
+    },
+    "start_ble_trace": {
+      "name": "Démarrer un enregistrement BLE",
+      "description": "Enregistrement B1/B5 en lecture seule, en mémoire, 120 secondes maximum."
+    },
+    "get_ble_trace": {
+      "name": "Lire un enregistrement BLE",
+      "description": "Lire les messages horodatés ; arrête par défaut cet enregistrement."
+    },
+    "probe_schedule_console": {
+      "name": "Examiner la console de programmation",
+      "description": "Expérimental : demander prtsettings une seule fois en lecture seule et écouter B6 pendant huit secondes. Renvoie uniquement les champs de programmation reconnus et les compteurs. Nécessite un état de veille actuel ; ne modifie ni la programmation ni la marche/arrêt."
+    },
+    "set_existing_schedule_mode": {
+      "name": "Modifier une programmation existante (Wi-Fi)",
+      "description": "Choisir unique/quotidien pour une programmation future configurée sur la bouilloire, ou la désactiver. Nécessite le firmware 1.2.26 et le Wi-Fi. Le mode ne peut pas être relu : vérifier le menu. Heure et température conservées.",
+      "fields": {
+        "mode": {
+          "name": "Mode"
+        }
+      }
+    },
+    "restore_standby_display": {
+      "name": "Restaurer l’écran de veille (Wi-Fi)",
+      "description": "Désactiver brièvement l’horloge puis restaurer son mode numérique/analogique initial. Nécessite le firmware 1.2.26, le Wi-Fi, la veille et une programmation désactivée. Vérifier l’écran."
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "placed_on_base": "Bouilloire posée sur la base",
+      "lifted_off_base": "Bouilloire soulevée de la base"
+    }
+  },
+  "issues": {
+    "cli_muted": {
+      "title": "Aucune donnée CLI valide",
+      "description": "Le firmware {version} ne fournit aucune donnée CLI valide. Les fonctions HTTP natives sont détectées à partir de réponses valides. Le Bluetooth est disponible sur 1.2.26. Cette intégration ne change pas automatiquement de firmware. L’autre partition indique {other_version}."
+    },
+    "firmware_staged": {
+      "title": "Firmware {staged} stocké sur la bouilloire",
+      "description": "Le firmware actuel est {running}. La partition {partition} contient {staged}, que la bouilloire pourrait utiliser au prochain redémarrage. Activez l’interrupteur **Verrouiller le firmware** pour que Home Assistant rebascule la bouilloire sur le firmware fixé (via la CLI HTTP héritée) dès qu’elle se met à jour. Gérez les mises à jour depuis les réglages officiels de l’appareil. Vous pouvez bloquer l’accès Internet sur le routeur tout en conservant le Wi-Fi local."
+    }
+  }
+}

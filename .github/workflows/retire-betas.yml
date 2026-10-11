@@ -1,0 +1,30 @@
+name: Retire superseded betas
+
+# Draft any pre-release that main has caught up with, so HACS stops offering it
+# and beta installs get main again (see .github/scripts/retire_betas.py).
+on:
+  push:
+    branches: [main]
+    paths:
+      - custom_components/fellow_stagg/manifest.json
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  retire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install packaging
+      - name: Draft superseded pre-releases
+        run: python .github/scripts/retire_betas.py
+        env:
+          GH_TOKEN: ${{ github.token }}

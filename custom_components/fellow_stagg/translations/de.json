@@ -1,0 +1,464 @@
+{
+  "config": {
+    "flow_title": "Fellow Stagg ({base_url})",
+    "step": {
+      "user": {
+        "title": "Verbindung",
+        "description": "Wählen Sie WLAN, Bluetooth oder beides. Nur Bluetooth verbindet sich nicht per WLAN mit dem Kessel.",
+        "data": {
+          "connection_mode": "Verbindungsmodus"
+        }
+      },
+      "user_manual": {
+        "title": "URL des Wasserkochers eingeben",
+        "description": "{message}",
+        "data": {
+          "base_url": "URL des Wasserkochers"
+        }
+      },
+      "bluetooth": {
+        "title": "Wasserkocher gefunden ({name})",
+        "description": "{hint}",
+        "data": {
+          "action": "Aktion",
+          "base_url": "URL des Wasserkochers"
+        }
+      },
+      "bluetooth_configure": {
+        "title": "{name} konfigurieren",
+        "description": "{hint}",
+        "data": {
+          "action": "Aktion",
+          "base_url": "URL des Wasserkochers"
+        }
+      },
+      "zeroconf": {
+        "title": "Wasserkocher gefunden",
+        "description": "Ein Fellow Stagg Wasserkocher wurde unter {base_url} gefunden. Zu Home Assistant hinzufügen?"
+      },
+      "scan_network_result": {
+        "title": "Ergebnisse des Netzwerkscans",
+        "data": {
+          "scan_result": "Gefundene Wasserkocher"
+        }
+      },
+      "reconfigure": {
+        "title": "URL des Wasserkochers ändern",
+        "description": "Gib die neue URL des Wasserkochers ein (z. B. nach einer IP-Adressänderung).",
+        "data": {
+          "base_url": "URL des Wasserkochers"
+        }
+      },
+      "transport_device": {
+        "title": "Verbindung",
+        "description": "Wählen Sie WLAN, Bluetooth oder beides. Nur Bluetooth verbindet sich nicht per WLAN mit dem Kessel.",
+        "data": {
+          "ble_address": "Bluetooth-Adresse",
+          "base_url": "Kessel-URL"
+        }
+      },
+      "wifi_setup": {
+        "title": "WLAN über Bluetooth einrichten",
+        "description": "Aktivieren Sie den WLAN-Einrichtungsmodus am Kessel und schließen Sie die Fellow-App. Die Zugangsdaten werden direkt per Bluetooth übertragen. Prüfen Sie nach einem Neustart, ob das Netzwerk gespeichert bleibt.",
+        "data": {
+          "ssid": "Netzwerkname (SSID)",
+          "password": "Passwort"
+        },
+        "data_description": {
+          "ssid": "Wähle ein Netzwerk, das der Wasserkocher sieht, oder gib ein verstecktes ein. Nur 2,4 GHz; 5 GHz wird nicht unterstützt.",
+          "password": "Bei einem offenen Netzwerk leer lassen."
+        }
+      },
+      "bluetooth_menu": {
+        "title": "{name}",
+        "description": "Der Kessel ist noch nicht im WLAN oder seine Adresse ist unbekannt.",
+        "menu_options": {
+          "wifi_setup": "WLAN über Bluetooth einrichten",
+          "bluetooth_configure": "Kesseladresse eingeben"
+        }
+      },
+      "dhcp_confirm": {
+        "title": "Fellow Stagg entdeckt",
+        "description": "Fellow Stagg unter {base_url} hinzufügen?"
+      }
+    },
+    "error": {
+      "required": "Dieses Feld ist erforderlich.",
+      "not_fellow_stagg": "Unter dieser URL wurde keine Fellow Stagg CLI gefunden.",
+      "active_proxy_required": "Ein aktiver Bluetooth-Adapter oder ESPHome Bluetooth Proxy muss den Kessel erreichen können.",
+      "ble_address_required": "Geben Sie die Bluetooth-Adresse des Kessels ein.",
+      "wifi_url_required": "Dieser Modus benötigt eine WLAN-URL des Kessels.",
+      "ble_unreachable": "Bluetooth-Verbindung fehlgeschlagen. Prüfen Sie Reichweite, aktiven Bluetooth-Proxy und ob die Fellow-App geschlossen ist.",
+      "not_in_setup_mode": "Aktivieren Sie den WLAN-Einrichtungsmodus am Kessel und versuchen Sie es erneut.",
+      "pop_rejected": "Der Einrichtungsschlüssel wurde abgelehnt. Aktivieren Sie den Einrichtungsmodus erneut.",
+      "handshake_failed": "Die sichere Bluetooth-Sitzung ist fehlgeschlagen.",
+      "set_config_failed": "Die Netzwerkdaten wurden abgelehnt.",
+      "wrong_password": "Falsches WLAN-Passwort.",
+      "network_not_found": "Netzwerk nicht gefunden. Prüfen Sie den Namen und verwenden Sie 2,4 GHz.",
+      "wifi_timeout": "WLAN-Verbindung abgelaufen. Prüfen Sie Netzwerkname und Passwort."
+    },
+    "abort": {
+      "already_configured": "Dieser Wasserkocher ist bereits konfiguriert.",
+      "invalid_host": "Ungültiger Host.",
+      "not_fellow_stagg": "Dieses Gerät ist kein Fellow Stagg Wasserkocher.",
+      "invalid_discovery_info": "Ungültige Discovery-Informationen.",
+      "ignored": "Discovery ignoriert.",
+      "reconfigure_successful": "Die URL des Wasserkochers wurde aktualisiert.",
+      "unknown": "Unerwarteter Fehler.",
+      "ble_unreachable": "Bluetooth-Verbindung fehlgeschlagen. Prüfen Sie Reichweite, aktiven Bluetooth-Proxy und ob die Fellow-App geschlossen ist."
+    },
+    "progress": {
+      "scan_network": "Netzwerk wird nach Fellow Stagg Wasserkochern durchsucht…",
+      "wifi_scan": "Suche nach WLAN-Netzwerken, die der Wasserkocher sieht…",
+      "wifi_connecting": "WLAN-Daten für {ssid} werden übertragen. Verbindung wird geprüft…"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Fellow Stagg Optionen",
+        "menu_options": {
+          "polling": "Abfrageintervalle",
+          "connection": "Verbindung",
+          "wifi_setup": "WLAN über Bluetooth einrichten",
+          "switch_firmware": "Firmware wechseln",
+          "upload_firmware": "Firmware hochladen (Wiederherstellung)"
+        }
+      },
+      "polling": {
+        "title": "Abfrageoptionen",
+        "data": {
+          "polling_interval_seconds": "Abfrageintervall (Sekunden)",
+          "polling_interval_countdown_seconds": "Schnelles Abfrageintervall bei Aktivität (Sekunden)"
+        }
+      },
+      "connection": {
+        "title": "Verbindung",
+        "description": "Wählen Sie WLAN, Bluetooth oder beides. Nur Bluetooth verbindet sich nicht per WLAN mit dem Kessel.",
+        "data": {
+          "connection_mode": "Verbindungsmodus",
+          "ble_address": "Bluetooth-Adresse",
+          "base_url": "WLAN-URL des Wasserkochers (für WLAN/auto erforderlich)"
+        }
+      },
+      "wifi_setup": {
+        "title": "WLAN über Bluetooth einrichten",
+        "description": "Aktivieren Sie den WLAN-Einrichtungsmodus am Kessel und schließen Sie die Fellow-App. Die Zugangsdaten werden direkt per Bluetooth übertragen. Prüfen Sie nach einem Neustart, ob das Netzwerk gespeichert bleibt.",
+        "data": {
+          "ssid": "Netzwerkname (SSID)",
+          "password": "Passwort"
+        },
+        "data_description": {
+          "ssid": "Wähle ein Netzwerk, das der Wasserkocher sieht, oder gib ein verstecktes ein. Nur 2,4 GHz; 5 GHz wird nicht unterstützt.",
+          "password": "Bei einem offenen Netzwerk leer lassen."
+        }
+      },
+      "switch_firmware": {
+        "title": "Firmware wechseln",
+        "description": "Der Wasserkocher läuft mit **{running_version}** ({running_partition}). Dies wechselt zu **{target_version}** ({target_partition}), die bereits auf dem Wasserkocher gespeichert ist, und startet ihn neu. Das dauert etwa 10 Sekunden.\n\nSperre zuerst den Internetzugang des Wasserkochers, sonst aktualisiert er sich womöglich erneut.",
+        "data": {
+          "confirm": "Ja, Firmware des Wasserkochers wechseln"
+        }
+      },
+      "upload_firmware": {
+        "title": "Firmware hochladen",
+        "description": "Wähle eine vertrauenswürdige Fellow-Stagg-Datei (.img oder .bin). Über die Legacy-HTTP-CLI oder natives HTTP mit Firmware 1.2.26 im Standby verfügbar. Kein Upload im reinen BLE-Modus. Header und Größe werden geprüft; dies bestätigt weder Echtheit noch Wiederherstellbarkeit. Die Stromversorgung bis zum Abschluss beibehalten. Erfolg erfordert die Rückmeldung der gewünschten Version auf der anderen Partition.",
+        "data": {
+          "firmware_file": "Firmware-.img-Datei"
+        }
+      }
+    },
+    "progress": {
+      "wifi_connecting": "WLAN-Daten für {ssid} werden übertragen. Verbindung wird geprüft…",
+      "wifi_scan": "Suche nach WLAN-Netzwerken, die der Wasserkocher sieht…",
+      "switching": "Der Wasserkocher wechselt zu {target_version}; warte auf den Neustart…",
+      "uploading": "Firmware {version} wird hochgeladen; warte auf den Neustart des Wasserkochers…"
+    },
+    "error": {
+      "not_confirmed": "Setze das Häkchen zur Bestätigung.",
+      "kettle_heating": "Der Wasserkocher heizt gerade. Wechsle die Firmware, wenn er nicht in Betrieb ist.",
+      "invalid_firmware": "Diese Datei ist kein gültiges Firmware-Image für den Fellow Stagg Wasserkocher.",
+      "read_failed": "Die hochgeladene Datei konnte nicht gelesen werden. Bitte erneut versuchen.",
+      "active_proxy_required": "Ein aktiver Bluetooth-Adapter oder ESPHome Bluetooth Proxy muss den Kessel erreichen können.",
+      "ble_address_required": "Geben Sie die Bluetooth-Adresse des Kessels ein.",
+      "wifi_url_required": "Dieser Modus benötigt eine WLAN-URL des Kessels.",
+      "ble_unreachable": "Bluetooth-Verbindung fehlgeschlagen. Prüfen Sie Reichweite, aktiven Bluetooth-Proxy und ob die Fellow-App geschlossen ist.",
+      "not_in_setup_mode": "Aktivieren Sie den WLAN-Einrichtungsmodus am Kessel und versuchen Sie es erneut.",
+      "pop_rejected": "Der Einrichtungsschlüssel wurde abgelehnt. Aktivieren Sie den Einrichtungsmodus erneut.",
+      "handshake_failed": "Die sichere Bluetooth-Sitzung ist fehlgeschlagen.",
+      "set_config_failed": "Die Netzwerkdaten wurden abgelehnt.",
+      "wrong_password": "Falsches WLAN-Passwort.",
+      "network_not_found": "Netzwerk nicht gefunden. Prüfen Sie den Namen und verwenden Sie 2,4 GHz.",
+      "wifi_timeout": "WLAN-Verbindung abgelaufen. Prüfen Sie Netzwerkname und Passwort.",
+      "not_fellow_stagg": "Kesselstatus an dieser Adresse nicht lesbar. WLAN-Verbindung und URL prüfen.",
+      "invalid_url": "HTTP-URL ohne Zugangsdaten oder zusätzliche Pfade verwenden."
+    },
+    "abort": {
+      "no_other_firmware": "Der Wasserkocher l\u00e4uft mit {running_version}; die andere Partition enth\u00e4lt keine g\u00fcltige Firmware zum Wechseln. Nutze zuerst Firmware hochladen (Wiederherstellung), um dort eine andere Version abzulegen.",
+      "firmware_same_version": "Beide Partitionen laufen mit {running_version}, es gibt also nichts zum Hoch- oder Herunterstufen. Lade mit Firmware hochladen (Wiederherstellung) zuerst eine andere Version; danach kannst du hin- und herwechseln.",
+      "firmware_switched": "Fertig: Der Wasserkocher läuft jetzt mit {target_version}.",
+      "firmware_switch_failed": "Der Wasserkocher ist nicht innerhalb einer Minute mit {target_version} zurückgekommen. Prüfe gleich den Sensor **Firmware-Version**; hat der Wechsel nicht geklappt, behält der Wasserkocher seine bisherige Firmware.",
+      "firmware_uploaded": "Fertig: Der Wasserkocher ist mit Firmware {version} neu gestartet.",
+      "firmware_upload_failed": "Der Wasserkocher ist nach dem Hochladen von Firmware {version} nicht rechtzeitig zurückgekommen. Prüfe den Firmware-Versionssensor; hat es nicht geklappt, behält der Wasserkocher seine bisherige Firmware.",
+      "not_loaded": "Der Wasserkocher ist noch nicht geladen; versuche es gleich erneut.",
+      "ble_unreachable": "Bluetooth-Verbindung fehlgeschlagen. Prüfen Sie Reichweite, aktiven Bluetooth-Proxy und ob die Fellow-App geschlossen ist.",
+      "wifi_setup_done": "Der Kessel ist jetzt mit {ssid} unter {ip} verbunden.",
+      "legacy_firmware_required": "Partitionswechsel erfordert die Legacy-WLAN-HTTP-Schnittstelle (setpart/reset). Aktuell l\u00e4uft {running_version} \u00fcber {transport}, daher ist ein Wechsel nicht m\u00f6glich. Es funktioniert mit Firmware, deren lokale CLI antwortet, z.\u202fB. nach einem Rollback.",
+      "firmware_upload_unavailable": "Firmware-Upload erfordert die WLAN-HTTP-Verbindung des Wasserkochers, aber er ist aktuell auf {transport}. Stelle den Verbindungsmodus auf Auto (Konfigurieren \u2192 Connection) und gib die URL des Wasserkochers ein, dann erneut versuchen. Im reinen BLE-Modus ist kein Upload m\u00f6glich.",
+      "firmware_not_read": "Home Assistant kann die Firmware-Partitionen \u00fcber {transport} nicht lesen. Firmware wechseln und hochladen erfordern die WLAN-HTTP-Verbindung \u2014 stelle den Verbindungsmodus auf Auto (Konfigurieren \u2192 Connection) und gib die URL ein, dann erneut versuchen.",
+      "firmware_http_unreachable": "Es ist eine URL festgelegt ({url}), aber Home Assistant erreicht den Wasserkocher dort nicht \u00fcber HTTP, daher sind Firmware-Wechsel und -Upload nicht verf\u00fcgbar. Pr\u00fcfe, ob der Wasserkocher eingeschaltet und unter dieser Adresse aus dem Netzwerk von Home Assistant erreichbar ist (nicht nur \u00fcber Bluetooth), und versuche es erneut."
+    }
+  },
+  "entity": {
+    "climate": {
+      "kettle": {
+        "name": "Wasserkocher",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "white_tea": "Weißer Tee",
+              "green_tea": "Grüner Tee",
+              "oolong_tea": "Oolong-Tee",
+              "pour_over_coffee": "Filterkaffee",
+              "french_press": "French Press",
+              "black_tea": "Schwarzer Tee",
+              "boil": "Kochen"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "current_temp": {
+        "name": "Aktuelle Temperatur"
+      },
+      "brew_timer": {
+        "name": "Brüh-Timer"
+      },
+      "wifi_address": {
+        "name": "WLAN-Adresse"
+      },
+      "bluetooth_address": {
+        "name": "Bluetooth-Adresse"
+      },
+      "power": {
+        "name": "Betrieb"
+      },
+      "hold": {
+        "name": "Warmhaltemodus"
+      },
+      "clock": {
+        "name": "Uhr"
+      },
+      "schedule_mode": {
+        "name": "Zeitplan"
+      },
+      "screen_name": {
+        "name": "Aktueller Bildschirm"
+      },
+      "programmed_unit": {
+        "name": "Einheit"
+      },
+      "dry_boil_detection": {
+        "name": "Trockenkocherkennung"
+      },
+      "firmware_version": {
+        "name": "Firmware-Version"
+      },
+      "boil_point": {
+        "name": "Siedepunkt"
+      },
+      "backend": {
+        "name": "Verwendete Verbindung"
+      },
+      "device_state": {
+        "name": "Gerätezustand"
+      },
+      "pwm": {
+        "name": "Interner PWM-Wert"
+      },
+      "eta": {
+        "name": "Zeit bis Zieltemperatur"
+      },
+      "heating_rate": {
+        "name": "Aufheizrate"
+      },
+      "last_command": {
+        "name": "Letztes Befehlsergebnis"
+      }
+    },
+    "binary_sensor": {
+      "on_base": {
+        "name": "Wasserkocher auf Basis"
+      },
+      "heating": {
+        "name": "Heizt"
+      },
+      "water_ready": {
+        "name": "Wasser fertig"
+      },
+      "no_water": {
+        "name": "Kein Wasser"
+      }
+    },
+    "select": {
+      "schedule_mode": {
+        "name": "Zeitplanmodus",
+        "state": {
+          "off": "Aus",
+          "once": "Einmalig",
+          "daily": "Täglich"
+        }
+      },
+      "clock_mode": {
+        "name": "Uhranzeige",
+        "state": {
+          "off": "Aus",
+          "digital": "Digital",
+          "analog": "Analog"
+        }
+      },
+      "temperature_unit": {
+        "name": "Temperatureinheit"
+      },
+      "hold_duration": {
+        "name": "Warmhaltedauer"
+      },
+      "language": {
+        "name": "Anzeigesprache",
+        "state": {
+          "english": "Englisch",
+          "french": "Französisch",
+          "spanish": "Spanisch",
+          "chinese_simplified": "Chinesisch (vereinfacht)",
+          "chinese_traditional": "Chinesisch (traditionell)",
+          "korean": "Koreanisch",
+          "japanese": "Japanisch"
+        }
+      }
+    },
+    "number": {
+      "schedule_temperature": {
+        "name": "Zeitplantemperatur"
+      },
+      "altitude": {
+        "name": "Höhe"
+      },
+      "chime_level": {
+        "name": "Signaltonstufe"
+      }
+    },
+    "button": {
+      "update_schedule": {
+        "name": "Zeitplan aktualisieren"
+      },
+      "launch_bricky": {
+        "name": "Bricky starten (Kocher anheben)"
+      }
+    },
+    "switch": {
+      "sync_clock": {
+        "name": "Uhr synchronisieren"
+      },
+      "pre_boil": {
+        "name": "Vorkochen"
+      },
+      "chime": {
+        "name": "Signalton bei Fertig"
+      },
+      "revert_firmware_updates": {
+        "name": "Firmware sperren"
+      }
+    },
+    "time": {
+      "schedule_time": {
+        "name": "Zeitplanzeit"
+      }
+    }
+  },
+  "services": {
+    "set_schedule": {
+      "name": "Zeitplan festlegen",
+      "description": "Geplante Zeit/Temperatur festlegen und den Zeitplan optional aktivieren."
+    },
+    "disable_schedule": {
+      "name": "Zeitplan deaktivieren",
+      "description": "Den geplanten Start des Wasserkochers deaktivieren."
+    },
+    "update_schedule": {
+      "name": "Zeitplan aktualisieren",
+      "description": "Aktuelle Zeitplanzeit/-temperatur/-modus aus den Entitäten an den Wasserkocher senden."
+    },
+    "heat_to": {
+      "name": "Auf Temperatur erhitzen",
+      "description": "Zieltemperatur festlegen und das Erhitzen in einem Aufruf starten."
+    },
+    "play_chime": {
+      "name": "Signalton abspielen",
+      "description": "Einen Signalton auf dem Summer des Wasserkochers abspielen."
+    },
+    "send_cli": {
+      "name": "CLI-Befehl senden",
+      "description": "Schreibgeschützte CLI-Diagnose: state, fwinfo, prtsettings oder pwmprt."
+    },
+    "install_firmware": {
+      "name": "Firmware installieren (vorübergehend deaktiviert)",
+      "description": "Auf allen Verbindungen bis zur Sicherheits- und Wiederherstellungsprüfung deaktiviert. Für Kompatibilität beibehalten; keine Datei wird gelesen und kein Gerätebefehl gesendet.",
+      "fields": {
+        "path": {
+          "name": "Pfad zur Firmware-Datei",
+          "description": "Absoluter Pfad zur .img-Datei, von Home Assistant lesbar (z. B. unter /config, /media oder /share)."
+        },
+        "entry_id": {
+          "description": "Optionale Config-Entry-ID (nötig bei mehreren Wasserkochern)",
+          "name": "Wasserkocher (Config-Entry)"
+        }
+      }
+    },
+    "get_settings_snapshot": {
+      "name": "Einstellungsaufnahme lesen",
+      "description": "Native/BLE-Einstellungen für begleitete Tests lesen. Kein Einstellungs- oder Leistungsbefehl wird gesendet. Enthält Uhrzeit/Einstellungen, keine Netzwerkkennungen."
+    },
+    "start_ble_trace": {
+      "name": "Live-BLE-Aufnahme starten",
+      "description": "Schreibgeschützte B1/B5-Aufnahme im Speicher, maximal 120 Sekunden."
+    },
+    "get_ble_trace": {
+      "name": "Live-BLE-Aufnahme lesen",
+      "description": "Nachrichten mit Zeitstempeln lesen; stoppt standardmäßig die Aufnahme."
+    },
+    "probe_schedule_console": {
+      "name": "Zeitplan-Konsole untersuchen",
+      "description": "Experimentell: prtsettings einmal schreibgeschützt abfragen und acht Sekunden auf B6 lauschen. Gibt nur erkannte Zeitplanfelder und Erfassungszähler zurück. Erfordert aktuellen Standby-Status; ändert weder Zeitplan noch Ein/Aus-Einstellung."
+    },
+    "set_existing_schedule_mode": {
+      "name": "Bestehenden Zeitplan ändern (WLAN)",
+      "description": "Einmalig/täglich für einen am Gerät eingerichteten zukünftigen Zeitplan wählen oder ausschalten. Firmware 1.2.26 und WLAN erforderlich. Einmalig/täglich ist nicht auslesbar: Gerätemenü prüfen. Zeit und Temperatur bleiben gleich.",
+      "fields": {
+        "mode": {
+          "name": "Modus"
+        }
+      }
+    },
+    "restore_standby_display": {
+      "name": "Standbyanzeige wiederherstellen (WLAN)",
+      "description": "Standbyuhr kurz ausschalten und ursprünglichen Digital-/Analogmodus wiederherstellen. Erfordert Firmware 1.2.26, WLAN, Standby und ausgeschalteten Zeitplan. Anzeige prüfen."
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "placed_on_base": "Wasserkocher auf Basis gestellt",
+      "lifted_off_base": "Wasserkocher von Basis genommen"
+    }
+  },
+  "issues": {
+    "cli_muted": {
+      "title": "Keine gültigen CLI-Daten",
+      "description": "Firmware {version} liefert keine gültigen CLI-Daten. Native HTTP-Funktionen werden anhand gültiger Antworten erkannt. BLE kann auf 1.2.26 verwendet werden. Diese Integration startet keinen automatischen Firmwarewechsel. Die andere Partition meldet {other_version}."
+    },
+    "firmware_staged": {
+      "title": "Firmware {staged} ist auf dem Kessel gespeichert",
+      "description": "Aktuell läuft {running}. In Partition {partition} liegt {staged}; der Kessel könnte diese Version beim nächsten Neustart verwenden. Aktivieren Sie den Schalter **Firmware sperren**, damit Home Assistant den Kessel über die Legacy-HTTP-CLI auf die festgelegte Firmware zurücksetzt, sobald er sich selbst aktualisiert. Verwalten Sie Updates über die offiziellen Geräteeinstellungen. Sie können den Internetzugang am Router sperren und lokales WLAN weiter nutzen."
+    }
+  }
+}
