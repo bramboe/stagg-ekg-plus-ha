@@ -28,6 +28,7 @@ SCHEDULE_PROBE_SECONDS = 8
 STATE_TIMEOUT = 7
 WRITE_TIMEOUT = 8
 TRANSITION_TIMEOUT = 15
+OFF_FOLLOWUP_DELAY = 1.5
 SETTINGS_REFRESH_SECONDS = 30
 # B1 quick-status notification interval (ms). Lower = snappier power/settings confirmation,
 # at the cost of more BLE traffic. The kettle is mains-powered, so a fast rate is fine.
@@ -255,7 +256,7 @@ class KettleBleClient(PreferenceControls):
                 if not isinstance(err, asyncio.CancelledError):
                     _LOGGER.warning(
                         "BLE power request failed: requested=%s stage=%s source=%s "
-                        "attempted=%s acknowledged=%s error=%s cause=%s; no retry sent",
+                        "attempted=%s acknowledged=%s error=%s cause=%s; no further command sent",
                         power_on, record["stage"], record["source_state"],
                         record["write_attempted"], record["write_acknowledged"],
                         record["error"], record.get("cause"),
@@ -294,21 +295,50 @@ class KettleBleClient(PreferenceControls):
         self._pending_since = monotonic()
         try:
             record["write_attempted"] = True
+            record["press_count"] = 1
             await asyncio.wait_for(self.client.write_gatt_char(B6, b"2\n", response=True), WRITE_TIMEOUT)
             record["write_acknowledged"] = True
             record["stage"] = "awaiting_state_confirmation"
-            deadline = monotonic() + TRANSITION_TIMEOUT
+            command_generation = self._generation
+            acknowledged_at = monotonic()
+            deadline = acknowledged_at + TRANSITION_TIMEOUT
+            active_samples = 0
+            observed_sequence = self._sequence
             while self._pending_power is not None:
                 if not self.client.is_connected:
                     raise ConnectionError("Disconnected after power write")
                 self._changed.clear()
                 await asyncio.wait_for(self._changed.wait(), max(0.01, deadline - monotonic()))
+                if self._pending_power is None:
+                    break
+                if not power_on and (not self.fresh or self.data.get("mode") not in allowed
+                                     or self._generation != command_generation):
+                    raise CommandUncertain("Power state became stale or unsupported")
+                if self._sequence != observed_sequence:
+                    observed_sequence = self._sequence
+                    active_samples += 1
+                # A short dial press exits brew-time before it can switch power off.
+                # Permit one follow-up only after an acknowledged write and several
+                # advancing active-state reports. Never repeat On or a failed write.
+                if (not power_on and record["press_count"] == 1
+                        and active_samples >= 3
+                        and monotonic() - acknowledged_at >= OFF_FOLLOWUP_DELAY):
+                    state = await self._fresh_notification()
+                    if self._pending_power is None or state.get("power") is False:
+                        break
+                    if state.get("mode") not in allowed or self._generation != command_generation:
+                        raise CommandUncertain("Unexpected state before Off follow-up")
+                    record["stage"] = "dispatch_followup"
+                    record["press_count"] = 2
+                    record["followup_after_seconds"] = round(monotonic() - acknowledged_at, 3)
+                    await asyncio.wait_for(self.client.write_gatt_char(B6, b"2\n", response=True), WRITE_TIMEOUT)
+                    record["stage"] = "awaiting_state_confirmation"
                 if monotonic() >= deadline and self._pending_power is not None:
                     raise TimeoutError("Power transition not confirmed")
         except BaseException as err:
             if isinstance(err, asyncio.CancelledError):
                 raise
-            raise CommandUncertain("Power write unconfirmed; no retry or transport fallback was sent") from err
+            raise CommandUncertain("Power write unconfirmed; no further command or transport fallback was sent") from err
         record["outcome"] = "state_confirmed"
 
     async def async_start_ble_trace(self, duration=60):

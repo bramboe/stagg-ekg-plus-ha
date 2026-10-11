@@ -261,7 +261,7 @@ class FellowStaggClimate(
                 _LOGGER.warning("Kettle Off failed: stage=%s source=%s error=%s", stage, source, type(err).__name__)
                 raise HomeAssistantError(
                     f"Kettle Off could not be confirmed (stage={stage}, state={source}, "
-                    f"error={type(err).__name__}). No automatic retry was sent. "
+                    f"error={type(err).__name__}). No further command was sent. "
                     "Check the kettle and download integration diagnostics."
                 ) from err
             self.coordinator.log_transport_action(self.entity_id, "turned off")
