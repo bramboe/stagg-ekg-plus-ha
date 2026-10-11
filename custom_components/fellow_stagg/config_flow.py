@@ -654,8 +654,9 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
         # (e.g. over Bluetooth, with no Wi-Fi/HTTP connection) instead of hiding.
         menu.append("upload_firmware")
         menu.append("switch_firmware")
-        mode = self._entry.options.get("connection_mode", self._entry.data.get("connection_mode", "wifi"))
-        if mode != "ble" and _find_ble_address(self.hass, self._entry):
+        # Offer Wi-Fi setup whenever a BLE address is known, including BLE-only entries:
+        # provisioning Wi-Fi then unlocks the Wi-Fi features.
+        if _find_ble_address(self.hass, self._entry):
             menu.append("wifi_setup")
         return self.async_show_menu(step_id="init", menu_options=menu)
 
@@ -726,7 +727,10 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
             data["device_name"] = info["name"]
         if info.get("mac"):
             data["mac"] = format_mac(info["mac"])
-        self.hass.config_entries.async_update_entry(self._entry, data=data)
+        options = dict(self._entry.options)
+        if options.get("connection_mode", self._entry.data.get("connection_mode", "wifi")) == "ble":
+            options["connection_mode"] = "auto"  # Wi-Fi is set up now; unlock the Wi-Fi features
+        self.hass.config_entries.async_update_entry(self._entry, data=data, options=options)
         self.hass.config_entries.async_schedule_reload(self._entry.entry_id)
         return self.async_abort(
             reason="wifi_setup_done",
@@ -1214,6 +1218,22 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
                     return self.async_abort(reason="already_configured")
         return await self.async_step_user()
 
+    async def async_step_bluetooth_only(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Add the kettle as Bluetooth-only, skipping Wi-Fi setup.
+
+        Wi-Fi-only features (schedules, firmware tools, clock sync, current screen) are hidden;
+        the user can enable Wi-Fi later from Configure to unlock them.
+        """
+        address = self.context.get("ble_address")
+        if not address:
+            return self.async_abort(reason="active_proxy_required")
+        await self.async_set_unique_id("ble:" + _normalize_ble_address(address))
+        self._abort_if_unique_id_configured()
+        data = {"connection_mode": "ble", **self._ble_entry_data()}
+        return self.async_create_entry(title="Fellow Stagg", data=data)
+
     async def async_step_bluetooth_configure(
         self, user_input: dict[str, Any] | str | None = None
     ) -> FlowResult:
@@ -1347,7 +1367,7 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
                     # Not on Wi-Fi (or unknown IP): offer setting up Wi-Fi over Bluetooth
                     return self.async_show_menu(
                         step_id="bluetooth_menu",
-                        menu_options=["wifi_setup", "bluetooth_configure"],
+                        menu_options=["wifi_setup", "bluetooth_only", "bluetooth_configure"],
                         description_placeholders={"name": discovered[choice]},
                     )
                 return await self.async_step_bluetooth_configure(suggested_url)

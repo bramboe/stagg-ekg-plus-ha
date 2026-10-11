@@ -27,11 +27,10 @@ async def async_setup_entry(
 ) -> None:
   """Set up Fellow Stagg number based on a config entry."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-  async_add_entities([
-    FellowStaggScheduleTemperature(coordinator),
-    FellowStaggAltitude(coordinator),
-    FellowStaggChimeLevel(coordinator),
-  ])
+  entities = [FellowStaggAltitude(coordinator), FellowStaggChimeLevel(coordinator)]
+  if not coordinator.is_ble_only:
+    entities.insert(0, FellowStaggScheduleTemperature(coordinator))  # schedules need Wi-Fi
+  async_add_entities(entities)
 
 
 class FellowStaggAltitude(FellowStaggConnectionMixin, CoordinatorEntity[FellowStaggDataUpdateCoordinator], NumberEntity):

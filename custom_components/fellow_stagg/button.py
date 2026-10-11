@@ -24,6 +24,8 @@ async def async_setup_entry(
 ) -> None:
   """Set up buttons."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+  if coordinator.is_ble_only:
+    return  # schedule apply + Bricky need Wi-Fi/CLI
   async_add_entities([
     FellowStaggUpdateScheduleButton(coordinator),
     FellowStaggBrickyButton(coordinator),

@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Verbinding",
-        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle.",
+        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook schema\u2019s, firmware-tools, klok-sync en de schermsensor.",
         "data": {
           "connection_mode": "Verbindingsmodus"
         }
@@ -63,9 +63,10 @@
       },
       "bluetooth_menu": {
         "title": "{name}",
-        "description": "De waterkoker zit nog niet op wifi, of zijn adres kon niet worden uitgelezen.",
+        "description": "Deze waterkoker is niet via wifi bereikbaar (niet ingesteld of niet verbonden). Stel wifi in via Bluetooth voor alle functies, voeg 'm voorlopig alleen via Bluetooth toe (je kunt later wifi inschakelen), of voer het IP in als je dat weet.",
         "menu_options": {
           "wifi_setup": "Wifi instellen via Bluetooth",
+          "bluetooth_only": "Alleen via Bluetooth toevoegen (wifi overslaan)",
           "bluetooth_configure": "Adres van de waterkoker invoeren"
         }
       },
@@ -75,7 +76,7 @@
       },
       "transport_device": {
         "title": "Verbinding",
-        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle.",
+        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook schema\u2019s, firmware-tools, klok-sync en de schermsensor.",
         "data": {
           "ble_address": "Bluetooth-adres",
           "base_url": "Kettle-URL"
@@ -146,7 +147,7 @@
       },
       "connection": {
         "title": "Verbinding",
-        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle.",
+        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook schema\u2019s, firmware-tools, klok-sync en de schermsensor.",
         "data": {
           "connection_mode": "Verbindingsmodus",
           "ble_address": "Bluetooth-adres",

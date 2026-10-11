@@ -24,6 +24,8 @@ async def async_setup_entry(
 ) -> None:
   """Set up schedule time entity."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+  if coordinator.is_ble_only:
+    return  # scheduling needs Wi-Fi
   async_add_entities([FellowStaggScheduleTimeEntity(coordinator)])
 
 

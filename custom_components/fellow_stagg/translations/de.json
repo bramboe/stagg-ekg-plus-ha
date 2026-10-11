@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Verbindung",
-        "description": "Wählen Sie WLAN, Bluetooth oder beides. Nur Bluetooth verbindet sich nicht per WLAN mit dem Kessel.",
+        "description": "Wählen Sie WLAN, Bluetooth oder beides. Nur Bluetooth verbindet sich nicht per WLAN mit dem Kessel. WLAN oder Auto schaltet zusätzlich Zeitpläne, Firmware-Tools, Uhr-Sync und den Bildschirm-Sensor frei.",
         "data": {
           "connection_mode": "Verbindungsmodus"
         }
@@ -51,7 +51,7 @@
       },
       "transport_device": {
         "title": "Verbindung",
-        "description": "Wählen Sie WLAN, Bluetooth oder beides. Nur Bluetooth verbindet sich nicht per WLAN mit dem Kessel.",
+        "description": "Wählen Sie WLAN, Bluetooth oder beides. Nur Bluetooth verbindet sich nicht per WLAN mit dem Kessel. WLAN oder Auto schaltet zusätzlich Zeitpläne, Firmware-Tools, Uhr-Sync und den Bildschirm-Sensor frei.",
         "data": {
           "ble_address": "Bluetooth-Adresse",
           "base_url": "Kessel-URL"
@@ -71,9 +71,10 @@
       },
       "bluetooth_menu": {
         "title": "{name}",
-        "description": "Der Kessel ist noch nicht im WLAN oder seine Adresse ist unbekannt.",
+        "description": "Dieser Kessel ist nicht über WLAN erreichbar (nicht eingerichtet oder nicht verbunden). Richte WLAN über Bluetooth für den vollen Funktionsumfang ein, füge ihn vorerst nur über Bluetooth hinzu (WLAN später aktivierbar) oder gib die IP ein, falls bekannt.",
         "menu_options": {
           "wifi_setup": "WLAN über Bluetooth einrichten",
+          "bluetooth_only": "Nur über Bluetooth hinzufügen (WLAN überspringen)",
           "bluetooth_configure": "Kesseladresse eingeben"
         }
       },
@@ -134,7 +135,7 @@
       },
       "connection": {
         "title": "Verbindung",
-        "description": "Wählen Sie WLAN, Bluetooth oder beides. Nur Bluetooth verbindet sich nicht per WLAN mit dem Kessel.",
+        "description": "Wählen Sie WLAN, Bluetooth oder beides. Nur Bluetooth verbindet sich nicht per WLAN mit dem Kessel. WLAN oder Auto schaltet zusätzlich Zeitpläne, Firmware-Tools, Uhr-Sync und den Bildschirm-Sensor frei.",
         "data": {
           "connection_mode": "Verbindungsmodus",
           "ble_address": "Bluetooth-Adresse",

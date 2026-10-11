@@ -188,6 +188,11 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     return records[-1] if records else None
 
   @property
+  def is_ble_only(self) -> bool:
+    """True when this entry has no Wi-Fi path (connection mode 'ble'); Wi-Fi-only entities are hidden."""
+    return self.kettle.mode == "ble"
+
+  @property
   def connection_label(self) -> str | None:
     """Friendly name of the transport the current data came in over (Bluetooth / Wi-Fi)."""
     return {"ble": "Bluetooth", "native_http": "Wi-Fi", "legacy_cli": "Wi-Fi (CLI)"}.get(

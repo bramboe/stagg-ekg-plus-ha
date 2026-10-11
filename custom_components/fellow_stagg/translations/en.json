@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Connection",
-        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi.",
+        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi. Wi-Fi or Auto also unlocks schedules, firmware tools, clock sync and the screen sensor.",
         "data": {
           "connection_mode": "Connection mode"
         }
@@ -63,9 +63,10 @@
       },
       "bluetooth_menu": {
         "title": "{name}",
-        "description": "The kettle is not on Wi-Fi yet, or its address could not be read.",
+        "description": "This kettle isn't reachable over Wi-Fi (not set up, or not connected). Set up Wi-Fi over Bluetooth for the full feature set, add it Bluetooth-only for now (you can enable Wi-Fi later), or enter its IP if you know it.",
         "menu_options": {
           "wifi_setup": "Set up Wi-Fi over Bluetooth",
+          "bluetooth_only": "Add over Bluetooth only (skip Wi-Fi)",
           "bluetooth_configure": "Enter the kettle's address"
         }
       },
@@ -75,7 +76,7 @@
       },
       "transport_device": {
         "title": "Connection",
-        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi.",
+        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi. Wi-Fi or Auto also unlocks schedules, firmware tools, clock sync and the screen sensor.",
         "data": {
           "ble_address": "Bluetooth address",
           "base_url": "Kettle URL"
@@ -146,7 +147,7 @@
       },
       "connection": {
         "title": "Connection",
-        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi.",
+        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi. Wi-Fi or Auto also unlocks schedules, firmware tools, clock sync and the screen sensor.",
         "data": {
           "connection_mode": "Connection mode",
           "ble_address": "Bluetooth address",

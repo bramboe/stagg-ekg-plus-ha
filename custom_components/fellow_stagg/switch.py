@@ -27,12 +27,15 @@ async def async_setup_entry(
 ) -> None:
   """Set up Fellow Stagg switches based on a config entry."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-  async_add_entities([
-    FellowStaggClockSyncSwitch(coordinator),
+  entities = [
     FellowStaggPreBoilSwitch(coordinator),
     FellowStaggChimeSwitch(coordinator),
-    FellowStaggRevertFirmwareUpdatesSwitch(coordinator),
-  ])
+  ]
+  if not coordinator.is_ble_only:
+    # Clock sync needs the legacy CLI; Lock firmware needs HTTP — both Wi-Fi only.
+    entities.insert(0, FellowStaggClockSyncSwitch(coordinator))
+    entities.append(FellowStaggRevertFirmwareUpdatesSwitch(coordinator))
+  async_add_entities(entities)
 
 
 class FellowStaggClockSyncSwitch(FellowStaggConnectionMixin, CoordinatorEntity[FellowStaggDataUpdateCoordinator], RestoreEntity, SwitchEntity):

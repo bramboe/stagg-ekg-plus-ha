@@ -30,15 +30,15 @@ async def async_setup_entry(
 ) -> None:
   """Set up select entities."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-  async_add_entities(
-    [
-      FellowStaggScheduleModeSelect(coordinator),
-      FellowStaggClockModeSelect(coordinator),
-      FellowStaggTemperatureUnitSelect(coordinator),
-      FellowStaggHoldDurationSelect(coordinator),
-      FellowStaggLanguageSelect(coordinator),
-    ]
-  )
+  entities = [
+    FellowStaggClockModeSelect(coordinator),
+    FellowStaggTemperatureUnitSelect(coordinator),
+    FellowStaggHoldDurationSelect(coordinator),
+    FellowStaggLanguageSelect(coordinator),
+  ]
+  if not coordinator.is_ble_only:
+    entities.insert(0, FellowStaggScheduleModeSelect(coordinator))  # schedules need Wi-Fi
+  async_add_entities(entities)
 
 
 class FellowStaggScheduleModeSelect(FellowStaggConnectionMixin, CoordinatorEntity[FellowStaggDataUpdateCoordinator], SelectEntity):

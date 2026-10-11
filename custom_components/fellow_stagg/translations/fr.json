@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Connexion",
-        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi.",
+        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi. Le Wi-Fi ou le mode Auto débloque aussi les programmations, les outils firmware, la synchro de l’horloge et le capteur d’écran.",
         "data": {
           "connection_mode": "Mode de connexion"
         }
@@ -51,7 +51,7 @@
       },
       "transport_device": {
         "title": "Connexion",
-        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi.",
+        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi. Le Wi-Fi ou le mode Auto débloque aussi les programmations, les outils firmware, la synchro de l’horloge et le capteur d’écran.",
         "data": {
           "ble_address": "Adresse Bluetooth",
           "base_url": "URL de la bouilloire"
@@ -71,9 +71,10 @@
       },
       "bluetooth_menu": {
         "title": "{name}",
-        "description": "La bouilloire n’est pas encore connectée au Wi-Fi ou son adresse est inconnue.",
+        "description": "Cette bouilloire n’est pas joignable en Wi-Fi (non configurée ou non connectée). Configurez le Wi-Fi par Bluetooth pour toutes les fonctions, ajoutez-la en Bluetooth seul pour l’instant (Wi-Fi activable plus tard), ou saisissez son IP si vous la connaissez.",
         "menu_options": {
           "wifi_setup": "Configurer le Wi-Fi par Bluetooth",
+          "bluetooth_only": "Ajouter en Bluetooth uniquement (ignorer le Wi-Fi)",
           "bluetooth_configure": "Saisir l’adresse de la bouilloire"
         }
       },
@@ -134,7 +135,7 @@
       },
       "connection": {
         "title": "Connexion",
-        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi.",
+        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi. Le Wi-Fi ou le mode Auto débloque aussi les programmations, les outils firmware, la synchro de l’horloge et le capteur d’écran.",
         "data": {
           "connection_mode": "Mode de connexion",
           "ble_address": "Adresse Bluetooth",
