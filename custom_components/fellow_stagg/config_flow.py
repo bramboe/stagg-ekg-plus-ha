@@ -722,6 +722,7 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
         try:
             self._reset_task.result()
         except Exception:
+            _LOGGER.warning("Fellow Stagg factory reset did not complete", exc_info=True)
             self._reset_error = True
         self._reset_task = None
         self._reset_confirmed = False
