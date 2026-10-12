@@ -98,3 +98,15 @@ async def async_factory_reset(client, on_dispatch):
                 await asyncio.wait_for(client.stop_notify(B1), 2)
             except Exception:  # noqa: BLE001
                 pass
+
+
+async def async_beep(client, count: int = 2) -> None:
+    """Play short confirmation beeps over the BLE console (`buz`). Best-effort: a failure
+    here never affects the caller — it is only an audible 'done' signal."""
+    for i in range(count):
+        try:
+            await asyncio.wait_for(client.write_gatt_char(B6, b"buz\n", response=True), 5)
+        except Exception:  # noqa: BLE001 - beeping is cosmetic; give up quietly
+            return
+        if i + 1 < count:
+            await asyncio.sleep(0.4)

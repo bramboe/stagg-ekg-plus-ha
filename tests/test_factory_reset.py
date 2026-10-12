@@ -87,3 +87,19 @@ def test_reset_rejects_active_unknown_and_unsupported_kettle(mode, version):
             await factory_reset.async_factory_reset(kettle, lambda: dispatched.append(True))
         assert not kettle.writes and not dispatched  # nothing written before the checks pass
     asyncio.run(run())
+
+
+def test_beep_writes_buz_twice():
+    async def run():
+        kettle = Kettle()
+        await factory_reset.async_beep(kettle, 2)
+        assert kettle.writes == [(B6, b"buz\n"), (B6, b"buz\n")]
+    asyncio.run(run())
+
+
+def test_beep_is_best_effort_on_write_failure():
+    async def run():
+        kettle = Kettle(restart_on="buz")  # first buz drops the link / raises
+        await factory_reset.async_beep(kettle, 2)  # must not raise
+        assert kettle.writes == [(B6, b"buz\n")]  # stopped after the failure
+    asyncio.run(run())

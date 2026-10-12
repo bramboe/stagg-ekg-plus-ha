@@ -62,7 +62,7 @@ from .ble_provisioning import (
 )
 from .kettle_http import KettleHttpClient, FirmwareImageError, MAX_FIRMWARE_SIZE, parse_esp_app_image
 from .native_http import NativeHttpClient
-from .factory_reset import RESET_SETUP_PENDING, async_factory_reset
+from .factory_reset import RESET_SETUP_PENDING, async_beep, async_factory_reset
 
 # BLE local_name prefixes that identify a Stagg kettle (must match manifest bluetooth matchers)
 # EKG is the canonical prefix for Fellow Stagg EKG Pro; name always starts with EKG
@@ -423,6 +423,23 @@ async def _async_ble_connect(hass: Any, address: str) -> Any:
     )
 
 
+async def _async_ble_confirm_beep(hass: Any, address: str, count: int = 2) -> None:
+    """Beep the kettle over BLE to signal a completed action. Best-effort."""
+    client = None
+    try:
+        client = await _async_ble_connect(hass, address)
+        if client is not None:
+            await async_beep(client, count)
+    except Exception:  # noqa: BLE001 - beeping is cosmetic
+        pass
+    finally:
+        if client is not None:
+            try:
+                await client.disconnect()
+            except Exception:  # noqa: BLE001
+                pass
+
+
 async def _async_ble_kettle_info(hass: Any, address: str) -> dict[str, Any] | None:
     """Read IP, SSID, name, MAC and firmware from the kettle over BLE (read-only)."""
     client = None
@@ -750,6 +767,7 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
                     # factory reset. Leave the user in recovery instead.
                     if info.get("ip") or info.get("ssid"):
                         raise RuntimeError("Kettle still reports Wi-Fi configuration")
+                    await _async_ble_confirm_beep(self.hass, self._wifi_address)  # audible "reset done"
                     return info
                 await asyncio.sleep(2)
 
