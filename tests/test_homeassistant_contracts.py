@@ -1331,7 +1331,12 @@ def test_factory_reset_resume_preserves_entities_and_ble_only(tmp_path):
                 await flow._reset_task
                 result = await flow.async_step_reset_reconnect()
             assert result['step_id'] == 'reset_settings'
-            assert (await flow.async_step_reset_settings({'apply': False}))['step_id'] == 'reset_wifi_choice'
+            form = flow._reset_settings_defaults()
+            with patch.object(flow, '_async_apply_reset_settings', new_callable=AsyncMock, return_value=[]):
+                res = await flow.async_step_reset_settings(form)
+                if res['type'] == 'progress':
+                    await flow._reset_settings_task
+                    res = await flow.async_step_reset_settings_apply()
             assert (await flow.async_step_reset_wifi_choice())['step_id'] == 'reset_wifi_choice'
             reset.assert_not_awaited()
         with patch.object(hass.config_entries, 'async_schedule_reload') as reload:
@@ -1432,7 +1437,14 @@ def test_reset_progress_and_setup_steps_with_actual_options_manager(tmp_path):
             assert result['step_id'] == 'reset_settings'
             result = await manager._async_handle_step(flow, result['step_id'], None)
             assert result['step_id'] == 'reset_settings'
-            result = await manager._async_handle_step(flow, 'reset_settings', {'apply': False})
+            form = flow._reset_settings_defaults()
+            with patch.object(flow, '_async_apply_reset_settings', new_callable=AsyncMock, return_value=[]):
+                result = await manager._async_handle_step(flow, 'reset_settings', form)
+                if result['type'] == 'progress':
+                    await flow._reset_settings_task
+                    result = await manager._async_handle_step(flow, result['step_id'], None)
+            if result['type'] == 'progress_done':
+                result = await manager._async_handle_step(flow, 'reset_wifi_choice', None)
             assert result['type'] == 'form'
             assert result['step_id'] == 'reset_wifi_choice'
             assert result['description_placeholders']['firmware'] == '1.2.26'

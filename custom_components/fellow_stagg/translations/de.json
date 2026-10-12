@@ -210,7 +210,6 @@
         "title": "Wasserkocher einrichten",
         "description": "Beim Werksreset wurden die Einstellungen von {name} gelöscht. Stelle jetzt die Grundwerte wieder her; die Vorschläge stammen aus Home Assistant. Alle Werte lassen sich später ändern. Die Zieltemperatur ist in °C. Firmware-Auto-Updates lassen sich hier nicht über Bluetooth einstellen; verwende dafür das Gerätemenü und bei WLAN den Schalter zur Firmware-Sperre.",
         "data": {
-          "apply": "Diese Einstellungen anwenden",
           "units": "Temperatureinheit",
           "target_temp": "Zieltemperatur (°C)",
           "altitude_m": "Höhe (Meter)",
@@ -218,7 +217,8 @@
           "hold_minutes": "Warmhaltedauer (Minuten)",
           "language": "Displaysprache",
           "chime": "Signalton bei Fertigstellung",
-          "pre_boil": "Vorkochen"
+          "pre_boil": "Vorkochen",
+          "guide": "Bildschirm-Brühanleitung"
         }
       }
     },

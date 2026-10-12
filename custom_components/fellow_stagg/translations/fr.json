@@ -210,7 +210,6 @@
         "title": "Configurer la bouilloire",
         "description": "La réinitialisation a effacé les réglages de {name}. Rétablissez les valeurs de base proposées par Home Assistant. Vous pourrez les modifier plus tard. La température cible est en °C. La mise à jour automatique du firmware ne peut pas être réglée ici par Bluetooth ; utilisez le menu de la bouilloire et, avec le Wi-Fi, le verrouillage du firmware.",
         "data": {
-          "apply": "Appliquer ces réglages",
           "units": "Unité de température",
           "target_temp": "Température cible (°C)",
           "altitude_m": "Altitude (mètres)",
@@ -218,7 +217,8 @@
           "hold_minutes": "Durée de maintien au chaud (minutes)",
           "language": "Langue de l’écran",
           "chime": "Signal sonore à la fin",
-          "pre_boil": "Pré-ébullition"
+          "pre_boil": "Pré-ébullition",
+          "guide": "Guide de préparation à l’écran"
         }
       }
     },
