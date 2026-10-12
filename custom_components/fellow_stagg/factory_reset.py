@@ -3,6 +3,10 @@
 `clrsettings` (-> 400d79ec -> 400ec794) runs the same erase routine as the physical
 reset menu: it wipes the saved settings (Wi-Fi included) and restarts the kettle.
 
+The erase must run from standby. If the kettle is heating when the reset starts, it is
+switched off first with the B6 power toggle and the erase follows as soon as the kettle
+reports S_OFF, so a heating kettle no longer blocks the reset.
+
 1.2.26 executes console commands written to B6 but returns no console output over
 BLE, so the erase cannot be confirmed from console text. Success is confirmed by
 behaviour instead: the kettle restarts (the BLE link drops) and comes back with its
@@ -56,9 +60,32 @@ async def async_factory_reset(client, on_dispatch):
         state_at = monotonic()
         state_ready.set()
 
-    def require_standby():
-        if not client.is_connected or monotonic() - state_at > 5 or state.get("mode") != "S_OFF":
-            raise UnsupportedCapability("Factory reset requires fresh standby state")
+    async def ensure_standby():
+        """Make sure the kettle is in a fresh standby (S_OFF) before the erase.
+
+        If it is heating (S_HEAT/S_HOLD) we switch it off first with the B6 power toggle
+        (`2`) — the same command the power switch uses — and wait for the kettle to report
+        S_OFF, so the erase still runs from standby. The toggle is only ever sent from an
+        active heating mode (never from S_OFF, which would switch the kettle on), and the
+        erase follows immediately once standby is confirmed. Startup/fault/unknown/stale
+        states are still refused rather than guessed at."""
+        if not client.is_connected or monotonic() - state_at > 5:
+            raise UnsupportedCapability("Factory reset requires a fresh kettle state")
+        if state.get("mode") == "S_OFF":
+            return
+        if state.get("mode") not in ("S_HEAT", "S_HOLD"):
+            raise UnsupportedCapability("Factory reset requires standby; the kettle is in an unsupported state")
+        # Heating: toggle power off and wait for the kettle to confirm standby.
+        await asyncio.wait_for(client.write_gatt_char(B6, b"2\n", response=True), RESET_TIMEOUT)
+        deadline = monotonic() + RESET_TIMEOUT
+        while state.get("mode") != "S_OFF":
+            if not client.is_connected:
+                raise UnsupportedCapability("Disconnected while switching the kettle to standby")
+            state_ready.clear()
+            try:
+                await asyncio.wait_for(state_ready.wait(), max(0.05, deadline - monotonic()))
+            except asyncio.TimeoutError:
+                raise UnsupportedCapability("Could not switch the kettle to standby for factory reset")
 
     async def restarted(timeout: float) -> bool:
         deadline = monotonic() + timeout
@@ -70,7 +97,7 @@ async def async_factory_reset(client, on_dispatch):
     try:
         await asyncio.wait_for(client.start_notify(B1, status_received), RESET_TIMEOUT)
         await asyncio.wait_for(state_ready.wait(), RESET_TIMEOUT)
-        require_standby()
+        await ensure_standby()  # Drop to standby first if heating, then erase right after.
         on_dispatch()  # Persist recovery state before the destructive write.
         dispatched = True
         # Erase. On 1.2.26 this executes with no console reply and restarts the kettle

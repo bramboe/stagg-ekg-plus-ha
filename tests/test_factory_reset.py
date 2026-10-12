@@ -2,13 +2,16 @@ import asyncio
 from types import SimpleNamespace
 import pytest
 from stagg_test import factory_reset
-from stagg_test.protocol import B6, CommandUncertain, UnsupportedCapability
+from stagg_test.protocol import B1, B6, CommandUncertain, UnsupportedCapability
+
+HEATING = (5, 7)  # S_HEAT, S_HOLD — the power toggle (`2`) switches these to standby
 
 
 class Kettle:
     """Minimal BLE client. restart_on is the command that drops the link (the restart);
     None means the kettle never restarts. 1.2.26 returns no console output, so the test
-    emits none — success is observed from the connection dropping."""
+    emits none — success is observed from the connection dropping. A `2` power toggle
+    from a heating mode drops the kettle to standby (S_OFF) and emits a fresh B1 frame."""
 
     def __init__(self, mode=0, version=b"1.2.26", restart_on="clrsettings"):
         self.mode, self.version, self.restart_on = mode, version, restart_on
@@ -18,15 +21,20 @@ class Kettle:
             get_characteristic=lambda _: SimpleNamespace(properties=["notify", "write"])
         )
 
+    def _notify(self):
+        callback = self.callbacks.get(B1)
+        if callback:
+            frame = bytearray(16)
+            frame[4] = 1
+            frame[6] = self.mode
+            callback(B1, frame)
+
     async def read_gatt_char(self, _):
         return self.version
 
     async def start_notify(self, uuid, callback):
         self.callbacks[uuid] = callback
-        frame = bytearray(16)
-        frame[4] = 1
-        frame[6] = self.mode
-        callback(uuid, frame)
+        self._notify()
 
     async def stop_notify(self, uuid):
         self.callbacks.pop(uuid, None)
@@ -34,7 +42,11 @@ class Kettle:
     async def write_gatt_char(self, uuid, payload, response):
         assert response is True
         self.writes.append((uuid, payload))
-        if payload.decode().strip() == self.restart_on:
+        command = payload.decode().strip()
+        if command == "2" and self.mode in HEATING:  # power toggle: heating -> standby
+            self.mode = 0
+            self._notify()
+        if command == self.restart_on:
             self.is_connected = False
             raise ConnectionError("restart interrupted ACK")
 
@@ -75,12 +87,26 @@ def test_no_restart_is_uncertain_and_never_retried():
     asyncio.run(run())
 
 
+@pytest.mark.parametrize("mode", HEATING)
+def test_reset_drops_a_heating_kettle_to_standby_first(mode):
+    async def run():
+        kettle = Kettle(mode=mode, restart_on="clrsettings")
+        dispatched = []
+        await factory_reset.async_factory_reset(kettle, lambda: dispatched.append(True))
+        assert dispatched == [True]
+        # Power toggle to standby, then the erase immediately after.
+        assert kettle.writes == [(B6, b"2\n"), (B6, b"clrsettings\n")]
+        assert kettle.mode == 0 and not kettle.is_connected
+    asyncio.run(run())
+
+
 @pytest.mark.parametrize(
     "mode,version",
-    [(5, b"1.2.26"), (7, b"1.2.26"), (8, b"1.2.26"), (0, b"1.1.76"), (0, b"")],
+    [(8, b"1.2.26"), (1, b"1.2.26"), (0, b"1.1.76"), (0, b"")],
 )
-def test_reset_rejects_active_unknown_and_unsupported_kettle(mode, version):
+def test_reset_rejects_unsupported_state_or_firmware(mode, version):
     async def run():
+        # S_NOWATER / startup / wrong firmware: refused before any command is written.
         kettle = Kettle(mode=mode, version=version)
         dispatched = []
         with pytest.raises(UnsupportedCapability):
