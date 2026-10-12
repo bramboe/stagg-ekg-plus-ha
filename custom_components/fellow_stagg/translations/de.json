@@ -3,10 +3,10 @@
     "flow_title": "Fellow Stagg ({base_url})",
     "step": {
       "user": {
-        "title": "Verbindung",
-        "description": "Wählen Sie WLAN, Bluetooth oder beides. Nur Bluetooth verbindet sich nicht per WLAN mit dem Kessel. WLAN oder Auto schaltet zusätzlich Zeitpläne, Firmware-Tools, Uhr-Sync und den Bildschirm-Sensor frei.",
+        "title": "Wasserkocher suchen",
+        "description": "Wähle deinen Wasserkocher. Zuerst prüfen wir die Verbindung, danach kannst du WLAN zusätzlich verwenden. Falls er fehlt, suche erneut über Bluetooth. Halte ihn in Reichweite von Home Assistant oder einem Bluetooth-Proxy und schließe die Fellow-App.",
         "data": {
-          "connection_mode": "Verbindungsmodus"
+          "device_or_manual": "Wasserkocher oder Suchaktion"
         }
       },
       "user_manual": {
@@ -81,6 +81,20 @@
       "dhcp_confirm": {
         "title": "Fellow Stagg entdeckt",
         "description": "Fellow Stagg unter {base_url} hinzufügen?"
+      },
+      "connection_check": {
+        "title": "Bluetooth-Verbindung prüfen",
+        "description": "Schließe die Fellow-App und prüfe die Reichweite. Versuche es erneut oder gib eine vorhandene WLAN-Adresse ein.",
+        "data": {
+          "action": "Nächster Schritt"
+        }
+      },
+      "wifi_choice": {
+        "title": "WLAN zusätzlich verwenden?",
+        "description": "Bluetooth zu {name} wurde geprüft. Firmware: {firmware}. Gemeldete WLAN-Adresse: {wifi_address} (Erreichbarkeit noch nicht geprüft).\n\nMit WLAN wählt die Integration automatisch die passende Verbindung. Ohne WLAN stehen bei unterstützter Firmware Ein/Aus, Temperatur und unterstützte Einstellungen über Bluetooth zur Verfügung. Zeitpläne, Firmwarewerkzeuge, Uhrsynchronisation und Bildschirmsensor werden nicht angeboten. Die Funktionen hängen von der Firmware ab.\n\nWLAN überspringen verhindert, dass diese Integration WLAN verwendet oder einrichtet. Bereits aktives WLAN am Wasserkocher wird dadurch nicht ausgeschaltet. WLAN lässt sich später hinzufügen.",
+        "data": {
+          "use_wifi": "WLAN zusätzlich verwenden oder einrichten"
+        }
       }
     },
     "error": {
@@ -111,7 +125,8 @@
     "progress": {
       "scan_network": "Netzwerk wird nach Fellow Stagg Wasserkochern durchsucht…",
       "wifi_scan": "Suche nach WLAN-Netzwerken, die der Wasserkocher sieht…",
-      "wifi_connecting": "WLAN-Daten für {ssid} werden übertragen. Verbindung wird geprüft…"
+      "wifi_connecting": "WLAN-Daten für {ssid} werden übertragen. Verbindung wird geprüft…",
+      "bluetooth_search": "Wasserkocher über Bluetooth suchen…"
     }
   },
   "options": {
@@ -195,7 +210,7 @@
       "invalid_url": "HTTP-URL ohne Zugangsdaten oder zusätzliche Pfade verwenden."
     },
     "abort": {
-      "no_other_firmware": "Der Wasserkocher l\u00e4uft mit {running_version}; die andere Partition enth\u00e4lt keine g\u00fcltige Firmware zum Wechseln. Nutze zuerst Firmware hochladen (Wiederherstellung), um dort eine andere Version abzulegen.",
+      "no_other_firmware": "Der Wasserkocher läuft mit {running_version}; die andere Partition enthält keine gültige Firmware zum Wechseln. Nutze zuerst Firmware hochladen (Wiederherstellung), um dort eine andere Version abzulegen.",
       "firmware_same_version": "Beide Partitionen laufen mit {running_version}, es gibt also nichts zum Hoch- oder Herunterstufen. Lade mit Firmware hochladen (Wiederherstellung) zuerst eine andere Version; danach kannst du hin- und herwechseln.",
       "firmware_switched": "Fertig: Der Wasserkocher läuft jetzt mit {target_version}.",
       "firmware_switch_failed": "Der Wasserkocher ist nicht innerhalb einer Minute mit {target_version} zurückgekommen. Prüfe gleich den Sensor **Firmware-Version**; hat der Wechsel nicht geklappt, behält der Wasserkocher seine bisherige Firmware.",
@@ -204,10 +219,10 @@
       "not_loaded": "Der Wasserkocher ist noch nicht geladen; versuche es gleich erneut.",
       "ble_unreachable": "Bluetooth-Verbindung fehlgeschlagen. Prüfen Sie Reichweite, aktiven Bluetooth-Proxy und ob die Fellow-App geschlossen ist.",
       "wifi_setup_done": "Der Kessel ist jetzt mit {ssid} unter {ip} verbunden.",
-      "legacy_firmware_required": "Partitionswechsel erfordert die Legacy-WLAN-HTTP-Schnittstelle (setpart/reset). Aktuell l\u00e4uft {running_version} \u00fcber {transport}, daher ist ein Wechsel nicht m\u00f6glich. Es funktioniert mit Firmware, deren lokale CLI antwortet, z.\u202fB. nach einem Rollback.",
-      "firmware_upload_unavailable": "Firmware-Upload erfordert die WLAN-HTTP-Verbindung des Wasserkochers, aber er ist aktuell auf {transport}. Stelle den Verbindungsmodus auf Auto (Konfigurieren \u2192 Connection) und gib die URL des Wasserkochers ein, dann erneut versuchen. Im reinen BLE-Modus ist kein Upload m\u00f6glich.",
-      "firmware_not_read": "Home Assistant kann die Firmware-Partitionen \u00fcber {transport} nicht lesen. Firmware wechseln und hochladen erfordern die WLAN-HTTP-Verbindung \u2014 stelle den Verbindungsmodus auf Auto (Konfigurieren \u2192 Connection) und gib die URL ein, dann erneut versuchen.",
-      "firmware_http_unreachable": "Es ist eine URL festgelegt ({url}), aber Home Assistant erreicht den Wasserkocher dort nicht \u00fcber HTTP, daher sind Firmware-Wechsel und -Upload nicht verf\u00fcgbar. Pr\u00fcfe, ob der Wasserkocher eingeschaltet und unter dieser Adresse aus dem Netzwerk von Home Assistant erreichbar ist (nicht nur \u00fcber Bluetooth), und versuche es erneut."
+      "legacy_firmware_required": "Partitionswechsel erfordert die Legacy-WLAN-HTTP-Schnittstelle (setpart/reset). Aktuell läuft {running_version} über {transport}, daher ist ein Wechsel nicht möglich. Es funktioniert mit Firmware, deren lokale CLI antwortet, z. B. nach einem Rollback.",
+      "firmware_upload_unavailable": "Firmware-Upload erfordert die WLAN-HTTP-Verbindung des Wasserkochers, aber er ist aktuell auf {transport}. Stelle den Verbindungsmodus auf Auto (Konfigurieren → Connection) und gib die URL des Wasserkochers ein, dann erneut versuchen. Im reinen BLE-Modus ist kein Upload möglich.",
+      "firmware_not_read": "Home Assistant kann die Firmware-Partitionen über {transport} nicht lesen. Firmware wechseln und hochladen erfordern die WLAN-HTTP-Verbindung — stelle den Verbindungsmodus auf Auto (Konfigurieren → Connection) und gib die URL ein, dann erneut versuchen.",
+      "firmware_http_unreachable": "Es ist eine URL festgelegt ({url}), aber Home Assistant erreicht den Wasserkocher dort nicht über HTTP, daher sind Firmware-Wechsel und -Upload nicht verfügbar. Prüfe, ob der Wasserkocher eingeschaltet und unter dieser Adresse aus dem Netzwerk von Home Assistant erreichbar ist (nicht nur über Bluetooth), und versuche es erneut."
     }
   },
   "entity": {
@@ -460,6 +475,21 @@
     "firmware_staged": {
       "title": "Firmware {staged} ist auf dem Kessel gespeichert",
       "description": "Aktuell läuft {running}. In Partition {partition} liegt {staged}; der Kessel könnte diese Version beim nächsten Neustart verwenden. Aktivieren Sie den Schalter **Firmware sperren**, damit Home Assistant den Kessel über die Legacy-HTTP-CLI auf die festgelegte Firmware zurücksetzt, sobald er sich selbst aktualisiert. Verwalten Sie Updates über die offiziellen Geräteeinstellungen. Sie können den Internetzugang am Router sperren und lokales WLAN weiter nutzen."
+    }
+  },
+  "selector": {
+    "kettle_picker": {
+      "options": {
+        "__rescan__": "Erneut über Bluetooth suchen",
+        "__scan__": "Im lokalen Netzwerk suchen",
+        "__manual__": "Vorhandene WLAN-Adresse eingeben"
+      }
+    },
+    "connection_check_action": {
+      "options": {
+        "retry": "Bluetooth erneut versuchen",
+        "manual": "Stattdessen WLAN-Adresse eingeben"
+      }
     }
   }
 }

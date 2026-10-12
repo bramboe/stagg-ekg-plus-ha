@@ -92,18 +92,18 @@ def test_ble_only_config_has_no_wifi_probe_and_requires_active_proxy(tmp_path):
         hass = await make_hass(tmp_path)
         flow = FellowStaggConfigFlow()
         flow.hass = hass
-        flow.context = {}
-        result = await flow.async_step_user({"connection_mode": "ble"})
-        assert result["step_id"] == "transport_device"
-        keys = {str(key) for key in result["data_schema"].schema}
-        assert "base_url" not in keys
-        with patch("custom_components.fellow_stagg.config_flow.bluetooth.async_ble_device_from_address", return_value=None), patch("custom_components.fellow_stagg.config_flow._probe_kettle", new_callable=AsyncMock) as probe:
-            result = await flow.async_step_transport_device({"ble_address": "AA:BB:CC:DD:EE:FF"})
-            assert result["errors"]["base"] == "active_proxy_required"
+        flow.context = {"ble_address": "AA:BB:CC:DD:EE:FF"}
+        with patch("custom_components.fellow_stagg.config_flow._async_ble_kettle_info", new_callable=AsyncMock, return_value=None), patch("custom_components.fellow_stagg.config_flow._probe_kettle", new_callable=AsyncMock) as probe:
+            result = await flow.async_step_user()
+            assert result["step_id"] == "connection_check"
+            assert result["errors"]["base"] == "ble_unreachable"
             probe.assert_not_awaited()
-        with patch("custom_components.fellow_stagg.config_flow.bluetooth.async_ble_device_from_address", return_value=object()), patch("custom_components.fellow_stagg.config_flow._probe_kettle", new_callable=AsyncMock) as probe:
-            result = await flow.async_step_transport_device({"ble_address": "AA:BB:CC:DD:EE:FF"})
+        with patch("custom_components.fellow_stagg.config_flow._async_ble_kettle_info", new_callable=AsyncMock, return_value={"name": "EKG-test", "firmware": "1.2.26", "ip": "192.0.2.5"}), patch("custom_components.fellow_stagg.config_flow._probe_kettle", new_callable=AsyncMock) as probe:
+            result = await flow.async_step_connection_check()
+            assert result["step_id"] == "wifi_choice"
+            result = await flow.async_step_wifi_choice({"use_wifi": False})
             assert result["type"] == "create_entry"
+            assert result["data"]["connection_mode"] == "ble"
             assert "base_url" not in result["data"]
             probe.assert_not_awaited()
         await hass.async_stop()
@@ -1180,26 +1180,95 @@ def test_ble_only_hides_wifi_only_entities(tmp_path):
     asyncio.run(run())
 
 
-def test_discovery_no_wifi_offers_setup_or_skip(tmp_path):
-    """A kettle discovered over Bluetooth with no Wi-Fi offers setup/skip during add."""
+@pytest.mark.parametrize("ip", [None, "192.0.2.5"])
+def test_discovery_checks_ble_then_offers_optional_wifi(tmp_path, ip):
     async def run():
         hass = await make_hass(tmp_path)
         flow = FellowStaggConfigFlow()
         flow.hass = hass
-        # No Wi-Fi configured -> the menu with setup + skip + manual address
-        flow.context = {"ble_address": "AA:BB:CC:DD:EE:FF", "ble_name": "EKG-2d-25-b2"}
-        with patch.object(flow, "_async_suggested_url_for", new_callable=AsyncMock, return_value=None):
+        flow.context = {"ble_address": "AA:BB:CC:DD:EE:FF", "ble_name": "EKG-test"}
+        with patch("custom_components.fellow_stagg.config_flow._async_ble_kettle_info", new_callable=AsyncMock, return_value={"name": "EKG-test", "firmware": "1.2.26", "ip": ip}), patch("custom_components.fellow_stagg.config_flow._probe_kettle", new_callable=AsyncMock) as probe:
             result = await flow.async_step_user()
-        assert result["type"] == "menu"
-        assert result["step_id"] == "bluetooth_menu"
-        assert set(result["menu_options"]) == {"wifi_setup", "bluetooth_only", "bluetooth_configure"}
+            assert result["step_id"] == "wifi_choice"
+            assert result["data_schema"]({}) == {"use_wifi": True}
+            probe.assert_not_awaited()
+        with patch("custom_components.fellow_stagg.config_flow.async_get_clientsession", return_value=object()), patch("custom_components.fellow_stagg.config_flow._probe_kettle", new_callable=AsyncMock, return_value=True), patch("custom_components.fellow_stagg.config_flow.bluetooth.async_ble_device_from_address", return_value=object()):
+            result = await flow.async_step_wifi_choice({"use_wifi": True})
+        if ip:
+            assert result["type"] == "create_entry"
+            assert result["data"]["connection_mode"] == "auto"
+            assert result["data"]["base_url"] == "http://192.0.2.5"
+            assert result["data"]["device_name"] == "EKG-test"
+        else:
+            assert set(result["menu_options"]) == {"wifi_setup", "bluetooth_only", "bluetooth_configure"}
+        await hass.async_stop()
+    asyncio.run(run())
 
-        # On Wi-Fi already -> the normal connection-mode form, no forced menu
-        flow2 = FellowStaggConfigFlow()
-        flow2.hass = hass
-        flow2.context = {"ble_address": "AA:BB:CC:DD:EE:FF"}
-        with patch.object(flow2, "_async_suggested_url_for", new_callable=AsyncMock, return_value="http://192.0.2.5"):
-            result = await flow2.async_step_user()
-        assert result["step_id"] == "user"
+
+def test_manual_setup_starts_with_devices_and_search_not_modes(tmp_path):
+    from types import SimpleNamespace
+    async def run():
+        hass = await make_hass(tmp_path)
+        flow = FellowStaggConfigFlow()
+        flow.hass = hass
+        flow.context = {}
+        adverts = [SimpleNamespace(name="EKG-test", address="AA:BB:CC:DD:EE:FF", service_uuids=[])]
+        with patch("custom_components.fellow_stagg.config_flow.async_discovered_service_info", return_value=adverts), patch("custom_components.fellow_stagg.config_flow._async_ble_kettle_info", new_callable=AsyncMock, return_value={"name": "EKG-test", "firmware": "1.2.26"}):
+            form = await flow.async_step_user()
+            assert {str(key) for key in form["data_schema"].schema} == {"device_or_manual"}
+            result = await flow.async_step_user({"device_or_manual": f"EKG-test ({adverts[0].address})"})
+            assert result["step_id"] == "wifi_choice"
+        await hass.async_stop()
+    asyncio.run(run())
+
+
+def test_bluetooth_search_requests_shared_scan_and_finishes(tmp_path):
+    async def run():
+        hass = await make_hass(tmp_path)
+        flow = FellowStaggConfigFlow()
+        flow.hass = hass
+        with patch("custom_components.fellow_stagg.config_flow.bluetooth.async_request_active_scan", new_callable=AsyncMock) as scan:
+            result = await flow.async_step_bluetooth_search()
+            if result["type"] == "progress":
+                await flow._bluetooth_search_task
+                result = await flow.async_step_bluetooth_search()
+            assert result["type"] == "progress_done"
+            assert result["step_id"] == "user"
+            scan.assert_awaited_once_with(hass, duration=8)
+        await hass.async_stop()
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('same_kettle', [False, True])
+def test_network_setup_only_associates_matching_bluetooth_identity(tmp_path, same_kettle):
+    async def run():
+        hass = await make_hass(tmp_path)
+        flow = FellowStaggConfigFlow()
+        flow.hass = hass
+        flow.context = {}
+        info = {'name': 'EKG-test', 'firmware': '1.2.26', 'ip': '192.0.2.5' if same_kettle else '192.0.2.6'}
+        with patch.object(flow, '_setup_bluetooth_devices', return_value={'AA:BB:CC:DD:EE:FF': 'EKG-test'}), patch('custom_components.fellow_stagg.config_flow._async_ble_kettle_info', new_callable=AsyncMock, return_value=info):
+            result = await flow._async_add_network_kettle('http://192.0.2.5')
+        if same_kettle:
+            assert result['step_id'] == 'wifi_choice'
+            assert flow.context['ble_address'] == 'AA:BB:CC:DD:EE:FF'
+        else:
+            assert result['type'] == 'create_entry'
+            assert 'ble_address' not in result['data']
+        await hass.async_stop()
+    asyncio.run(run())
+
+
+def test_no_bluetooth_results_still_offers_search_without_network_probe(tmp_path):
+    async def run():
+        hass = await make_hass(tmp_path)
+        flow = FellowStaggConfigFlow()
+        flow.hass = hass
+        flow.context = {}
+        with patch('custom_components.fellow_stagg.config_flow.async_discovered_service_info', return_value=[]), patch('custom_components.fellow_stagg.config_flow._scan_local_subnet_for_kettles', new_callable=AsyncMock) as scan:
+            result = await flow.async_step_user()
+            schema = result['data_schema']
+            assert schema({'device_or_manual': '__rescan__'})['device_or_manual'] == '__rescan__'
+            scan.assert_not_awaited()
         await hass.async_stop()
     asyncio.run(run())
