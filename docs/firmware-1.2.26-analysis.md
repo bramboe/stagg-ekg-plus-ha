@@ -57,17 +57,68 @@ Known/used: `/temp`, `/cli`, `/api`, `/uploadfw`. Also present: `/upload`, `/upn
 - `/api?i=..,p=..,d=..,t=..,s=..` — the status/write API. The integration uses only
   `i=0,p=0,d=0,t=3,s=1` (t=3 is the quick-status record, matching the B4 quick-status type).
 
-## Held for hardware testing (not implemented)
+## Point 3 — `/api` push subscription (disassembly-confirmed mechanism)
 
-These are plausible but unverified; shipping code that pokes them blind could change kettle
-behaviour, so they are intentionally left out until someone can test on a real kettle.
+Disassembling the `/api` handler (`0x400ef958`, registered for both GET=1 and POST=3, same handler)
+confirms the query parameters. The handler parses five comma-separated keys from the query string
+and logs them as:
 
-1. **Push status via `/api` types.** The firmware logs `api method .. ip .. port .. dur .. type ..`
-   — the `i`/`p`/`d` fields look like an IP/port/duration, suggesting the kettle can push status to a
-   subscriber instead of being polled. If confirmed, this would give local push on 1.2.26. Research
-   step: GET one `t` value at a time (never POST) and log the response; confirm each type's meaning
-   before building anything.
-2. **Debug records over BLE.** Besides the quick-status record, the firmware has
-   `send_debug_pid_record` and `send_debug_temperature_record`, likely enabled by a different B4
-   record type (the integration deliberately leaves the B4 debug/Wi-Fi types alone). The existing
-   `start_ble_trace` / `get_ble_trace` tools can be used to identify the type safely before any write.
+```
+api method %d ip 0x%x port 0x%x dur 0x%x type %d sess %d len %d rcvd %d
+```
+
+so the mapping is:
+
+| key | meaning | notes |
+|-----|---------|-------|
+| `i` | destination IP | parsed as a 32-bit integer (logged `ip 0x%x`) |
+| `p` | destination port | integer |
+| `d` | duration | integer (seconds) |
+| `t` | record type | `3` = quick status (the type the integration reads inline) |
+| `s` | session | integer |
+
+The handler stores `ip`/`port`/`dur` into a per-session structure and hands them to a session
+dispatcher (`0x400dc372`, which logs `session %d->%d`). With `i=0,p=0,d=0` — what the integration
+sends today — the record comes back **inline in the HTTP response** (this is how
+`native_http` reads the 17-byte settings/status record). A non-zero `i`/`p`/`d` is what makes the
+kettle **push** `type` records to `ip:port` for `dur` seconds — i.e. local push instead of polling.
+
+This is testable **read-only and reversibly**: pointing the kettle at Home Assistant's own IP and
+listening is harmless (worst case nothing arrives), and the subscription is duration-bounded. Use
+[`scripts/probe_push_status.py`](../scripts/probe_push_status.py) from a machine on the kettle's LAN
+to confirm the push, the transport (UDP vs TCP) and the record wire format. Only once that script
+confirms the protocol should a local-push coordinator be built — it is deliberately **not** shipped
+in the integration yet, to avoid baking in an unverified wire format.
+
+## Point 4 — debug records over BLE (disassembly findings)
+
+The firmware has three record senders in the `Notify` class, all taking the same mutex and going out
+over the same BLE notify path, distinguished by a record-type byte:
+
+| function | address | over BLE | interval gate |
+|----------|---------|----------|---------------|
+| `send_quick_status_record` | `0x400e9460` | yes (the B1 status notification) | B4 **type 3**, stored at struct `+0x4d4` |
+| `send_debug_temperature_record` | `0x400e95ac` | yes (same Notify path) | separate interval field |
+| `send_debug_pid_record` | `0x400e96d8` | yes (same Notify path) | interval field at struct `+0x28`, `>= 1` to send |
+
+The PID debug sender's call site (`0x400e9f5c`, inside the control-loop timer) is guarded by
+`l32i a7,a5,0x28` / `blti a7,1,skip` plus an elapsed-vs-interval check: it emits periodically only
+once that interval field is non-zero.
+
+Important limit: `set_notif_interval_ms` (`0x400db8ac`), the function the B4 write reaches, handles
+**only type 3** (quick status) — `bnei a3,3,skip`. The debug intervals (`+0x28` etc.) are **not** set
+by that simple B4 path; they are set by the control loop / console (`tstprd` = "set tempr stat/notif
+period ms", the triac trace, etc.), and the integration's own B4 code deliberately leaves the other
+B4 types alone. So there is **no clean, safe, single documented write** to enable the PID/temperature
+debug records — enabling them means poking firmware paths the author flagged as off-limits.
+
+Safe way to observe them on hardware without any risky write: run `fellow_stagg.start_ble_trace`,
+then trigger the debug stream from the **kettle's own console/menu** (e.g. `triactrace 1` / `tstprd`
+over the kettle's UART or `/cli`), and read it back with `fellow_stagg.get_ble_trace`. If the records
+appear as notifications, the trace captures their raw bytes and record-type, which is what a future
+decoder would need. No integration code should write unknown B4 types blind.
+
+## Tooling used
+
+These findings come from static disassembly of the image with LLVM's Xtensa backend / Capstone 6
+(`CS_ARCH_XTENSA`). They have **not** been run on hardware. Addresses are image virtual addresses.
