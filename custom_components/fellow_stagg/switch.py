@@ -30,12 +30,14 @@ async def async_setup_entry(
   entities = [
     FellowStaggPreBoilSwitch(coordinator),
     FellowStaggChimeSwitch(coordinator),
+    # Block auto-update (otadis) works over Wi-Fi HTTP and the 1.2.26 BLE console, so it is
+    # offered in every mode; its `available` reflects the live transport capability.
+    FellowStaggBlockAutoUpdateSwitch(coordinator),
   ]
   if not coordinator.is_ble_only:
     # Clock sync needs the legacy CLI; Lock firmware needs HTTP — both Wi-Fi only.
     entities.insert(0, FellowStaggClockSyncSwitch(coordinator))
     entities.append(FellowStaggRevertFirmwareUpdatesSwitch(coordinator))
-    entities.append(FellowStaggBlockAutoUpdateSwitch(coordinator))
   async_add_entities(entities)
 
 
@@ -201,12 +203,14 @@ class FellowStaggRevertFirmwareUpdatesSwitch(FellowStaggConnectionMixin, Coordin
 class FellowStaggBlockAutoUpdateSwitch(FellowStaggConnectionMixin, CoordinatorEntity[FellowStaggDataUpdateCoordinator], RestoreEntity, SwitchEntity):
   """Ask the kettle to stop checking Fellow for firmware updates (the `otadis` setting).
 
-  This writes the setting behind the kettle's on-screen "Auto update" toggle. It is best effort:
-  the kettle only passes the choice to Fellow's server on its next check and does not refuse an
-  update locally, so Fellow can still push one. 1.2.x firmware returns no CLI output, so the value
-  can't be read back — the switch stores the intent and survives HA restarts. For a hard stop use
-  Lock firmware or a router rule that blocks the kettle's internet. 1.2.x firmware only; older
-  firmware has no such setting and ignores it.
+  This writes the setting behind the kettle's on-screen "Auto update" toggle, over the Wi-Fi HTTP
+  CLI or the 1.2.26 Bluetooth console, whichever the entry uses. It is best effort: the kettle only
+  passes the choice to Fellow's server on its next check and does not refuse an update locally, so
+  Fellow can still push one. 1.2.x firmware returns no console output, so the value can't be read
+  back — the switch stores the intent and survives HA restarts. It only affects firmware updates,
+  not the usage metrics the kettle sends to Fellow (see docs/privacy.md). For a hard stop use Lock
+  firmware or a router rule that blocks the kettle's internet. 1.2.x firmware only; older firmware
+  has no such setting and ignores it.
   """
 
   _attr_has_entity_name = True
@@ -220,6 +224,10 @@ class FellowStaggBlockAutoUpdateSwitch(FellowStaggConnectionMixin, CoordinatorEn
     self._attr_unique_id = f"{coordinator.unique_prefix}_block_auto_update"
     self._attr_device_info = coordinator.device_info
     self._blocked = False
+
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_block_auto_update
 
   async def async_added_to_hass(self) -> None:
     await super().async_added_to_hass()

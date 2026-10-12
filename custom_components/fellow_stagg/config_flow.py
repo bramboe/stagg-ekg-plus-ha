@@ -56,6 +56,8 @@ from .const import (
     MIN_ALTITUDE_M,
     OPT_POLLING_INTERVAL,
     OPT_POLLING_INTERVAL_COUNTDOWN,
+    OPT_SHARE_FELLOW_DATA,
+    SHARE_FELLOW_DATA_DEFAULT,
     POLLING_INTERVAL_COUNTDOWN_SECONDS,
     POLLING_INTERVAL_SECONDS,
 )
@@ -664,6 +666,10 @@ def _options_schema(entry: config_entries.ConfigEntry) -> vol.Schema:
                     OPT_POLLING_INTERVAL_COUNTDOWN, POLLING_INTERVAL_COUNTDOWN_SECONDS
                 ),
             ): vol.All(vol.Coerce(int), vol.Range(min=1, max=15)),
+            vol.Required(
+                OPT_SHARE_FELLOW_DATA,
+                default=options.get(OPT_SHARE_FELLOW_DATA, SHARE_FELLOW_DATA_DEFAULT),
+            ): bool,
         }
     )
 

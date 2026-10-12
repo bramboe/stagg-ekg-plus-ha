@@ -148,7 +148,11 @@
         "title": "Polling-opties",
         "data": {
           "polling_interval_seconds": "Polling-interval (seconden)",
-          "polling_interval_countdown_seconds": "Snel polling-interval bij activiteit (seconden)"
+          "polling_interval_countdown_seconds": "Snel polling-interval bij activiteit (seconden)",
+          "share_fellow_data": "Gegevens delen met Fellow (cloud-firmware-updates & gebruiksstatistieken)"
+        },
+        "data_description": {
+          "share_fellow_data": "Standaard uit. Als dit uit staat, houdt Home Assistant de firmware-update-controle van de koker uitgeschakeld. De koker stuurt gebruiksstatistieken nog steeds rechtstreeks naar Fellow via je netwerk, en Home Assistant kan dat verkeer niet blokkeren — blokkeer qhderznbzup.firmware.fellowproducts.com op je router/DNS of gebruik de koker alleen via Bluetooth om dit volledig te stoppen."
         }
       },
       "wifi_setup": {

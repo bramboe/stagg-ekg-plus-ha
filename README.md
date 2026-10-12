@@ -105,7 +105,13 @@ Integration diagnostics redact configured network identifiers and credentials an
 
 `fellow_stagg.get_settings_snapshot` reads native/BLE settings. `start_ble_trace` and `get_ble_trace` record status/settings notifications and one settings read per second for **10–120 seconds**, in bounded memory cleared on unload. The experimental `probe_schedule_console` action sends one fixed diagnostic query. `send_cli` permits only its fixed read-only diagnostic allowlist; arbitrary raw CLI writes are rejected. With multiple kettles, actions require `entry_id`.
 
-The integration adds no cloud telemetry. The kettle's local control interface has no integration-level authentication; use it on a trusted local network.
+The integration adds no cloud telemetry of its own, and never relays anything to Fellow. **The kettle itself does**, independently of Home Assistant: on firmware 1.2.26 it posts per-session usage metrics (device name, MAC, Wi-Fi RSSI, brew mode, estimated volume, heat-up times, overshoot, triac temperature, uptime, free heap and the last reset reason) straight to `qhderznbzup.firmware.fellowproducts.com`, and checks the same host for firmware updates.
+
+The **Share data with Fellow** option (Configure → Polling, default **off**) keeps the firmware-update check disabled (`otadis`) so Fellow stops being asked for updates. It cannot stop the usage metrics: the kettle sends those over its own network connection, which Home Assistant is not in the path of and cannot intercept. To stop data reaching Fellow completely, either **block `qhderznbzup.firmware.fellowproducts.com`** at your router/DNS (Pi-hole, AdGuard), or **run the kettle over Bluetooth only** (don't give it Wi-Fi, or clear its Wi-Fi with a factory reset) so it has no internet path. See [docs/privacy.md](docs/privacy.md) for the full list and exact steps.
+
+### Local interface security
+
+The kettle's local HTTP interface has **no authentication**. Anyone on the same network can send commands to `/cli`, upload firmware to `/uploadfw`, and reach raw hardware-test endpoints such as `/htest` (which can energise the heating element). Put the kettle on a trusted VLAN or IoT network, or use Bluetooth-only mode. See [docs/privacy.md](docs/privacy.md#local-interface-security).
 
 ## Independent community project
 

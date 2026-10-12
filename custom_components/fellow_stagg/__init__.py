@@ -35,6 +35,8 @@ from .const import (
   MIN_TEMP_C,
   OPT_POLLING_INTERVAL,
   OPT_POLLING_INTERVAL_COUNTDOWN,
+  OPT_SHARE_FELLOW_DATA,
+  SHARE_FELLOW_DATA_DEFAULT,
   POLLING_INTERVAL_SECONDS,
   POLLING_INTERVAL_ACTIVE_SECONDS,
   POLLING_AFTER_COMMAND_WINDOW_SECONDS,
@@ -118,6 +120,11 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       configuration_url=base_url,
       serial_number=self.ble_address,
     )
+    # Privacy: default is "don't share with Fellow". When off, keep the firmware-update check
+    # disabled (otadis) and warn once that metrics need a network-level block (HA can't intercept).
+    self.share_fellow_data = bool(options.get(OPT_SHARE_FELLOW_DATA, SHARE_FELLOW_DATA_DEFAULT))
+    self._privacy_enforced_at: float | None = None
+    self._privacy_notice_shown = False
     self.sync_clock_enabled = mode != "ble"
     self._last_clock_sync: datetime | None = None
     self.last_schedule_time: dict[str, int] | None = None
@@ -260,6 +267,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     cached = ((self.firmware or {}).get("current_version") or "").split(" ")[0]
     if live and cached and live != cached:
       self._firmware_fetched_at = None
+      # A reboot/update clears NVS-backed settings, so re-assert the privacy choice next poll.
+      self._privacy_enforced_at = None
 
   async def _async_refresh_firmware_page(self) -> None:
     """Re-read the root page every few minutes; it answers even when the CLI output is gone."""
@@ -418,6 +427,42 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       notification_id=notification_id,
     )
 
+  async def _maybe_enforce_privacy(self, data: dict[str, Any]) -> None:
+    """When "share data with Fellow" is off, keep the firmware-update check disabled.
+
+    This writes `otadis 1` (best-effort, no readback on 1.2.26) over whichever console the entry
+    uses, at most once per `_PRIVACY_REASSERT_SECONDS` and again right after a reboot/update clears
+    it. It is honest about its limit: `otadis` only suppresses the firmware-update check. The usage
+    metrics the kettle POSTs straight to Fellow travel on its own network stack, which Home
+    Assistant cannot intercept, so when the kettle is on Wi-Fi we show a one-time, dismissible
+    notice pointing to the only real fixes (a DNS/router block, or Bluetooth-only use).
+    """
+    if self.share_fellow_data or not self.kettle.supports_block_auto_update:
+      return
+    now = monotonic()
+    if self._privacy_enforced_at is not None and now - self._privacy_enforced_at < _PRIVACY_REASSERT_SECONDS:
+      return
+    try:
+      await self.kettle.async_block_auto_update(self.session, True)
+      self._privacy_enforced_at = now
+    except Exception as err:  # noqa: BLE001 - best-effort policy write; never breaks a poll
+      _LOGGER.debug("Could not assert otadis for the privacy option yet: %s", err)
+      return
+    # Only the kettle's own internet path leaks metrics; flag it when we actually see Wi-Fi/HTTP.
+    on_network = data.get("backend") in ("native_http", "legacy_cli")
+    if on_network and not self._privacy_notice_shown:
+      self._privacy_notice_shown = True
+      persistent_notification.async_create(
+        self.hass,
+        "Home Assistant keeps the kettle's Fellow firmware-update check turned off. The kettle "
+        "still sends usage metrics directly to Fellow's servers over your network, and Home "
+        "Assistant cannot block that traffic. To stop it completely, block "
+        "`qhderznbzup.firmware.fellowproducts.com` on your router or DNS (Pi-hole / AdGuard), or "
+        "run the kettle over Bluetooth only. See the integration's privacy notes for details.",
+        title="Fellow Stagg: usage data to Fellow",
+        notification_id=f"fellow_stagg_privacy_{self._entry_id}",
+      )
+
   @callback
   def _update_cli_muted_issue(self, data: dict[str, Any]) -> None:
     """Raise a Repairs issue when the CLI answers without output (firmware 1.2.24)."""
@@ -528,6 +573,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
       await self._maybe_sync_clock(data)
       await self._maybe_revert_firmware()
+      await self._maybe_enforce_privacy(data)
       self._update_cli_muted_issue(data)
       self._update_firmware_staged_issue()
       # Instant (fast) polling when heating, countdown active, or right after a command
@@ -673,6 +719,9 @@ _CLI_MUTED_POLLS_BEFORE_ISSUE = 3
 _FIRMWARE_SWITCH_COOLDOWN_SECONDS = 600
 # Stop auto-reverting after this many switch-backs in 24h and ask the user instead
 _FIRMWARE_MAX_REVERTS_PER_DAY = 3
+# When "share data with Fellow" is off, re-assert otadis at most this often (a reboot/update,
+# which clears the setting, forces an immediate re-assert via the firmware-version watcher)
+_PRIVACY_REASSERT_SECONDS = 6 * 3600
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
   # Network scans are started only by an explicit setup action.

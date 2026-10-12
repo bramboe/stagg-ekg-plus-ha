@@ -148,7 +148,11 @@
         "title": "Polling options",
         "data": {
           "polling_interval_seconds": "Polling interval (seconds)",
-          "polling_interval_countdown_seconds": "Fast polling interval when active (seconds)"
+          "polling_interval_countdown_seconds": "Fast polling interval when active (seconds)",
+          "share_fellow_data": "Share data with Fellow (cloud firmware updates & usage metrics)"
+        },
+        "data_description": {
+          "share_fellow_data": "Off by default. When off, Home Assistant keeps the kettle's firmware-update check disabled. The kettle still sends usage metrics directly to Fellow over your network, and Home Assistant cannot block that traffic — to stop it completely, block qhderznbzup.firmware.fellowproducts.com on your router/DNS or use the kettle over Bluetooth only."
         }
       },
       "wifi_setup": {

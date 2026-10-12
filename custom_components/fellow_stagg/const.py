@@ -20,6 +20,12 @@ SETTINGS_CACHE_MAX_AGE_FAST_SECONDS = 10
 # Config entry option keys (options flow)
 OPT_POLLING_INTERVAL = "polling_interval_seconds"
 OPT_POLLING_INTERVAL_COUNTDOWN = "polling_interval_countdown_seconds"
+# Privacy: allow the kettle to reach Fellow's cloud (firmware-update check + usage metrics).
+# Default False = don't share. When off, the integration keeps the firmware-update check disabled
+# (otadis) and reminds the user that fully stopping the metrics the kettle posts directly to Fellow
+# needs a network-level block or Bluetooth-only use — Home Assistant is not in that traffic path.
+OPT_SHARE_FELLOW_DATA = "share_fellow_data"
+SHARE_FELLOW_DATA_DEFAULT = False
 
 # Default path for the kettle HTTP CLI endpoint
 CLI_PATH = "/cli"

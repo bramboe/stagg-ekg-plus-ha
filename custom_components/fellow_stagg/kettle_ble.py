@@ -434,6 +434,24 @@ class KettleBleClient(PreferenceControls):
                 self.bricky_result["outcome"] = "uncertain"
                 raise CommandUncertain("Bricky start not confirmed; no retry or transport fallback sent") from err
 
+    async def async_block_auto_update(self, session, blocked):
+        """Write the `otadis` cloud-update setting over the B6 console (`setsetting otadis 0|1`).
+
+        `otadis` is an ordinary NVS setting (its name is in the firmware's setting table), so the
+        B6 console accepts it exactly like `guide`/`bricky`. It is best-effort and fire-and-forget:
+        1.2.26 returns no console output, so the value cannot be read back, and a single acknowledged
+        write is sent — never retried. The `session` argument is unused; it keeps the signature in
+        step with the legacy/native writers so the transport can dispatch to either.
+        """
+        async with self._command_lock:
+            await self.ensure_connected()
+            self._require_supported("power_write")  # B6 acknowledged writes, firmware 1.2.26
+            command = b"setsetting otadis %d\n" % (1 if blocked else 0)
+            try:
+                await asyncio.wait_for(self.client.write_gatt_char(B6, command, response=True), WRITE_TIMEOUT)
+            except Exception as err:
+                raise CommandUncertain("BLE otadis write unconfirmed; no retry was sent") from err
+
     async def async_probe_schedule_console(self):
         """One fixed read-only CLI query; no reconnect, replay or power command."""
         async with self._command_lock:

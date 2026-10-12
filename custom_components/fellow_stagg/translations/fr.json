@@ -148,7 +148,11 @@
         "title": "Options d'interrogation",
         "data": {
           "polling_interval_seconds": "Intervalle d'interrogation (secondes)",
-          "polling_interval_countdown_seconds": "Intervalle rapide pendant l'activité (secondes)"
+          "polling_interval_countdown_seconds": "Intervalle rapide pendant l'activité (secondes)",
+          "share_fellow_data": "Partager des données avec Fellow (mises à jour du firmware dans le cloud et statistiques d'usage)"
+        },
+        "data_description": {
+          "share_fellow_data": "Désactivé par défaut. Lorsqu'il est désactivé, Home Assistant maintient la vérification des mises à jour du firmware désactivée. La bouilloire envoie toujours des statistiques d'usage directement à Fellow via votre réseau, et Home Assistant ne peut pas bloquer ce trafic — pour l'arrêter complètement, bloquez qhderznbzup.firmware.fellowproducts.com sur votre routeur/DNS ou utilisez la bouilloire uniquement en Bluetooth."
         }
       },
       "connection": {

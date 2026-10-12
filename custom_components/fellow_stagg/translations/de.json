@@ -148,7 +148,11 @@
         "title": "Abfrageoptionen",
         "data": {
           "polling_interval_seconds": "Abfrageintervall (Sekunden)",
-          "polling_interval_countdown_seconds": "Schnelles Abfrageintervall bei Aktivität (Sekunden)"
+          "polling_interval_countdown_seconds": "Schnelles Abfrageintervall bei Aktivität (Sekunden)",
+          "share_fellow_data": "Daten mit Fellow teilen (Cloud-Firmware-Updates & Nutzungsstatistiken)"
+        },
+        "data_description": {
+          "share_fellow_data": "Standardmäßig aus. Wenn aus, hält Home Assistant die Firmware-Update-Prüfung des Wasserkochers deaktiviert. Der Wasserkocher sendet weiterhin Nutzungsstatistiken direkt an Fellow über Ihr Netzwerk, und Home Assistant kann diesen Datenverkehr nicht blockieren — um ihn vollständig zu stoppen, blockieren Sie qhderznbzup.firmware.fellowproducts.com auf Ihrem Router/DNS oder nutzen Sie den Wasserkocher nur über Bluetooth."
         }
       },
       "connection": {
