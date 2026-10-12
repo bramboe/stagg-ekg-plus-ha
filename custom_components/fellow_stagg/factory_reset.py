@@ -1,7 +1,13 @@
-"""Firmware 1.2.26 factory reset through its fixed BLE console commands.
+"""Firmware 1.2.26 factory reset through its fixed BLE console command.
 
-clrsettings -> 400d79ec -> 400ec794, the same erase routine as the physical
-reset menu. Resetting is destructive: never retry either command.
+`clrsettings` (-> 400d79ec -> 400ec794) runs the same erase routine as the physical
+reset menu: it wipes the saved settings (Wi-Fi included) and restarts the kettle.
+
+1.2.26 executes console commands written to B6 but returns no console output over
+BLE, so the erase cannot be confirmed from console text. Success is confirmed by
+behaviour instead: the kettle restarts (the BLE link drops) and comes back with its
+Wi-Fi configuration cleared — the restart is observed here, the cleared Wi-Fi is
+verified by the caller's reconnect step. Resetting is destructive: never retry.
 """
 from __future__ import annotations
 
@@ -9,31 +15,37 @@ import asyncio
 import logging
 from time import monotonic
 
-_LOGGER = logging.getLogger(__name__)
-
 from .protocol import B1, B6, B7, CommandUncertain, UnsupportedCapability, decode_status
+
+_LOGGER = logging.getLogger(__name__)
 
 RESET_SETUP_PENDING = "reset_setup_pending"
 RESET_TIMEOUT = 10
 
 
 async def async_factory_reset(client, on_dispatch):
-    """Erase, require firmware completion, then reboot; caller owns connection."""
+    """Erase settings and restart the kettle; the caller owns the connection.
+
+    Writes `clrsettings` over B6 (and `reset` as a fallback if the kettle has not
+    restarted yet). Does not wait for console output — 1.2.26 returns none over BLE —
+    so success here means the kettle actually restarted (the link dropped). The caller
+    then reconnects and verifies the Wi-Fi configuration is cleared. Never retried.
+    """
     firmware = bytes(await asyncio.wait_for(client.read_gatt_char(B7), RESET_TIMEOUT))
-    _LOGGER.warning("factory reset: firmware char B7 = %r", firmware.split(b"\0", 1)[0])
-    if not firmware.split(b"\0", 1)[0].split() or firmware.split(b"\0", 1)[0].split()[0] != b"1.2.26":
+    running = firmware.split(b"\0", 1)[0].split()
+    _LOGGER.debug("factory reset: firmware char B7 = %r", running)
+    if not running or running[0] != b"1.2.26":
         raise UnsupportedCapability("Factory reset is supported only on firmware 1.2.26")
-    for uuid, required in ((B1, {"notify"}), (B6, {"notify", "write"})):
-        char = client.services.get_characteristic(uuid)
-        if char is None or not required <= set(char.properties):
-            raise UnsupportedCapability("Factory reset requires BLE status and console notifications")
-    state = {}
+    status_char = client.services.get_characteristic(B1)
+    if status_char is None or "notify" not in set(status_char.properties):
+        raise UnsupportedCapability("Factory reset requires BLE status notifications")
+    console_char = client.services.get_characteristic(B6)
+    if console_char is None or "write" not in set(console_char.properties):
+        raise UnsupportedCapability("Factory reset requires the BLE console characteristic")
+
+    state: dict = {}
     state_at = 0.0
     state_ready = asyncio.Event()
-    erased = asyncio.Event()
-    console = ""
-    dispatched = False
-    subscriptions = []
 
     def status_received(_, raw):
         nonlocal state, state_at
@@ -44,61 +56,45 @@ async def async_factory_reset(client, on_dispatch):
         state_at = monotonic()
         state_ready.set()
 
-    def console_received(_, raw):
-        nonlocal console
-        chunk = bytes(raw)
-        _LOGGER.warning("factory reset: B6 console chunk = %r", chunk)
-        console = (console + chunk.decode("ascii", errors="replace"))[-4096:]
-        if "nvs_flash_erase OK" in console and "command 'clrsettings' ret 0" in console:
-            erased.set()
-
     def require_standby():
         if not client.is_connected or monotonic() - state_at > 5 or state.get("mode") != "S_OFF":
             raise UnsupportedCapability("Factory reset requires fresh standby state")
 
-    try:
-        for uuid, callback in ((B1, status_received), (B6, console_received)):
-            subscriptions.append(uuid)
-            await asyncio.wait_for(client.start_notify(uuid, callback), RESET_TIMEOUT)
-        await asyncio.wait_for(state_ready.wait(), RESET_TIMEOUT)
-        require_standby()
-        _LOGGER.warning("factory reset: standby confirmed (mode=%s); dispatching clrsettings", state.get("mode"))
-        console = ""
-        on_dispatch()  # Persist recovery state before any destructive write.
-        dispatched = True
-        await asyncio.wait_for(client.write_gatt_char(B6, b"clrsettings\n", response=True), RESET_TIMEOUT)
-        try:
-            await asyncio.wait_for(erased.wait(), RESET_TIMEOUT)
-        except asyncio.TimeoutError:
-            _LOGGER.warning(
-                "factory reset: erase NOT confirmed within %ss. Raw B6 console so far = %r "
-                "(empty means B6 emitted no console output)", RESET_TIMEOUT, console)
-            raise
-        _LOGGER.warning("factory reset: erase confirmed; sending reset")
-        require_standby()
-        try:
-            await asyncio.wait_for(client.write_gatt_char(B6, b"reset\n", response=True), RESET_TIMEOUT)
-        except Exception:
-            # Reboot can terminate the acknowledged write. Only an observed
-            # disconnect below is accepted; neither command is replayed.
-            pass
-        deadline = monotonic() + RESET_TIMEOUT
+    async def restarted(timeout: float) -> bool:
+        deadline = monotonic() + timeout
         while client.is_connected and monotonic() < deadline:
             await asyncio.sleep(0.1)
-        _LOGGER.warning("factory reset: after reset wait, still connected = %s", client.is_connected)
-        if client.is_connected:
-            raise CommandUncertain("Settings erased, but reboot was not observed")
+        return not client.is_connected
+
+    dispatched = False
+    try:
+        await asyncio.wait_for(client.start_notify(B1, status_received), RESET_TIMEOUT)
+        await asyncio.wait_for(state_ready.wait(), RESET_TIMEOUT)
+        require_standby()
+        on_dispatch()  # Persist recovery state before the destructive write.
+        dispatched = True
+        # Erase. On 1.2.26 this executes with no console reply and restarts the kettle
+        # on its own; the write's ACK may be lost to that restart.
+        try:
+            await asyncio.wait_for(client.write_gatt_char(B6, b"clrsettings\n", response=True), RESET_TIMEOUT)
+        except Exception:  # noqa: BLE001 - the erase/restart can drop the link mid-ACK
+            pass
+        if not await restarted(RESET_TIMEOUT):
+            # It erased but has not restarted yet; ask it to reboot explicitly.
+            try:
+                await asyncio.wait_for(client.write_gatt_char(B6, b"reset\n", response=True), RESET_TIMEOUT)
+            except Exception:  # noqa: BLE001 - reboot terminates the acknowledged write
+                pass
+            if not await restarted(RESET_TIMEOUT):
+                raise CommandUncertain("Settings erase sent, but the kettle did not restart")
+        _LOGGER.debug("factory reset: kettle restarted; caller verifies Wi-Fi is cleared")
     except Exception as err:
-        _LOGGER.warning(
-            "factory reset failed: dispatched=%s erased=%s connected=%s error=%r; raw B6 console=%r",
-            dispatched, erased.is_set(), (client.is_connected if client else None), err, console)
         if dispatched:
             raise CommandUncertain("Factory reset outcome uncertain; no commands will be retried") from err
         raise
     finally:
-        for uuid in subscriptions:
-            if client.is_connected:
-                try:
-                    await asyncio.wait_for(client.stop_notify(uuid), 2)
-                except Exception:
-                    pass
+        if client.is_connected:
+            try:
+                await asyncio.wait_for(client.stop_notify(B1), 2)
+            except Exception:  # noqa: BLE001
+                pass
