@@ -1016,7 +1016,7 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
                 )
                 await self.hass.config_entries.async_reload(entry.entry_id)
                 return self.async_abort(reason="already_configured")
-        data = {"base_url": base_url, **self._ble_entry_data()}
+        data = {"base_url": base_url, "connection_mode": "auto", **self._ble_entry_data()}
         return self.async_create_entry(title=f"Fellow Stagg ({base_url})", data=data)
 
     @staticmethod
@@ -1104,10 +1104,7 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
     ) -> FlowResult:
         base_url = self.context["dhcp_base_url"]
         if user_input is not None:
-            return self.async_create_entry(
-                title=f"Fellow Stagg ({base_url})",
-                data={"base_url": base_url, **self._ble_entry_data()},
-            )
+            return await self._async_add_network_kettle(base_url)
         self._set_confirm_only()
         return self.async_show_form(
             step_id="dhcp_confirm", description_placeholders={"base_url": base_url}
@@ -1126,10 +1123,7 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
             # We already showed the form; unique_id was set to base_url
             base_url = self.context.get("zeroconf_base_url") or self.unique_id
             if base_url:
-                return self.async_create_entry(
-                    title=f"Fellow Stagg ({base_url})",
-                    data={"base_url": base_url},
-                )
+                return await self._async_add_network_kettle(base_url)
 
         def _get(key: str, default: Any = ""):
             if discovery_info is None:
@@ -1210,7 +1204,7 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
         if discovery_info is not None:
             address = discovery_info.get("address") if isinstance(discovery_info, dict) else discovery_info.address
             name = discovery_info.get("name") if isinstance(discovery_info, dict) else discovery_info.name
-            if not address or not _is_stagg_ble_device(name):
+            if not address or not (_is_stagg_ble_device(name) or _has_stagg_service(discovery_info)):
                 return self.async_abort(reason="invalid_discovery_info")
             self.context["ble_address"] = address
             if name:
@@ -1262,6 +1256,8 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
                     self._abort_if_unique_id_configured()
                     data = {"base_url": base_url}
                     data.update(self._ble_entry_data())
+                    if data.get("ble_address"):
+                        data["connection_mode"] = "auto"
                     return self.async_create_entry(
                         title=f"Fellow Stagg ({base_url})",
                         data=data,
@@ -1286,27 +1282,119 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
             },
         )
 
+    def _setup_bluetooth_devices(self):
+        """Use HA's shared local/proxy discovery; do not start a private scanner."""
+        configured = {
+            _normalize_ble_address(entry.options.get("ble_address") or entry.data.get("ble_address"))
+            for entry in self._async_current_entries()
+        }
+        return {
+            info.address: (info.name or info.address)
+            for info in async_discovered_service_info(self.hass)
+            if (_is_stagg_ble_device(info.name) or _has_stagg_service(info))
+            and _normalize_ble_address(info.address) not in configured
+        }
+
     async def async_step_user(self, user_input=None):
+        """Find a kettle before asking about optional Wi-Fi."""
+        if self.context.get("ble_address") and user_input is None:
+            return await self.async_step_connection_check()
+        devices = self._setup_bluetooth_devices()
+        choices = {f"{name} ({address})": address for address, name in devices.items()}
+        errors = {}
         if user_input is not None:
-            self.context["connection_mode"] = user_input["connection_mode"]
-            if user_input["connection_mode"] == "wifi":
+            choice = user_input.get("device_or_manual")
+            if choice == "__rescan__":
+                return await self.async_step_bluetooth_search()
+            if choice == "__manual__":
                 return await self.async_step_user_manual()
-            return await self.async_step_transport_device()
-        # Discovered over Bluetooth: if the kettle has no Wi-Fi configured, offer to set it up
-        # over Bluetooth (or skip to a Bluetooth-only entry) before the connection-mode form.
+            if choice == "__scan__":
+                return await self.async_step_scan_network()
+            if choice in choices:
+                address = choices[choice]
+                self.context.update(ble_address=address, ble_name=devices[address])
+                return await self.async_step_connection_check()
+            errors["base"] = "ble_unreachable"
+        options = list(choices)
+        options.extend(["__rescan__", "__scan__", "__manual__"])
+        return self.async_show_form(
+            step_id="user", errors=errors,
+            data_schema=vol.Schema({vol.Required("device_or_manual"): SelectSelector(
+                SelectSelectorConfig(options=options, mode=SelectSelectorMode.DROPDOWN, translation_key="kettle_picker"))}),
+        )
+
+    async def async_step_bluetooth_search(self, user_input=None):
+        """Request a bounded fresh scan, with a visible progress screen."""
+        task = getattr(self, "_bluetooth_search_task", None)
+        if task is None:
+            async def scan():
+                request = getattr(bluetooth, "async_request_active_scan", None)
+                try:
+                    if request is not None:
+                        await asyncio.wait_for(request(self.hass, duration=8), timeout=15)
+                    else:
+                        # Older HA versions already scan continuously; wait for fresh adverts.
+                        await asyncio.sleep(8)
+                except (TimeoutError, RuntimeError):
+                    _LOGGER.debug("Bluetooth search did not complete", exc_info=True)
+            task = self._bluetooth_search_task = self.hass.async_create_task(scan())
+        if not task.done():
+            return self.async_show_progress(step_id="bluetooth_search", progress_action="bluetooth_search", progress_task=task)
+        self._bluetooth_search_task = None
+        return self.async_show_progress_done(next_step_id="user")
+
+    async def async_step_connection_check(self, user_input=None):
+        """Verify a real BLE read, rather than treating an advertisement as a connection."""
+        if user_input and user_input.get("action") == "manual":
+            return await self.async_step_user_manual()
         address = self.context.get("ble_address")
-        if address and "ble_suggested_url" not in self.context:
-            suggested = await self._async_suggested_url_for(address)
-            self.context["ble_suggested_url"] = suggested or None
-            if not suggested:
-                return self.async_show_menu(
-                    step_id="bluetooth_menu",
-                    menu_options=["wifi_setup", "bluetooth_only", "bluetooth_configure"],
-                    description_placeholders={"name": self.context.get("ble_name") or address},
-                )
-        return self.async_show_form(step_id="user", data_schema=vol.Schema({
-            vol.Required("connection_mode", default="auto"): vol.In(["auto", "wifi", "ble"]),
-        }))
+        info = await _async_ble_kettle_info(self.hass, address) if address else None
+        if not info or not (info.get("firmware") or info.get("name")):
+            return self.async_show_form(
+                step_id="connection_check", data_schema=vol.Schema({
+                    vol.Required("action", default="retry"): SelectSelector(SelectSelectorConfig(
+                        options=["retry", "manual"], translation_key="connection_check_action"))}),
+                errors={"base": "ble_unreachable"},
+            )
+        for key, source in (("device_name", "name"), ("firmware", "firmware")):
+            if info.get(source):
+                self.context[key] = info[source]
+        if info.get("mac"):
+            self.context["mac"] = format_mac(info["mac"])
+            for entry in self._async_current_entries():
+                if entry.data.get("mac") == self.context["mac"]:
+                    return self.async_abort(reason="already_configured")
+        self.context["ble_suggested_url"] = f"http://{info['ip']}" if info.get("ip") else None
+        self.context["setup_ble_verified"] = True
+        return await self.async_step_wifi_choice()
+
+    async def async_step_wifi_choice(self, user_input=None):
+        """Bluetooth works; let the user opt in to Wi-Fi before any HTTP probe."""
+        if not self.context.get("setup_ble_verified"):
+            return await self.async_step_connection_check()
+        if user_input is not None:
+            if not user_input.get("use_wifi", True):
+                return await self.async_step_bluetooth_only()
+            self.context["connection_mode"] = "auto"
+            url = self.context.get("ble_suggested_url")
+            if url and await _probe_kettle(async_get_clientsession(self.hass), url):
+                return await self.async_step_transport_device({
+                    "ble_address": self.context["ble_address"], "base_url": url,
+                })
+            return self.async_show_menu(
+                step_id="bluetooth_menu",
+                menu_options=["wifi_setup", "bluetooth_only", "bluetooth_configure"],
+                description_placeholders={"name": self.context.get("device_name") or "Fellow Stagg"},
+            )
+        return self.async_show_form(
+            step_id="wifi_choice",
+            data_schema=vol.Schema({vol.Required("use_wifi", default=True): bool}),
+            description_placeholders={
+                "name": self.context.get("device_name") or self.context.get("ble_name") or "Fellow Stagg",
+                "firmware": self.context.get("firmware") or "?",
+                "wifi_address": self.context.get("ble_suggested_url") or "—",
+            },
+        )
 
     async def async_step_transport_device(self, user_input=None):
         mode = self.context.get("connection_mode", "auto")
@@ -1327,7 +1415,7 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
                     same_url = bool(url) and _norm_url(entry.data.get("base_url")) == _norm_url(url)
                     if same_address or same_url:
                         return self.async_abort(reason="already_configured")
-                data = {"connection_mode": mode, "ble_address": address}
+                data = {"connection_mode": mode, **self._ble_entry_data(), "ble_address": address}
                 if mode != "ble":
                     data["base_url"] = url
                 return self.async_create_entry(title="Fellow Stagg", data=data)
@@ -1490,9 +1578,27 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
             return await self._async_step_scan_network_show_result()
         await self.async_set_unique_id(choice)
         self._abort_if_unique_id_configured()
+        return await self._async_add_network_kettle(choice)
+
+    async def _async_add_network_kettle(self, base_url):
+        """Check whether the verified network kettle is also reachable over BLE."""
+        try:
+            devices = self._setup_bluetooth_devices()
+        except RuntimeError:
+            devices = {}  # No Bluetooth manager available; the verified Wi-Fi path still works.
+        for address, name in devices.items():
+            info = await _async_ble_kettle_info(self.hass, address)
+            if not info:
+                continue
+            same_ip = bool(info.get("ip")) and _norm_url(base_url) == _norm_url(f"http://{info['ip']}")
+            same_mac = bool(info.get("mac") and self.context.get("mac")) and format_mac(info["mac"]) == self.context["mac"]
+            if same_ip or same_mac:
+                self.context["ble_address"] = address
+                self.context["ble_name"] = name
+                return await self.async_step_connection_check()
         return self.async_create_entry(
-            title=f"Fellow Stagg ({choice})",
-            data={"base_url": choice},
+            title=f"Fellow Stagg ({base_url})",
+            data={"base_url": base_url, **self._ble_entry_data()},
         )
 
     async def async_step_user_manual(
@@ -1511,10 +1617,7 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
                 else:
                     await self.async_set_unique_id(base_url)
                     self._abort_if_unique_id_configured()
-                    return self.async_create_entry(
-                        title=f"Fellow Stagg ({base_url})",
-                        data={"base_url": base_url},
-                    )
+                    return await self._async_add_network_kettle(base_url)
         found = self.context.get("discovery_scan_found") or []
         description = (
             "**Why isn’t the kettle in Discovered?** Home Assistant only sees the kettle when its **Bluetooth adapter** "

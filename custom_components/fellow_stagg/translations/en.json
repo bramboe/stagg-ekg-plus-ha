@@ -3,10 +3,10 @@
     "flow_title": "Fellow Stagg ({base_url})",
     "step": {
       "user": {
-        "title": "Connection",
-        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi. Wi-Fi or Auto also unlocks schedules, firmware tools, clock sync and the screen sensor.",
+        "title": "Find your kettle",
+        "description": "Choose your kettle. We check the connection first; afterwards you can choose whether to use Wi-Fi too. If it is missing, search again via Bluetooth. Keep the kettle within range of Home Assistant or a Bluetooth proxy and close the Fellow app.",
         "data": {
-          "connection_mode": "Connection mode"
+          "device_or_manual": "Kettle or search action"
         }
       },
       "user_manual": {
@@ -81,6 +81,20 @@
           "ble_address": "Bluetooth address",
           "base_url": "Kettle URL"
         }
+      },
+      "connection_check": {
+        "title": "Check Bluetooth connection",
+        "description": "Close the Fellow app and check Bluetooth range. Submit to try connecting again.",
+        "data": {
+          "action": "Next step"
+        }
+      },
+      "wifi_choice": {
+        "title": "Use Wi-Fi too?",
+        "description": "Bluetooth to {name} has been checked. Firmware: {firmware}. Wi-Fi address reported by the kettle: {wifi_address} (reachability not yet checked).\n\nWith Wi-Fi, the integration automatically chooses an appropriate connection. Without Wi-Fi, supported firmware allows power, temperature and supported kettle settings over Bluetooth. Schedules, firmware tools, clock sync and the screen sensor are not offered. Available functions depend on firmware.\n\nSkipping Wi-Fi prevents this integration from using or setting up Wi-Fi. It does not switch off existing Wi-Fi on the kettle itself. You can add Wi-Fi later.",
+        "data": {
+          "use_wifi": "Use or set up Wi-Fi too"
+        }
       }
     },
     "error": {
@@ -111,7 +125,8 @@
     "progress": {
       "scan_network": "Scanning your network for Fellow Stagg kettles…",
       "wifi_scan": "Scanning for Wi-Fi networks the kettle can see…",
-      "wifi_connecting": "Sending the Wi-Fi details for {ssid} and waiting for the kettle to connect…"
+      "wifi_connecting": "Sending the Wi-Fi details for {ssid} and waiting for the kettle to connect…",
+      "bluetooth_search": "Searching for kettles over Bluetooth…"
     }
   },
   "options": {
@@ -204,9 +219,9 @@
       "not_loaded": "The kettle isn't loaded yet; try again in a moment.",
       "ble_unreachable": "Could not connect to the kettle over Bluetooth. Is it in range of Home Assistant's Bluetooth adapter or a Bluetooth proxy, and is the Fellow app closed?",
       "wifi_setup_done": "The kettle is now on {ssid} at {ip}.",
-      "legacy_firmware_required": "Switching partitions needs the kettle\u2019s legacy Wi-Fi HTTP interface (setpart/reset). It is on {running_version} over {transport} now, so switching is not available. It works on firmware whose local CLI responds, e.g. after a rollback.",
-      "firmware_upload_unavailable": "Uploading firmware needs the kettle's Wi-Fi HTTP connection, but it is on {transport} now. Set the connection mode to Auto (Configure \u2192 Connection) and enter the kettle's URL, then try again. Bluetooth-only cannot upload firmware.",
-      "firmware_not_read": "Home Assistant can't read the kettle's firmware partitions over {transport}. Switching and uploading firmware need the kettle's Wi-Fi HTTP connection \u2014 set the connection mode to Auto (Configure \u2192 Connection) and enter the kettle's URL, then try again.",
+      "legacy_firmware_required": "Switching partitions needs the kettle’s legacy Wi-Fi HTTP interface (setpart/reset). It is on {running_version} over {transport} now, so switching is not available. It works on firmware whose local CLI responds, e.g. after a rollback.",
+      "firmware_upload_unavailable": "Uploading firmware needs the kettle's Wi-Fi HTTP connection, but it is on {transport} now. Set the connection mode to Auto (Configure → Connection) and enter the kettle's URL, then try again. Bluetooth-only cannot upload firmware.",
+      "firmware_not_read": "Home Assistant can't read the kettle's firmware partitions over {transport}. Switching and uploading firmware need the kettle's Wi-Fi HTTP connection — set the connection mode to Auto (Configure → Connection) and enter the kettle's URL, then try again.",
       "firmware_http_unreachable": "A kettle URL is set ({url}), but Home Assistant can't reach the kettle over HTTP there, so firmware switching and upload aren't available. Check the kettle is powered on and reachable at that address from Home Assistant's network (not just over Bluetooth), then try again."
     }
   },
@@ -460,6 +475,21 @@
     "firmware_staged": {
       "title": "Firmware {staged} is stored on the kettle",
       "description": "The kettle runs {running}; partition {partition} contains {staged}, which may start after a restart. Turn on the **Lock firmware** switch to have Home Assistant switch the kettle back to its pinned firmware (over the legacy HTTP CLI) whenever it updates itself. A router rule that blocks the kettle's internet while keeping local Wi-Fi is more reliable if you can set one."
+    }
+  },
+  "selector": {
+    "kettle_picker": {
+      "options": {
+        "__rescan__": "Search again via Bluetooth",
+        "__scan__": "Search the local network",
+        "__manual__": "Enter an existing Wi-Fi address"
+      }
+    },
+    "connection_check_action": {
+      "options": {
+        "retry": "Try Bluetooth again",
+        "manual": "Enter Wi-Fi address instead"
+      }
     }
   }
 }

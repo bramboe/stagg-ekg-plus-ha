@@ -3,10 +3,10 @@
     "flow_title": "Fellow Stagg ({base_url})",
     "step": {
       "user": {
-        "title": "Verbinding",
-        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook schema\u2019s, firmware-tools, klok-sync en de schermsensor.",
+        "title": "Kettle zoeken",
+        "description": "Kies je kettle. We controleren eerst de verbinding, daarna kun je kiezen of je ook wifi wilt gebruiken. Niet gevonden? Kies opnieuw zoeken via Bluetooth. Houd de kettle binnen bereik van Home Assistant of een Bluetooth-proxy en sluit de Fellow-app.",
         "data": {
-          "connection_mode": "Verbindingsmodus"
+          "device_or_manual": "Kettle of zoekactie"
         }
       },
       "user_manual": {
@@ -76,10 +76,24 @@
       },
       "transport_device": {
         "title": "Verbinding",
-        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook schema\u2019s, firmware-tools, klok-sync en de schermsensor.",
+        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook schema’s, firmware-tools, klok-sync en de schermsensor.",
         "data": {
           "ble_address": "Bluetooth-adres",
           "base_url": "Kettle-URL"
+        }
+      },
+      "connection_check": {
+        "title": "Bluetooth-verbinding controleren",
+        "description": "Sluit de Fellow-app en controleer het bereik. Druk op verzenden om opnieuw te proberen.",
+        "data": {
+          "action": "Volgende stap"
+        }
+      },
+      "wifi_choice": {
+        "title": "Wifi ook gebruiken?",
+        "description": "Bluetooth met {name} is gecontroleerd. Firmware: {firmware}. Wifi-adres gemeld door de kettle: {wifi_address} (bereikbaarheid nog niet gecontroleerd).\n\nMet wifi kiest de integratie automatisch de geschikte verbinding. Zonder wifi kun je op ondersteunde firmware aan/uit, temperatuur en de ondersteunde kettle-instellingen bedienen via Bluetooth. Schema’s, firmwaretools, kloksynchronisatie en de schermsensor worden dan niet aangeboden. Beschikbare functies verschillen per firmware.\n\nWifi overslaan voorkomt dat deze integratie wifi gebruikt of instelt. Dit schakelt bestaande wifi op de kettle zelf niet uit. Je kunt wifi later toevoegen.",
+        "data": {
+          "use_wifi": "Wifi ook gebruiken of instellen"
         }
       }
     },
@@ -111,7 +125,8 @@
     "progress": {
       "scan_network": "Netwerk wordt gescand op Fellow Stagg-waterkokers…",
       "wifi_scan": "Zoeken naar wifi-netwerken die de waterkoker ziet…",
-      "wifi_connecting": "Wifi-gegevens voor {ssid} worden verstuurd; wachten tot de waterkoker verbonden is…"
+      "wifi_connecting": "Wifi-gegevens voor {ssid} worden verstuurd; wachten tot de waterkoker verbonden is…",
+      "bluetooth_search": "Zoeken naar kettles via Bluetooth…"
     }
   },
   "options": {
@@ -147,7 +162,7 @@
       },
       "connection": {
         "title": "Verbinding",
-        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook schema\u2019s, firmware-tools, klok-sync en de schermsensor.",
+        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook schema’s, firmware-tools, klok-sync en de schermsensor.",
         "data": {
           "connection_mode": "Verbindingsmodus",
           "ble_address": "Bluetooth-adres",
@@ -205,8 +220,8 @@
       "ble_unreachable": "Kon via Bluetooth geen verbinding maken met de waterkoker. Is hij binnen bereik van de Bluetooth-adapter of een Bluetooth-proxy van Home Assistant, en is de Fellow-app gesloten?",
       "wifi_setup_done": "De waterkoker zit nu op {ssid} met adres {ip}.",
       "legacy_firmware_required": "Partities wisselen vereist de legacy Wi-Fi HTTP-interface van de waterkoker (setpart/reset). Hij draait nu {running_version} via {transport}, dus wisselen is niet beschikbaar. Het werkt op firmware waarvan de lokale CLI antwoordt, bijv. na een rollback.",
-      "firmware_upload_unavailable": "Firmware uploaden vereist de wifi-HTTP-verbinding van de waterkoker, maar die staat nu op {transport}. Zet de verbindingsmodus op Auto (Configureren \u2192 Connection) en vul de URL van de waterkoker in, en probeer opnieuw. In BLE-only kun je geen firmware uploaden.",
-      "firmware_not_read": "Home Assistant kan de firmwarepartities van de waterkoker niet lezen via {transport}. Firmware wisselen en uploaden vereisen de wifi-HTTP-verbinding \u2014 zet de verbindingsmodus op Auto (Configureren \u2192 Connection) en vul de URL in, en probeer opnieuw.",
+      "firmware_upload_unavailable": "Firmware uploaden vereist de wifi-HTTP-verbinding van de waterkoker, maar die staat nu op {transport}. Zet de verbindingsmodus op Auto (Configureren → Connection) en vul de URL van de waterkoker in, en probeer opnieuw. In BLE-only kun je geen firmware uploaden.",
+      "firmware_not_read": "Home Assistant kan de firmwarepartities van de waterkoker niet lezen via {transport}. Firmware wisselen en uploaden vereisen de wifi-HTTP-verbinding — zet de verbindingsmodus op Auto (Configureren → Connection) en vul de URL in, en probeer opnieuw.",
       "firmware_http_unreachable": "Er is een URL ingesteld ({url}), maar Home Assistant kan de waterkoker daar niet via HTTP bereiken, dus firmware wisselen en uploaden zijn niet beschikbaar. Controleer of de waterkoker aan staat en bereikbaar is op dat adres vanaf het netwerk van Home Assistant (niet alleen via Bluetooth), en probeer opnieuw."
     }
   },
@@ -460,6 +475,21 @@
     "firmware_staged": {
       "title": "Firmware {staged} staat op de kettle",
       "description": "De kettle gebruikt {running}; partitie {partition} bevat {staged}. Die versie kan na een herstart actief worden. Zet de schakelaar **Firmware vergrendelen** aan om de kettle automatisch (via de legacy HTTP CLI) terug te zetten naar de vastgezette firmware zodra hij zichzelf update. Een routerregel die de internettoegang van de kettle blokkeert maar lokale wifi behoudt, is betrouwbaarder als je die kunt instellen."
+    }
+  },
+  "selector": {
+    "kettle_picker": {
+      "options": {
+        "__rescan__": "Opnieuw zoeken via Bluetooth",
+        "__scan__": "Zoeken op het lokale netwerk",
+        "__manual__": "Bestaand wifi-adres invoeren"
+      }
+    },
+    "connection_check_action": {
+      "options": {
+        "retry": "Bluetooth opnieuw proberen",
+        "manual": "In plaats daarvan wifi-adres invoeren"
+      }
     }
   }
 }
