@@ -138,7 +138,8 @@
           "connection": "Connexion",
           "wifi_setup": "Configurer le Wi-Fi par Bluetooth",
           "switch_firmware": "Changer de firmware",
-          "upload_firmware": "Téléverser le firmware (récupération)"
+          "upload_firmware": "Téléverser le firmware (récupération)",
+          "factory_reset": "Rétablir les paramètres d’usine"
         }
       },
       "polling": {
@@ -182,13 +183,33 @@
         "data": {
           "firmware_file": "Fichier firmware .img"
         }
+      },
+      "factory_reset": {
+        "title": "Rétablir les paramètres d’usine",
+        "description": "Les paramètres enregistrés, dont le Wi-Fi, seront effacés et la bouilloire redémarrera. Le firmware et l’étalonnage d’usine sont conservés. Nécessite le firmware 1.2.26, Bluetooth et le mode veille. La configuration reprend ensuite : Wi-Fi ou Bluetooth uniquement. Les entités HA sont conservées. Après fermeture, rouvrez Configurer pour terminer.",
+        "data": {
+          "confirm": "Oui, effacer les paramètres et recommencer la configuration"
+        }
+      },
+      "reset_recovery": {
+        "title": "Vérifiez la bouilloire",
+        "description": "La réinitialisation ou le redémarrage n’a pas pu être confirmé. Aucune commande ne sera répétée. Vérifiez la bouilloire et effectuez si nécessaire la réinitialisation dans son menu. Continuer vérifie à nouveau Bluetooth et reprend la configuration."
+      },
+      "reset_wifi_choice": {
+        "title": "Utiliser aussi le Wi-Fi ?",
+        "description": "Bluetooth vers {name} a été vérifié. **Firmware : {firmware}**. Choisissez de configurer à nouveau le Wi-Fi ou non. Bluetooth permet marche/arrêt, température et réglages pris en charge. Le Wi-Fi ajoute programmes, outils de firmware, synchronisation de l’horloge et capteur d’écran. Sans Wi-Fi, cette intégration reste exclusivement en Bluetooth.",
+        "data": {
+          "use_wifi": "Configurer aussi le Wi-Fi"
+        }
       }
     },
     "progress": {
       "wifi_connecting": "Envoi des paramètres Wi-Fi de {ssid} et vérification de la connexion…",
       "wifi_scan": "Recherche des réseaux Wi-Fi visibles par la bouilloire…",
       "switching": "Passage de la bouilloire à {target_version} ; attente du redémarrage…",
-      "uploading": "Téléversement du firmware {version} ; attente du redémarrage de la bouilloire…"
+      "uploading": "Téléversement du firmware {version} ; attente du redémarrage de la bouilloire…",
+      "resetting": "Rétablissement des paramètres d’usine…",
+      "reset_reconnect": "En attente du retour de la bouilloire en Bluetooth…"
     },
     "error": {
       "not_confirmed": "Cochez la case pour confirmer.",
@@ -222,7 +243,10 @@
       "legacy_firmware_required": "Basculer de partition nécessite l’interface HTTP Wi-Fi historique (setpart/reset). La bouilloire est sur {running_version} via {transport}, le basculement n’est donc pas disponible. Cela fonctionne avec un firmware dont la CLI locale répond, p. ex. après un rollback.",
       "firmware_upload_unavailable": "Le téléversement du firmware nécessite la connexion HTTP Wi-Fi de la bouilloire, mais elle est sur {transport}. Réglez le mode de connexion sur Auto (Configurer → Connection) et saisissez l'URL de la bouilloire, puis réessayez. Le mode BLE seul ne permet pas le téléversement.",
       "firmware_not_read": "Home Assistant ne peut pas lire les partitions du firmware via {transport}. Le changement et le téléversement du firmware nécessitent la connexion HTTP Wi-Fi — réglez le mode de connexion sur Auto (Configurer → Connection) et saisissez l'URL, puis réessayez.",
-      "firmware_http_unreachable": "Une URL est définie ({url}), mais Home Assistant ne peut pas joindre la bouilloire en HTTP à cette adresse ; le changement et le téléversement du firmware sont donc indisponibles. Vérifiez que la bouilloire est allumée et joignable à cette adresse depuis le réseau de Home Assistant (pas seulement en Bluetooth), puis réessayez."
+      "firmware_http_unreachable": "Une URL est définie ({url}), mais Home Assistant ne peut pas joindre la bouilloire en HTTP à cette adresse ; le changement et le téléversement du firmware sont donc indisponibles. Vérifiez que la bouilloire est allumée et joignable à cette adresse depuis le réseau de Home Assistant (pas seulement en Bluetooth), puis réessayez.",
+      "reset_requires_ble": "La réinitialisation nécessite Bluetooth ou Auto et une adresse Bluetooth enregistrée. Le mode Wi-Fi uniquement reste exclusif.",
+      "reset_unavailable": "Aucune commande de réinitialisation n’a été envoyée. Vérifiez la veille, le firmware 1.2.26 et Bluetooth. Fermez l’application Fellow et réessayez.",
+      "reset_setup_done": "Configuration terminée. La bouilloire utilise uniquement Bluetooth."
     }
   },
   "entity": {

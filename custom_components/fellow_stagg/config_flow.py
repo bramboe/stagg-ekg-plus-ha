@@ -62,6 +62,7 @@ from .ble_provisioning import (
 )
 from .kettle_http import KettleHttpClient, FirmwareImageError, MAX_FIRMWARE_SIZE, parse_esp_app_image
 from .native_http import NativeHttpClient
+from .factory_reset import RESET_SETUP_PENDING, async_factory_reset
 
 # BLE local_name prefixes that identify a Stagg kettle (must match manifest bluetooth matchers)
 # EKG is the canonical prefix for Fellow Stagg EKG Pro; name always starts with EKG
@@ -638,6 +639,10 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
         self._switch_task = None
         self._upload_task = None
         self._upload_version = None
+        self._reset_confirmed = False
+        self._reset_task = None
+        self._reset_info = None
+        self._reset_error = False
 
     def _coordinator(self) -> Any:
         return (self.hass.data.get(DOMAIN) or {}).get(self._entry.entry_id)
@@ -646,6 +651,8 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Show supported connection, polling and Wi-Fi provisioning options."""
+        if self._entry.data.get(RESET_SETUP_PENDING):
+            return await self.async_step_reset_reconnect()
         coordinator = self._coordinator()
         if coordinator is None:
             return await self.async_step_polling(user_input)
@@ -654,11 +661,131 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
         # (e.g. over Bluetooth, with no Wi-Fi/HTTP connection) instead of hiding.
         menu.append("upload_firmware")
         menu.append("switch_firmware")
+        menu.append("factory_reset")
         # Offer Wi-Fi setup whenever a BLE address is known, including BLE-only entries:
         # provisioning Wi-Fi then unlocks the Wi-Fi features.
         if _find_ble_address(self.hass, self._entry):
             menu.append("wifi_setup")
         return self.async_show_menu(step_id="init", menu_options=menu)
+
+    async def async_step_factory_reset(self, user_input=None):
+        """Explicit confirmation; Wi-Fi-only remains exclusive."""
+        if self._entry.data.get(RESET_SETUP_PENDING):
+            return await self.async_step_reset_reconnect()
+        mode = self._entry.options.get("connection_mode", self._entry.data.get("connection_mode", "wifi"))
+        self._wifi_address = self._entry.options.get("ble_address") or self._entry.data.get("ble_address")
+        if mode == "wifi" or not self._wifi_address:
+            return self.async_abort(reason="reset_requires_ble")
+        errors = {}
+        if user_input is not None:
+            if user_input.get("confirm") is True:
+                self._reset_confirmed = True
+                return await self.async_step_resetting()
+            errors["base"] = "not_confirmed"
+        return self.async_show_form(
+            step_id="factory_reset", errors=errors,
+            data_schema=vol.Schema({vol.Required("confirm", default=False): bool}),
+        )
+
+    async def _async_reset_kettle(self):
+        # Release the normal integration first: it must not reconnect or restore
+        # preferences while the kettle is being reset and provisioned again.
+        if not await self.hass.config_entries.async_unload(self._entry.entry_id):
+            raise RuntimeError("Could not release the kettle connection")
+        client = None
+        def dispatched():
+            data = {**self._entry.data, RESET_SETUP_PENDING: True, "base_url": "",
+                    "connection_mode": "ble", "ble_address": self._wifi_address}
+            self.hass.config_entries.async_update_entry(self._entry, data=data)
+        try:
+            client = await _async_ble_connect(self.hass, self._wifi_address)
+            if client is None:
+                raise ConnectionError("Kettle not reachable over Bluetooth")
+            await async_factory_reset(client, dispatched)
+        finally:
+            if client is not None:
+                try:
+                    await client.disconnect()
+                except Exception:
+                    pass
+            if not self._entry.data.get(RESET_SETUP_PENDING):
+                await self.hass.config_entries.async_setup(self._entry.entry_id)
+
+    async def async_step_resetting(self, user_input=None):
+        if not self._reset_confirmed:
+            return await self.async_step_factory_reset()
+        if self._reset_task is None:
+            self._reset_task = self.hass.async_create_task(self._async_reset_kettle())
+        if not self._reset_task.done():
+            return self.async_show_progress(step_id="resetting", progress_action="resetting",
+                                            progress_task=self._reset_task)
+        try:
+            self._reset_task.result()
+        except Exception:
+            self._reset_error = True
+        self._reset_task = None
+        self._reset_confirmed = False
+        if not self._entry.data.get(RESET_SETUP_PENDING):
+            return self.async_show_progress_done(next_step_id="reset_unavailable")
+        return self.async_show_progress_done(
+            next_step_id="reset_recovery" if self._reset_error else "reset_reconnect")
+
+    async def async_step_reset_unavailable(self, user_input=None):
+        return self.async_abort(reason="reset_unavailable")
+
+    async def async_step_reset_recovery(self, user_input=None):
+        # Retrying here only reads the kettle. Never repeat the erase command.
+        if user_input is not None:
+            return await self.async_step_reset_reconnect()
+        return self.async_show_form(step_id="reset_recovery", data_schema=vol.Schema({}))
+
+    async def _async_reset_reconnect(self):
+        self._wifi_address = self._entry.data.get("ble_address")
+        async with asyncio.timeout(60):
+            while True:
+                info = await _async_ble_kettle_info(self.hass, self._wifi_address)
+                if info and info.get("firmware") and info.get("name") and "ip" in info and "ssid" in info:
+                    # An existing Wi-Fi configuration is not proof of a completed
+                    # factory reset. Leave the user in recovery instead.
+                    if info.get("ip") or info.get("ssid"):
+                        raise RuntimeError("Kettle still reports Wi-Fi configuration")
+                    return info
+                await asyncio.sleep(2)
+
+    async def async_step_reset_reconnect(self, user_input=None):
+        if self._reset_task is None:
+            self._reset_task = self.hass.async_create_task(self._async_reset_reconnect())
+        if not self._reset_task.done():
+            return self.async_show_progress(step_id="reset_reconnect", progress_action="reset_reconnect",
+                                            progress_task=self._reset_task)
+        try:
+            self._reset_info = self._reset_task.result()
+        except Exception:
+            self._reset_info = None
+        self._reset_task = None
+        return self.async_show_progress_done(
+            next_step_id="reset_wifi_choice" if self._reset_info else "reset_recovery")
+
+    async def async_step_reset_wifi_choice(self, user_input=None):
+        if not self._reset_info:
+            return await self.async_step_reset_reconnect()
+        if user_input is not None:
+            if user_input.get("use_wifi", True):
+                return await self.async_step_wifi_setup()
+            data = {**self._entry.data, "base_url": "", "connection_mode": "ble"}
+            data.pop(RESET_SETUP_PENDING, None)
+            self.hass.config_entries.async_update_entry(
+                self._entry, data=data,
+                options={**self._entry.options, "connection_mode": "ble", "ble_address": self._wifi_address},
+            )
+            self.hass.config_entries.async_schedule_reload(self._entry.entry_id)
+            return self.async_abort(reason="reset_setup_done")
+        return self.async_show_form(
+            step_id="reset_wifi_choice",
+            data_schema=vol.Schema({vol.Required("use_wifi", default=True): bool}),
+            description_placeholders={"name": self._reset_info["name"],
+                                      "firmware": self._reset_info["firmware"]},
+        )
 
     async def async_step_connection(self, user_input=None):
         errors = {}
@@ -723,6 +850,7 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
 
     async def _async_wifi_setup_done(self, info: dict[str, Any]) -> FlowResult:
         data = {**self._entry.data, "base_url": f"http://{info['ip']}", "ble_address": self._wifi_address}
+        data.pop(RESET_SETUP_PENDING, None)
         if info.get("name"):
             data["device_name"] = info["name"]
         if info.get("mac"):

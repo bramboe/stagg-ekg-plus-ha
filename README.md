@@ -116,3 +116,7 @@ Fellow's product names, trademarks and proprietary device firmware remain the pr
 The project supports the open-source community by enabling local Home Assistant interoperability. The integration code is separately distributed under the [MIT License](LICENSE).
 
 **Author:** [bramboe](https://github.com/bramboe)
+
+### Factory reset and setup again
+
+Use **Configure → Restore factory settings** to erase the kettle settings and restart setup. This requires firmware **1.2.26**, standby, and **Bluetooth or Auto** mode. After the loading screen, choose Wi-Fi setup or Bluetooth only again. Existing HA device and entity identities are retained. If setup is interrupted, reopen Configure to continue; the reset command is never repeated automatically. The reset protocol is firmware-inspected and covered by automated tests; physical-device acceptance is still pending.
