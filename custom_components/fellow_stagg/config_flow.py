@@ -538,14 +538,18 @@ def _wifi_setup_schema(ssid: str = "", ssids: list[str] | None = None) -> vol.Sc
         )
     else:
         ssid_field = str
-    return vol.Schema(
-        {
-            vol.Required("ssid", default=ssid): ssid_field,
-            vol.Optional("password", default=""): TextSelector(
-                TextSelectorConfig(type=TextSelectorType.PASSWORD)
-            ),
-        }
-    )
+    schema: dict[Any, Any] = {
+        vol.Required("ssid", default=ssid): ssid_field,
+        vol.Optional("password", default=""): TextSelector(
+            TextSelectorConfig(type=TextSelectorType.PASSWORD)
+        ),
+    }
+    if not ssids:
+        # Scanning is opt-in: the kettle's firmware restores its previous Wi-Fi after a scan, so
+        # provisioning in that same setup session reverts. Typing the SSID avoids that; leave this
+        # off unless you need the network list. Submit with this ticked and no name to scan.
+        schema[vol.Optional("scan_networks", default=False)] = bool
+    return vol.Schema(schema)
 
 
 class _WifiSetupMixin:
@@ -565,14 +569,18 @@ class _WifiSetupMixin:
     async def async_step_wifi_setup(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Ask for the network; the kettle has to be in Wi-Fi setup mode."""
+        """Ask for the network; the kettle has to be in Wi-Fi setup mode.
+
+        Typing the SSID is the default and the reliable path: the firmware restores its previous
+        Wi-Fi after a BLE scan, so a scanned setup session reverts. Scanning is opt-in.
+        """
         if user_input is not None:
+            if user_input.get("scan_networks") and not user_input.get("ssid"):
+                # Opt-in scan: fetch the kettle's visible networks, then re-show the form.
+                return await self.async_step_wifi_scan()
             self._wifi_input = user_input
             self._wifi_task = None
             return await self.async_step_wifi_connecting()
-        # First time in: scan the kettle's visible networks so the SSID can be picked.
-        if self._wifi_scan_ssids is None:
-            return await self.async_step_wifi_scan()
         errors = {"base": self._wifi_error} if self._wifi_error else {}
         self._wifi_error = None
         default_ssid = (self._wifi_input or {}).get("ssid", "")
@@ -839,20 +847,25 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
             "language": language,
         }
 
+    @staticmethod
+    def _dropdown(options):
+        return SelectSelector(SelectSelectorConfig(
+            options=[str(o) for o in options], mode=SelectSelectorMode.DROPDOWN))
+
     def _reset_settings_schema(self, defaults: dict):
         return vol.Schema({
             vol.Required("units", default=defaults["units"]):
-                vol.In(["Celsius", "Fahrenheit"]),
+                self._dropdown(["Celsius", "Fahrenheit"]),
             vol.Required("target_temp", default=defaults["target_temp"]):
                 vol.All(vol.Coerce(float), vol.Range(min=40, max=100)),
             vol.Required("altitude_m", default=defaults["altitude_m"]):
                 vol.All(vol.Coerce(int), vol.Range(min=MIN_ALTITUDE_M, max=MAX_ALTITUDE_M)),
             vol.Required("clock_mode", default=defaults["clock_mode"]):
-                vol.In(CLOCK_MODE_CHOICES),
-            vol.Required("hold_minutes", default=defaults["hold_minutes"]):
-                vol.In(HOLD_MINUTE_CHOICES),
+                self._dropdown(CLOCK_MODE_CHOICES),
+            vol.Required("hold_minutes", default=str(defaults["hold_minutes"])):
+                self._dropdown(HOLD_MINUTE_CHOICES),
             vol.Required("language", default=defaults["language"]):
-                vol.In(LANGUAGE_OPTIONS),
+                self._dropdown(LANGUAGE_OPTIONS),
             vol.Required("chime", default=defaults["chime"]): bool,
             vol.Required("pre_boil", default=defaults["pre_boil"]): bool,
             vol.Required("guide", default=defaults["guide"]): bool,
@@ -899,17 +912,14 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
         if not self._reset_info:
             return await self.async_step_reset_reconnect()
         if user_input is not None:
-            if not user_input.pop("apply", True):
-                return await self.async_step_reset_wifi_choice()
+            # Submit applies exactly what is selected (no separate opt-in checkbox).
             guide = bool(user_input.get("guide", True))
             self._reset_settings_task = self.hass.async_create_task(
                 self._async_apply_reset_settings(self._reset_settings_plan(user_input), guide))
             return await self.async_step_reset_settings_apply()
         defaults = self._reset_settings_defaults()
-        schema = self._reset_settings_schema(defaults).extend(
-            {vol.Required("apply", default=True): bool})
         return self.async_show_form(
-            step_id="reset_settings", data_schema=schema,
+            step_id="reset_settings", data_schema=self._reset_settings_schema(defaults),
             description_placeholders={"name": self._reset_info["name"]},
         )
 

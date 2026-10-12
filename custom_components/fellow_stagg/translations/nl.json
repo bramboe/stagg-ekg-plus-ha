@@ -54,11 +54,13 @@
         "description": "Zet de waterkoker eerst via zijn menu in wifi-setupmodus en houd de Fellow-app gesloten (die houdt de Bluetooth-verbinding vast, en de setup via de app laat de waterkoker ook nieuwe firmware downloaden). Home Assistant stuurt de netwerkgegevens rechtstreeks naar de waterkoker; er gaat niets via de servers van Fellow.",
         "data": {
           "ssid": "Netwerknaam (SSID)",
-          "password": "Wachtwoord"
+          "password": "Wachtwoord",
+          "scan_networks": "Netwerken scannen in plaats van typen"
         },
         "data_description": {
-          "ssid": "Kies een netwerk dat de waterkoker ziet, of typ een verborgen netwerk. Alleen 2,4 GHz; de waterkoker heeft geen 5 GHz.",
-          "password": "Leeg laten voor een open netwerk."
+          "ssid": "Typ de netwerknaam — dit is de betrouwbare route. Alleen 2,4 GHz; de waterkoker heeft geen 5 GHz.",
+          "password": "Leeg laten voor een open netwerk.",
+          "scan_networks": "Laat uit en typ de naam hierboven — dat is de betrouwbare manier. De waterkoker zet zijn wifi terug na een scan, dus een gescande sessie blijft niet hangen. Vink dit aan met de naam leeg om toch de lijst op te halen."
         }
       },
       "bluetooth_menu": {
@@ -154,11 +156,13 @@
         "description": "Zet de waterkoker eerst via zijn menu in wifi-setupmodus en houd de Fellow-app gesloten (die houdt de Bluetooth-verbinding vast, en de setup via de app laat de waterkoker ook nieuwe firmware downloaden). Home Assistant stuurt de netwerkgegevens rechtstreeks naar de waterkoker; er gaat niets via de servers van Fellow.",
         "data": {
           "ssid": "Netwerknaam (SSID)",
-          "password": "Wachtwoord"
+          "password": "Wachtwoord",
+          "scan_networks": "Netwerken scannen in plaats van typen"
         },
         "data_description": {
-          "ssid": "Kies een netwerk dat de waterkoker ziet, of typ een verborgen netwerk. Alleen 2,4 GHz; de waterkoker heeft geen 5 GHz.",
-          "password": "Leeg laten voor een open netwerk."
+          "ssid": "Typ de netwerknaam — dit is de betrouwbare route. Alleen 2,4 GHz; de waterkoker heeft geen 5 GHz.",
+          "password": "Leeg laten voor een open netwerk.",
+          "scan_networks": "Laat uit en typ de naam hierboven — dat is de betrouwbare manier. De waterkoker zet zijn wifi terug na een scan, dus een gescande sessie blijft niet hangen. Vink dit aan met de naam leeg om toch de lijst op te halen."
         }
       },
       "connection": {
@@ -206,7 +210,6 @@
         "title": "Waterkoker instellen",
         "description": "De fabrieksreset heeft de instellingen van {name} gewist. Herstel nu een startset, vooraf ingevuld vanuit Home Assistant — je kunt dit later allemaal aanpassen via de entiteiten van de waterkoker. Doeltemperatuur is in °C.\n\nFirmware auto-update kan niet via Bluetooth worden ingesteld: het is een ondertekende cloud-instelling. Zet Auto-update uit in het menu van de waterkoker zelf om je firmware te behouden, en schakel (bij Wi-Fi) de schakelaar Lock firmware in. De on-screen Guide wordt ook ingesteld, maar de waterkoker kan dit niet via Bluetooth bevestigen, dus dit gebeurt best-effort.",
         "data": {
-          "apply": "Deze instellingen toepassen",
           "units": "Temperatuureenheid",
           "target_temp": "Doeltemperatuur (°C)",
           "altitude_m": "Hoogte (meters)",
@@ -425,6 +428,9 @@
       },
       "revert_firmware_updates": {
         "name": "Firmware vergrendelen"
+      },
+      "block_auto_update": {
+        "name": "Automatische updates blokkeren"
       }
     },
     "time": {
