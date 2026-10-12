@@ -3,7 +3,7 @@ import struct
 
 import pytest
 from stagg_test import post_reset_setup
-from stagg_test.protocol import B5, decode_settings
+from stagg_test.protocol import B5, B6, decode_settings
 
 
 def _baseline() -> bytearray:
@@ -21,17 +21,25 @@ class Kettle:
     returns but the record never reflects it). `raise_on` is a key whose write raises.
     """
 
-    def __init__(self, reject=(), raise_on=None):
+    def __init__(self, reject=(), raise_on=None, guide_raises=False):
         self.record = _baseline()
         self.reject, self.raise_on = set(reject), raise_on
+        self.guide_raises = guide_raises
         self.writes = []
+        self.b6_writes = []
         self.is_connected = True
 
     async def read_gatt_char(self, _):
         return bytes(self.record)
 
     async def write_gatt_char(self, uuid, payload, response):
-        assert uuid == B5 and response is True
+        assert response is True
+        if uuid == B6:  # console command, e.g. `setsetting guide 1`
+            if self.guide_raises:
+                raise OSError("console write failed")
+            self.b6_writes.append(bytes(payload))
+            return
+        assert uuid == B5
         self.writes.append(bytes(payload))
         mask = int.from_bytes(payload[0:2], "little")
         # Which decode key does this write carry? (used only to honour `reject`/`raise_on`)
@@ -134,4 +142,23 @@ def test_a_write_that_raises_is_reported_and_never_aborts():
 def test_nothing_to_do_is_empty():
     async def run():
         assert await post_reset_setup.async_apply_settings(Kettle(), {}) == []
+    asyncio.run(run())
+
+
+def test_guide_sends_setsetting_over_b6():
+    async def run():
+        kettle = Kettle()
+        assert await post_reset_setup.async_apply_guide(kettle, True) is True
+        assert kettle.b6_writes == [b"setsetting guide 1\n"]
+        assert not kettle.writes  # guide never touches the B5 record
+        kettle2 = Kettle()
+        assert await post_reset_setup.async_apply_guide(kettle2, False) is True
+        assert kettle2.b6_writes == [b"setsetting guide 0\n"]
+    asyncio.run(run())
+
+
+def test_guide_write_is_best_effort_on_failure():
+    async def run():
+        kettle = Kettle(guide_raises=True)
+        assert await post_reset_setup.async_apply_guide(kettle, True) is False  # reported, not raised
     asyncio.run(run())

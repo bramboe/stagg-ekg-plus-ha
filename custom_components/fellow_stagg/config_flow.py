@@ -67,7 +67,7 @@ from .ble_provisioning import (
 from .kettle_http import KettleHttpClient, FirmwareImageError, MAX_FIRMWARE_SIZE, parse_esp_app_image
 from .native_http import NativeHttpClient
 from .factory_reset import RESET_SETUP_PENDING, async_beep, async_factory_reset
-from .post_reset_setup import async_apply_settings
+from .post_reset_setup import async_apply_guide, async_apply_settings
 
 # Post-reset starter settings: form option lists and the HA-config auto-fill mapping.
 CLOCK_MODE_CHOICES = ["off", "digital", "analog"]  # B5 clock_mode index == position
@@ -822,6 +822,7 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
             "hold_minutes": 0,
             "chime": True,
             "pre_boil": False,
+            "guide": True,
             "language": language,
         }
 
@@ -841,6 +842,7 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
                 vol.In(LANGUAGE_OPTIONS),
             vol.Required("chime", default=defaults["chime"]): bool,
             vol.Required("pre_boil", default=defaults["pre_boil"]): bool,
+            vol.Required("guide", default=defaults["guide"]): bool,
         })
 
     def _reset_settings_plan(self, user_input: dict) -> dict:
@@ -858,13 +860,21 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
             "boil": bool(user_input["pre_boil"]),
         }
 
-    async def _async_apply_reset_settings(self, plan: dict) -> list[str]:
-        """Open a fresh BLE connection and write the starter settings; return unconfirmed names."""
+    async def _async_apply_reset_settings(self, plan: dict, guide: bool) -> list[str]:
+        """Open a fresh BLE connection and write the starter settings; return unconfirmed names.
+
+        `plan` is written and verified over B5; `guide` is a best-effort B6 console write
+        (`setsetting guide`) that can't be read back on 1.2.26, so it is reported only if the
+        send itself fails.
+        """
         client = await _async_ble_connect(self.hass, self._wifi_address)
         if client is None:
-            return list(plan)  # none applied; the kettle is unreachable
+            return [*plan, "guide"]  # none applied; the kettle is unreachable
         try:
-            return await async_apply_settings(client, plan)
+            failed = await async_apply_settings(client, plan)
+            if not await async_apply_guide(client, guide):
+                failed = [*failed, "guide"]
+            return failed
         finally:
             try:
                 await client.disconnect()
@@ -878,8 +888,9 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
         if user_input is not None:
             if not user_input.pop("apply", True):
                 return await self.async_step_reset_wifi_choice()
+            guide = bool(user_input.get("guide", True))
             self._reset_settings_task = self.hass.async_create_task(
-                self._async_apply_reset_settings(self._reset_settings_plan(user_input)))
+                self._async_apply_reset_settings(self._reset_settings_plan(user_input), guide))
             return await self.async_step_reset_settings_apply()
         defaults = self._reset_settings_defaults()
         schema = self._reset_settings_schema(defaults).extend(

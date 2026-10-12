@@ -20,7 +20,7 @@ import asyncio
 import logging
 from time import monotonic
 
-from .protocol import B5, decode_settings, preference_payload, temperature_payload, units_payload
+from .protocol import B5, B6, decode_settings, preference_payload, temperature_payload, units_payload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,3 +97,22 @@ async def async_apply_settings(client, settings: dict, timeout: float | None = N
     _LOGGER.debug("post-reset setup applied %d/%d settings; unconfirmed: %s",
                   len(plan) - len(failed), len(plan), failed)
     return failed
+
+
+async def async_apply_guide(client, enabled: bool, timeout: float | None = None) -> bool:
+    """Set the on-screen brewing Guide over the B6 console (`setsetting guide 0|1`).
+
+    Guide is an NVS-backed setting (its name is in the firmware's setting table) but it is
+    not mirrored into the B5 record and the console returns nothing on 1.2.26, so this write
+    cannot be verified by read-back — it is best-effort. Returns True when the command was
+    sent without error; it never raises.
+    """
+    if timeout is None:
+        timeout = APPLY_TIMEOUT
+    command = b"setsetting guide %d\n" % (1 if enabled else 0)
+    try:
+        await asyncio.wait_for(client.write_gatt_char(B6, command, response=True), timeout)
+        return True
+    except Exception as err:  # noqa: BLE001 - best-effort; a failed send is reported, never raised
+        _LOGGER.debug("post-reset setup: guide did not send: %s", err)
+        return False
