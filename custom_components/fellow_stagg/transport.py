@@ -190,6 +190,18 @@ class KettleTransport(WifiControls):
         """Compatibility alias; current_mode is unused, units never toggle heat."""
         return await self.async_set_units(session, unit)
 
+    @property
+    def supports_ble_bricky(self):
+        return bool(self.ble and self.ble.fresh and self.ble.supports_power)
+
+    async def async_launch_bricky(self):
+        """Use the existing BLE connection, including Auto; never try HTTP after a write."""
+        async with self._command_lock:
+            if not self.ble:
+                raise UnsupportedCapability("Bricky on firmware 1.2.26 requires Auto or Bluetooth mode")
+            self.last_write_backend = "ble"
+            return await self.ble.async_launch_bricky()
+
     async def async_probe_schedule_console(self):
         if not self.ble:
             raise UnsupportedCapability("BLE must be configured for the console diagnostic")

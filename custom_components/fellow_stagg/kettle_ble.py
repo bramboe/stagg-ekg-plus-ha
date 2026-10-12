@@ -29,6 +29,8 @@ STATE_TIMEOUT = 7
 WRITE_TIMEOUT = 8
 TRANSITION_TIMEOUT = 15
 OFF_FOLLOWUP_DELAY = 1.5
+BRICKY_SAVE_DELAY = 1.0
+BRICKY_RESTART_TIMEOUT = 8
 SETTINGS_REFRESH_SECONDS = 30
 # B1 quick-status notification interval (ms). Lower = snappier power/settings confirmation,
 # at the cost of more BLE traffic. The kettle is mains-powered, so a fast rate is fine.
@@ -63,6 +65,7 @@ class KettleBleClient(PreferenceControls):
         self._expiry_handle = None
         self._trace = BleTrace()
         self._trace_task = None
+        self.bricky_result = None
 
     @property
     def supports_writes(self):
@@ -383,6 +386,53 @@ class KettleBleClient(PreferenceControls):
                 except asyncio.CancelledError:
                     pass
         return self._trace.result()
+
+    async def async_launch_bricky(self):
+        """Arm the boot-time game once and observe reboot, never replay or fall back.
+
+        1.2.26 B6 accepts CLI writes but provides no usable console readback.
+        A reboot is observable; the game screen still needs physical confirmation.
+        """
+        async with self._command_lock:
+            self.bricky_result = None
+            await self.ensure_connected()
+            self._require_supported("power_write")  # B6 acknowledged writes, firmware 1.2.26
+            state = await self._fresh_notification()
+            if state.get("lifted") is not True:
+                raise UnsupportedCapability("Lift the kettle off its base before starting Bricky")
+            client, generation = self.client, self._generation
+            self.bricky_result = {"outcome": "dispatching", "game_confirmed": False}
+            try:
+                await asyncio.wait_for(client.write_gatt_char(B6, b"setsetting bricky 1\n", response=True), WRITE_TIMEOUT)
+                # The settings loop commits the flag asynchronously. Do not reboot
+                # immediately after the GATT acknowledgment.
+                await asyncio.sleep(BRICKY_SAVE_DELAY)
+                state = await self._fresh_notification()
+                if client is not self.client or generation != self._generation:
+                    raise ConnectionError("BLE connection changed while arming Bricky")
+                if state.get("lifted") is not True:
+                    # Compensate once on the same connection: a re-placed kettle
+                    # must not retain a requested game for its next normal reboot.
+                    await asyncio.wait_for(client.write_gatt_char(B6, b"setsetting bricky 0\n", response=True), WRITE_TIMEOUT)
+                    raise CommandUncertain("Kettle returned to base; game flag clear requested, no reboot sent")
+                self.bricky_result["outcome"] = "restart_requested"
+                try:
+                    await asyncio.wait_for(client.write_gatt_char(B6, b"reset\n", response=True), WRITE_TIMEOUT)
+                except Exception:
+                    # A reboot may interrupt the write acknowledgment. Only the
+                    # observed link loss below counts as a restart, not an error alone.
+                    if client.is_connected:
+                        raise
+                deadline = monotonic() + BRICKY_RESTART_TIMEOUT
+                while client.is_connected and generation == self._generation and monotonic() < deadline:
+                    await asyncio.sleep(0.1)
+                if client.is_connected and generation == self._generation:
+                    raise CommandUncertain("Bricky restart was not observed")
+                self.bricky_result["outcome"] = "restart_observed"
+                return dict(self.bricky_result)
+            except Exception as err:
+                self.bricky_result["outcome"] = "uncertain"
+                raise CommandUncertain("Bricky start not confirmed; no retry or transport fallback sent") from err
 
     async def async_probe_schedule_console(self):
         """One fixed read-only CLI query; no reconnect, replay or power command."""

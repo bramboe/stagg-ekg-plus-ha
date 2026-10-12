@@ -201,6 +201,21 @@
         "data": {
           "use_wifi": "Ook wifi instellen"
         }
+      },
+      "reset_settings": {
+        "title": "Waterkoker instellen",
+        "description": "De fabrieksreset heeft de instellingen van {name} gewist. Herstel nu een startset, vooraf ingevuld vanuit Home Assistant — je kunt dit later allemaal aanpassen via de entiteiten van de waterkoker. Doeltemperatuur is in °C.\n\nFirmware auto-update kan niet via Bluetooth worden ingesteld: het is een ondertekende cloud-instelling. Zet Auto-update uit in het menu van de waterkoker zelf om je firmware te behouden, en schakel (bij Wi-Fi) de schakelaar Lock firmware in.",
+        "data": {
+          "apply": "Deze instellingen toepassen",
+          "units": "Temperatuureenheid",
+          "target_temp": "Doeltemperatuur (°C)",
+          "altitude_m": "Hoogte (meters)",
+          "clock_mode": "Klokweergave",
+          "hold_minutes": "Warmhouden (hold) minuten",
+          "language": "Displaytaal",
+          "chime": "Geluid bij gereed",
+          "pre_boil": "Voorkoken"
+        }
       }
     },
     "progress": {
@@ -209,7 +224,8 @@
       "switching": "De waterkoker schakelt over naar {target_version}; wachten tot hij herstart is…",
       "uploading": "Firmware {version} wordt geüpload; wachten tot de waterkoker herstart…",
       "resetting": "Fabrieksinstellingen herstellen…",
-      "reset_reconnect": "Wachten tot de kettle via Bluetooth terugkomt…"
+      "reset_reconnect": "Wachten tot de kettle via Bluetooth terugkomt…",
+      "reset_settings_apply": "De startinstellingen via Bluetooth naar de waterkoker schrijven…"
     },
     "error": {
       "not_confirmed": "Vink het vakje aan om te bevestigen.",

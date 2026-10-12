@@ -120,3 +120,7 @@ The project supports the open-source community by enabling local Home Assistant 
 ### Factory reset and setup again
 
 Use **Configure → Restore factory settings** to erase the kettle settings and restart setup. This requires firmware **1.2.26**, standby, and **Bluetooth or Auto** mode. After the loading screen, choose Wi-Fi setup or Bluetooth only again. Existing HA device and entity identities are retained. If setup is interrupted, reopen Configure to continue; the reset command is never repeated automatically. The reset protocol is firmware-inspected and covered by automated tests; physical-device acceptance is still pending.
+
+### Bricky on firmware 1.2.26
+
+The **Launch Bricky** configuration button now also works in **Auto** and **Bluetooth-only** mode. Lift the kettle off the base, then press the button. The integration checks a fresh Bluetooth status, arms the game and requests one restart. Returning the kettle to the base or pressing its menu button exits the game. Wi-Fi-only retains the existing legacy support; firmware 1.2.26 needs Bluetooth. No retry or Wi-Fi fallback is sent after a Bluetooth write. The game was physically confirmed on firmware 1.2.26 using this integration method.

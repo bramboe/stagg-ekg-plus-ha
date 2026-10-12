@@ -201,6 +201,21 @@
         "data": {
           "use_wifi": "Configurer aussi le Wi-Fi"
         }
+      },
+      "reset_settings": {
+        "title": "Configurer la bouilloire",
+        "description": "La réinitialisation a effacé les réglages de {name}. Rétablissez les valeurs de base proposées par Home Assistant. Vous pourrez les modifier plus tard. La température cible est en °C. La mise à jour automatique du firmware ne peut pas être réglée ici par Bluetooth ; utilisez le menu de la bouilloire et, avec le Wi-Fi, le verrouillage du firmware.",
+        "data": {
+          "apply": "Appliquer ces réglages",
+          "units": "Unité de température",
+          "target_temp": "Température cible (°C)",
+          "altitude_m": "Altitude (mètres)",
+          "clock_mode": "Affichage de l’horloge",
+          "hold_minutes": "Durée de maintien au chaud (minutes)",
+          "language": "Langue de l’écran",
+          "chime": "Signal sonore à la fin",
+          "pre_boil": "Pré-ébullition"
+        }
       }
     },
     "progress": {
@@ -209,7 +224,8 @@
       "switching": "Passage de la bouilloire à {target_version} ; attente du redémarrage…",
       "uploading": "Téléversement du firmware {version} ; attente du redémarrage de la bouilloire…",
       "resetting": "Rétablissement des paramètres d’usine…",
-      "reset_reconnect": "En attente du retour de la bouilloire en Bluetooth…"
+      "reset_reconnect": "En attente du retour de la bouilloire en Bluetooth…",
+      "reset_settings_apply": "Transfert des réglages de base par Bluetooth…"
     },
     "error": {
       "not_confirmed": "Cochez la case pour confirmer.",
