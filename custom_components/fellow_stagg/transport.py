@@ -79,6 +79,13 @@ class KettleTransport(WifiControls):
     async def async_set_boil(self, session, enabled):
         return await self._preference("async_set_boil", session, enabled)
 
+    async def async_block_auto_update(self, session, blocked):
+        # otadis is a write-only HTTP-CLI setting with no BLE/native equivalent; the `setsetting`
+        # still executes on 1.2.x even when the CLI output is muted, so route it straight to legacy.
+        if self.legacy is None:
+            raise UnsupportedCapability("Blocking auto-update needs the kettle's HTTP interface")
+        return await self.legacy.async_block_auto_update(session, blocked)
+
     async def async_set_chime_level(self, session, level):
         if self.supports_legacy and not (self.ble and self.ble.fresh and self.ble.supports_settings):
             raise UnsupportedCapability("Numeric chime uses native/BLE; legacy switch remains supported")

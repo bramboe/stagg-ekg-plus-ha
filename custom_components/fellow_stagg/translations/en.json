@@ -54,11 +54,13 @@
         "description": "Put the kettle in Wi-Fi setup mode from its menu first, and keep the Fellow app closed (it holds the Bluetooth connection, and its own setup also makes the kettle download new firmware). Home Assistant then sends the network details straight to the kettle; nothing goes through Fellow's servers.",
         "data": {
           "ssid": "Network name (SSID)",
-          "password": "Password"
+          "password": "Password",
+          "scan_networks": "Scan for networks instead of typing"
         },
         "data_description": {
-          "ssid": "Pick a network the kettle can see, or type a hidden one. 2.4 GHz only; the kettle has no 5 GHz radio.",
-          "password": "Leave empty for an open network."
+          "ssid": "Type the network name — this is the reliable path. 2.4 GHz only; the kettle has no 5 GHz radio.",
+          "password": "Leave empty for an open network.",
+          "scan_networks": "Leave off and type the name above — that's the reliable way. The kettle reverts its Wi-Fi after a scan, so a scanned session won't stick. Tick this with the name empty to fetch the list anyway."
         }
       },
       "bluetooth_menu": {
@@ -154,11 +156,13 @@
         "description": "Put the kettle in Wi-Fi setup mode from its menu first, and keep the Fellow app closed (it holds the Bluetooth connection, and its own setup also makes the kettle download new firmware). Home Assistant then sends the network details straight to the kettle; nothing goes through Fellow's servers.",
         "data": {
           "ssid": "Network name (SSID)",
-          "password": "Password"
+          "password": "Password",
+          "scan_networks": "Scan for networks instead of typing"
         },
         "data_description": {
-          "ssid": "Pick a network the kettle can see, or type a hidden one. 2.4 GHz only; the kettle has no 5 GHz radio.",
-          "password": "Leave empty for an open network."
+          "ssid": "Type the network name — this is the reliable path. 2.4 GHz only; the kettle has no 5 GHz radio.",
+          "password": "Leave empty for an open network.",
+          "scan_networks": "Leave off and type the name above — that's the reliable way. The kettle reverts its Wi-Fi after a scan, so a scanned session won't stick. Tick this with the name empty to fetch the list anyway."
         }
       },
       "connection": {
@@ -206,7 +210,6 @@
         "title": "Set up the kettle",
         "description": "The factory reset wiped {name}'s settings. Restore a starter set now, pre-filled from Home Assistant — you can change any of these later from the kettle's entities. Target temperature is in °C.\n\nFirmware auto-update can't be set over Bluetooth: it's a signed cloud setting. To keep your firmware, turn Auto-update off in the kettle's own menu, and (on Wi-Fi) enable the Lock firmware switch. The on-screen Guide is set too, but the kettle can't confirm it over Bluetooth, so it's applied best-effort.",
         "data": {
-          "apply": "Apply these settings",
           "units": "Temperature units",
           "target_temp": "Target temperature (°C)",
           "altitude_m": "Altitude (meters)",
@@ -262,7 +265,7 @@
       "firmware_not_read": "Home Assistant can't read the kettle's firmware partitions over {transport}. Switching and uploading firmware need the kettle's Wi-Fi HTTP connection — set the connection mode to Auto (Configure → Connection) and enter the kettle's URL, then try again.",
       "firmware_http_unreachable": "A kettle URL is set ({url}), but Home Assistant can't reach the kettle over HTTP there, so firmware switching and upload aren't available. Check the kettle is powered on and reachable at that address from Home Assistant's network (not just over Bluetooth), then try again.",
       "reset_requires_ble": "Factory reset requires Bluetooth or Auto mode and a saved Bluetooth address. Wi-Fi-only mode is kept exclusive.",
-      "reset_unavailable": "No reset command was sent. Ensure the kettle is on standby, firmware 1.2.26 is installed, and Bluetooth is available. Close the Fellow app and try again.",
+      "reset_unavailable": "No reset command was sent — the kettle couldn't be reached over Bluetooth in time. Make sure it's in range of Home Assistant's Bluetooth adapter or a proxy, firmware 1.2.26 is installed, and the Fellow app is closed, then try again. The kettle no longer needs to be on standby first.",
       "reset_setup_done": "Setup completed. The kettle uses Bluetooth only."
     }
   },
@@ -425,6 +428,9 @@
       },
       "revert_firmware_updates": {
         "name": "Lock firmware"
+      },
+      "block_auto_update": {
+        "name": "Block auto-updates"
       }
     },
     "time": {

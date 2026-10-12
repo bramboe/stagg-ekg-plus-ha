@@ -35,6 +35,7 @@ async def async_setup_entry(
     # Clock sync needs the legacy CLI; Lock firmware needs HTTP — both Wi-Fi only.
     entities.insert(0, FellowStaggClockSyncSwitch(coordinator))
     entities.append(FellowStaggRevertFirmwareUpdatesSwitch(coordinator))
+    entities.append(FellowStaggBlockAutoUpdateSwitch(coordinator))
   async_add_entities(entities)
 
 
@@ -194,4 +195,50 @@ class FellowStaggRevertFirmwareUpdatesSwitch(FellowStaggConnectionMixin, Coordin
 
   async def async_turn_off(self, **kwargs: Any) -> None:
     self.coordinator.guard_partition = None
+    self.async_write_ha_state()
+
+
+class FellowStaggBlockAutoUpdateSwitch(FellowStaggConnectionMixin, CoordinatorEntity[FellowStaggDataUpdateCoordinator], RestoreEntity, SwitchEntity):
+  """Ask the kettle to stop checking Fellow for firmware updates (the `otadis` setting).
+
+  This writes the setting behind the kettle's on-screen "Auto update" toggle. It is best effort:
+  the kettle only passes the choice to Fellow's server on its next check and does not refuse an
+  update locally, so Fellow can still push one. 1.2.x firmware returns no CLI output, so the value
+  can't be read back — the switch stores the intent and survives HA restarts. For a hard stop use
+  Lock firmware or a router rule that blocks the kettle's internet. 1.2.x firmware only; older
+  firmware has no such setting and ignores it.
+  """
+
+  _attr_has_entity_name = True
+  _attr_translation_key = "block_auto_update"
+  _attr_icon = "mdi:cloud-off-outline"
+  _attr_entity_category = EntityCategory.CONFIG
+  _attr_should_poll = False
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.unique_prefix}_block_auto_update"
+    self._attr_device_info = coordinator.device_info
+    self._blocked = False
+
+  async def async_added_to_hass(self) -> None:
+    await super().async_added_to_hass()
+    last_state = await self.async_get_last_state()
+    if last_state is not None:
+      self._blocked = last_state.state == STATE_ON
+
+  @property
+  def is_on(self) -> bool:
+    return self._blocked
+
+  async def async_turn_on(self, **kwargs: Any) -> None:
+    self.coordinator.notify_command_sent()
+    await self.coordinator.kettle.async_block_auto_update(self.coordinator.session, True)
+    self._blocked = True
+    self.async_write_ha_state()
+
+  async def async_turn_off(self, **kwargs: Any) -> None:
+    self.coordinator.notify_command_sent()
+    await self.coordinator.kettle.async_block_auto_update(self.coordinator.session, False)
+    self._blocked = False
     self.async_write_ha_state()

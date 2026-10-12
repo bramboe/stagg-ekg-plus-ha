@@ -62,11 +62,13 @@
         "description": "Activez le mode de configuration Wi-Fi sur la bouilloire et fermez l’application Fellow. Les identifiants sont transmis directement par Bluetooth. Vérifiez après redémarrage que le réseau est conservé.",
         "data": {
           "ssid": "Nom du réseau (SSID)",
-          "password": "Mot de passe"
+          "password": "Mot de passe",
+          "scan_networks": "Scanner les réseaux au lieu de saisir"
         },
         "data_description": {
-          "ssid": "Choisissez un réseau visible par la bouilloire, ou saisissez un réseau masqué. 2,4 GHz uniquement ; le 5 GHz n’est pas pris en charge.",
-          "password": "Laissez vide pour un réseau ouvert."
+          "ssid": "Saisissez le nom du réseau — c'est la voie fiable. 2,4 GHz uniquement ; la bouilloire n'a pas de radio 5 GHz.",
+          "password": "Laissez vide pour un réseau ouvert.",
+          "scan_networks": "Laissez décoché et saisissez le nom ci-dessus — c'est la méthode fiable. La bouilloire restaure son Wi-Fi après un scan, donc une session scannée ne tient pas. Cochez avec le nom vide pour obtenir la liste malgré tout."
         }
       },
       "bluetooth_menu": {
@@ -163,11 +165,13 @@
         "description": "Activez le mode de configuration Wi-Fi sur la bouilloire et fermez l’application Fellow. Les identifiants sont transmis directement par Bluetooth. Vérifiez après redémarrage que le réseau est conservé.",
         "data": {
           "ssid": "Nom du réseau (SSID)",
-          "password": "Mot de passe"
+          "password": "Mot de passe",
+          "scan_networks": "Scanner les réseaux au lieu de saisir"
         },
         "data_description": {
-          "ssid": "Choisissez un réseau visible par la bouilloire, ou saisissez un réseau masqué. 2,4 GHz uniquement ; le 5 GHz n’est pas pris en charge.",
-          "password": "Laissez vide pour un réseau ouvert."
+          "ssid": "Saisissez le nom du réseau — c'est la voie fiable. 2,4 GHz uniquement ; la bouilloire n'a pas de radio 5 GHz.",
+          "password": "Laissez vide pour un réseau ouvert.",
+          "scan_networks": "Laissez décoché et saisissez le nom ci-dessus — c'est la méthode fiable. La bouilloire restaure son Wi-Fi après un scan, donc une session scannée ne tient pas. Cochez avec le nom vide pour obtenir la liste malgré tout."
         }
       },
       "switch_firmware": {
@@ -424,6 +428,9 @@
       },
       "revert_firmware_updates": {
         "name": "Verrouiller le firmware"
+      },
+      "block_auto_update": {
+        "name": "Bloquer les mises à jour auto"
       }
     },
     "time": {

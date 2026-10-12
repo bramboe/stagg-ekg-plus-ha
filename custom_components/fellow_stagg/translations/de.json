@@ -62,11 +62,13 @@
         "description": "Aktivieren Sie den WLAN-Einrichtungsmodus am Kessel und schließen Sie die Fellow-App. Die Zugangsdaten werden direkt per Bluetooth übertragen. Prüfen Sie nach einem Neustart, ob das Netzwerk gespeichert bleibt.",
         "data": {
           "ssid": "Netzwerkname (SSID)",
-          "password": "Passwort"
+          "password": "Passwort",
+          "scan_networks": "Netzwerke scannen statt eingeben"
         },
         "data_description": {
-          "ssid": "Wähle ein Netzwerk, das der Wasserkocher sieht, oder gib ein verstecktes ein. Nur 2,4 GHz; 5 GHz wird nicht unterstützt.",
-          "password": "Bei einem offenen Netzwerk leer lassen."
+          "ssid": "Gib den Netzwerknamen ein — das ist der zuverlässige Weg. Nur 2,4 GHz; der Wasserkocher hat kein 5-GHz-Funkmodul.",
+          "password": "Bei einem offenen Netzwerk leer lassen.",
+          "scan_networks": "Lass es aus und gib den Namen oben ein — das ist der zuverlässige Weg. Der Wasserkocher stellt sein WLAN nach einem Scan wieder her, eine gescannte Sitzung bleibt also nicht. Mit leerem Namen ankreuzen, um die Liste trotzdem zu holen."
         }
       },
       "bluetooth_menu": {
@@ -163,11 +165,13 @@
         "description": "Aktivieren Sie den WLAN-Einrichtungsmodus am Kessel und schließen Sie die Fellow-App. Die Zugangsdaten werden direkt per Bluetooth übertragen. Prüfen Sie nach einem Neustart, ob das Netzwerk gespeichert bleibt.",
         "data": {
           "ssid": "Netzwerkname (SSID)",
-          "password": "Passwort"
+          "password": "Passwort",
+          "scan_networks": "Netzwerke scannen statt eingeben"
         },
         "data_description": {
-          "ssid": "Wähle ein Netzwerk, das der Wasserkocher sieht, oder gib ein verstecktes ein. Nur 2,4 GHz; 5 GHz wird nicht unterstützt.",
-          "password": "Bei einem offenen Netzwerk leer lassen."
+          "ssid": "Gib den Netzwerknamen ein — das ist der zuverlässige Weg. Nur 2,4 GHz; der Wasserkocher hat kein 5-GHz-Funkmodul.",
+          "password": "Bei einem offenen Netzwerk leer lassen.",
+          "scan_networks": "Lass es aus und gib den Namen oben ein — das ist der zuverlässige Weg. Der Wasserkocher stellt sein WLAN nach einem Scan wieder her, eine gescannte Sitzung bleibt also nicht. Mit leerem Namen ankreuzen, um die Liste trotzdem zu holen."
         }
       },
       "switch_firmware": {
@@ -424,6 +428,9 @@
       },
       "revert_firmware_updates": {
         "name": "Firmware sperren"
+      },
+      "block_auto_update": {
+        "name": "Auto-Updates blockieren"
       }
     },
     "time": {

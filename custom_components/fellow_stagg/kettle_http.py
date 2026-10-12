@@ -417,6 +417,18 @@ class KettleHttpClient:
     """Turn the kettle's ready-chime on (1) or off (0)."""
     await self._cli_command(session, f"setsetting chime {1 if on else 0}")
 
+  async def async_block_auto_update(self, session: ClientSession, blocked: bool) -> None:
+    """Ask the kettle to stop (1) or allow (0) automatic firmware updates.
+
+    This is the `otadis` setting that backs the kettle's on-screen "Auto update" toggle
+    (1.2.x firmware only; older firmware has no such setting and ignores the command). The
+    kettle only forwards the choice to Fellow's server as an `ota-enabled` header on its next
+    update check — it does not refuse an update locally — so Fellow's server has the final say.
+    Pair it with Lock firmware (and a router block) rather than relying on it alone. Fire and
+    forget: 1.2.x returns no CLI output, so the value can't be read back to confirm.
+    """
+    await self._cli_command(session, f"setsetting otadis {1 if blocked else 0}")
+
   async def async_set_language(self, session: ClientSession, index: int) -> None:
     """Set the display language (0=en, 1=fr, 2=es, 3=zh-Hans, 4=zh-Hant, 5=ko, 6=ja)."""
     await self._cli_command(session, f"setsetting language {int(index)}")
