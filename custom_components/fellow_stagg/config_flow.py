@@ -18,6 +18,7 @@ import logging
 import re
 import socket
 from ipaddress import ip_address
+from time import monotonic
 from typing import Any
 from urllib.parse import urlparse
 
@@ -731,7 +732,19 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
                     "connection_mode": "ble", "ble_address": self._wifi_address}
             self.hass.config_entries.async_update_entry(self._entry, data=data)
         try:
-            client = await _async_ble_connect(self.hass, self._wifi_address)
+            # Releasing the entry drops the coordinator's GATT link; the kettle (and any
+            # proxy slot) needs a few seconds to re-advertise as connectable before we can
+            # open a fresh connection — more so when it was heating and the slot was busy.
+            # Retry the connect for a window instead of failing on the first empty advert.
+            deadline = monotonic() + 45
+            while client is None and monotonic() < deadline:
+                try:
+                    client = await _async_ble_connect(self.hass, self._wifi_address)
+                except Exception as err:  # noqa: BLE001 - busy proxy slot / transient; retry in-window
+                    _LOGGER.debug("factory reset: connect attempt failed, will retry: %s", err)
+                    client = None
+                if client is None:
+                    await asyncio.sleep(3)
             if client is None:
                 raise ConnectionError("Kettle not reachable over Bluetooth")
             await async_factory_reset(client, dispatched)

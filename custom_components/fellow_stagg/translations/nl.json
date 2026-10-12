@@ -262,7 +262,7 @@
       "firmware_not_read": "Home Assistant kan de firmwarepartities van de waterkoker niet lezen via {transport}. Firmware wisselen en uploaden vereisen de wifi-HTTP-verbinding — zet de verbindingsmodus op Auto (Configureren → Connection) en vul de URL in, en probeer opnieuw.",
       "firmware_http_unreachable": "Er is een URL ingesteld ({url}), maar Home Assistant kan de waterkoker daar niet via HTTP bereiken, dus firmware wisselen en uploaden zijn niet beschikbaar. Controleer of de waterkoker aan staat en bereikbaar is op dat adres vanaf het netwerk van Home Assistant (niet alleen via Bluetooth), en probeer opnieuw.",
       "reset_requires_ble": "Fabrieksreset vereist Bluetooth of Auto en een opgeslagen Bluetooth-adres. De stand Alleen wifi blijft exclusief.",
-      "reset_unavailable": "Er is geen resetcommando verstuurd. Zet de kettle op standby en controleer of firmware 1.2.26 en Bluetooth beschikbaar zijn. Sluit de Fellow-app en probeer opnieuw.",
+      "reset_unavailable": "Er is geen reset-commando verzonden — de waterkoker was niet op tijd bereikbaar via Bluetooth. Zorg dat hij in bereik is van de Bluetooth-adapter of een proxy van Home Assistant, dat firmware 1.2.26 is geïnstalleerd en dat de Fellow-app gesloten is, en probeer opnieuw. De waterkoker hoeft niet meer eerst op standby te staan.",
       "reset_setup_done": "Configuratie voltooid. De kettle gebruikt alleen Bluetooth."
     }
   },

@@ -262,7 +262,7 @@
       "firmware_not_read": "Home Assistant can't read the kettle's firmware partitions over {transport}. Switching and uploading firmware need the kettle's Wi-Fi HTTP connection — set the connection mode to Auto (Configure → Connection) and enter the kettle's URL, then try again.",
       "firmware_http_unreachable": "A kettle URL is set ({url}), but Home Assistant can't reach the kettle over HTTP there, so firmware switching and upload aren't available. Check the kettle is powered on and reachable at that address from Home Assistant's network (not just over Bluetooth), then try again.",
       "reset_requires_ble": "Factory reset requires Bluetooth or Auto mode and a saved Bluetooth address. Wi-Fi-only mode is kept exclusive.",
-      "reset_unavailable": "No reset command was sent. Ensure the kettle is on standby, firmware 1.2.26 is installed, and Bluetooth is available. Close the Fellow app and try again.",
+      "reset_unavailable": "No reset command was sent — the kettle couldn't be reached over Bluetooth in time. Make sure it's in range of Home Assistant's Bluetooth adapter or a proxy, firmware 1.2.26 is installed, and the Fellow app is closed, then try again. The kettle no longer needs to be on standby first.",
       "reset_setup_done": "Setup completed. The kettle uses Bluetooth only."
     }
   },
