@@ -1272,3 +1272,28 @@ def test_no_bluetooth_results_still_offers_search_without_network_probe(tmp_path
             scan.assert_not_awaited()
         await hass.async_stop()
     asyncio.run(run())
+
+
+def test_wifi_choice_menu_is_accepted_by_actual_flow_manager(tmp_path):
+    """Catch missing menu-step handlers that direct step method tests do not catch."""
+    async def run():
+        hass = await make_hass(tmp_path)
+        flow = FellowStaggConfigFlow()
+        flow.hass = hass
+        flow.handler = DOMAIN
+        flow.context = {'source': 'user', 'ble_address': 'AA:BB:CC:DD:EE:FF',
+                        'setup_ble_verified': True, 'device_name': 'EKG-test',
+                        'ble_suggested_url': None}
+        manager = hass.config_entries.flow
+        manager._async_add_flow_progress(flow)
+        result = await manager._async_handle_step(flow, 'wifi_choice', {'use_wifi': True})
+        assert result['type'] == 'menu'
+        assert result['step_id'] == 'bluetooth_menu'
+        assert flow.cur_step is result
+        for step in result['menu_options']:
+            manager._raise_if_step_does_not_exist(flow, step)
+        reopened = await manager._async_handle_step(flow, 'bluetooth_menu', None)
+        assert reopened['menu_options'] == result['menu_options']
+        manager.async_abort(flow.flow_id)
+        await hass.async_stop()
+    asyncio.run(run())

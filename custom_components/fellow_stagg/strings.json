@@ -91,7 +91,7 @@
       },
       "wifi_choice": {
         "title": "Use Wi-Fi too?",
-        "description": "Bluetooth to {name} has been checked. Firmware: {firmware}. Wi-Fi address reported by the kettle: {wifi_address} (reachability not yet checked).\n\nWith Wi-Fi, the integration automatically chooses an appropriate connection. Without Wi-Fi, supported firmware allows power, temperature and supported kettle settings over Bluetooth. Schedules, firmware tools, clock sync and the screen sensor are not offered. Available functions depend on firmware.\n\nSkipping Wi-Fi prevents this integration from using or setting up Wi-Fi. It does not switch off existing Wi-Fi on the kettle itself. You can add Wi-Fi later.",
+        "description": "Bluetooth to {name} has been checked. **Firmware: {firmware}**. Wi-Fi address reported by the kettle: {wifi_address} (reachability not yet checked).\n\nWith Wi-Fi, the integration automatically chooses an appropriate connection. Without Wi-Fi, supported firmware allows power, temperature and supported kettle settings over Bluetooth. Schedules, firmware tools, clock sync and the screen sensor are not offered. Available functions depend on firmware.\n\nSkipping Wi-Fi prevents this integration from using or setting up Wi-Fi. It does not switch off existing Wi-Fi on the kettle itself. You can add Wi-Fi later.",
         "data": {
           "use_wifi": "Use or set up Wi-Fi too"
         }
