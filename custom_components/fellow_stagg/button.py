@@ -1,4 +1,4 @@
-"""Button entities for Fellow Stagg EKG Pro (HTTP CLI)."""
+"""Schedule and Bricky button entities for Fellow Stagg EKG Pro."""
 from __future__ import annotations
 
 import asyncio
@@ -24,12 +24,10 @@ async def async_setup_entry(
 ) -> None:
   """Set up buttons."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-  if coordinator.is_ble_only:
-    return  # schedule apply + Bricky need Wi-Fi/CLI
-  async_add_entities([
-    FellowStaggUpdateScheduleButton(coordinator),
-    FellowStaggBrickyButton(coordinator),
-  ])
+  buttons = [FellowStaggBrickyButton(coordinator)]
+  if not coordinator.is_ble_only:
+    buttons.insert(0, FellowStaggUpdateScheduleButton(coordinator))
+  async_add_entities(buttons)
 
 
 class FellowStaggUpdateScheduleButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator], ButtonEntity):
@@ -97,19 +95,34 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
     self._attr_device_info = coordinator.device_info
     self._attr_icon = "mdi:controller"
     self._attr_entity_category = EntityCategory.CONFIG
+    self._bricky_result = None
 
   @property
   def available(self) -> bool:
     """Only allow pressing when kettle is lifted (not on base)."""
-    if not super().available or not self.coordinator.kettle.supports_legacy or not self.coordinator.data:
+    if not super().available or not self.coordinator.data:
+      return False
+    if not (self.coordinator.kettle.supports_legacy or self.coordinator.kettle.supports_ble_bricky):
       return False
     return bool(self.coordinator.data.get("lifted"))
+
+  @property
+  def extra_state_attributes(self):
+    return self._bricky_result
 
   async def async_press(self) -> None:
     """Trigger the bricky sequence only if kettle is lifted (same source as Kettle Position sensor).
     When kettle is on base: play error chime only; do NOT send setsetting bricky or reset."""
     k = self.coordinator.kettle
     session = self.coordinator.session
+    if k.supports_ble_bricky or (k.ble and not k.supports_legacy):
+      self.coordinator.notify_command_sent()
+      try:
+        self._bricky_result = await k.async_launch_bricky()
+      finally:
+        self._bricky_result = dict(k.ble.bricky_result or {})
+        self.async_write_ha_state()
+      return
 
     # Use latest state (same as binary_sensor.fellow_stagg_*_on_base)
     fresh = await self.coordinator.async_fetch_state()

@@ -201,6 +201,21 @@
         "data": {
           "use_wifi": "Auch WLAN einrichten"
         }
+      },
+      "reset_settings": {
+        "title": "Wasserkocher einrichten",
+        "description": "Beim Werksreset wurden die Einstellungen von {name} gelöscht. Stelle jetzt die Grundwerte wieder her; die Vorschläge stammen aus Home Assistant. Alle Werte lassen sich später ändern. Die Zieltemperatur ist in °C. Firmware-Auto-Updates lassen sich hier nicht über Bluetooth einstellen; verwende dafür das Gerätemenü und bei WLAN den Schalter zur Firmware-Sperre.",
+        "data": {
+          "apply": "Diese Einstellungen anwenden",
+          "units": "Temperatureinheit",
+          "target_temp": "Zieltemperatur (°C)",
+          "altitude_m": "Höhe (Meter)",
+          "clock_mode": "Uhranzeige",
+          "hold_minutes": "Warmhaltedauer (Minuten)",
+          "language": "Displaysprache",
+          "chime": "Signalton bei Fertigstellung",
+          "pre_boil": "Vorkochen"
+        }
       }
     },
     "progress": {
@@ -209,7 +224,8 @@
       "switching": "Der Wasserkocher wechselt zu {target_version}; warte auf den Neustart…",
       "uploading": "Firmware {version} wird hochgeladen; warte auf den Neustart des Wasserkochers…",
       "resetting": "Werkseinstellungen werden wiederhergestellt…",
-      "reset_reconnect": "Warten auf die Bluetooth-Verbindung…"
+      "reset_reconnect": "Warten auf die Bluetooth-Verbindung…",
+      "reset_settings_apply": "Grundeinstellungen werden über Bluetooth übertragen…"
     },
     "error": {
       "not_confirmed": "Setze das Häkchen zur Bestätigung.",

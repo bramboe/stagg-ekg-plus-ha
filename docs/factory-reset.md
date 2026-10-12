@@ -13,10 +13,12 @@ Firmware evidence from the 1.2.26 image:
 - The physical menu then schedules a restart (`400dc1bc`). The CLI `reset`
   invokes the restart path separately.
 
-The integration sends `clrsettings` once, requires both the erase-success log and
-CLI completion, then sends `reset` once and observes disconnection. Neither write
-is retried, including ambiguous disconnects or timeouts. Console data is bounded
-and not exposed in diagnostics.
+The integration sends `clrsettings` once and observes disconnection; the current
+reset implementation can request one restart if the kettle has not restarted.
+After reconnecting it verifies that Wi-Fi configuration is cleared. Firmware
+1.2.26 does not provide usable B6 console output, so log text is not required.
+Neither destructive command is replayed. Initial preferences can then be restored
+over Bluetooth before choosing Wi-Fi or Bluetooth-only setup.
 
 Before dispatch, a persistent setup-pending marker is stored. During setup,
 normal entity control and polling are unloaded. Restarting HA or reopening the

@@ -1164,7 +1164,7 @@ def test_ble_only_hides_wifi_only_entities(tmp_path):
         assert "FellowStaggScheduleTemperature" in wifi["number"]
         assert ble["time"] == []
         assert wifi["time"] == ["FellowStaggScheduleTimeEntity"]
-        assert ble["button"] == []
+        assert ble["button"] == ["FellowStaggBrickyButton"]
         assert len(wifi["button"]) == 2
         # Clock sync + Lock firmware hidden on BLE-only; preferences kept
         assert "FellowStaggClockSyncSwitch" not in ble["switch"]
@@ -1330,7 +1330,8 @@ def test_factory_reset_resume_preserves_entities_and_ble_only(tmp_path):
             if result['type'] == 'progress':
                 await flow._reset_task
                 result = await flow.async_step_reset_reconnect()
-            assert result['step_id'] == 'reset_wifi_choice'
+            assert result['step_id'] == 'reset_settings'
+            assert (await flow.async_step_reset_settings({'apply': False}))['step_id'] == 'reset_wifi_choice'
             assert (await flow.async_step_reset_wifi_choice())['step_id'] == 'reset_wifi_choice'
             reset.assert_not_awaited()
         with patch.object(hass.config_entries, 'async_schedule_reload') as reload:
@@ -1428,11 +1429,43 @@ def test_reset_progress_and_setup_steps_with_actual_options_manager(tmp_path):
             await flow._reset_task
             result = await manager._async_handle_step(flow, 'reset_reconnect', None)
             assert result['type'] == 'progress_done'
-            assert result['step_id'] == 'reset_wifi_choice'
+            assert result['step_id'] == 'reset_settings'
             result = await manager._async_handle_step(flow, result['step_id'], None)
+            assert result['step_id'] == 'reset_settings'
+            result = await manager._async_handle_step(flow, 'reset_settings', {'apply': False})
             assert result['type'] == 'form'
             assert result['step_id'] == 'reset_wifi_choice'
             assert result['description_placeholders']['firmware'] == '1.2.26'
         manager.async_abort(flow.flow_id)
+        await hass.async_stop()
+    asyncio.run(run())
+
+
+def test_bricky_button_exists_and_routes_ble_in_bluetooth_only_setup(tmp_path):
+    async def run():
+        from custom_components.fellow_stagg.button import async_setup_entry, FellowStaggBrickyButton
+        from types import SimpleNamespace
+        config_entry = entry(data={'connection_mode': 'ble', 'ble_address': 'AA:BB'})
+        hass = await make_hass(tmp_path, config_entry)
+        with patch('custom_components.fellow_stagg.async_get_clientsession', return_value=object()):
+            coordinator = FellowStaggDataUpdateCoordinator(hass, config_entry)
+        receipt = {'outcome': 'restart_observed', 'game_confirmed': False}
+        coordinator.kettle.ble = SimpleNamespace(fresh=True, supports_power=True, bricky_result=receipt)
+        coordinator.kettle.async_launch_bricky = AsyncMock(return_value=receipt)
+        coordinator.async_set_updated_data({'lifted': True, 'mode': 'S_OFF', 'power': False})
+        hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
+        entities = []
+        await async_setup_entry(hass, config_entry, entities.extend)
+        assert len(entities) == 1
+        button = entities[0]
+        assert isinstance(button, FellowStaggBrickyButton)
+        assert button.unique_id == 'stable_entry_id_launch_bricky'
+        assert button.available
+        with patch.object(button, 'async_write_ha_state'):
+            await button.async_press()
+        coordinator.kettle.async_launch_bricky.assert_awaited_once()
+        assert button.extra_state_attributes['game_confirmed'] is False
+        coordinator.async_set_updated_data({'lifted': False, 'mode': 'S_OFF', 'power': False})
+        assert not button.available
         await hass.async_stop()
     asyncio.run(run())
