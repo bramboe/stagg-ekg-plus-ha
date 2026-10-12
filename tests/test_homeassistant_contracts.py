@@ -1268,7 +1268,7 @@ def test_no_bluetooth_results_still_offers_search_without_network_probe(tmp_path
         with patch('custom_components.fellow_stagg.config_flow.async_discovered_service_info', return_value=[]), patch('custom_components.fellow_stagg.config_flow._scan_local_subnet_for_kettles', new_callable=AsyncMock) as scan:
             result = await flow.async_step_user()
             schema = result['data_schema']
-            assert schema({'device_or_manual': '__rescan__'})['device_or_manual'] == '__rescan__'
+            assert schema({'device_or_manual': 'rescan'})['device_or_manual'] == 'rescan'
             scan.assert_not_awaited()
         await hass.async_stop()
     asyncio.run(run())

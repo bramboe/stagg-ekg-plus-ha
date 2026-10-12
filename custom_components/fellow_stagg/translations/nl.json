@@ -480,9 +480,9 @@
   "selector": {
     "kettle_picker": {
       "options": {
-        "__rescan__": "Opnieuw zoeken via Bluetooth",
-        "__scan__": "Zoeken op het lokale netwerk",
-        "__manual__": "Bestaand wifi-adres invoeren"
+        "rescan": "Opnieuw zoeken via Bluetooth",
+        "scan": "Zoeken op het lokale netwerk",
+        "manual": "Bestaand wifi-adres invoeren"
       }
     },
     "connection_check_action": {
