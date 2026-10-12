@@ -201,6 +201,21 @@
         "data": {
           "use_wifi": "Set up Wi-Fi too"
         }
+      },
+      "reset_settings": {
+        "title": "Set up the kettle",
+        "description": "The factory reset wiped {name}'s settings. Restore a starter set now, pre-filled from Home Assistant — you can change any of these later from the kettle's entities. Target temperature is in °C.\n\nFirmware auto-update can't be set over Bluetooth: it's a signed cloud setting. To keep your firmware, turn Auto-update off in the kettle's own menu, and (on Wi-Fi) enable the Lock firmware switch.",
+        "data": {
+          "apply": "Apply these settings",
+          "units": "Temperature units",
+          "target_temp": "Target temperature (°C)",
+          "altitude_m": "Altitude (meters)",
+          "clock_mode": "Clock display",
+          "hold_minutes": "Keep-warm (hold) minutes",
+          "language": "Display language",
+          "chime": "Chime on finish",
+          "pre_boil": "Pre-boil"
+        }
       }
     },
     "progress": {
@@ -209,7 +224,8 @@
       "switching": "Switching the kettle to {target_version} and waiting for it to restart…",
       "uploading": "Uploading firmware {version} and waiting for the kettle to restart…",
       "resetting": "Restoring factory settings…",
-      "reset_reconnect": "Waiting for the kettle to return over Bluetooth…"
+      "reset_reconnect": "Waiting for the kettle to return over Bluetooth…",
+      "reset_settings_apply": "Writing the starter settings to the kettle over Bluetooth…"
     },
     "error": {
       "not_confirmed": "Tick the box to confirm the switch.",

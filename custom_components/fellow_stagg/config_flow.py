@@ -49,6 +49,10 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     DOMAIN,
+    LANGUAGE_INDEX,
+    LANGUAGE_OPTIONS,
+    MAX_ALTITUDE_M,
+    MIN_ALTITUDE_M,
     OPT_POLLING_INTERVAL,
     OPT_POLLING_INTERVAL_COUNTDOWN,
     POLLING_INTERVAL_COUNTDOWN_SECONDS,
@@ -63,6 +67,16 @@ from .ble_provisioning import (
 from .kettle_http import KettleHttpClient, FirmwareImageError, MAX_FIRMWARE_SIZE, parse_esp_app_image
 from .native_http import NativeHttpClient
 from .factory_reset import RESET_SETUP_PENDING, async_beep, async_factory_reset
+from .post_reset_setup import async_apply_settings
+
+# Post-reset starter settings: form option lists and the HA-config auto-fill mapping.
+CLOCK_MODE_CHOICES = ["off", "digital", "analog"]  # B5 clock_mode index == position
+HOLD_MINUTE_CHOICES = [0, 15, 30, 45, 60]
+# Home Assistant UI language -> kettle display-language slug (unknown -> english).
+HA_LANGUAGE_TO_KETTLE = {
+    "en": "english", "fr": "french", "es": "spanish", "ko": "korean", "ja": "japanese",
+    "zh-hans": "chinese_simplified", "zh": "chinese_simplified", "zh-hant": "chinese_traditional",
+}
 
 # BLE local_name prefixes that identify a Stagg kettle (must match manifest bluetooth matchers)
 # EKG is the canonical prefix for Fellow Stagg EKG Pro; name always starts with EKG
@@ -660,6 +674,8 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
         self._reset_task = None
         self._reset_info = None
         self._reset_error = False
+        self._reset_settings_task = None
+        self._reset_settings_failed = None
 
     def _coordinator(self) -> Any:
         return (self.hass.data.get(DOMAIN) or {}).get(self._entry.entry_id)
@@ -783,7 +799,118 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
             self._reset_info = None
         self._reset_task = None
         return self.async_show_progress_done(
-            next_step_id="reset_wifi_choice" if self._reset_info else "reset_recovery")
+            next_step_id="reset_settings" if self._reset_info else "reset_recovery")
+
+    def _reset_settings_defaults(self) -> dict:
+        """Starter values pre-filled from Home Assistant's own configuration."""
+        cfg = self.hass.config
+        try:
+            from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
+            fahrenheit = cfg.units is US_CUSTOMARY_SYSTEM
+        except Exception:  # noqa: BLE001 - fall back to metric if the check is unavailable
+            fahrenheit = False
+        elevation = getattr(cfg, "elevation", 0) or 0
+        altitude = max(MIN_ALTITUDE_M, min(MAX_ALTITUDE_M, round(elevation / 30) * 30))
+        language = HA_LANGUAGE_TO_KETTLE.get((cfg.language or "en").lower(), "english")
+        if language not in LANGUAGE_OPTIONS:
+            language = "english"
+        return {
+            "units": "Fahrenheit" if fahrenheit else "Celsius",
+            "target_temp": 90,  # °C; the form always takes Celsius regardless of display units
+            "altitude_m": altitude,
+            "clock_mode": "digital",
+            "hold_minutes": 0,
+            "chime": True,
+            "pre_boil": False,
+            "language": language,
+        }
+
+    def _reset_settings_schema(self, defaults: dict):
+        return vol.Schema({
+            vol.Required("units", default=defaults["units"]):
+                vol.In(["Celsius", "Fahrenheit"]),
+            vol.Required("target_temp", default=defaults["target_temp"]):
+                vol.All(vol.Coerce(float), vol.Range(min=40, max=100)),
+            vol.Required("altitude_m", default=defaults["altitude_m"]):
+                vol.All(vol.Coerce(int), vol.Range(min=MIN_ALTITUDE_M, max=MAX_ALTITUDE_M)),
+            vol.Required("clock_mode", default=defaults["clock_mode"]):
+                vol.In(CLOCK_MODE_CHOICES),
+            vol.Required("hold_minutes", default=defaults["hold_minutes"]):
+                vol.In(HOLD_MINUTE_CHOICES),
+            vol.Required("language", default=defaults["language"]):
+                vol.In(LANGUAGE_OPTIONS),
+            vol.Required("chime", default=defaults["chime"]): bool,
+            vol.Required("pre_boil", default=defaults["pre_boil"]): bool,
+        })
+
+    def _reset_settings_plan(self, user_input: dict) -> dict:
+        """Translate the form input into the {name: value} map async_apply_settings writes."""
+        altitude = round(int(user_input["altitude_m"]) / 30) * 30
+        altitude = max(MIN_ALTITUDE_M, min(MAX_ALTITUDE_M, altitude))
+        return {
+            "units": user_input["units"],
+            "target_temp": float(user_input["target_temp"]),
+            "altitude_m": altitude,
+            "clock_mode": CLOCK_MODE_CHOICES.index(user_input["clock_mode"]),
+            "hold_minutes": int(user_input["hold_minutes"]),
+            "language": LANGUAGE_INDEX[user_input["language"]],
+            "chime_level": 1 if user_input["chime"] else 0,
+            "boil": bool(user_input["pre_boil"]),
+        }
+
+    async def _async_apply_reset_settings(self, plan: dict) -> list[str]:
+        """Open a fresh BLE connection and write the starter settings; return unconfirmed names."""
+        client = await _async_ble_connect(self.hass, self._wifi_address)
+        if client is None:
+            return list(plan)  # none applied; the kettle is unreachable
+        try:
+            return await async_apply_settings(client, plan)
+        finally:
+            try:
+                await client.disconnect()
+            except Exception:  # noqa: BLE001
+                pass
+
+    async def async_step_reset_settings(self, user_input=None):
+        """Offer to restore a starter set of kettle settings, pre-filled from HA."""
+        if not self._reset_info:
+            return await self.async_step_reset_reconnect()
+        if user_input is not None:
+            if not user_input.pop("apply", True):
+                return await self.async_step_reset_wifi_choice()
+            self._reset_settings_task = self.hass.async_create_task(
+                self._async_apply_reset_settings(self._reset_settings_plan(user_input)))
+            return await self.async_step_reset_settings_apply()
+        defaults = self._reset_settings_defaults()
+        schema = self._reset_settings_schema(defaults).extend(
+            {vol.Required("apply", default=True): bool})
+        return self.async_show_form(
+            step_id="reset_settings", data_schema=schema,
+            description_placeholders={"name": self._reset_info["name"]},
+        )
+
+    async def async_step_reset_settings_apply(self, user_input=None):
+        if self._reset_settings_task is None:
+            return await self.async_step_reset_wifi_choice()
+        if not self._reset_settings_task.done():
+            return self.async_show_progress(
+                step_id="reset_settings_apply", progress_action="reset_settings_apply",
+                progress_task=self._reset_settings_task)
+        try:
+            self._reset_settings_failed = self._reset_settings_task.result()
+        except Exception:  # noqa: BLE001 - applying settings never blocks finishing setup
+            self._reset_settings_failed = None
+        self._reset_settings_task = None
+        if self._reset_settings_failed:
+            # Let the user know which values to re-apply from the entities; never block setup.
+            persistent_notification.async_create(
+                self.hass,
+                "These starter settings could not be confirmed over Bluetooth and may need to be "
+                "set again from the kettle's entities: " + ", ".join(self._reset_settings_failed) + ".",
+                title="Fellow Stagg: finish kettle setup",
+                notification_id=f"{DOMAIN}_reset_settings_{self._entry.entry_id}",
+            )
+        return self.async_show_progress_done(next_step_id="reset_wifi_choice")
 
     async def async_step_reset_wifi_choice(self, user_input=None):
         if not self._reset_info:
