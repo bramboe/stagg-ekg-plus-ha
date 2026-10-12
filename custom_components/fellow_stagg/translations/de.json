@@ -91,7 +91,7 @@
       },
       "wifi_choice": {
         "title": "WLAN zusätzlich verwenden?",
-        "description": "Bluetooth zu {name} wurde geprüft. Firmware: {firmware}. Gemeldete WLAN-Adresse: {wifi_address} (Erreichbarkeit noch nicht geprüft).\n\nMit WLAN wählt die Integration automatisch die passende Verbindung. Ohne WLAN stehen bei unterstützter Firmware Ein/Aus, Temperatur und unterstützte Einstellungen über Bluetooth zur Verfügung. Zeitpläne, Firmwarewerkzeuge, Uhrsynchronisation und Bildschirmsensor werden nicht angeboten. Die Funktionen hängen von der Firmware ab.\n\nWLAN überspringen verhindert, dass diese Integration WLAN verwendet oder einrichtet. Bereits aktives WLAN am Wasserkocher wird dadurch nicht ausgeschaltet. WLAN lässt sich später hinzufügen.",
+        "description": "Bluetooth zu {name} wurde geprüft. **Firmware: {firmware}**. Gemeldete WLAN-Adresse: {wifi_address} (Erreichbarkeit noch nicht geprüft).\n\nMit WLAN wählt die Integration automatisch die passende Verbindung. Ohne WLAN stehen bei unterstützter Firmware Ein/Aus, Temperatur und unterstützte Einstellungen über Bluetooth zur Verfügung. Zeitpläne, Firmwarewerkzeuge, Uhrsynchronisation und Bildschirmsensor werden nicht angeboten. Die Funktionen hängen von der Firmware ab.\n\nWLAN überspringen verhindert, dass diese Integration WLAN verwendet oder einrichtet. Bereits aktives WLAN am Wasserkocher wird dadurch nicht ausgeschaltet. WLAN lässt sich später hinzufügen.",
         "data": {
           "use_wifi": "WLAN zusätzlich verwenden oder einrichten"
         }

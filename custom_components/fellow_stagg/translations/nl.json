@@ -91,7 +91,7 @@
       },
       "wifi_choice": {
         "title": "Wifi ook gebruiken?",
-        "description": "Bluetooth met {name} is gecontroleerd. Firmware: {firmware}. Wifi-adres gemeld door de kettle: {wifi_address} (bereikbaarheid nog niet gecontroleerd).\n\nMet wifi kiest de integratie automatisch de geschikte verbinding. Zonder wifi kun je op ondersteunde firmware aan/uit, temperatuur en de ondersteunde kettle-instellingen bedienen via Bluetooth. Schema’s, firmwaretools, kloksynchronisatie en de schermsensor worden dan niet aangeboden. Beschikbare functies verschillen per firmware.\n\nWifi overslaan voorkomt dat deze integratie wifi gebruikt of instelt. Dit schakelt bestaande wifi op de kettle zelf niet uit. Je kunt wifi later toevoegen.",
+        "description": "Bluetooth met {name} is gecontroleerd. **Firmware: {firmware}**. Wifi-adres gemeld door de kettle: {wifi_address} (bereikbaarheid nog niet gecontroleerd).\n\nMet wifi kiest de integratie automatisch de geschikte verbinding. Zonder wifi kun je op ondersteunde firmware aan/uit, temperatuur en de ondersteunde kettle-instellingen bedienen via Bluetooth. Schema’s, firmwaretools, kloksynchronisatie en de schermsensor worden dan niet aangeboden. Beschikbare functies verschillen per firmware.\n\nWifi overslaan voorkomt dat deze integratie wifi gebruikt of instelt. Dit schakelt bestaande wifi op de kettle zelf niet uit. Je kunt wifi later toevoegen.",
         "data": {
           "use_wifi": "Wifi ook gebruiken of instellen"
         }

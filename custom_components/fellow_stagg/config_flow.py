@@ -1214,6 +1214,16 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
                     return self.async_abort(reason="already_configured")
         return await self.async_step_user()
 
+    async def async_step_bluetooth_menu(self, user_input=None):
+        """Provide the registered menu step required by HA's flow manager."""
+        return self.async_show_menu(
+            step_id="bluetooth_menu",
+            menu_options=["wifi_setup", "bluetooth_only", "bluetooth_configure"],
+            description_placeholders={
+                "name": self.context.get("device_name") or self.context.get("ble_name") or "Fellow Stagg",
+            },
+        )
+
     async def async_step_bluetooth_only(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
