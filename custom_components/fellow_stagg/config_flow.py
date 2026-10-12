@@ -1213,6 +1213,8 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
             if not address or not _is_stagg_ble_device(name):
                 return self.async_abort(reason="invalid_discovery_info")
             self.context["ble_address"] = address
+            if name:
+                self.context["ble_name"] = name
             for entry in self._async_current_entries():
                 if _normalize_ble_address(entry.options.get("ble_address") or entry.data.get("ble_address")) == _normalize_ble_address(address):
                     return self.async_abort(reason="already_configured")
@@ -1290,6 +1292,18 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
             if user_input["connection_mode"] == "wifi":
                 return await self.async_step_user_manual()
             return await self.async_step_transport_device()
+        # Discovered over Bluetooth: if the kettle has no Wi-Fi configured, offer to set it up
+        # over Bluetooth (or skip to a Bluetooth-only entry) before the connection-mode form.
+        address = self.context.get("ble_address")
+        if address and "ble_suggested_url" not in self.context:
+            suggested = await self._async_suggested_url_for(address)
+            self.context["ble_suggested_url"] = suggested or None
+            if not suggested:
+                return self.async_show_menu(
+                    step_id="bluetooth_menu",
+                    menu_options=["wifi_setup", "bluetooth_only", "bluetooth_configure"],
+                    description_placeholders={"name": self.context.get("ble_name") or address},
+                )
         return self.async_show_form(step_id="user", data_schema=vol.Schema({
             vol.Required("connection_mode", default="auto"): vol.In(["auto", "wifi", "ble"]),
         }))
