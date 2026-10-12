@@ -138,7 +138,8 @@
           "wifi_setup": "Wifi instellen (Bluetooth)",
           "connection": "Verbinding",
           "switch_firmware": "Firmware wisselen",
-          "upload_firmware": "Firmware uploaden (herstel)"
+          "upload_firmware": "Firmware uploaden (herstel)",
+          "factory_reset": "Fabrieksinstellingen herstellen"
         }
       },
       "polling": {
@@ -182,13 +183,33 @@
         "data": {
           "firmware_file": "Firmware-.img-bestand"
         }
+      },
+      "factory_reset": {
+        "title": "Fabrieksinstellingen herstellen",
+        "description": "Dit wist de opgeslagen instellingen van de kettle, inclusief wifi, en start hem opnieuw op. Firmware en fabriekskalibratie blijven behouden. Vereist firmware 1.2.26, Bluetooth en standby. Daarna begint de configuratie opnieuw: kies wifi of alleen Bluetooth. Je HA-entiteiten blijven behouden. Sluit je dit venster, open dan Configureren om verder te gaan.",
+        "data": {
+          "confirm": "Ja, wis de instellingen en begin de configuratie opnieuw"
+        }
+      },
+      "reset_recovery": {
+        "title": "Controleer de kettle",
+        "description": "De reset of herstart kon niet worden bevestigd. Er wordt geen resetcommando herhaald. Controleer de kettle en voltooi zo nodig de fabrieksreset via zijn menu. Ga verder om Bluetooth opnieuw te controleren en de configuratie te hervatten."
+      },
+      "reset_wifi_choice": {
+        "title": "Ook wifi gebruiken?",
+        "description": "Bluetooth met {name} is gecontroleerd. **Firmware: {firmware}**. Kies of je opnieuw wifi wilt instellen. Alleen Bluetooth ondersteunt aan/uit, temperatuur en ondersteunde kettle-instellingen. Wifi voegt schema’s, firmwarefuncties, kloksynchronisatie en de schermsensor toe. Wifi overslaan houdt deze integratie uitsluitend op Bluetooth.",
+        "data": {
+          "use_wifi": "Ook wifi instellen"
+        }
       }
     },
     "progress": {
       "wifi_connecting": "Wifi-gegevens voor {ssid} worden verstuurd; wachten tot de waterkoker verbonden is…",
       "wifi_scan": "Zoeken naar wifi-netwerken die de waterkoker ziet…",
       "switching": "De waterkoker schakelt over naar {target_version}; wachten tot hij herstart is…",
-      "uploading": "Firmware {version} wordt geüpload; wachten tot de waterkoker herstart…"
+      "uploading": "Firmware {version} wordt geüpload; wachten tot de waterkoker herstart…",
+      "resetting": "Fabrieksinstellingen herstellen…",
+      "reset_reconnect": "Wachten tot de kettle via Bluetooth terugkomt…"
     },
     "error": {
       "not_confirmed": "Vink het vakje aan om te bevestigen.",
@@ -222,7 +243,10 @@
       "legacy_firmware_required": "Partities wisselen vereist de legacy Wi-Fi HTTP-interface van de waterkoker (setpart/reset). Hij draait nu {running_version} via {transport}, dus wisselen is niet beschikbaar. Het werkt op firmware waarvan de lokale CLI antwoordt, bijv. na een rollback.",
       "firmware_upload_unavailable": "Firmware uploaden vereist de wifi-HTTP-verbinding van de waterkoker, maar die staat nu op {transport}. Zet de verbindingsmodus op Auto (Configureren → Connection) en vul de URL van de waterkoker in, en probeer opnieuw. In BLE-only kun je geen firmware uploaden.",
       "firmware_not_read": "Home Assistant kan de firmwarepartities van de waterkoker niet lezen via {transport}. Firmware wisselen en uploaden vereisen de wifi-HTTP-verbinding — zet de verbindingsmodus op Auto (Configureren → Connection) en vul de URL in, en probeer opnieuw.",
-      "firmware_http_unreachable": "Er is een URL ingesteld ({url}), maar Home Assistant kan de waterkoker daar niet via HTTP bereiken, dus firmware wisselen en uploaden zijn niet beschikbaar. Controleer of de waterkoker aan staat en bereikbaar is op dat adres vanaf het netwerk van Home Assistant (niet alleen via Bluetooth), en probeer opnieuw."
+      "firmware_http_unreachable": "Er is een URL ingesteld ({url}), maar Home Assistant kan de waterkoker daar niet via HTTP bereiken, dus firmware wisselen en uploaden zijn niet beschikbaar. Controleer of de waterkoker aan staat en bereikbaar is op dat adres vanaf het netwerk van Home Assistant (niet alleen via Bluetooth), en probeer opnieuw.",
+      "reset_requires_ble": "Fabrieksreset vereist Bluetooth of Auto en een opgeslagen Bluetooth-adres. De stand Alleen wifi blijft exclusief.",
+      "reset_unavailable": "Er is geen resetcommando verstuurd. Zet de kettle op standby en controleer of firmware 1.2.26 en Bluetooth beschikbaar zijn. Sluit de Fellow-app en probeer opnieuw.",
+      "reset_setup_done": "Configuratie voltooid. De kettle gebruikt alleen Bluetooth."
     }
   },
   "entity": {

@@ -138,7 +138,8 @@
           "wifi_setup": "Set up Wi-Fi (Bluetooth)",
           "connection": "Connection",
           "switch_firmware": "Switch firmware",
-          "upload_firmware": "Upload firmware (recovery)"
+          "upload_firmware": "Upload firmware (recovery)",
+          "factory_reset": "Restore factory settings"
         }
       },
       "polling": {
@@ -182,13 +183,33 @@
         "data": {
           "firmware_file": "Firmware .img file"
         }
+      },
+      "factory_reset": {
+        "title": "Restore factory settings",
+        "description": "This erases the kettle’s saved settings, including Wi-Fi, and restarts it. Firmware and factory calibration are retained. Requires firmware 1.2.26, Bluetooth and standby. Afterwards setup starts again: choose Wi-Fi or Bluetooth only. Home Assistant entities are retained. If you close this dialog, reopen Configure to finish setup.",
+        "data": {
+          "confirm": "Yes, erase the kettle settings and start setup again"
+        }
+      },
+      "reset_recovery": {
+        "title": "Check the kettle",
+        "description": "The reset or restart could not be confirmed. No reset command will be repeated. Check the kettle and, if needed, complete the factory reset on its menu. Continue to check Bluetooth again and resume setup."
+      },
+      "reset_wifi_choice": {
+        "title": "Use Wi-Fi too?",
+        "description": "Bluetooth to {name} has been checked. **Firmware: {firmware}**. Choose whether to set up Wi-Fi again. Bluetooth only supports power, temperature and supported kettle settings. Wi-Fi adds schedules, firmware tools, clock sync and the screen sensor. Skipping Wi-Fi keeps this integration Bluetooth-only.",
+        "data": {
+          "use_wifi": "Set up Wi-Fi too"
+        }
       }
     },
     "progress": {
       "wifi_connecting": "Sending the Wi-Fi details for {ssid} and waiting for the kettle to connect…",
       "wifi_scan": "Scanning for Wi-Fi networks the kettle can see…",
       "switching": "Switching the kettle to {target_version} and waiting for it to restart…",
-      "uploading": "Uploading firmware {version} and waiting for the kettle to restart…"
+      "uploading": "Uploading firmware {version} and waiting for the kettle to restart…",
+      "resetting": "Restoring factory settings…",
+      "reset_reconnect": "Waiting for the kettle to return over Bluetooth…"
     },
     "error": {
       "not_confirmed": "Tick the box to confirm the switch.",
@@ -222,7 +243,10 @@
       "legacy_firmware_required": "Switching partitions needs the kettle’s legacy Wi-Fi HTTP interface (setpart/reset). It is on {running_version} over {transport} now, so switching is not available. It works on firmware whose local CLI responds, e.g. after a rollback.",
       "firmware_upload_unavailable": "Uploading firmware needs the kettle's Wi-Fi HTTP connection, but it is on {transport} now. Set the connection mode to Auto (Configure → Connection) and enter the kettle's URL, then try again. Bluetooth-only cannot upload firmware.",
       "firmware_not_read": "Home Assistant can't read the kettle's firmware partitions over {transport}. Switching and uploading firmware need the kettle's Wi-Fi HTTP connection — set the connection mode to Auto (Configure → Connection) and enter the kettle's URL, then try again.",
-      "firmware_http_unreachable": "A kettle URL is set ({url}), but Home Assistant can't reach the kettle over HTTP there, so firmware switching and upload aren't available. Check the kettle is powered on and reachable at that address from Home Assistant's network (not just over Bluetooth), then try again."
+      "firmware_http_unreachable": "A kettle URL is set ({url}), but Home Assistant can't reach the kettle over HTTP there, so firmware switching and upload aren't available. Check the kettle is powered on and reachable at that address from Home Assistant's network (not just over Bluetooth), then try again.",
+      "reset_requires_ble": "Factory reset requires Bluetooth or Auto mode and a saved Bluetooth address. Wi-Fi-only mode is kept exclusive.",
+      "reset_unavailable": "No reset command was sent. Ensure the kettle is on standby, firmware 1.2.26 is installed, and Bluetooth is available. Close the Fellow app and try again.",
+      "reset_setup_done": "Setup completed. The kettle uses Bluetooth only."
     }
   },
   "entity": {

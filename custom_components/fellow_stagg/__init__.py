@@ -997,6 +997,10 @@ async def _async_learn_device_name(
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+  # A reset interrupted by closing the dialog or restarting HA resumes in options.
+  # Do not reconnect, restore settings or probe the former Wi-Fi address.
+  if entry.data.get("reset_setup_pending"):
+    return True
   # Dismiss discovery notification when user adds or ignores (entry created)
   if entry.unique_id:
     persistent_notification.async_dismiss(hass, f"fellow_stagg_discovery_{entry.unique_id}")
@@ -1056,6 +1060,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
   return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+  if entry.entry_id not in (hass.data.get(DOMAIN) or {}):
+    return True
   if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
     coordinator = hass.data[DOMAIN].pop(entry.entry_id, None)
     if coordinator is not None:

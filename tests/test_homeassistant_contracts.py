@@ -1297,3 +1297,142 @@ def test_wifi_choice_menu_is_accepted_by_actual_flow_manager(tmp_path):
         manager.async_abort(flow.flow_id)
         await hass.async_stop()
     asyncio.run(run())
+
+
+def test_factory_reset_confirmation_and_wifi_exclusivity(tmp_path):
+    async def run():
+        config_entry = entry(data={"base_url": "http://192.0.2.1", "ble_address": "AA:BB", "connection_mode": "auto"})
+        hass = await make_hass(tmp_path, config_entry)
+        flow = FellowStaggOptionsFlowHandler(config_entry)
+        flow.hass = hass
+        with patch.object(flow, '_async_reset_kettle', new_callable=AsyncMock) as reset:
+            assert (await flow.async_step_resetting())['step_id'] == 'factory_reset'
+            assert (await flow.async_step_factory_reset({'confirm': False}))['errors']['base'] == 'not_confirmed'
+            reset.assert_not_awaited()
+        hass.config_entries.async_update_entry(config_entry, options={'connection_mode': 'wifi'})
+        assert (await flow.async_step_factory_reset({'confirm': True}))['reason'] == 'reset_requires_ble'
+        await hass.async_stop()
+    asyncio.run(run())
+
+
+def test_factory_reset_resume_preserves_entities_and_ble_only(tmp_path):
+    async def run():
+        from custom_components.fellow_stagg import async_setup_entry
+        config_entry = entry(data={"base_url": "", "ble_address": "AA:BB", "reset_setup_pending": True}, options={'connection_mode': 'auto'})
+        hass = await make_hass(tmp_path, config_entry)
+        with patch('custom_components.fellow_stagg.FellowStaggDataUpdateCoordinator') as coordinator:
+            assert await async_setup_entry(hass, config_entry)
+            coordinator.assert_not_called()
+        flow = FellowStaggOptionsFlowHandler(config_entry)
+        flow.hass = hass
+        with patch('custom_components.fellow_stagg.config_flow._async_ble_kettle_info', new_callable=AsyncMock, return_value={'name': 'EKG-test', 'firmware': '1.2.26', 'ip': None, 'ssid': None}), patch.object(flow, '_async_reset_kettle', new_callable=AsyncMock) as reset:
+            result = await flow.async_step_init()
+            if result['type'] == 'progress':
+                await flow._reset_task
+                result = await flow.async_step_reset_reconnect()
+            assert result['step_id'] == 'reset_wifi_choice'
+            assert (await flow.async_step_reset_wifi_choice())['step_id'] == 'reset_wifi_choice'
+            reset.assert_not_awaited()
+        with patch.object(hass.config_entries, 'async_schedule_reload') as reload:
+            assert (await flow.async_step_reset_wifi_choice({'use_wifi': False}))['reason'] == 'reset_setup_done'
+            reload.assert_called_once_with(config_entry.entry_id)
+        assert config_entry.unique_id == 'kettle-id'
+        assert config_entry.options['connection_mode'] == 'ble'
+        assert config_entry.data['base_url'] == ''
+        assert 'reset_setup_pending' not in config_entry.data
+        await hass.async_stop()
+    asyncio.run(run())
+
+
+def test_factory_reset_wifi_completion_clears_pending(tmp_path):
+    async def run():
+        config_entry = entry(data={'base_url': '', 'ble_address': 'AA:BB', 'connection_mode': 'ble', 'reset_setup_pending': True}, options={'connection_mode': 'ble'})
+        hass = await make_hass(tmp_path, config_entry)
+        flow = FellowStaggOptionsFlowHandler(config_entry)
+        flow.hass = hass
+        flow._wifi_address = 'AA:BB'
+        flow._reset_info = {'name': 'EKG-test', 'firmware': '1.2.26'}
+        with patch.object(flow, 'async_step_wifi_setup', new_callable=AsyncMock) as setup:
+            await flow.async_step_reset_wifi_choice({'use_wifi': True})
+            setup.assert_awaited_once()
+        with patch.object(hass.config_entries, 'async_schedule_reload'):
+            await flow._async_wifi_setup_done({'ip': '192.0.2.99', 'ssid': 'new-network'})
+        assert config_entry.options['connection_mode'] == 'auto'
+        assert config_entry.data['base_url'] == 'http://192.0.2.99'
+        assert 'reset_setup_pending' not in config_entry.data
+        await hass.async_stop()
+    asyncio.run(run())
+
+
+def test_factory_reset_unloads_before_dispatch_and_keeps_recovery_on_failure(tmp_path):
+    async def run():
+        from custom_components.fellow_stagg.protocol import CommandUncertain
+        config_entry = entry(data={'base_url': 'http://192.0.2.1', 'ble_address': 'AA:BB', 'connection_mode': 'auto'})
+        hass = await make_hass(tmp_path, config_entry)
+        flow = FellowStaggOptionsFlowHandler(config_entry)
+        flow.hass = hass
+        flow._wifi_address = 'AA:BB'
+        from types import SimpleNamespace
+        client = SimpleNamespace(disconnect=AsyncMock())
+        async def erase(_, dispatched):
+            unload.assert_awaited_once_with(config_entry.entry_id)
+            dispatched()
+            assert config_entry.data['reset_setup_pending']
+            assert config_entry.data['base_url'] == ''
+            raise CommandUncertain('disconnected')
+        with patch.object(hass.config_entries, 'async_unload', new_callable=AsyncMock, return_value=True) as unload, patch.object(hass.config_entries, 'async_setup', new_callable=AsyncMock) as setup, patch('custom_components.fellow_stagg.config_flow._async_ble_connect', new_callable=AsyncMock, return_value=client), patch('custom_components.fellow_stagg.config_flow.async_factory_reset', side_effect=erase):
+            with pytest.raises(CommandUncertain):
+                await flow._async_reset_kettle()
+            setup.assert_not_awaited()
+            client.disconnect.assert_awaited_once()
+        assert config_entry.unique_id == 'kettle-id'
+        await hass.async_stop()
+    asyncio.run(run())
+
+
+def test_factory_reset_preflight_failure_restores_original_entry(tmp_path):
+    async def run():
+        config_entry = entry(data={'base_url': 'http://192.0.2.1', 'ble_address': 'AA:BB', 'connection_mode': 'auto'})
+        hass = await make_hass(tmp_path, config_entry)
+        flow = FellowStaggOptionsFlowHandler(config_entry)
+        flow.hass = hass
+        flow._wifi_address = 'AA:BB'
+        with patch.object(hass.config_entries, 'async_unload', new_callable=AsyncMock, return_value=True), patch.object(hass.config_entries, 'async_setup', new_callable=AsyncMock) as setup, patch('custom_components.fellow_stagg.config_flow._async_ble_connect', new_callable=AsyncMock, return_value=None):
+            with pytest.raises(ConnectionError):
+                await flow._async_reset_kettle()
+            setup.assert_awaited_once_with(config_entry.entry_id)
+        assert 'reset_setup_pending' not in config_entry.data
+        assert config_entry.data['base_url'] == 'http://192.0.2.1'
+        await hass.async_stop()
+    asyncio.run(run())
+
+
+def test_reset_progress_and_setup_steps_with_actual_options_manager(tmp_path):
+    async def run():
+        config_entry = entry(data={'base_url': '', 'ble_address': 'AA:BB', 'reset_setup_pending': True})
+        hass = await make_hass(tmp_path, config_entry)
+        flow = FellowStaggOptionsFlowHandler(config_entry)
+        flow.hass = hass
+        flow.handler = config_entry.entry_id
+        manager = hass.config_entries.options
+        manager._async_add_flow_progress(flow)
+        gate = asyncio.Event()
+        async def read_info(*args):
+            await gate.wait()
+            return {'name': 'EKG-test', 'firmware': '1.2.26', 'ip': None, 'ssid': None}
+        with patch('custom_components.fellow_stagg.config_flow._async_ble_kettle_info', side_effect=read_info):
+            result = await manager._async_handle_step(flow, 'init', None)
+            assert result['type'] == 'progress'
+            assert result['step_id'] == 'reset_reconnect'
+            gate.set()
+            await flow._reset_task
+            result = await manager._async_handle_step(flow, 'reset_reconnect', None)
+            assert result['type'] == 'progress_done'
+            assert result['step_id'] == 'reset_wifi_choice'
+            result = await manager._async_handle_step(flow, result['step_id'], None)
+            assert result['type'] == 'form'
+            assert result['step_id'] == 'reset_wifi_choice'
+            assert result['description_placeholders']['firmware'] == '1.2.26'
+        manager.async_abort(flow.flow_id)
+        await hass.async_stop()
+    asyncio.run(run())
