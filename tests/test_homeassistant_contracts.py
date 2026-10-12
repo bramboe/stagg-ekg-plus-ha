@@ -1178,3 +1178,28 @@ def test_ble_only_hides_wifi_only_entities(tmp_path):
         assert "screen_name" in wifi["sensor"] and "schedule_mode" in wifi["sensor"]
         assert "current_temp" in ble["sensor"] and "firmware_version" in ble["sensor"]
     asyncio.run(run())
+
+
+def test_discovery_no_wifi_offers_setup_or_skip(tmp_path):
+    """A kettle discovered over Bluetooth with no Wi-Fi offers setup/skip during add."""
+    async def run():
+        hass = await make_hass(tmp_path)
+        flow = FellowStaggConfigFlow()
+        flow.hass = hass
+        # No Wi-Fi configured -> the menu with setup + skip + manual address
+        flow.context = {"ble_address": "AA:BB:CC:DD:EE:FF", "ble_name": "EKG-2d-25-b2"}
+        with patch.object(flow, "_async_suggested_url_for", new_callable=AsyncMock, return_value=None):
+            result = await flow.async_step_user()
+        assert result["type"] == "menu"
+        assert result["step_id"] == "bluetooth_menu"
+        assert set(result["menu_options"]) == {"wifi_setup", "bluetooth_only", "bluetooth_configure"}
+
+        # On Wi-Fi already -> the normal connection-mode form, no forced menu
+        flow2 = FellowStaggConfigFlow()
+        flow2.hass = hass
+        flow2.context = {"ble_address": "AA:BB:CC:DD:EE:FF"}
+        with patch.object(flow2, "_async_suggested_url_for", new_callable=AsyncMock, return_value="http://192.0.2.5"):
+            result = await flow2.async_step_user()
+        assert result["step_id"] == "user"
+        await hass.async_stop()
+    asyncio.run(run())
