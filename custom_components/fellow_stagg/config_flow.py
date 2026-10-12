@@ -1304,11 +1304,11 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
         errors = {}
         if user_input is not None:
             choice = user_input.get("device_or_manual")
-            if choice == "__rescan__":
+            if choice == "rescan":
                 return await self.async_step_bluetooth_search()
-            if choice == "__manual__":
+            if choice == "manual":
                 return await self.async_step_user_manual()
-            if choice == "__scan__":
+            if choice == "scan":
                 return await self.async_step_scan_network()
             if choice in choices:
                 address = choices[choice]
@@ -1316,7 +1316,7 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
                 return await self.async_step_connection_check()
             errors["base"] = "ble_unreachable"
         options = list(choices)
-        options.extend(["__rescan__", "__scan__", "__manual__"])
+        options.extend(["rescan", "scan", "manual"])
         return self.async_show_form(
             step_id="user", errors=errors,
             data_schema=vol.Schema({vol.Required("device_or_manual"): SelectSelector(

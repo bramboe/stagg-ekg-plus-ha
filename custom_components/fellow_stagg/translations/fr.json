@@ -480,9 +480,9 @@
   "selector": {
     "kettle_picker": {
       "options": {
-        "__rescan__": "Rechercher à nouveau en Bluetooth",
-        "__scan__": "Rechercher sur le réseau local",
-        "__manual__": "Saisir une adresse Wi-Fi existante"
+        "rescan": "Rechercher à nouveau en Bluetooth",
+        "scan": "Rechercher sur le réseau local",
+        "manual": "Saisir une adresse Wi-Fi existante"
       }
     },
     "connection_check_action": {
