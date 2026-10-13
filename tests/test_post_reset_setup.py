@@ -162,3 +162,22 @@ def test_guide_write_is_best_effort_on_failure():
         kettle = Kettle(guide_raises=True)
         assert await post_reset_setup.async_apply_guide(kettle, True) is False  # reported, not raised
     asyncio.run(run())
+
+
+def test_play_tune_sounds_buz_notes_over_b6(monkeypatch):
+    async def run():
+        monkeypatch.setattr(post_reset_setup, "_SETUP_TUNE", ((523, 1), (659, 1)))
+        kettle = Kettle()
+        await post_reset_setup.async_play_tune(kettle)
+        assert kettle.b6_writes == [b"buz 523 4000 1\n", b"buz 659 4000 1\n"]
+        assert not kettle.writes  # the tune never touches the B5 record
+    asyncio.run(run())
+
+
+def test_play_tune_is_best_effort_on_failure(monkeypatch):
+    async def run():
+        monkeypatch.setattr(post_reset_setup, "_SETUP_TUNE", ((523, 1), (659, 1)))
+        kettle = Kettle(guide_raises=True)  # any B6 write raises
+        await post_reset_setup.async_play_tune(kettle)  # must not raise
+        assert kettle.b6_writes == []  # stopped on the first failed note
+    asyncio.run(run())

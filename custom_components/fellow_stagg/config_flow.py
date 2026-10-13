@@ -68,7 +68,7 @@ from .ble_provisioning import (
 from .kettle_http import KettleHttpClient, FirmwareImageError, MAX_FIRMWARE_SIZE, parse_esp_app_image
 from .native_http import NativeHttpClient
 from .factory_reset import RESET_SETUP_PENDING, async_beep, async_factory_reset
-from .post_reset_setup import async_apply_guide, async_apply_settings
+from .post_reset_setup import async_apply_guide, async_apply_settings, async_play_tune
 
 # Post-reset starter settings: form option lists and the HA-config auto-fill mapping.
 CLOCK_MODE_CHOICES = ["off", "digital", "analog"]  # B5 clock_mode index == position
@@ -843,7 +843,7 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
             "hold_minutes": 0,
             "chime": True,
             "pre_boil": False,
-            "guide": True,
+            "guide": False,
             "language": language,
         }
 
@@ -900,6 +900,7 @@ class FellowStaggOptionsFlowHandler(_WifiSetupMixin, config_entries.OptionsFlow)
             failed = await async_apply_settings(client, plan)
             if not await async_apply_guide(client, guide):
                 failed = [*failed, "guide"]
+            await async_play_tune(client)  # celebratory "setup complete" chime; best-effort
             return failed
         finally:
             try:

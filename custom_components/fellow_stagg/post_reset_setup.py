@@ -116,3 +116,26 @@ async def async_apply_guide(client, enabled: bool, timeout: float | None = None)
     except Exception as err:  # noqa: BLE001 - best-effort; a failed send is reported, never raised
         _LOGGER.debug("post-reset setup: guide did not send: %s", err)
         return False
+
+
+# A short, cheerful "setup complete" flourish for the B6 buzzer: (freq_hz, duration_ms).
+# A rising C-major arpeggio (C5-E5-G5) ending on a held high C6.
+_SETUP_TUNE = ((523, 140), (659, 140), (784, 140), (1047, 360))
+
+
+async def async_play_tune(client, timeout: float | None = None) -> None:
+    """Play a short 'setup complete' flourish over the B6 buzzer (`buz freq duty dur`).
+
+    Purely celebratory and best-effort: any error stops it quietly and never affects the
+    caller. Each note is sounded then waited out so the arpeggio plays in sequence."""
+    if timeout is None:
+        timeout = APPLY_TIMEOUT
+    for freq, duration in _SETUP_TUNE:
+        try:
+            await asyncio.wait_for(
+                client.write_gatt_char(B6, b"buz %d 4000 %d\n" % (freq, duration), response=True),
+                timeout,
+            )
+        except Exception:  # noqa: BLE001 - cosmetic; stop quietly on any error
+            return
+        await asyncio.sleep(duration / 1000 + 0.04)
