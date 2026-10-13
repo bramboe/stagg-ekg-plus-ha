@@ -78,7 +78,7 @@
       },
       "transport_device": {
         "title": "Connection",
-        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi. Wi-Fi or Auto also unlocks schedules, firmware tools, clock sync and the screen sensor.",
+        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi. Wi-Fi or Auto also unlocks schedules, firmware tools and the screen sensor.",
         "data": {
           "ble_address": "Bluetooth address",
           "base_url": "Kettle URL"
@@ -93,7 +93,7 @@
       },
       "wifi_choice": {
         "title": "Use Wi-Fi too?",
-        "description": "Bluetooth to {name} has been checked. **Firmware: {firmware}**. Wi-Fi address reported by the kettle: {wifi_address} (reachability not yet checked).\n\nWith Wi-Fi, the integration automatically chooses an appropriate connection. Without Wi-Fi, supported firmware allows power, temperature and supported kettle settings over Bluetooth. Schedules, firmware tools, clock sync and the screen sensor are not offered. Available functions depend on firmware.\n\nSkipping Wi-Fi prevents this integration from using or setting up Wi-Fi. It does not switch off existing Wi-Fi on the kettle itself. You can add Wi-Fi later.",
+        "description": "Bluetooth to {name} has been checked. **Firmware: {firmware}**. Wi-Fi address reported by the kettle: {wifi_address} (reachability not yet checked).\n\nWith Wi-Fi, the integration automatically chooses an appropriate connection. Without Wi-Fi, supported firmware allows power, temperature, clock sync and supported kettle settings over Bluetooth. Schedules, firmware tools and the screen sensor are not offered. Available functions depend on firmware.\n\nSkipping Wi-Fi prevents this integration from using or setting up Wi-Fi. It does not switch off existing Wi-Fi on the kettle itself. You can add Wi-Fi later.",
         "data": {
           "use_wifi": "Use or set up Wi-Fi too"
         }
@@ -167,7 +167,7 @@
       },
       "connection": {
         "title": "Connection",
-        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi. Wi-Fi or Auto also unlocks schedules, firmware tools, clock sync and the screen sensor.",
+        "description": "Choose Wi-Fi, Bluetooth, or both. Bluetooth-only never connects to the kettle over Wi-Fi. Wi-Fi or Auto also unlocks schedules, firmware tools and the screen sensor.",
         "data": {
           "connection_mode": "Connection mode",
           "ble_address": "Bluetooth address",
@@ -201,7 +201,7 @@
       },
       "reset_wifi_choice": {
         "title": "Use Wi-Fi too?",
-        "description": "Bluetooth to {name} has been checked. **Firmware: {firmware}**. Choose whether to set up Wi-Fi again. Bluetooth only supports power, temperature and supported kettle settings. Wi-Fi adds schedules, firmware tools, clock sync and the screen sensor. Skipping Wi-Fi keeps this integration Bluetooth-only.",
+        "description": "Bluetooth to {name} has been checked. **Firmware: {firmware}**. Choose whether to set up Wi-Fi again. Bluetooth only supports power, temperature, clock sync and supported kettle settings. Wi-Fi adds schedules, firmware tools and the screen sensor. Skipping Wi-Fi keeps this integration Bluetooth-only.",
         "data": {
           "use_wifi": "Set up Wi-Fi too"
         }

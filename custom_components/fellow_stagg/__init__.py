@@ -18,6 +18,7 @@ from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant, SupportsResponse, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers import issue_registry as ir
@@ -118,8 +119,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       configuration_url=base_url,
       serial_number=self.ble_address,
     )
-    self.sync_clock_enabled = mode != "ble"
+    self.sync_clock_enabled = True
+    self._clock_sync_ready = False
     self._last_clock_sync: datetime | None = None
+    self._last_clock_sync_attempt: float | None = None
     self.last_schedule_time: dict[str, int] | None = None
     self.last_schedule_temp_c: float | None = None
     self.last_schedule_mode: str | None = None
@@ -559,8 +562,14 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         f"error={' <- '.join(causes)})"
       ) from err
 
+  async def _async_clock_tick(self, _now: datetime) -> None:
+    # BLE pushes postpone the coordinator's usual polling timer. Keep a separate
+    # clock check so fresh B5 clock readings still arrive during continuous pushes.
+    if self._clock_sync_ready and self.sync_clock_enabled:
+      await self.async_request_refresh()
+
   async def _maybe_sync_clock(self, data: dict[str, Any]) -> None:
-    if not self.sync_clock_enabled or not self.kettle.supports_legacy:
+    if not self._clock_sync_ready or not self.sync_clock_enabled or not self.kettle.supports_clock_sync:
       return
     clock = data.get("clock")
     if not clock:
@@ -575,17 +584,21 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 
     drift = abs((hour * 60 + minute) - (now.hour * 60 + now.minute))
     drift_minutes = min(drift, 1440 - drift)
-    # Throttle: don't sync more than once per hour unless drift is large (e.g. kettle was off)
-    if drift_minutes < 10 and self._last_clock_sync and (now - self._last_clock_sync).total_seconds() < 3600:
+    # A minute-only reading may be cached or cross a minute boundary. Correct
+    # meaningful drift, including DST, but throttle failed/uncertain writes too.
+    if not (0 <= hour < 24 and 0 <= minute < 60) or drift_minutes < 2:
+      return
+    attempt = monotonic()
+    if self._last_clock_sync_attempt is not None and attempt - self._last_clock_sync_attempt < 60:
       return
 
-    if drift_minutes >= 2:
-      try:
-        await self.kettle.async_set_clock(self.session, now.hour, now.minute, now.second)
-        self._last_clock_sync = now
-        _LOGGER.debug("Synced kettle clock to %02d:%02d (HA timezone)", now.hour, now.minute)
-      except Exception as err:
-        _LOGGER.warning("Failed to sync kettle clock: %s", err)
+    self._last_clock_sync_attempt = attempt
+    try:
+      await self.kettle.async_set_clock(self.session, now.hour, now.minute, now.second)
+      self._last_clock_sync = now
+      _LOGGER.debug("Synced kettle clock to %02d:%02d (HA timezone)", now.hour, now.minute)
+    except Exception as err:
+      _LOGGER.warning("Failed to sync kettle clock: %s", err)
 
   @property
   def schedule_editing_enabled(self) -> bool:
@@ -1050,6 +1063,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.kettle.async_close()
     hass.data[DOMAIN].pop(entry.entry_id, None)
     raise
+  # RestoreEntity has restored the clock switch before any automatic write.
+  coordinator._clock_sync_ready = True
+  entry.async_on_unload(async_track_time_interval(
+    hass, coordinator._async_clock_tick, timedelta(minutes=1)
+  ))
+  await coordinator._maybe_sync_clock(coordinator.data or {})
   # Unhide "Kettle on base" binary sensor so it's visible in the UI
   ent_reg = er.async_get(hass)
   entity_id = ent_reg.async_get_entity_id("binary_sensor", DOMAIN, f"{entry.entry_id}_on_base")

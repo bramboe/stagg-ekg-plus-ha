@@ -28,19 +28,19 @@ async def async_setup_entry(
   """Set up Fellow Stagg switches based on a config entry."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
   entities = [
+    FellowStaggClockSyncSwitch(coordinator),
     FellowStaggPreBoilSwitch(coordinator),
     FellowStaggChimeSwitch(coordinator),
   ]
   if not coordinator.is_ble_only:
-    # Clock sync needs the legacy CLI; Lock firmware needs HTTP — both Wi-Fi only.
-    entities.insert(0, FellowStaggClockSyncSwitch(coordinator))
+    # Firmware controls require HTTP.
     entities.append(FellowStaggRevertFirmwareUpdatesSwitch(coordinator))
     entities.append(FellowStaggBlockAutoUpdateSwitch(coordinator))
   async_add_entities(entities)
 
 
 class FellowStaggClockSyncSwitch(FellowStaggConnectionMixin, CoordinatorEntity[FellowStaggDataUpdateCoordinator], RestoreEntity, SwitchEntity):
-  """Switch to enable/disable daily clock sync. State survives HA restarts."""
+  """Automatically correct clock drift. State survives HA restarts."""
 
   _attr_has_entity_name = True
   _attr_translation_key = "sync_clock"
@@ -48,7 +48,7 @@ class FellowStaggClockSyncSwitch(FellowStaggConnectionMixin, CoordinatorEntity[F
 
   @property
   def available(self) -> bool:
-    return super().available and self.coordinator.kettle.supports_legacy
+    return super().available and self.coordinator.kettle.supports_clock_sync
 
   def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
     super().__init__(coordinator)

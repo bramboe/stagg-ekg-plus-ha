@@ -69,7 +69,7 @@ Wi-Fi setup over Bluetooth is an explicit experimental option for an existing Wi
 
 ## Settings and schedules
 
-On native HTTP/BLE, settings writes select individual fields and verify readback. Chime level supports **0–10**; the existing chime switch sets **1** when enabled and **0** when disabled. Altitude uses **30 m** steps on native HTTP/BLE and retains the legacy CLI's **10 m** steps. Automatic clock synchronization, Bricky and `play_chime` require the legacy CLI.
+On native HTTP/BLE, settings writes select individual fields and verify readback. Chime level supports **0–10**; the existing chime switch sets **1** when enabled and **0** when disabled. Altitude uses **30 m** steps on native HTTP/BLE and retains the legacy CLI's **10 m** steps. Automatic clock synchronization also works over BLE on firmware 1.2.26 and native HTTP, with readback confirmation. It uses Home Assistant’s local timezone, checks at least once a minute while enabled and connected, and corrects differences of two minutes or more, including daylight-saving changes. BLE/native clock writes set hours and minutes; seconds are preserved by the firmware. The switch remains available in Bluetooth-only mode. Bricky supports BLE on 1.2.26; `play_chime` requires the legacy CLI.
 
 For schedules, choose **Schedule mode**, **Schedule time** and **Schedule temperature**, then press **Update schedule**. Once/Daily selections and time/temperature edits stay local until applied. Choosing **Off** immediately disables the plan; the editors and apply button become unavailable until Once/Daily is selected again. Stored editor values are retained.
 

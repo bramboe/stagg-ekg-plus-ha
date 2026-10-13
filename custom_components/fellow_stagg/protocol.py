@@ -82,6 +82,22 @@ def disarmed_schedule_payload(hour, minute, temp_c):
     return bytes(raw)
 
 
+def clock_payload(hour: int, minute: int) -> bytes:
+    """Select only clock hours/minutes; firmware preserves its seconds field."""
+    if type(hour) is not int or type(minute) is not int or not 0 <= hour < 24 or not 0 <= minute < 60:
+        raise ValueError("Invalid clock time")
+    raw = bytearray(17)
+    struct.pack_into("<H", raw, 0, 0x10)
+    raw[10], raw[11] = minute, hour
+    return bytes(raw)
+
+
+def clock_readback_matches(actual: str | None, hour: int, minute: int) -> bool:
+    """Allow a minute rollover while the bounded write verification runs."""
+    following = (hour * 60 + minute + 1) % 1440
+    return actual in (f"{hour:02d}:{minute:02d}", f"{following // 60:02d}:{following % 60:02d}")
+
+
 def units_payload(unit: str) -> bytes:
     if unit.upper() not in ("C", "F"):
         raise ValueError("Units must be C or F")

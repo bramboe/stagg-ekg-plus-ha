@@ -14,7 +14,7 @@ from time import monotonic
 
 from .protocol import (
     PreferenceControls, preference_payload, B1, B4, B5, B6, B7, CommandUncertain, ProtocolError, UnsupportedCapability,
-    decode_settings, decode_status, temperature_payload, units_payload,
+    decode_settings, decode_status, temperature_payload, units_payload, clock_payload, clock_readback_matches,
 )
 
 
@@ -533,7 +533,8 @@ class KettleBleClient(PreferenceControls):
                     if generation != self._generation or not self.fresh:
                         raise ConnectionError("Connection lost during settings verification")
                     self._accept_settings(data)
-                    if data[key] == expected:
+                    matches = expected(data.get(key)) if callable(expected) else data[key] == expected
+                    if matches:
                         self._update()
                         return
                     await asyncio.sleep(0.5)
@@ -546,6 +547,10 @@ class KettleBleClient(PreferenceControls):
 
     async def async_set_temperature(self, session, temp_c, **kwargs):
         await self._settings_write(temperature_payload(temp_c), "target_temp", round(temp_c * 2) / 2)
+
+    async def async_set_clock(self, session, hour, minute, second=0):
+        await self._settings_write(clock_payload(hour, minute), "clock",
+                                   lambda actual: clock_readback_matches(actual, hour, minute))
 
     async def async_set_units(self, session, unit):
         await self._settings_write(units_payload(unit), "units", unit.upper())

@@ -55,6 +55,13 @@ class KettleTransport(WifiControls):
         return await self._settings(method, session, *args)
 
     @property
+    def supports_clock_sync(self):
+        return self.supports_preferences
+
+    async def async_set_clock(self, session, hour, minute, second=0):
+        return await self._preference("async_set_clock", session, hour, minute, second)
+
+    @property
     def supports_altitude(self):
         return self.supports_preferences
 
