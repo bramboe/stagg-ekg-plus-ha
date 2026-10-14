@@ -317,9 +317,6 @@
       "schedule_mode": {
         "name": "Zeitplan"
       },
-      "screen_name": {
-        "name": "Aktueller Bildschirm"
-      },
       "programmed_unit": {
         "name": "Einheit"
       },
@@ -346,9 +343,6 @@
       },
       "heating_rate": {
         "name": "Aufheizrate"
-      },
-      "last_command": {
-        "name": "Letztes Befehlsergebnis"
       }
     },
     "binary_sensor": {

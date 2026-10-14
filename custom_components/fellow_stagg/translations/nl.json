@@ -317,9 +317,6 @@
       "schedule_mode": {
         "name": "Schema"
       },
-      "screen_name": {
-        "name": "Huidig scherm"
-      },
       "programmed_unit": {
         "name": "Eenheid"
       },
@@ -346,9 +343,6 @@
       },
       "heating_rate": {
         "name": "Opwarmsnelheid"
-      },
-      "last_command": {
-        "name": "Laatste commando-resultaat"
       }
     },
     "binary_sensor": {

@@ -33,26 +33,31 @@ def get_current_temp(data: dict[str, Any] | None) -> float | None:
     return round(temp_c, 1)
 
 
-def get_friendly_screen_name(data: dict[str, Any] | None) -> str | None:
-    """Translate technical screen names to human-readable ones."""
-    if not data: return None
-    raw = data.get("screen_name")
-    if not raw: return None
-    
-    raw_lower = raw.lower().replace(" ", "").replace(".png", "")
-    
-    if raw_lower == "wnd":
-        return "Home Screen"
-    if raw_lower == "none2":
-        return "Bricky Game"
-    if "error" in raw_lower or "addwater" in raw_lower:
-        return "Refill Kettle"
-    if "menu" in raw_lower:
-        return f"Menu: {raw.replace('menu', '').replace('-', '').strip().title()}"
-    if "units" in raw_lower:
-        return "Setting Units"
-        
-    return raw.title()
+# Human-readable labels for the kettle's internal state-machine tokens (the "mode"
+# field). The raw firmware token is kept in parentheses so the diagnostic value
+# stays precise, e.g. "Off (S_Off)". Lookup is case-insensitive because the
+# firmware reports mixed case ("S_Off") while some code paths use upper case.
+DEVICE_STATE_LABELS: dict[str, str] = {
+    "S_OFF": "Off",
+    "S_ON": "On",
+    "S_STANDBY": "Standby",
+    "S_HEAT": "Heating",
+    "S_STARTUPTOTEMPR": "Heating up",
+    "S_BOIL": "Boiling",
+    "S_HOLD": "Holding temperature",
+}
+
+
+def get_device_state_label(raw: str | None) -> str | None:
+    """Return 'Human label (RAW_TOKEN)' for a kettle state token.
+
+    Unknown tokens fall back to the raw value so nothing is ever hidden; when no
+    state has been read yet the sensor stays unavailable rather than showing a token.
+    """
+    if not raw:
+        return None
+    friendly = DEVICE_STATE_LABELS.get(raw.upper())
+    return f"{friendly} ({raw})" if friendly else raw
 
 
 def get_hold_status(data: dict[str, Any] | None) -> str | None:
@@ -157,7 +162,6 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "hold": get_hold_status,
     "clock": lambda data: data.get("clock") if data else None,
     "schedule_mode": get_schedule_config,
-    "screen_name": get_friendly_screen_name,
     "programmed_unit": lambda data: "Celsius" if data and data.get("raw_units") == "C" else ("Fahrenheit" if data and data.get("raw_units") == "F" else "Unknown"),
     "firmware_version": lambda data: data.get("firmware_version") if data else None,
     "dry_boil_detection": get_dry_boil_status,
@@ -165,7 +169,6 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "boil_point": get_boil_point,
     "eta": get_eta_label,
     "heating_rate": lambda data: data.get("heating_rate_c_min") if data else None,
-    "last_command": lambda data: (data.get("last_command_result") or "No command yet") if data else None,
 }
 
 
@@ -185,13 +188,11 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="hold", translation_key="hold", icon="mdi:timer", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="clock", translation_key="clock", icon="mdi:clock-outline", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="schedule_mode", translation_key="schedule_mode", icon="mdi:calendar-clock", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="screen_name", translation_key="screen_name", icon="mdi:monitor", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="programmed_unit", translation_key="programmed_unit", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="dry_boil_detection", translation_key="dry_boil_detection", icon="mdi:water-alert", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="boil_point", translation_key="boil_point", icon="mdi:water-thermometer", device_class=SensorDeviceClass.TEMPERATURE, entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="eta", translation_key="eta", icon="mdi:timer-sand-complete"),
         FellowStaggSensorEntityDescription(key="heating_rate", translation_key="heating_rate", icon="mdi:thermometer-chevron-up", native_unit_of_measurement="°C/min", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="last_command", translation_key="last_command", icon="mdi:check-decagram", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="firmware_version", translation_key="firmware_version", icon="mdi:chip", entity_category=EntityCategory.DIAGNOSTIC),
     ]
 
@@ -208,7 +209,7 @@ async def async_setup_entry(
     descriptions = SENSOR_DESCRIPTIONS
     if coordinator.is_ble_only:
         # Hide the Wi-Fi/CLI-only sensors on a Bluetooth-only entry.
-        descriptions = [d for d in SENSOR_DESCRIPTIONS if d.key not in ("screen_name", "schedule_mode")]
+        descriptions = [d for d in SENSOR_DESCRIPTIONS if d.key not in ("schedule_mode",)]
     async_add_entities([FellowStaggSensor(coordinator, description) for description in descriptions])
 
 
@@ -238,9 +239,10 @@ class FellowStaggSensor(FellowStaggConnectionMixin, CoordinatorEntity[FellowStag
             return {"ble": "Bluetooth", "native_http": "Wi-Fi", "legacy_cli": "Wi-Fi (CLI)"}.get(
                 (self.coordinator.data or {}).get("backend")
             )
-        if self.entity_description.key in {"device_state", "pwm"}:
-            key = "mode" if self.entity_description.key == "device_state" else self.entity_description.key
-            return (self.coordinator.data or {}).get(key)
+        if self.entity_description.key == "device_state":
+            return get_device_state_label((self.coordinator.data or {}).get("mode"))
+        if self.entity_description.key == "pwm":
+            return (self.coordinator.data or {}).get("pwm")
         # Device info sensors (from config, not from polled data)
         if self.entity_description.key == "wifi_address":
             return self.coordinator.wifi_address
@@ -270,8 +272,6 @@ class FellowStaggSensor(FellowStaggConnectionMixin, CoordinatorEntity[FellowStag
                 "display": self.coordinator.data.get("timer_display"),
                 "phase": self.coordinator.data.get("timer_phase"),
             }
-        elif self.entity_description.key == "screen_name" and self.coordinator.data:
-            extra = {"raw_screen_name": self.coordinator.data.get("screen_name")}
         elif self.entity_description.key == "firmware_version" and self.coordinator.firmware:
             firmware = self.coordinator.firmware
             extra = {"running_partition": firmware.get("running"), "boot_partition": firmware.get("boot")}
@@ -280,9 +280,6 @@ class FellowStaggSensor(FellowStaggConnectionMixin, CoordinatorEntity[FellowStag
                 extra[f"{name}_state"] = slot.get("state")
             if self.coordinator.data is not None:
                 extra["cli_output"] = not self.coordinator.data.get("cli_muted")
-        elif self.entity_description.key == "last_command":
-            record = self.coordinator.last_power_result or {}
-            extra = {k: record.get(k) for k in ("requested_power", "source_state", "elapsed_seconds", "error") if record.get(k) is not None}
         elif self.entity_description.key == "schedule_mode" and self.coordinator.data:
             data = self.coordinator.data
             extra = {"mode": data.get("schedule_mode")}

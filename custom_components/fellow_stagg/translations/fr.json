@@ -317,9 +317,6 @@
       "schedule_mode": {
         "name": "Programmation"
       },
-      "screen_name": {
-        "name": "Écran actuel"
-      },
       "programmed_unit": {
         "name": "Unité"
       },
@@ -346,9 +343,6 @@
       },
       "heating_rate": {
         "name": "Vitesse de chauffe"
-      },
-      "last_command": {
-        "name": "Résultat de la dernière commande"
       }
     },
     "binary_sensor": {

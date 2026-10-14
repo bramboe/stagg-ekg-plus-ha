@@ -317,9 +317,6 @@
       "schedule_mode": {
         "name": "Schedule"
       },
-      "screen_name": {
-        "name": "Current screen"
-      },
       "programmed_unit": {
         "name": "Unit type"
       },
@@ -346,9 +343,6 @@
       },
       "heating_rate": {
         "name": "Heating rate"
-      },
-      "last_command": {
-        "name": "Last command result"
       }
     },
     "binary_sensor": {
