@@ -34,6 +34,7 @@ from .transport import KettleTransport
 from .bricky import BrickySession
 from .const import (
   CHIME_PRESETS,
+  parse_chime_notes,
   DOMAIN,
   MAX_TEMP_C,
   MIN_TEMP_C,
@@ -908,8 +909,17 @@ def _async_register_services(hass: HomeAssistant) -> None:
     if not coord:
       _LOGGER.warning("play_chime: no coordinator found")
       return
-    pattern = (call.data.get("pattern") or "beep").lower()
     coord.notify_command_sent()
+    notes = call.data.get("notes")
+    if notes:
+      beeps = parse_chime_notes(notes)
+      if not beeps:
+        raise HomeAssistantError(
+          "No playable notes. Use e.g. 'C5:200 E5:200 G5:400' (note:ms) or '880:200 988:200' (Hz:ms)."
+        )
+      await coord.kettle.async_play_chime(coord.session, beeps)
+      return
+    pattern = (call.data.get("pattern") or "beep").lower()
     if pattern in ("sos", "chime", "rick"):
       await coord.kettle.async_play_builtin(coord.session, pattern)
     else:

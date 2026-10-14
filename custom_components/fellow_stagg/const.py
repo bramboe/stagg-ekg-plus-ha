@@ -67,3 +67,52 @@ CHIME_PRESETS = {
   "alert": [(440, 1000, 300), (880, 1000, 300)],
   "error": [(400, 1000, 200), (400, 1000, 200)],
 }
+
+# Semitone offset of each natural note within an octave (for the custom-melody parser).
+NOTE_SEMITONES = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+MAX_CHIME_NOTES = 32
+
+
+def parse_chime_notes(notes: str) -> list[tuple[int, int, int]]:
+  """Parse a free-form melody into [(freq_hz, duty_13bit, dur_ms), ...] for async_play_chime.
+
+  The string is a list of `PITCH:MS` tokens separated by spaces and/or commas, where PITCH is
+  either a note name (C5, A4, F#5, Bb3; A4 = 440 Hz) or a raw frequency in Hz. Unparseable tokens
+  are skipped; frequency is clamped to 50-5000 Hz, duration to 30-2000 ms, at most MAX_CHIME_NOTES
+  notes. Example: "C5:200 E5:200 G5:400".
+  """
+  beeps: list[tuple[int, int, int]] = []
+  for token in (notes or "").replace(",", " ").split():
+    pitch, sep, dur = token.partition(":")
+    if not sep:
+      continue
+    try:
+      dur_ms = max(30, min(2000, int(float(dur))))
+    except ValueError:
+      continue
+    pitch = pitch.strip()
+    if not pitch:
+      continue
+    if pitch[0].isdigit():
+      try:
+        freq = int(float(pitch))
+      except ValueError:
+        continue
+    else:
+      letter = pitch[0].upper()
+      if letter not in NOTE_SEMITONES:
+        continue
+      idx, accidental = 1, 0
+      if len(pitch) > 1 and pitch[1] in "#b":
+        accidental = 1 if pitch[1] == "#" else -1
+        idx = 2
+      try:
+        octave = int(pitch[idx:])
+      except ValueError:
+        continue
+      midi = NOTE_SEMITONES[letter] + accidental + (octave + 1) * 12
+      freq = round(440 * 2 ** ((midi - 69) / 12))
+    beeps.append((max(50, min(5000, freq)), 1000, dur_ms))
+    if len(beeps) >= MAX_CHIME_NOTES:
+      break
+  return beeps

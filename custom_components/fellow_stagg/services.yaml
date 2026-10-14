@@ -99,6 +99,14 @@ play_chime:
             - sos
             - chime
             - rick
+    notes:
+      description: >-
+        Optional: your own melody, overrides the pattern. A list of PITCH:MS tokens separated by
+        spaces or commas, where PITCH is a note name (C5, A4, F#5, Bb3; A4 = 440 Hz) or a raw
+        frequency in Hz. Up to 32 notes.
+      example: "C5:200 E5:200 G5:400"
+      selector:
+        text:
     entry_id:
       description: Optional config entry id (needed if multiple kettles)
       example: 1234567890abcdef
