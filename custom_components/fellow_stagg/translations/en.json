@@ -427,17 +427,17 @@
       "launch_bricky": {
         "name": "Launch Bricky (lift kettle)"
       },
-      "bricky_exit": {
-        "name": "Exit Bricky"
-      },
-      "bricky_left": {
-        "name": "Bricky left"
-      },
-      "bricky_right": {
-        "name": "Bricky right"
-      },
       "refresh_screen": {
         "name": "Refresh screen"
+      },
+      "play_chime": {
+        "name": "Play chime"
+      },
+      "play_sos": {
+        "name": "Play SOS"
+      },
+      "play_rick": {
+        "name": "Play Rick"
       }
     },
     "switch": {

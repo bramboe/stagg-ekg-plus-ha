@@ -427,17 +427,17 @@
       "launch_bricky": {
         "name": "Lancer Bricky (soulever la bouilloire)"
       },
-      "bricky_exit": {
-        "name": "Quitter Bricky"
-      },
-      "bricky_left": {
-        "name": "Bricky gauche"
-      },
-      "bricky_right": {
-        "name": "Bricky droite"
-      },
       "refresh_screen": {
         "name": "Actualiser l’écran"
+      },
+      "play_chime": {
+        "name": "Jouer le carillon"
+      },
+      "play_sos": {
+        "name": "Jouer SOS"
+      },
+      "play_rick": {
+        "name": "Jouer Rick"
       }
     },
     "switch": {

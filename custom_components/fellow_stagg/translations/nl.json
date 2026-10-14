@@ -427,17 +427,17 @@
       "launch_bricky": {
         "name": "Bricky starten (til de koker op)"
       },
-      "bricky_exit": {
-        "name": "Bricky afsluiten"
-      },
-      "bricky_left": {
-        "name": "Bricky links"
-      },
-      "bricky_right": {
-        "name": "Bricky rechts"
-      },
       "refresh_screen": {
         "name": "Scherm verversen"
+      },
+      "play_chime": {
+        "name": "Chime afspelen"
+      },
+      "play_sos": {
+        "name": "SOS afspelen"
+      },
+      "play_rick": {
+        "name": "Rick afspelen"
       }
     },
     "switch": {

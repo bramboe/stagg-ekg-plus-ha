@@ -16,6 +16,9 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Firmware built-in buzzer melodies (`buz <name>`) exposed as one-press play buttons.
+SOUND_BUTTONS = ("chime", "sos", "rick")
+
 
 async def async_setup_entry(
   hass: HomeAssistant,
@@ -25,7 +28,8 @@ async def async_setup_entry(
   """Set up buttons."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
   buttons = [FellowStaggBrickyButton(coordinator)]
-  buttons.extend(FellowStaggInterfaceButton(coordinator, action) for action in ("exit", "left", "right", "refresh"))
+  buttons.append(FellowStaggInterfaceButton(coordinator, "refresh"))
+  buttons.extend(FellowStaggPlaySoundButton(coordinator, sound) for sound in SOUND_BUTTONS)
   buttons.insert(0, FellowStaggUpdateScheduleButton(coordinator))
   async_add_entities(buttons)
 
@@ -172,3 +176,30 @@ class FellowStaggInterfaceButton(CoordinatorEntity, ButtonEntity):
   async def async_press(self):
     self.coordinator.notify_command_sent()
     await self.coordinator.bricky.run(self.action)
+
+
+class FellowStaggPlaySoundButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator], ButtonEntity):
+  """Play one of the firmware's built-in buzzer melodies (`buz <name>`) on press.
+
+  Works over the legacy Wi-Fi CLI or over Bluetooth on 1.2.x; fire-and-forget."""
+
+  _attr_has_entity_name = True
+  _ICONS = {"chime": "mdi:bell-ring", "sos": "mdi:alarm-light", "rick": "mdi:music"}
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator, sound: str) -> None:
+    super().__init__(coordinator)
+    self._sound = sound
+    self._attr_translation_key = f"play_{sound}"
+    self._attr_unique_id = f"{coordinator.unique_prefix}_play_{sound}"
+    self._attr_device_info = coordinator.device_info
+    self._attr_icon = self._ICONS.get(sound, "mdi:music-note")
+    self._attr_entity_category = EntityCategory.CONFIG
+
+  @property
+  def available(self) -> bool:
+    k = self.coordinator.kettle
+    return super().available and (k.supports_legacy or bool(k.ble and k.ble.supports_power))
+
+  async def async_press(self) -> None:
+    self.coordinator.notify_command_sent()
+    await self.coordinator.kettle.async_play_builtin(self.coordinator.session, self._sound)
