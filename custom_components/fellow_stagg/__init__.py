@@ -1015,6 +1015,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
         vol.Optional("pattern", default="beep"): vol.In(
           sorted({*CHIME_PRESETS.keys(), "sos", "chime", "rick"})
         ),
+        vol.Optional("notes"): str,
         vol.Optional("entry_id"): str,
       }
     ),
