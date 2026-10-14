@@ -326,9 +326,6 @@
       "firmware_version": {
         "name": "Firmwareversie"
       },
-      "boil_point": {
-        "name": "Kookpunt"
-      },
       "backend": {
         "name": "Gebruikte verbinding"
       },

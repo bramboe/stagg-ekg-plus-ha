@@ -326,9 +326,6 @@
       "firmware_version": {
         "name": "Firmware version"
       },
-      "boil_point": {
-        "name": "Boiling point"
-      },
       "backend": {
         "name": "Connection used"
       },

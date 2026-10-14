@@ -326,9 +326,6 @@
       "firmware_version": {
         "name": "Version du micrologiciel"
       },
-      "boil_point": {
-        "name": "Point d'ébullition"
-      },
       "backend": {
         "name": "Connexion utilisée"
       },

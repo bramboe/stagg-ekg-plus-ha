@@ -326,9 +326,6 @@
       "firmware_version": {
         "name": "Firmware-Version"
       },
-      "boil_point": {
-        "name": "Siedepunkt"
-      },
       "backend": {
         "name": "Verwendete Verbindung"
       },

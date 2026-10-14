@@ -112,42 +112,16 @@ def get_brew_timer(data: dict[str, Any] | None) -> int | None:
     return data.get("timer_remaining_seconds")
 
 
-def get_boil_point(data: dict[str, Any] | None) -> float | None:
-    """Return the altitude-adjusted boiling point in the kettle's display unit.
-
-    The legacy CLI reports the kettle's own compensated value (temprB). Over native
-    HTTP / Bluetooth that field is absent, so fall back to deriving it from the
-    configured altitude: water boils roughly 1 °C lower per 293 m of elevation. This
-    is the same physical quantity, so the sensor shows a sensible number (100 °C at
-    sea level) instead of "unknown". It only stays unavailable when neither the
-    kettle's value nor an altitude is known.
-    """
-    if not data:
-        return None
-    temp_c = data.get("boil_point_c")
-    if temp_c is None:
-        altitude_m = data.get("altitude_m")
-        if altitude_m is None:
-            return None
-        temp_c = round(100.0 - altitude_m / 293.0, 1)
-    if data.get("units") == "F":
-        return round((temp_c * 1.8) + 32.0, 1)
-    return round(temp_c, 1)
-
-
 def get_dry_boil_status(data: dict[str, Any] | None) -> str | None:
-    """Report the dry-boil/no-water fault state without claiming water is present."""
+    """Answer 'is a dry-boil/no-water fault detected?' as Yes/No.
+
+    'Yes' means the kettle's no-water alarm is active. 'No' means it is not — which
+    is honest on every connection and does not claim the kettle holds enough water
+    (the authoritative water reading is the separate 'No water' binary sensor).
+    """
     if not data or data.get("no_water") is None:
         return None
-    if data["no_water"]:
-        return "Refill Kettle"
-    # Native/BLE infer no_water only from the operating state, so they cannot confirm
-    # the kettle actually holds enough water. Report the fault state honestly as
-    # "No fault" (the no-water alarm is not active) rather than claiming water is
-    # present. Only the legacy CLI exposes a real water reading.
-    if data.get("backend") in ("ble", "native_http"):
-        return "No fault"
-    return "Water Detected"
+    return "Yes" if data["no_water"] else "No"
 
 
 def get_brew_timer_label(data: dict[str, Any] | None) -> str | None:
@@ -194,7 +168,6 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "firmware_version": lambda data: data.get("firmware_version") if data else None,
     "dry_boil_detection": get_dry_boil_status,
     "brew_timer": get_brew_timer_label,
-    "boil_point": get_boil_point,
     "eta": get_eta_label,
     "heating_rate": get_heating_rate_label,
 }
@@ -218,7 +191,6 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="schedule_mode", translation_key="schedule_mode", icon="mdi:calendar-clock", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="programmed_unit", translation_key="programmed_unit", icon="mdi:alphabetical", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="dry_boil_detection", translation_key="dry_boil_detection", icon="mdi:water-alert", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="boil_point", translation_key="boil_point", icon="mdi:water-thermometer", device_class=SensorDeviceClass.TEMPERATURE, entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="eta", translation_key="eta", icon="mdi:timer-sand-complete"),
         FellowStaggSensorEntityDescription(key="heating_rate", translation_key="heating_rate", icon="mdi:thermometer-chevron-up", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="firmware_version", translation_key="firmware_version", icon="mdi:chip", entity_category=EntityCategory.DIAGNOSTIC),

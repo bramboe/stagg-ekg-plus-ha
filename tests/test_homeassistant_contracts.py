@@ -245,7 +245,7 @@ def test_existing_entity_unique_ids_across_all_platforms(tmp_path):
             assert len({entity.unique_id for entity in platform_entities}) == len(platform_entities)
             entities.extend(platform_entities)
         ids = {entity.unique_id for entity in entities}
-        expected = {"climate", "on_base", "heating", "water_ready", "no_water", "update_schedule", "launch_bricky", "altitude", "schedule_temp", "schedule_time", "sync_clock", "pre_boil", "chime", "revert_firmware_updates", "schedule_mode", "clock_mode", "temp_unit_select", "hold_duration_select", "language", "current_temp", "brew_timer", "wifi_address", "bluetooth_address", "power", "hold", "clock", "programmed_unit", "dry_boil_detection", "boil_point", "firmware_version"}
+        expected = {"climate", "on_base", "heating", "water_ready", "no_water", "update_schedule", "launch_bricky", "altitude", "schedule_temp", "schedule_time", "sync_clock", "pre_boil", "chime", "revert_firmware_updates", "schedule_mode", "clock_mode", "temp_unit_select", "hold_duration_select", "language", "current_temp", "brew_timer", "wifi_address", "bluetooth_address", "power", "hold", "clock", "programmed_unit", "dry_boil_detection", "firmware_version"}
         assert {"stable_entry_id_" + suffix for suffix in expected} <= ids
         await hass.async_stop()
     asyncio.run(run())
@@ -255,28 +255,12 @@ def test_water_status_does_not_infer_sufficient_water_from_ble_state():
     from custom_components.fellow_stagg.sensor import get_dry_boil_status
     assert get_dry_boil_status(None) is None
     assert get_dry_boil_status({}) is None
-    for backend in ("ble", "native_http"):
-        # No active fault: report "No fault" (honest) but never claim water is present.
+    # No active alarm reads "No" on every connection and never claims water is present.
+    for backend in ("ble", "native_http", "legacy_cli"):
         state = get_dry_boil_status({"backend": backend, "mode": "S_OFF", "no_water": False})
-        assert state == "No fault"
-        assert state != "Water Detected"
-        assert get_dry_boil_status({"backend": backend, "no_water": True}) == "Refill Kettle"
-    assert get_dry_boil_status({"backend": "legacy_cli", "no_water": False}) == "Water Detected"
-    assert get_dry_boil_status({"backend": "legacy_cli", "no_water": True}) == "Refill Kettle"
-
-
-def test_boil_point_falls_back_to_altitude_when_not_reported():
-    from custom_components.fellow_stagg.sensor import get_boil_point
-    # Kettle's own compensated value wins when present
-    assert get_boil_point({"boil_point_c": 93.4, "units": "C"}) == 93.4
-    # Not reported -> derive from altitude (100 °C at sea level, lower when higher)
-    assert get_boil_point({"altitude_m": 0, "units": "C"}) == 100.0
-    assert get_boil_point({"altitude_m": 1465, "units": "C"}) == 95.0
-    # Fahrenheit display converts the derived value
-    assert get_boil_point({"altitude_m": 0, "units": "F"}) == 212.0
-    # Neither value nor altitude known -> stays unavailable
-    assert get_boil_point({"units": "C"}) is None
-    assert get_boil_point(None) is None
+        assert state == "No"
+        assert state not in ("Water Detected", "Yes")
+        assert get_dry_boil_status({"backend": backend, "no_water": True}) == "Yes"
 
 
 def test_heating_rate_label_reads_idle_when_not_heating():
