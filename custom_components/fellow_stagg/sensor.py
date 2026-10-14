@@ -113,27 +113,40 @@ def get_brew_timer(data: dict[str, Any] | None) -> int | None:
 
 
 def get_boil_point(data: dict[str, Any] | None) -> float | None:
-    """Return the altitude-adjusted boiling point in the kettle's display unit."""
+    """Return the altitude-adjusted boiling point in the kettle's display unit.
+
+    The legacy CLI reports the kettle's own compensated value (temprB). Over native
+    HTTP / Bluetooth that field is absent, so fall back to deriving it from the
+    configured altitude: water boils roughly 1 °C lower per 293 m of elevation. This
+    is the same physical quantity, so the sensor shows a sensible number (100 °C at
+    sea level) instead of "unknown". It only stays unavailable when neither the
+    kettle's value nor an altitude is known.
+    """
     if not data:
         return None
     temp_c = data.get("boil_point_c")
     if temp_c is None:
-        return None
+        altitude_m = data.get("altitude_m")
+        if altitude_m is None:
+            return None
+        temp_c = round(100.0 - altitude_m / 293.0, 1)
     if data.get("units") == "F":
         return round((temp_c * 1.8) + 32.0, 1)
     return round(temp_c, 1)
 
 
 def get_dry_boil_status(data: dict[str, Any] | None) -> str | None:
-    """Report known water evidence without treating absence of a fault as water."""
+    """Report the dry-boil/no-water fault state without claiming water is present."""
     if not data or data.get("no_water") is None:
         return None
     if data["no_water"]:
         return "Refill Kettle"
-    # Native/BLE currently infer no_water only from the operating state.
-    # Not being in S_NoWater does not establish sufficient water in the kettle.
+    # Native/BLE infer no_water only from the operating state, so they cannot confirm
+    # the kettle actually holds enough water. Report the fault state honestly as
+    # "No fault" (the no-water alarm is not active) rather than claiming water is
+    # present. Only the legacy CLI exposes a real water reading.
     if data.get("backend") in ("ble", "native_http"):
-        return None
+        return "No fault"
     return "Water Detected"
 
 
@@ -143,6 +156,21 @@ def get_brew_timer_label(data: dict[str, Any] | None) -> str | None:
     if secs is not None and secs > 0:
         return f"{round(secs / 60)} min" if secs >= 60 else f"{secs} s"
     return "Inactive"
+
+
+def get_heating_rate_label(data: dict[str, Any] | None) -> str | None:
+    """Friendly heating rate: '<n> °C/min' while heating, else Calculating/Idle.
+
+    The rate is only computed while the kettle is actively heating, so when it is off
+    or holding this reads 'Idle' instead of 'unknown'.
+    """
+    if not data:
+        return None
+    rate = data.get("heating_rate_c_min")
+    if rate is not None:
+        return f"{rate} °C/min"
+    heating = bool(data.get("power")) and not data.get("hold")
+    return "Calculating" if heating else "Idle"
 
 
 def get_eta_label(data: dict[str, Any] | None) -> str | None:
@@ -168,7 +196,7 @@ VALUE_FUNCTIONS: dict[str, Callable[[dict[str, Any] | None], Any | None]] = {
     "brew_timer": get_brew_timer_label,
     "boil_point": get_boil_point,
     "eta": get_eta_label,
-    "heating_rate": lambda data: data.get("heating_rate_c_min") if data else None,
+    "heating_rate": get_heating_rate_label,
 }
 
 
@@ -192,7 +220,7 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="dry_boil_detection", translation_key="dry_boil_detection", icon="mdi:water-alert", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="boil_point", translation_key="boil_point", icon="mdi:water-thermometer", device_class=SensorDeviceClass.TEMPERATURE, entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="eta", translation_key="eta", icon="mdi:timer-sand-complete"),
-        FellowStaggSensorEntityDescription(key="heating_rate", translation_key="heating_rate", icon="mdi:thermometer-chevron-up", native_unit_of_measurement="°C/min", entity_category=EntityCategory.DIAGNOSTIC),
+        FellowStaggSensorEntityDescription(key="heating_rate", translation_key="heating_rate", icon="mdi:thermometer-chevron-up", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="firmware_version", translation_key="firmware_version", icon="mdi:chip", entity_category=EntityCategory.DIAGNOSTIC),
     ]
 
