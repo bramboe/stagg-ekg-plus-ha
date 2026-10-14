@@ -36,8 +36,7 @@ async def async_setup_entry(
     FellowStaggHoldDurationSelect(coordinator),
     FellowStaggLanguageSelect(coordinator),
   ]
-  if not coordinator.is_ble_only:
-    entities.insert(0, FellowStaggScheduleModeSelect(coordinator))  # schedules need Wi-Fi
+  entities.insert(0, FellowStaggScheduleModeSelect(coordinator))
   async_add_entities(entities)
 
 

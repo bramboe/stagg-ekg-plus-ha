@@ -51,7 +51,7 @@
       },
       "transport_device": {
         "title": "Connexion",
-        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi. Le Wi-Fi ou le mode Auto débloque aussi les programmations, les outils firmware et le capteur d’écran.",
+        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi. Le Wi-Fi ou le mode Auto débloque aussi les outils firmware et le capteur d’écran.",
         "data": {
           "ble_address": "Adresse Bluetooth",
           "base_url": "URL de la bouilloire"
@@ -93,7 +93,7 @@
       },
       "wifi_choice": {
         "title": "Utiliser aussi le Wi-Fi ?",
-        "description": "La connexion Bluetooth à {name} a été vérifiée. **Firmware : {firmware}**. Adresse Wi-Fi signalée : {wifi_address} (accessibilité non vérifiée).\n\nAvec le Wi-Fi, l’intégration choisit automatiquement la connexion adaptée. Sans Wi-Fi, un firmware compatible permet la marche/arrêt, la température, la synchronisation de l’horloge et les réglages pris en charge en Bluetooth. Les programmes, outils de firmware et capteur d’écran ne sont pas proposés. Les fonctions dépendent du firmware.\n\nIgnorer le Wi-Fi empêche cette intégration de l’utiliser ou de le configurer, sans désactiver le Wi-Fi déjà actif sur la bouilloire. Vous pouvez l’ajouter plus tard.",
+        "description": "La connexion Bluetooth à {name} a été vérifiée. **Firmware : {firmware}**. Adresse Wi-Fi signalée : {wifi_address} (accessibilité non vérifiée).\n\nAvec le Wi-Fi, l’intégration choisit automatiquement la connexion adaptée. Sans Wi-Fi, un firmware compatible permet la marche/arrêt, la température, la synchronisation de l’horloge, les programmes et les réglages pris en charge en Bluetooth. Les outils de firmware et capteur d’écran ne sont pas proposés. Les fonctions dépendent du firmware.\n\nIgnorer le Wi-Fi empêche cette intégration de l’utiliser ou de le configurer, sans désactiver le Wi-Fi déjà actif sur la bouilloire. Vous pouvez l’ajouter plus tard.",
         "data": {
           "use_wifi": "Utiliser ou configurer aussi le Wi-Fi"
         }
@@ -153,7 +153,7 @@
       },
       "connection": {
         "title": "Connexion",
-        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi. Le Wi-Fi ou le mode Auto débloque aussi les programmations, les outils firmware et le capteur d’écran.",
+        "description": "Choisissez Wi-Fi, Bluetooth ou les deux. Le mode Bluetooth seul ne se connecte pas à la bouilloire en Wi-Fi. Le Wi-Fi ou le mode Auto débloque aussi les outils firmware et le capteur d’écran.",
         "data": {
           "connection_mode": "Mode de connexion",
           "ble_address": "Adresse Bluetooth",
@@ -201,7 +201,7 @@
       },
       "reset_wifi_choice": {
         "title": "Utiliser aussi le Wi-Fi ?",
-        "description": "Bluetooth vers {name} a été vérifié. **Firmware : {firmware}**. Choisissez de configurer à nouveau le Wi-Fi ou non. Bluetooth permet marche/arrêt, température, synchronisation de l’horloge et réglages pris en charge. Le Wi-Fi ajoute programmes, outils de firmware et capteur d’écran. Sans Wi-Fi, cette intégration reste exclusivement en Bluetooth.",
+        "description": "Bluetooth vers {name} a été vérifié. **Firmware : {firmware}**. Choisissez de configurer à nouveau le Wi-Fi ou non. Bluetooth permet marche/arrêt, température, synchronisation de l’horloge, programmes et réglages pris en charge. Le Wi-Fi ajoute outils de firmware et capteur d’écran. Sans Wi-Fi, cette intégration reste exclusivement en Bluetooth.",
         "data": {
           "use_wifi": "Configurer aussi le Wi-Fi"
         }
@@ -495,8 +495,8 @@
       "description": "Expérimental : demander prtsettings une seule fois en lecture seule et écouter B6 pendant huit secondes. Renvoie uniquement les champs de programmation reconnus et les compteurs. Nécessite un état de veille actuel ; ne modifie ni la programmation ni la marche/arrêt."
     },
     "set_existing_schedule_mode": {
-      "name": "Modifier une programmation existante (Wi-Fi)",
-      "description": "Choisir unique/quotidien pour une programmation future configurée sur la bouilloire, ou la désactiver. Nécessite le firmware 1.2.26 et le Wi-Fi. Le mode ne peut pas être relu : vérifier le menu. Heure et température conservées.",
+      "name": "Modifier une programmation existante",
+      "description": "Choisir unique/quotidien pour une programmation future configurée sur la bouilloire, ou la désactiver. Nécessite le firmware 1.2.26 et le Bluetooth ou le Wi-Fi. Le mode ne peut pas être relu : vérifier le menu. Heure et température conservées.",
       "fields": {
         "mode": {
           "name": "Mode"

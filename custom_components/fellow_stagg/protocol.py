@@ -56,6 +56,7 @@ def decode_settings(raw: bytes) -> dict:
                     schedule_time={"hour": raw[9], "minute": raw[8]} if raw[9] < 24 and raw[8] < 60 else None,
                     schedule_temp_c=schedule_temp if 40 <= schedule_temp <= 100 else None,
                     schedule_mode=None if enabled else "off")
+    data["settings_revision"] = raw[16]
     return data
 
 
@@ -114,8 +115,12 @@ def decode_status(raw: bytes) -> dict:
     temperature = temperature_raw / 10 - 50 if temperature_raw else None
     if temperature is not None and not 0 <= temperature <= 120:
         raise ProtocolError("B1 temperature out of range")
+    # FUN_400e9460 carries the target's low byte plus its Celsius encoding bit.
+    target = decode_temperature(raw[14] | (0x8000 if raw[7] & 8 else 0))
+    if not 40 <= target <= 100:
+        raise ProtocolError("B1 setpoint out of range")
     # Other flags remain uninterpreted until validated.
-    return {"current_temp": temperature, "sequence": int.from_bytes(raw[4:6], "little"), "mode": STATES.get(state, f"UNKNOWN_{state}"),
+    return {"current_temp": temperature, "target_temp": target, "settings_revision": raw[8], "sequence": int.from_bytes(raw[4:6], "little"), "mode": STATES.get(state, f"UNKNOWN_{state}"),
             "power": False if state == 0 else True if state in (1, 5, 7) else None,
             # A disconnected probe (NaN/zero temperature) is the reliable "lifted off base"
             # signal, mirroring the HTTP CLI's tempr=nan behavior.

@@ -25,8 +25,7 @@ async def async_setup_entry(
   """Set up buttons."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
   buttons = [FellowStaggBrickyButton(coordinator)]
-  if not coordinator.is_ble_only:
-    buttons.insert(0, FellowStaggUpdateScheduleButton(coordinator))
+  buttons.insert(0, FellowStaggUpdateScheduleButton(coordinator))
   async_add_entities(buttons)
 
 

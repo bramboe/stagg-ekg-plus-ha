@@ -97,6 +97,8 @@ play_chime:
             - alert
             - error
             - sos
+            - chime
+            - rick
     entry_id:
       description: Optional config entry id (needed if multiple kettles)
       example: 1234567890abcdef
@@ -185,8 +187,8 @@ probe_schedule_console:
         text:
 
 set_existing_schedule_mode:
-  name: Change existing schedule mode (Wi-Fi)
-  description: Firmware 1.2.26 with Wi-Fi only. Change the mode of an existing future schedule without changing its time or temperature. Once/daily requires checking the physical menu; it cannot be read back.
+  name: Change existing schedule mode
+  description: Firmware 1.2.26 with Bluetooth or Wi-Fi. Change the mode of an existing future schedule without changing its time or temperature. Once/daily requires checking the physical menu; it cannot be read back.
   fields:
     entry_id:
       selector:

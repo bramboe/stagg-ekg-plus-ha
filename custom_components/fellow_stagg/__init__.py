@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from collections import deque
 import inspect
 from pathlib import Path
@@ -146,15 +147,18 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self._firmware_staged_issue: str | None = None
     # Options at setup; data-only updates (new IP, learned name) must not trigger the reload listener
     self.options_snapshot = dict(entry.options or {})
-    self._temp_samples: deque = deque(maxlen=12)  # (monotonic, temp) while heating, for ETA
+    self._temp_samples: deque = deque(maxlen=31)  # one sample/second, last 30 seconds
+    self._eta_context = None
 
   def _ble_updated(self) -> None:
     if not hasattr(self, "kettle") or self.data is None:
       return
     data = self.kettle.live_data()
     if data is not None:
+      self._enrich_eta(data)
       self.async_set_updated_data(data)
     elif self.kettle.mode == "ble":
+      self._temp_samples.clear()
       self.async_set_update_error(UpdateFailed("BLE state is unavailable"))
     else:
       self.hass.async_create_task(self.async_request_refresh())
@@ -167,13 +171,24 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     """Estimate seconds until the kettle reaches its target, from the heating trend."""
     temp = data.get("current_temp")
     target = data.get("target_temp")
-    heating = bool(data.get("power")) and not data.get("hold")
-    if not heating or temp is None or target is None or temp >= target:
+    context = (data.get("backend"), getattr(getattr(self.kettle, "ble", None), "_generation", None))
+    if context != self._eta_context:
+      self._temp_samples.clear()
+      self._eta_context = context
+    heating = bool(data.get("power")) and not data.get("hold") and not data.get("lifted")
+    valid = all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in (temp, target))
+    if not heating or not valid or temp >= target:
       self._temp_samples.clear()
       data["heating_rate_c_min"] = None
       data["eta_seconds"] = None
       return
-    self._temp_samples.append((monotonic(), float(temp)))
+    now = monotonic()
+    if self._temp_samples and now - self._temp_samples[-1][0] > 15:
+      self._temp_samples.clear()
+    while self._temp_samples and now - self._temp_samples[0][0] > 30:
+      self._temp_samples.popleft()
+    if not self._temp_samples or now - self._temp_samples[-1][0] >= 1:
+      self._temp_samples.append((now, float(temp)))
     rate = None
     if len(self._temp_samples) >= 2:
       (t0, c0), (t1, c1) = self._temp_samples[0], self._temp_samples[-1]
@@ -619,7 +634,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         await self.kettle.async_set_existing_schedule_mode(self.session, "off")
     except (aiohttp.ClientError, OSError, TimeoutError) as err:
       raise HomeAssistantError(
-        "Schedule Off could not be confirmed: the kettle Wi-Fi connection failed. "
+        "Schedule Off could not be confirmed: the kettle connection failed. "
         "Check the schedule on the kettle. No automatic command retry was sent."
       ) from err
     self.last_schedule_mode = "off"
@@ -644,6 +659,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         self.last_schedule_temp_c = receipt["schedule_temp_c"]
       # The plan is already saved. A cosmetic failure must never replay it.
       try:
+        if receipt.get("backend") == "ble":
+          self.last_schedule_display_refresh = {"status": "not_required_ble"}
+          await self.async_request_refresh()
+          return
         self.last_schedule_display_refresh = await self.kettle.async_restore_standby_display(
           self.session, after_schedule=True
         )
@@ -887,8 +906,8 @@ def _async_register_services(hass: HomeAssistant) -> None:
       return
     pattern = (call.data.get("pattern") or "beep").lower()
     coord.notify_command_sent()
-    if pattern == "sos":
-      await coord.kettle.async_play_sos(coord.session)
+    if pattern in ("sos", "chime", "rick"):
+      await coord.kettle.async_play_builtin(coord.session, pattern)
     else:
       beeps = CHIME_PRESETS.get(pattern, CHIME_PRESETS["beep"])
       await coord.kettle.async_play_chime(coord.session, beeps)
@@ -980,7 +999,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
     vol.Schema(
       {
         vol.Optional("pattern", default="beep"): vol.In(
-          sorted({*CHIME_PRESETS.keys(), "sos"})
+          sorted({*CHIME_PRESETS.keys(), "sos", "chime", "rick"})
         ),
         vol.Optional("entry_id"): str,
       }

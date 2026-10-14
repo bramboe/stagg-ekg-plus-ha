@@ -1538,7 +1538,7 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
     ) -> FlowResult:
         """Add the kettle as Bluetooth-only, skipping Wi-Fi setup.
 
-        Wi-Fi-only features (schedules, firmware tools, clock sync, current screen) are hidden;
+        Wi-Fi-only features (firmware tools, current screen) are hidden;
         the user can enable Wi-Fi later from Configure to unlock them.
         """
         address = self.context.get("ble_address")

@@ -18,6 +18,7 @@ from .protocol import (
 )
 
 
+from .ble_extras import BleExtras
 from .ble_trace import BleTrace
 from .schedule_probe import ScheduleConsoleCapture
 
@@ -40,7 +41,7 @@ SETTINGS_KEYS = {"target_temp", "units", "raw_units", "altitude_m", "clock_mode"
                  "schedule_time", "schedule_temp_c", "schedule_mode"}
 
 
-class KettleBleClient(PreferenceControls):
+class KettleBleClient(BleExtras, PreferenceControls):
     def __init__(self, connect, update=lambda: None):
         self._connect = connect
         self._update = update
@@ -53,6 +54,8 @@ class KettleBleClient(PreferenceControls):
         self._settings_received_at = 0.0
         self._settings_retry_at = 0.0
         self.settings_error = None
+        self._settings_revision = None
+        self._settings_task = None
         self._sequence = None
         self._changed = asyncio.Event()
         self._connect_lock = asyncio.Lock()
@@ -105,6 +108,7 @@ class KettleBleClient(PreferenceControls):
             if characteristic == B1:
                 data = decode_status(bytes(raw))
                 seq = data.pop("sequence")
+                revision = data.pop("settings_revision")
                 # Duplicated/out-of-order frames do not refresh the safety timestamp.
                 if self._sequence is not None and not 0 < (seq - self._sequence) % 65536 < 32768:
                     return
@@ -114,6 +118,10 @@ class KettleBleClient(PreferenceControls):
                     self._expiry_handle.cancel()
                 self._expiry_handle = asyncio.get_running_loop().call_later(5.1, self._expired, generation)
                 self.data.update(data)
+                if self._settings_revision is not None and revision != self._settings_revision:
+                    self._settings_received_at = 0.0
+                    if (self._settings_task is None or self._settings_task.done()) and monotonic() >= self._settings_retry_at:
+                        self._settings_task = asyncio.create_task(self._recover_settings(generation))
                 record = self._active_power_diagnostic
                 if record is not None:
                     states = record["observed_states"]
@@ -142,6 +150,7 @@ class KettleBleClient(PreferenceControls):
             self._generation += 1
             self._received_at = 0.0
             self._sequence = None
+            self._settings_revision = None
             self.data = {}
             generation = self._generation
             self.client = await self._connect(self._disconnected)
@@ -192,9 +201,20 @@ class KettleBleClient(PreferenceControls):
     def settings_age(self):
         return max(0.0, monotonic() - self._settings_received_at) if self._settings_received_at else None
 
+    async def _recover_settings(self, generation):
+        try:
+            if generation == self._generation and self.fresh:
+                await self._refresh_settings_if_due()
+                if generation == self._generation:
+                    self._update()
+        except Exception as err:
+            self.settings_error = type(err).__name__
+            self._settings_retry_at = monotonic() + SETTINGS_REFRESH_SECONDS
+
     def _accept_settings(self, data):
         # Clear absent optional fields instead of retaining an earlier frame's value.
         self.data.update({key: data.get(key) for key in SETTINGS_KEYS})
+        self._settings_revision = data.get("settings_revision")
         self._settings_received_at = monotonic()
         self._settings_retry_at = 0.0
         self.settings_error = None
@@ -560,6 +580,9 @@ class KettleBleClient(PreferenceControls):
         await self.async_set_units(session, unit)
 
     async def async_close(self):
+        if self._settings_task and not self._settings_task.done():
+            self._settings_task.cancel()
+            await asyncio.gather(self._settings_task, return_exceptions=True)
         await self.async_get_ble_trace(stop=True)
         self._trace.events.clear()
         self._closed = True

@@ -78,7 +78,7 @@
       },
       "transport_device": {
         "title": "Verbinding",
-        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook schema’s, firmware-tools en de schermsensor.",
+        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook firmware-tools en de schermsensor.",
         "data": {
           "ble_address": "Bluetooth-adres",
           "base_url": "Kettle-URL"
@@ -93,7 +93,7 @@
       },
       "wifi_choice": {
         "title": "Wifi ook gebruiken?",
-        "description": "Bluetooth met {name} is gecontroleerd. **Firmware: {firmware}**. Wifi-adres gemeld door de kettle: {wifi_address} (bereikbaarheid nog niet gecontroleerd).\n\nMet wifi kiest de integratie automatisch de geschikte verbinding. Zonder wifi kun je op ondersteunde firmware aan/uit, temperatuur, kloksynchronisatie en de ondersteunde kettle-instellingen bedienen via Bluetooth. Schema’s, firmwaretools en de schermsensor worden dan niet aangeboden. Beschikbare functies verschillen per firmware.\n\nWifi overslaan voorkomt dat deze integratie wifi gebruikt of instelt. Dit schakelt bestaande wifi op de kettle zelf niet uit. Je kunt wifi later toevoegen.",
+        "description": "Bluetooth met {name} is gecontroleerd. **Firmware: {firmware}**. Wifi-adres gemeld door de kettle: {wifi_address} (bereikbaarheid nog niet gecontroleerd).\n\nMet wifi kiest de integratie automatisch de geschikte verbinding. Zonder wifi kun je op ondersteunde firmware aan/uit, temperatuur, kloksynchronisatie, schema’s en de ondersteunde kettle-instellingen bedienen via Bluetooth. Firmwaretools en de schermsensor worden dan niet aangeboden. Beschikbare functies verschillen per firmware.\n\nWifi overslaan voorkomt dat deze integratie wifi gebruikt of instelt. Dit schakelt bestaande wifi op de kettle zelf niet uit. Je kunt wifi later toevoegen.",
         "data": {
           "use_wifi": "Wifi ook gebruiken of instellen"
         }
@@ -167,7 +167,7 @@
       },
       "connection": {
         "title": "Verbinding",
-        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook schema’s, firmware-tools en de schermsensor.",
+        "description": "Kies wifi, Bluetooth of beide. Alleen Bluetooth maakt geen wifi-verbinding met de kettle. Met wifi of Auto krijg je ook firmware-tools en de schermsensor.",
         "data": {
           "connection_mode": "Verbindingsmodus",
           "ble_address": "Bluetooth-adres",
@@ -201,7 +201,7 @@
       },
       "reset_wifi_choice": {
         "title": "Ook wifi gebruiken?",
-        "description": "Bluetooth met {name} is gecontroleerd. **Firmware: {firmware}**. Kies of je opnieuw wifi wilt instellen. Alleen Bluetooth ondersteunt aan/uit, temperatuur, kloksynchronisatie en ondersteunde kettle-instellingen. Wifi voegt schema’s, firmwarefuncties en de schermsensor toe. Wifi overslaan houdt deze integratie uitsluitend op Bluetooth.",
+        "description": "Bluetooth met {name} is gecontroleerd. **Firmware: {firmware}**. Kies of je opnieuw wifi wilt instellen. Alleen Bluetooth ondersteunt aan/uit, temperatuur, kloksynchronisatie, schema’s en ondersteunde kettle-instellingen. Wifi voegt firmwarefuncties en de schermsensor toe. Wifi overslaan houdt deze integratie uitsluitend op Bluetooth.",
         "data": {
           "use_wifi": "Ook wifi instellen"
         }
@@ -495,8 +495,8 @@
       "description": "Experimenteel: vraag eenmaal prtsettings op en luister acht seconden op B6. Geeft alleen herkende planningsvelden en opnametellingen terug. Vereist actuele standby-status; wijzigt geen planning of aan/uit-instelling."
     },
     "set_existing_schedule_mode": {
-      "name": "Modus bestaande planning wijzigen (wifi)",
-      "description": "Wijzig een fysiek ingestelde toekomstige planning naar eenmalig/dagelijks, of schakel deze uit. Vereist firmware 1.2.26 en wifi. Eenmalig/dagelijks kan niet worden teruggelezen: controleer het ketelmenu. Tijd en temperatuur blijven gelijk.",
+      "name": "Modus bestaande planning wijzigen",
+      "description": "Wijzig een fysiek ingestelde toekomstige planning naar eenmalig/dagelijks, of schakel deze uit. Vereist firmware 1.2.26 en Bluetooth of wifi. Eenmalig/dagelijks kan niet worden teruggelezen: controleer het ketelmenu. Tijd en temperatuur blijven gelijk.",
       "fields": {
         "mode": {
           "name": "Modus"

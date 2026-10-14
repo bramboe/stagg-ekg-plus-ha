@@ -51,7 +51,7 @@ Home Assistant chooses the reachable connectable Bluetooth adapter/proxy. ESPHom
 |---|---|
 | **1.1.x with usable CLI** | Legacy Wi-Fi controls, schedules, clock synchronization and supported extras. BLE writes are disabled. |
 | **1.2.24 with muted CLI** | No guaranteed control or recovery path. Native endpoints are unvalidated. Compatible BLE status may be readable, but writes are disabled. |
-| **1.2.26** | Native HTTP status/settings and Wi-Fi planning; BLE status/settings/power. Physical acceptance remains incomplete for some operations. |
+| **1.2.26** | Native HTTP status/settings and Wi-Fi planning; BLE status/settings/power, planning and sounds. Physical acceptance remains incomplete for some operations. |
 
 Native HTTP detection requires valid status and settings responses. A firmware version string or Bluetooth advertisement alone does not establish control support.
 
@@ -69,11 +69,11 @@ Wi-Fi setup over Bluetooth is an explicit experimental option for an existing Wi
 
 ## Settings and schedules
 
-On native HTTP/BLE, settings writes select individual fields and verify readback. Chime level supports **0–10**; the existing chime switch sets **1** when enabled and **0** when disabled. Altitude uses **30 m** steps on native HTTP/BLE and retains the legacy CLI's **10 m** steps. Automatic clock synchronization also works over BLE on firmware 1.2.26 and native HTTP, with readback confirmation. It uses Home Assistant’s local timezone, checks at least once a minute while enabled and connected, and corrects differences of two minutes or more, including daylight-saving changes. BLE/native clock writes set hours and minutes; seconds are preserved by the firmware. The switch remains available in Bluetooth-only mode. Bricky supports BLE on 1.2.26; `play_chime` requires the legacy CLI.
+On native HTTP/BLE, settings writes select individual fields and verify readback. Chime level supports **0–10**; the existing chime switch sets **1** when enabled and **0** when disabled. Altitude uses **30 m** steps on native HTTP/BLE and retains the legacy CLI's **10 m** steps. Automatic clock synchronization also works over BLE on firmware 1.2.26 and native HTTP, with readback confirmation. It uses Home Assistant’s local timezone, checks at least once a minute while enabled and connected, and corrects differences of two minutes or more, including daylight-saving changes. BLE/native clock writes set hours and minutes; seconds are preserved by the firmware. The switch remains available in Bluetooth-only mode. Bricky supports BLE on 1.2.26; `play_chime` also supports BLE, including `chime`, `sos` and `rick` presets.
 
 For schedules, choose **Schedule mode**, **Schedule time** and **Schedule temperature**, then press **Update schedule**. Once/Daily selections and time/temperature edits stay local until applied. Choosing **Off** immediately disables the plan; the editors and apply button become unavailable until Once/Daily is selected again. Stored editor values are retained.
 
-On firmware 1.2.26, applying a plan requires Wi-Fi and standby. The integration disables planning, writes and verifies time/temperature, then activates the requested mode. There is **no minimum lead time**; a plan at the current kettle time may trigger immediately. Readback exposes enabled/time/temperature, but cannot distinguish Once from Daily: check the physical repeat setting. After applying, the integration also attempts to restore the standby clock display; a display failure is recorded without resending the plan. Bluetooth-only scheduling is unavailable.
+On firmware 1.2.26, applying a plan works over BLE or Wi-Fi and requires standby. The integration disables planning, writes and verifies time/temperature, then activates the requested mode. There is **no minimum lead time**; a plan at the current kettle time may trigger immediately. Readback exposes enabled/time/temperature, but cannot distinguish Once from Daily: check the physical repeat setting. After applying over Wi-Fi, the integration also attempts to restore the standby clock display; a display failure is recorded without resending the plan. Bluetooth-only scheduling uses the same disable/write/verify/enable sequence. Once/Daily remains a requested mode, not a verified device reading; the firmware exposes only enabled/time/temperature.
 
 If an action reports an uncertain result, inspect the kettle before sending another command. A failed schedule operation can leave a partially changed plan.
 
@@ -124,3 +124,9 @@ Use **Configure → Restore factory settings** to erase the kettle settings and 
 ### Bricky on firmware 1.2.26
 
 The **Launch Bricky** configuration button now also works in **Auto** and **Bluetooth-only** mode. Lift the kettle off the base, then press the button. The integration checks a fresh Bluetooth status, arms the game and requests one restart. Returning the kettle to the base or pressing its menu button exits the game. Wi-Fi-only retains the existing legacy support; firmware 1.2.26 needs Bluetooth. No retry or Wi-Fi fallback is sent after a Bluetooth write. The game was physically confirmed on firmware 1.2.26 using this integration method.
+
+### Live BLE measurements
+
+Heating rate and estimated time to target are derived from a rolling window of actual temperature readings, including live BLE updates. They stay unknown when not heating, on hold, lifted, at the target, or without sufficient rising-temperature evidence. These are estimates, not a brew timer or measured electricity use.
+
+BLE target temperature is decoded directly from the fast status message. A change counter triggers a bounded settings read if a separate settings notification was missed. Normal settings notifications remain the primary path.

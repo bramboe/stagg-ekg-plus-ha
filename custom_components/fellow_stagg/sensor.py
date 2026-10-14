@@ -207,8 +207,8 @@ async def async_setup_entry(
     coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     descriptions = SENSOR_DESCRIPTIONS
     if coordinator.is_ble_only:
-        # Hide the Wi-Fi/CLI-only sensors on a Bluetooth-only entry.
-        descriptions = [d for d in SENSOR_DESCRIPTIONS if d.key not in ("screen_name", "schedule_mode")]
+        # The screen sensor still requires CLI output.
+        descriptions = [d for d in SENSOR_DESCRIPTIONS if d.key not in ("screen_name",)]
     async_add_entities([FellowStaggSensor(coordinator, description) for description in descriptions])
 
 

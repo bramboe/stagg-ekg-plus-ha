@@ -401,6 +401,11 @@ class KettleHttpClient:
         await asyncio.sleep(0.15)
       await self._cli_command(session, f"buz {int(freq)} {int(duty)} {int(dur_ms)}")
 
+  async def async_play_builtin(self, session, pattern):
+    if pattern not in ("sos", "chime", "rick"):
+      raise ValueError("Unknown sound")
+    await self._cli_command(session, f"buz {pattern}")
+
   async def async_play_sos(self, session: ClientSession) -> None:
     """Play the firmware's built-in SOS buzzer pattern."""
     await self._cli_command(session, "buz sos")

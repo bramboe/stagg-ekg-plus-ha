@@ -43,7 +43,7 @@ class KettleTransport(WifiControls):
 
     @property
     def supports_schedule_mode(self):
-        return self.supports_legacy or (self.mode != "ble" and self.http_backend == "native_http")
+        return self.supports_legacy or (self.mode != "ble" and self.http_backend == "native_http") or bool(self.ble and self.ble.fresh and self.ble.supports_settings and self.ble.supports_power)
 
     @property
     def supports_preferences(self):
@@ -193,6 +193,36 @@ class KettleTransport(WifiControls):
             self.last_write_backend = "ble"
             return await getattr(self.ble, method)(session, *args, **kwargs)
         raise UnsupportedCapability("Connect and detect capabilities before writing")
+
+    async def _sound(self, method, session, *args):
+        if self.ble and self.ble.supports_power:
+            async with self._command_lock:
+                self.last_write_backend = "ble"
+                return await getattr(self.ble, method)(session, *args)
+        return await self.__getattr__(method)(session, *args)
+
+    async def async_play_chime(self, session, beeps):
+        return await self._sound("async_play_chime", session, beeps)
+
+    async def async_play_sos(self, session):
+        return await self._sound("async_play_sos", session)
+
+    async def async_play_builtin(self, session, pattern):
+        return await self._sound("async_play_builtin", session, pattern)
+
+    async def async_program_schedule(self, session, hour, minute, temp_c, mode):
+        if self.ble and self.ble.fresh and self.ble.supports_settings and self.ble.supports_power:
+            async with self._command_lock:
+                self.last_write_backend = "ble"
+                return await self.ble.async_program_schedule(session, hour, minute, temp_c, mode)
+        return await super().async_program_schedule(session, hour, minute, temp_c, mode)
+
+    async def async_set_existing_schedule_mode(self, session, mode):
+        if self.ble and self.ble.fresh and self.ble.supports_settings and self.ble.supports_power:
+            async with self._command_lock:
+                self.last_write_backend = "ble"
+                return await self.ble.async_set_existing_schedule_mode(session, mode)
+        return await super().async_set_existing_schedule_mode(session, mode)
 
     async def async_set_temperature(self, session, temp_c, **kwargs):
         return await self._settings("async_set_temperature", session, temp_c, **kwargs)
