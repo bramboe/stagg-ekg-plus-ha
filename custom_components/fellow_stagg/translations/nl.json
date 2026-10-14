@@ -148,7 +148,11 @@
         "title": "Polling-opties",
         "data": {
           "polling_interval_seconds": "Polling-interval (seconden)",
-          "polling_interval_countdown_seconds": "Snel polling-interval bij activiteit (seconden)"
+          "polling_interval_countdown_seconds": "Snel polling-interval bij activiteit (seconden)",
+          "share_fellow_data": "Gegevens delen met Fellow (cloud-firmware-updates & gebruiksstatistieken)"
+        },
+        "data_description": {
+          "share_fellow_data": "Standaard uit. Als dit uit staat, houdt Home Assistant de firmware-update-controle van de koker uitgeschakeld. De koker stuurt gebruiksstatistieken nog steeds rechtstreeks naar Fellow via je netwerk, en Home Assistant kan dat verkeer niet blokkeren — blokkeer qhderznbzup.firmware.fellowproducts.com op je router/DNS of gebruik de koker alleen via Bluetooth om dit volledig te stoppen."
         }
       },
       "wifi_setup": {
@@ -313,9 +317,6 @@
       "schedule_mode": {
         "name": "Schema"
       },
-      "screen_name": {
-        "name": "Huidig scherm"
-      },
       "programmed_unit": {
         "name": "Eenheid"
       },
@@ -324,9 +325,6 @@
       },
       "firmware_version": {
         "name": "Firmwareversie"
-      },
-      "boil_point": {
-        "name": "Kookpunt"
       },
       "backend": {
         "name": "Gebruikte verbinding"
@@ -342,21 +340,6 @@
       },
       "heating_rate": {
         "name": "Opwarmsnelheid"
-      },
-      "last_command": {
-        "name": "Laatste commando-resultaat"
-      },
-      "bricky_status": {
-        "name": "Bricky-status",
-        "state": {
-          "unknown": "Onbekend",
-          "starting": "Bricky starten",
-          "stopping": "Bricky afsluiten",
-          "reconnecting": "Kettle herstart — opnieuw verbinden",
-          "assumed_active": "Vermoedelijk actief",
-          "assumed_inactive": "Vermoedelijk niet actief",
-          "uncertain": "Resultaat onzeker"
-        }
       }
     },
     "binary_sensor": {

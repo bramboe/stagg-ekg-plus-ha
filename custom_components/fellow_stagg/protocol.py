@@ -156,10 +156,14 @@ def decode_native_status(raw: dict) -> dict:
         return float(value)
     # Live 1.2.26 capture with the kettle lifted: {"temp":nan,...}.
     lifted = isinstance(raw["temp"], float) and math.isnan(raw["temp"])
+    # `timestamp` is the kettle's own clock for this record (firmware 1.2.26 emits it in /temp).
+    # Surfaced for diagnostics only; its exact unit is unconfirmed, so no behaviour is gated on
+    # it. When it stops advancing across polls while the kettle reports live, its loop has stalled.
     return {"current_temp": None if lifted else temp("temp", 0, 120), "lifted": lifted,
             "target_temp": temp("temp_set", 40, 100),
             "mode": mode, "power": False if mode == "S_OFF" else True if mode in STATES.values() and mode != "S_NOWATER" else None,
-            "hold": mode == "S_HOLD", "no_water": mode == "S_NOWATER", "pwm": raw.get("pwm")}
+            "hold": mode == "S_HOLD", "no_water": mode == "S_NOWATER", "pwm": raw.get("pwm"),
+            "device_timestamp": raw.get("timestamp")}
 
 
 EXTENDED_FIELDS = {

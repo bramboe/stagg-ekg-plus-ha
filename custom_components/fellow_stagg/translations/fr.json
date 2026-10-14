@@ -148,7 +148,11 @@
         "title": "Options d'interrogation",
         "data": {
           "polling_interval_seconds": "Intervalle d'interrogation (secondes)",
-          "polling_interval_countdown_seconds": "Intervalle rapide pendant l'activité (secondes)"
+          "polling_interval_countdown_seconds": "Intervalle rapide pendant l'activité (secondes)",
+          "share_fellow_data": "Partager des données avec Fellow (mises à jour du firmware dans le cloud et statistiques d'usage)"
+        },
+        "data_description": {
+          "share_fellow_data": "Désactivé par défaut. Lorsqu'il est désactivé, Home Assistant maintient la vérification des mises à jour du firmware désactivée. La bouilloire envoie toujours des statistiques d'usage directement à Fellow via votre réseau, et Home Assistant ne peut pas bloquer ce trafic — pour l'arrêter complètement, bloquez qhderznbzup.firmware.fellowproducts.com sur votre routeur/DNS ou utilisez la bouilloire uniquement en Bluetooth."
         }
       },
       "connection": {
@@ -313,9 +317,6 @@
       "schedule_mode": {
         "name": "Programmation"
       },
-      "screen_name": {
-        "name": "Écran actuel"
-      },
       "programmed_unit": {
         "name": "Unité"
       },
@@ -324,9 +325,6 @@
       },
       "firmware_version": {
         "name": "Version du micrologiciel"
-      },
-      "boil_point": {
-        "name": "Point d'ébullition"
       },
       "backend": {
         "name": "Connexion utilisée"
@@ -342,21 +340,6 @@
       },
       "heating_rate": {
         "name": "Vitesse de chauffe"
-      },
-      "last_command": {
-        "name": "Résultat de la dernière commande"
-      },
-      "bricky_status": {
-        "name": "État Bricky",
-        "state": {
-          "unknown": "Inconnu",
-          "starting": "Démarrage de Bricky",
-          "stopping": "Fermeture de Bricky",
-          "reconnecting": "Redémarrage — reconnexion",
-          "assumed_active": "Probablement actif",
-          "assumed_inactive": "Probablement inactif",
-          "uncertain": "Résultat incertain"
-        }
       }
     },
     "binary_sensor": {

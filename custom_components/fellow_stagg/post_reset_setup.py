@@ -6,9 +6,12 @@ normal setting entities use — over the fresh Bluetooth connection, verifying e
 by reading the record back. Writes are selective (one field at a time), exactly
 like the live setting controls, so the kettle merges them into its record.
 
-Auto-update is deliberately not written here. On 1.2.26 the firmware's update
-behaviour is a signed cloud setting with no Bluetooth write path, so it is left to
-the Lock firmware switch (Wi-Fi) and the kettle's own menu instead.
+Auto-update (the `otadis` setting) is deliberately not written here. It is an ordinary
+NVS setting the B6 console can write, but after a reset the coordinator re-asserts it on
+its next poll from the Block auto-update switch / the "share data with Fellow" option, so
+there is nothing to apply in this one-shot path. Note `otadis` only gates the firmware
+update check; it does not stop the usage metrics the kettle posts to Fellow (see
+docs/privacy.md), which need a network-level block or Bluetooth-only use.
 
 A single field that will not confirm is skipped, not retried, and never aborts the
 rest: post-reset setup is a convenience, and every value can still be changed later
