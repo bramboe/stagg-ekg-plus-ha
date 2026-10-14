@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+
 from collections import deque
 import inspect
 from pathlib import Path
@@ -30,6 +31,7 @@ import voluptuous as vol
 from .kettle_ble import KettleBleClient
 from .transport import KettleTransport
 
+from .bricky import BrickySession
 from .const import (
   CHIME_PRESETS,
   DOMAIN,
@@ -149,11 +151,13 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.options_snapshot = dict(entry.options or {})
     self._temp_samples: deque = deque(maxlen=31)  # one sample/second, last 30 seconds
     self._eta_context = None
+    self.bricky = BrickySession(self.kettle, self.async_update_listeners)
 
   def _ble_updated(self) -> None:
     if not hasattr(self, "kettle") or self.data is None:
       return
     data = self.kettle.live_data()
+    self.bricky.observe(data or {})
     if data is not None:
       self._enrich_eta(data)
       self.async_set_updated_data(data)

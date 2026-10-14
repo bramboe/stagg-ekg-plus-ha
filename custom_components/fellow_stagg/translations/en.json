@@ -345,6 +345,18 @@
       },
       "last_command": {
         "name": "Last command result"
+      },
+      "bricky_status": {
+        "name": "Bricky status",
+        "state": {
+          "unknown": "Unknown",
+          "starting": "Starting Bricky",
+          "stopping": "Stopping Bricky",
+          "reconnecting": "Kettle restarting — reconnecting",
+          "assumed_active": "Probably active",
+          "assumed_inactive": "Probably inactive",
+          "uncertain": "Result uncertain"
+        }
       }
     },
     "binary_sensor": {
@@ -414,6 +426,18 @@
       },
       "launch_bricky": {
         "name": "Launch Bricky (lift kettle)"
+      },
+      "bricky_exit": {
+        "name": "Exit Bricky"
+      },
+      "bricky_left": {
+        "name": "Bricky left"
+      },
+      "bricky_right": {
+        "name": "Bricky right"
+      },
+      "refresh_screen": {
+        "name": "Refresh screen"
       }
     },
     "switch": {

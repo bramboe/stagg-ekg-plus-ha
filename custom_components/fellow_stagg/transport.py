@@ -246,6 +246,28 @@ class KettleTransport(WifiControls):
             self.last_write_backend = "ble"
             return await self.ble.async_launch_bricky()
 
+    async def async_exit_bricky(self):
+        async with self._command_lock:
+            if not self.ble:
+                raise UnsupportedCapability("Bricky exit requires Bluetooth")
+            self.last_write_backend = "ble"
+            return await self.ble.async_exit_bricky()
+
+    async def async_bricky_input(self, action):
+        async with self._command_lock:
+            if not self.ble:
+                raise UnsupportedCapability("Interface controls require Bluetooth")
+            self.last_write_backend = "ble"
+            return await self.ble.async_bricky_input(action)
+
+    async def async_reconnect_bricky(self):
+        async with self._command_lock:
+            if not self.ble:
+                raise UnsupportedCapability("Bricky reconnect requires Bluetooth")
+            await asyncio.sleep(2)
+            await asyncio.wait_for(self.ble.ensure_connected(), 25)
+            return await self.ble._fresh_notification()
+
     async def async_probe_schedule_console(self):
         if not self.ble:
             raise UnsupportedCapability("BLE must be configured for the console diagnostic")

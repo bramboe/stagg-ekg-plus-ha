@@ -209,7 +209,7 @@ async def async_setup_entry(
     if coordinator.is_ble_only:
         # The screen sensor still requires CLI output.
         descriptions = [d for d in SENSOR_DESCRIPTIONS if d.key not in ("screen_name",)]
-    async_add_entities([FellowStaggSensor(coordinator, description) for description in descriptions])
+    async_add_entities([FellowStaggSensor(coordinator, description) for description in descriptions] + [FellowStaggBrickyStatus(coordinator)])
 
 
 class FellowStaggSensor(FellowStaggConnectionMixin, CoordinatorEntity[FellowStaggDataUpdateCoordinator], SensorEntity):
@@ -292,3 +292,30 @@ class FellowStaggSensor(FellowStaggConnectionMixin, CoordinatorEntity[FellowStag
                 extra["schedule_temp_c"] = data.get("schedule_temp_c")
         merged = {**(super().extra_state_attributes or {}), **extra}
         return merged or None
+
+
+class FellowStaggBrickyStatus(CoordinatorEntity, SensorEntity):
+    """Intent/progress stays visible through the expected reboot disconnect."""
+    _attr_has_entity_name = True
+    _attr_translation_key = "bricky_status"
+    _attr_icon = "mdi:controller"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["unknown", "starting", "stopping", "reconnecting", "assumed_active", "assumed_inactive", "uncertain"]
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.unique_prefix}_bricky_status"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def available(self):
+        return self.coordinator.kettle.ble is not None
+
+    @property
+    def native_value(self):
+        return self.coordinator.bricky.state
+
+    @property
+    def extra_state_attributes(self):
+        return {"source": "integration_session", "game_state_verified": False,
+                "busy": self.coordinator.bricky.busy, "last_result": self.coordinator.bricky.receipt}

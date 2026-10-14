@@ -345,6 +345,18 @@
       },
       "last_command": {
         "name": "Résultat de la dernière commande"
+      },
+      "bricky_status": {
+        "name": "État Bricky",
+        "state": {
+          "unknown": "Inconnu",
+          "starting": "Démarrage de Bricky",
+          "stopping": "Fermeture de Bricky",
+          "reconnecting": "Redémarrage — reconnexion",
+          "assumed_active": "Probablement actif",
+          "assumed_inactive": "Probablement inactif",
+          "uncertain": "Résultat incertain"
+        }
       }
     },
     "binary_sensor": {
@@ -414,6 +426,18 @@
       },
       "launch_bricky": {
         "name": "Lancer Bricky (soulever la bouilloire)"
+      },
+      "bricky_exit": {
+        "name": "Quitter Bricky"
+      },
+      "bricky_left": {
+        "name": "Bricky gauche"
+      },
+      "bricky_right": {
+        "name": "Bricky droite"
+      },
+      "refresh_screen": {
+        "name": "Actualiser l’écran"
       }
     },
     "switch": {

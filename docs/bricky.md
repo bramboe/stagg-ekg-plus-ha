@@ -27,3 +27,31 @@ Bricky was visible on the kettle screen. No factory reset was involved.
 Automated tests cover visibility in Bluetooth-only setup, preserved entity
 identity, on-base rejection, firmware gating, return-to-base compensation,
 failed arming, missing reboot and absence of Wi-Fi fallback/replays.
+
+## Session controls (1.0.4)
+
+Firmware 1.2.26 with Bluetooth now exposes Exit Bricky, Bricky left/right,
+and a manual Refresh screen diagnostic button. Start retains its existing
+entity ID. Exit and movement require a game started through this integration
+in the current session, and fresh BLE evidence that the kettle is lifted.
+Wi-Fi-only keeps the existing launch path; the new controls require BLE.
+
+The Bricky status sensor shows starting, stopping and reconnecting even during
+the expected Bluetooth disconnect. Start and exit reconnect and read a fresh
+status before finishing. Requested game state is explicitly labelled probable:
+B1 reports S_OFF both during the game and in standby. The integration never
+claims to read the game screen. State is not restored across HA restarts.
+Returning the kettle to its base clears the active assumption; an unexpected
+connection generation change makes it unknown. Actions are mutually exclusive.
+A failed or uncertain action is not automatically replayed or sent over Wi-Fi.
+
+Refresh screen sends the firmware GUI refresh request once. It does not navigate
+to a different screen and is not automatically applied after settings changes:
+its usefulness for correcting a stale display still needs visible confirmation.
+
+Hardware acceptance 2026-10-14: the actual session/controller and transport
+started Bricky, reconnected, sent three left and three right commands, exited
+with one menu click, and reconnected to S_OFF. The user confirmed the game,
+visible movement at usable speed, and return to standby. Movement round trips
+were 0.398–0.788 seconds. Refresh was acknowledged afterward; visible redraw
+was not independently confirmed. No heating or schedule command was sent.

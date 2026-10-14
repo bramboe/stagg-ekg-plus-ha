@@ -345,6 +345,18 @@
       },
       "last_command": {
         "name": "Laatste commando-resultaat"
+      },
+      "bricky_status": {
+        "name": "Bricky-status",
+        "state": {
+          "unknown": "Onbekend",
+          "starting": "Bricky starten",
+          "stopping": "Bricky afsluiten",
+          "reconnecting": "Kettle herstart — opnieuw verbinden",
+          "assumed_active": "Vermoedelijk actief",
+          "assumed_inactive": "Vermoedelijk niet actief",
+          "uncertain": "Resultaat onzeker"
+        }
       }
     },
     "binary_sensor": {
@@ -414,6 +426,18 @@
       },
       "launch_bricky": {
         "name": "Bricky starten (til de koker op)"
+      },
+      "bricky_exit": {
+        "name": "Bricky afsluiten"
+      },
+      "bricky_left": {
+        "name": "Bricky links"
+      },
+      "bricky_right": {
+        "name": "Bricky rechts"
+      },
+      "refresh_screen": {
+        "name": "Scherm verversen"
       }
     },
     "switch": {

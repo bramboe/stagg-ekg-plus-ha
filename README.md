@@ -130,3 +130,17 @@ The **Launch Bricky** configuration button now also works in **Auto** and **Blue
 Heating rate and estimated time to target are derived from a rolling window of actual temperature readings, including live BLE updates. They stay unknown when not heating, on hold, lifted, at the target, or without sufficient rising-temperature evidence. These are estimates, not a brew timer or measured electricity use.
 
 BLE target temperature is decoded directly from the fast status message. A change counter triggers a bounded settings read if a separate settings notification was missed. Normal settings notifications remain the primary path.
+
+### Bricky controls and progress
+
+On firmware 1.2.26 with Bluetooth, **Launch Bricky**, **Exit Bricky**, and
+**Bricky left/right** provide game controls. Exit and movement become available
+after starting through this integration, with the kettle off its base.
+**Bricky status** stays visible during restarting/reconnecting and labels the
+result **Probably active/inactive**: the firmware does not expose actual game
+state. Unexpected reconnections clear the active assumption. See
+[Bricky behavior and validation](docs/bricky.md).
+
+**Refresh screen** is a manual diagnostic action over Bluetooth. It requests
+redrawing and does not close menus. Its ability to fix stale screen content
+has not yet been visually confirmed.

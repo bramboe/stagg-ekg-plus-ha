@@ -25,6 +25,7 @@ async def async_setup_entry(
   """Set up buttons."""
   coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
   buttons = [FellowStaggBrickyButton(coordinator)]
+  buttons.extend(FellowStaggInterfaceButton(coordinator, action) for action in ("exit", "left", "right", "refresh"))
   buttons.insert(0, FellowStaggUpdateScheduleButton(coordinator))
   async_add_entities(buttons)
 
@@ -99,7 +100,7 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
   @property
   def available(self) -> bool:
     """Only allow pressing when kettle is lifted (not on base)."""
-    if not super().available or not self.coordinator.data:
+    if self.coordinator.bricky.busy or self.coordinator.bricky.state == "assumed_active" or not super().available or not self.coordinator.data:
       return False
     if not (self.coordinator.kettle.supports_legacy or self.coordinator.kettle.supports_ble_bricky):
       return False
@@ -117,7 +118,8 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
     if k.supports_ble_bricky or (k.ble and not k.supports_legacy):
       self.coordinator.notify_command_sent()
       try:
-        self._bricky_result = await k.async_launch_bricky()
+        await self.coordinator.bricky.run("start")
+        self._bricky_result = self.coordinator.bricky.receipt
       finally:
         self._bricky_result = dict(k.ble.bricky_result or {})
         self.async_write_ha_state()
@@ -147,3 +149,26 @@ class FellowStaggBrickyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator
     except Exception as err:
       _LOGGER.debug("Kettle reset triggered (ignoring expected connection error: %s)", err)
     await self.coordinator.async_request_refresh()
+
+
+class FellowStaggInterfaceButton(CoordinatorEntity, ButtonEntity):
+  _attr_has_entity_name = True
+
+  def __init__(self, coordinator, action):
+    super().__init__(coordinator)
+    self.action = action
+    self._attr_translation_key = "bricky_" + action if action != "refresh" else "refresh_screen"
+    self._attr_unique_id = f"{coordinator.unique_prefix}_{self._attr_translation_key}"
+    self._attr_device_info = coordinator.device_info
+    self._attr_icon = {"exit": "mdi:exit-to-app", "left": "mdi:arrow-left", "right": "mdi:arrow-right", "refresh": "mdi:refresh"}[action]
+    self._attr_entity_category = EntityCategory.DIAGNOSTIC if action == "refresh" else EntityCategory.CONFIG
+
+  @property
+  def available(self):
+    session = self.coordinator.bricky
+    return (super().available and not session.busy and self.coordinator.kettle.supports_ble_bricky
+            and (self.action == "refresh" or session.state == "assumed_active"))
+
+  async def async_press(self):
+    self.coordinator.notify_command_sent()
+    await self.coordinator.bricky.run(self.action)

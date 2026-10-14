@@ -115,3 +115,34 @@ class BleExtras:
                     "schedule_enabled": after["schedule_enabled"], "schedule_time": after.get("schedule_time"),
                     "schedule_temp_c": after.get("schedule_temp_c"),
                     "status": "verified_off" if mode == "off" else "values_verified_check_physical_mode"}
+
+    async def async_bricky_input(self, action):
+        if action not in ("left", "right", "refresh"):
+            raise ValueError("Unknown interface action")
+        async with self._command_lock:
+            await self.ensure_connected()
+            self._require_supported("power_write")
+            state = await self._fresh_notification()
+            if action != "refresh" and state.get("lifted") is not True:
+                raise UnsupportedCapability("Lift the kettle before controlling Bricky")
+            await self._send_b6_once(action)
+            return {"command": action, "outcome": "sent", "screen_confirmed": False}
+
+    async def async_exit_bricky(self):
+        async with self._command_lock:
+            await self.ensure_connected()
+            self._require_supported("power_write")
+            if (await self._fresh_notification()).get("lifted") is not True:
+                raise UnsupportedCapability("Kettle returned to base; no menu click sent")
+            client = self.client
+            try:
+                await self._send_b6_once("1")
+            except CommandUncertain:
+                if client.is_connected:
+                    raise
+            deadline = monotonic() + 15
+            while client.is_connected and monotonic() < deadline:
+                await asyncio.sleep(0.1)
+            if client.is_connected:
+                raise CommandUncertain("Bricky exit restart not observed; no second menu click sent")
+            return {"outcome": "restart_observed", "game_confirmed": False}
