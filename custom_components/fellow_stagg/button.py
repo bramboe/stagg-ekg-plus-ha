@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
-from .const import DOMAIN, CHIME_PRESETS
+from .const import DOMAIN, MELODY_SEQUENCES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -233,6 +233,14 @@ class FellowStaggPlayMelodyButton(CoordinatorEntity[FellowStaggDataUpdateCoordin
 
   async def async_press(self) -> None:
     self.coordinator.notify_command_sent()
-    beeps = CHIME_PRESETS.get(self._melody)
-    if beeps:
-      await self.coordinator.kettle.async_play_chime(self.coordinator.session, beeps)
+    beeps = MELODY_SEQUENCES.get(self._melody)
+    if not beeps:
+      return
+    kettle, session = self.coordinator.kettle, self.coordinator.session
+    # The buzzer plays at most 8 tones per command, so send the melody in <=8-tone batches
+    # and wait for each batch's final tone to finish before starting the next.
+    for start in range(0, len(beeps), 8):
+      batch = beeps[start:start + 8]
+      await kettle.async_play_chime(session, batch)
+      if start + 8 < len(beeps):
+        await asyncio.sleep(batch[-1][2] / 1000 + 0.15)

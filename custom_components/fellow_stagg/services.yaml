@@ -99,8 +99,6 @@ play_chime:
             - sos
             - chime
             - rick
-            - mario
-            - happy_birthday
     notes:
       description: >-
         Optional: your own melody, overrides the pattern. A list of PITCH:MS tokens separated by
