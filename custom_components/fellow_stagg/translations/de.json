@@ -421,6 +421,12 @@
       },
       "play_rick": {
         "name": "Rick abspielen"
+      },
+      "play_mario": {
+        "name": "Mario abspielen"
+      },
+      "play_happy_birthday": {
+        "name": "Happy Birthday abspielen"
       }
     },
     "switch": {

@@ -12,12 +12,14 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import FellowStaggDataUpdateCoordinator
-from .const import DOMAIN
+from .const import DOMAIN, CHIME_PRESETS
 
 _LOGGER = logging.getLogger(__name__)
 
 # Firmware built-in buzzer melodies (`buz <name>`) exposed as one-press play buttons.
 SOUND_BUTTONS = ("chime", "sos", "rick")
+# Custom note-sequence melodies (CHIME_PRESETS) exposed as one-press play buttons.
+MELODY_BUTTONS = ("mario", "happy_birthday")
 
 
 async def async_setup_entry(
@@ -30,6 +32,7 @@ async def async_setup_entry(
   buttons = [FellowStaggBrickyButton(coordinator)]
   buttons.append(FellowStaggInterfaceButton(coordinator, "refresh"))
   buttons.extend(FellowStaggPlaySoundButton(coordinator, sound) for sound in SOUND_BUTTONS)
+  buttons.extend(FellowStaggPlayMelodyButton(coordinator, melody) for melody in MELODY_BUTTONS)
   buttons.insert(0, FellowStaggUpdateScheduleButton(coordinator))
   async_add_entities(buttons)
 
@@ -203,3 +206,33 @@ class FellowStaggPlaySoundButton(CoordinatorEntity[FellowStaggDataUpdateCoordina
   async def async_press(self) -> None:
     self.coordinator.notify_command_sent()
     await self.coordinator.kettle.async_play_builtin(self.coordinator.session, self._sound)
+
+
+class FellowStaggPlayMelodyButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator], ButtonEntity):
+  """Play a custom note-sequence melody from CHIME_PRESETS via async_play_chime on press.
+
+  Unlike the firmware built-ins, these melodies are sent as an explicit note list, so they
+  work over the legacy Wi-Fi CLI or over Bluetooth on 1.2.x; fire-and-forget."""
+
+  _attr_has_entity_name = True
+  _ICONS = {"mario": "mdi:gamepad-variant", "happy_birthday": "mdi:cake-variant"}
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator, melody: str) -> None:
+    super().__init__(coordinator)
+    self._melody = melody
+    self._attr_translation_key = f"play_{melody}"
+    self._attr_unique_id = f"{coordinator.unique_prefix}_play_{melody}"
+    self._attr_device_info = coordinator.device_info
+    self._attr_icon = self._ICONS.get(melody, "mdi:music-note")
+    self._attr_entity_category = EntityCategory.CONFIG
+
+  @property
+  def available(self) -> bool:
+    k = self.coordinator.kettle
+    return super().available and (k.supports_legacy or bool(k.ble and k.ble.supports_power))
+
+  async def async_press(self) -> None:
+    self.coordinator.notify_command_sent()
+    beeps = CHIME_PRESETS.get(self._melody)
+    if beeps:
+      await self.coordinator.kettle.async_play_chime(self.coordinator.session, beeps)

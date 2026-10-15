@@ -421,6 +421,12 @@
       },
       "play_rick": {
         "name": "Jouer Rick"
+      },
+      "play_mario": {
+        "name": "Jouer Mario"
+      },
+      "play_happy_birthday": {
+        "name": "Jouer Happy Birthday"
       }
     },
     "switch": {
