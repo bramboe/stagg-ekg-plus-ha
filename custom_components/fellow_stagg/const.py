@@ -124,17 +124,13 @@ def parse_chime_notes(notes: str) -> list[tuple[int, int, int]]:
   return beeps
 
 
-# Fun melodies, built with the note parser above (each stays within MAX_CHIME_NOTES).
-# Super Mario Bros. main-theme opening riff.
+# Fun melodies, built with the note parser above. The Bluetooth buzzer accepts at most 8
+# tones per chime (ble_extras: 1-8), so these are short, recognisable motifs that fit that cap.
+# Super Mario Bros. main-theme opening riff (7 tones).
 CHIME_PRESETS["mario"] = parse_chime_notes(
-  "E5:150 E5:150 E5:150 C5:150 E5:150 G5:300 G4:300 "
-  "C5:200 G4:200 E4:200 A4:150 B4:150 Bb4:150 A4:150 "
-  "G4:120 E5:120 G5:120 A5:150 F5:120 G5:150 E5:150 C5:150 D5:150 B4:300"
+  "E5:150 E5:150 E5:160 C5:150 E5:200 G5:400 G4:400"
 )
-# Happy Birthday to You.
+# Happy Birthday to You — "Happy birthday to you" (6 tones).
 CHIME_PRESETS["happy_birthday"] = parse_chime_notes(
-  "C4:150 C4:150 D4:300 C4:300 F4:300 E4:600 "
-  "C4:150 C4:150 D4:300 C4:300 G4:300 F4:600 "
-  "C4:150 C4:150 C5:300 A4:300 F4:300 E4:300 D4:600 "
-  "Bb4:150 Bb4:150 A4:300 F4:300 G4:300 F4:600"
+  "C4:180 C4:180 D4:360 C4:360 F4:360 E4:700"
 )
