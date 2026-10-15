@@ -466,8 +466,21 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     now = monotonic()
     if self._privacy_enforced_at is not None and now - self._privacy_enforced_at < _PRIVACY_REASSERT_SECONDS:
       return
+    # Best-effort policy write: only over the transport that just reached the kettle, and never
+    # during the first refresh. Writing otadis over the HTTP CLI while Wi-Fi is down used to hang
+    # on the dead address until the setup timeout cancelled it (CancelledError, which `except
+    # Exception` does not catch), failing setup. Route by the live backend instead.
+    backend = data.get("backend")
+    if self.data is None or backend not in ("ble", "native_http", "legacy_cli"):
+      return
     try:
-      await self.kettle.async_block_auto_update(self.session, True)
+      if backend == "ble":
+        ble = self.kettle.ble
+        if not (ble and ble.fresh and ble.supports_power):
+          return
+        await ble.async_block_auto_update(self.session, True)
+      else:
+        await self.kettle.async_block_auto_update(self.session, True)
       self._privacy_enforced_at = now
     except Exception as err:  # noqa: BLE001 - best-effort policy write; never breaks a poll
       _LOGGER.debug("Could not assert otadis for the privacy option yet: %s", err)
