@@ -500,16 +500,10 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     notification_id = f"fellow_stagg_wifi_offline_{self._entry_id}"
     if on_ble and not self._wifi_offline_notified:
       self._wifi_offline_notified = True
+      lang = (self.hass.config.language or "en").split("-")[0].lower()
+      title, message = _WIFI_OFFLINE_NOTICE.get(lang, _WIFI_OFFLINE_NOTICE["en"])
       persistent_notification.async_create(
-        self.hass,
-        "The kettle's configured Wi-Fi isn't reachable, so Home Assistant is running it over "
-        "Bluetooth. Power and temperature still work; Wi-Fi-only features (schedules, firmware "
-        "tools, clock sync and the screen sensor) pause until Wi-Fi returns.\n\n"
-        "To reconnect or set up a different network, open "
-        "[Settings → Devices & Services](/config/integrations/integration/fellow_stagg), pick the "
-        "kettle, then **Configure → Set up Wi-Fi**.",
-        title="Fellow Stagg: Wi-Fi offline (running on Bluetooth)",
-        notification_id=notification_id,
+        self.hass, message, title=title, notification_id=notification_id,
       )
     elif not on_ble and self._wifi_offline_notified:
       self._wifi_offline_notified = False
@@ -789,6 +783,46 @@ _FIRMWARE_MAX_REVERTS_PER_DAY = 3
 # When "share data with Fellow" is off, re-assert otadis at most this often (a reboot/update,
 # which clears the setting, forces an immediate re-assert via the firmware-version watcher)
 _PRIVACY_REASSERT_SECONDS = 6 * 3600
+
+# Localized "Wi-Fi offline, running on Bluetooth" notice (title, message), by language code.
+# Ad-hoc persistent notifications don't go through the translation files, so pick by hass language.
+_WIFI_OFFLINE_LINK = "/config/integrations/integration/fellow_stagg"
+_WIFI_OFFLINE_NOTICE = {
+  "en": (
+    "Fellow Stagg: Wi-Fi offline (running on Bluetooth)",
+    "The kettle's configured Wi-Fi isn't reachable, so Home Assistant is running it over "
+    "Bluetooth. Power and temperature still work; Wi-Fi-only features (schedules, firmware tools, "
+    "clock sync and the screen sensor) pause until Wi-Fi returns.\n\n"
+    f"To reconnect or set up a different network, open [Settings → Devices & Services]({_WIFI_OFFLINE_LINK}), "
+    "pick the kettle, then **Configure → Set up Wi-Fi**.",
+  ),
+  "nl": (
+    "Fellow Stagg: wifi offline (draait op Bluetooth)",
+    "De ingestelde wifi van de kettle is niet bereikbaar, dus Home Assistant draait 'm over "
+    "Bluetooth. Aan/uit en temperatuur werken nog; wifi-only functies (schema's, firmwaretools, "
+    "kloksynchronisatie en de schermsensor) pauzeren tot wifi terugkomt.\n\n"
+    f"Om opnieuw te verbinden of een ander netwerk in te stellen, open [Instellingen → Apparaten & services]({_WIFI_OFFLINE_LINK}), "
+    "kies de kettle en dan **Configureren → Wi-Fi instellen**.",
+  ),
+  "de": (
+    "Fellow Stagg: WLAN offline (läuft über Bluetooth)",
+    "Das eingerichtete WLAN des Wasserkochers ist nicht erreichbar, daher betreibt Home Assistant "
+    "ihn über Bluetooth. Ein/Aus und Temperatur funktionieren weiter; WLAN-only-Funktionen "
+    "(Zeitpläne, Firmware-Tools, Uhrsynchronisation und der Bildschirmsensor) pausieren, bis das "
+    "WLAN zurückkehrt.\n\n"
+    f"Um die Verbindung wiederherzustellen oder ein anderes Netzwerk einzurichten, öffne [Einstellungen → Geräte & Dienste]({_WIFI_OFFLINE_LINK}), "
+    "wähle den Wasserkocher und dann **Konfigurieren → WLAN einrichten**.",
+  ),
+  "fr": (
+    "Fellow Stagg : Wi-Fi hors ligne (fonctionne en Bluetooth)",
+    "Le Wi-Fi configuré de la bouilloire n'est pas joignable, donc Home Assistant la pilote en "
+    "Bluetooth. La marche/arrêt et la température fonctionnent encore ; les fonctions Wi-Fi "
+    "uniquement (programmes, outils de firmware, synchronisation de l'horloge et capteur d'écran) "
+    "sont en pause jusqu'au retour du Wi-Fi.\n\n"
+    f"Pour vous reconnecter ou configurer un autre réseau, ouvrez [Paramètres → Appareils et services]({_WIFI_OFFLINE_LINK}), "
+    "sélectionnez la bouilloire, puis **Configurer → Configurer le Wi-Fi**.",
+  ),
+}
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
   # Network scans are started only by an explicit setup action.
