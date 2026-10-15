@@ -354,6 +354,9 @@
       },
       "no_water": {
         "name": "No water"
+      },
+      "wifi_connected": {
+        "name": "Wi-Fi"
       }
     },
     "select": {
@@ -535,6 +538,25 @@
     "firmware_staged": {
       "title": "Firmware {staged} is stored on the kettle",
       "description": "The kettle runs {running}; partition {partition} contains {staged}, which may start after a restart. Turn on the **Lock firmware** switch to have Home Assistant switch the kettle back to its pinned firmware (over the legacy HTTP CLI) whenever it updates itself. A router rule that blocks the kettle's internet while keeping local Wi-Fi is more reliable if you can set one."
+    },
+    "wifi_offline": {
+      "title": "Wi-Fi offline — kettle running on Bluetooth",
+      "fix_flow": {
+        "step": {
+          "setup_wifi": {
+            "title": "Reconnect Wi-Fi",
+            "description": "The kettle is running on Bluetooth because its Wi-Fi isn't reachable. Put the kettle in Wi-Fi setup mode from its menu and keep the Fellow app closed, then enter a network below. Home Assistant sends it to the kettle over Bluetooth; nothing goes through Fellow's servers. 2.4 GHz only.",
+            "data": {
+              "ssid": "Network name (SSID)",
+              "password": "Password"
+            }
+          }
+        },
+        "error": {
+          "ble_unreachable": "Couldn't reach the kettle over Bluetooth. Make sure it's awake, nearby, and in Wi-Fi setup mode, then try again.",
+          "provision_failed": "Setting up Wi-Fi failed. Check the network name and password (2.4 GHz only) and try again."
+        }
+      }
     }
   },
   "selector": {

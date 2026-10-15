@@ -354,6 +354,9 @@
       },
       "no_water": {
         "name": "Kein Wasser"
+      },
+      "wifi_connected": {
+        "name": "WLAN"
       }
     },
     "select": {
@@ -535,6 +538,25 @@
     "firmware_staged": {
       "title": "Firmware {staged} ist auf dem Kessel gespeichert",
       "description": "Aktuell läuft {running}. In Partition {partition} liegt {staged}; der Kessel könnte diese Version beim nächsten Neustart verwenden. Aktivieren Sie den Schalter **Firmware sperren**, damit Home Assistant den Kessel über die Legacy-HTTP-CLI auf die festgelegte Firmware zurücksetzt, sobald er sich selbst aktualisiert. Verwalten Sie Updates über die offiziellen Geräteeinstellungen. Sie können den Internetzugang am Router sperren und lokales WLAN weiter nutzen."
+    },
+    "wifi_offline": {
+      "title": "WLAN offline — Wasserkocher läuft über Bluetooth",
+      "fix_flow": {
+        "step": {
+          "setup_wifi": {
+            "title": "WLAN neu verbinden",
+            "description": "Der Wasserkocher läuft über Bluetooth, weil das WLAN nicht erreichbar ist. Versetze den Wasserkocher über sein Menü in den WLAN-Einrichtungsmodus und halte die Fellow-App geschlossen, dann gib unten ein Netzwerk ein. Home Assistant sendet es über Bluetooth; nichts läuft über Fellows Server. Nur 2,4 GHz.",
+            "data": {
+              "ssid": "Netzwerkname (SSID)",
+              "password": "Passwort"
+            }
+          }
+        },
+        "error": {
+          "ble_unreachable": "Der Wasserkocher war über Bluetooth nicht erreichbar. Stelle sicher, dass er wach, in der Nähe und im WLAN-Einrichtungsmodus ist, und versuche es erneut.",
+          "provision_failed": "Die WLAN-Einrichtung ist fehlgeschlagen. Prüfe Netzwerkname und Passwort (nur 2,4 GHz) und versuche es erneut."
+        }
+      }
     }
   },
   "selector": {

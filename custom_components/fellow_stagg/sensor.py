@@ -231,11 +231,6 @@ class FellowStaggSensor(FellowStaggConnectionMixin, CoordinatorEntity[FellowStag
             return False
         if self.entity_description.key == "current_temp" and (self.coordinator.data or {}).get("lifted"):
             return False
-        # Configured Wi-Fi isn't reachable (the kettle fell back to Bluetooth): mark the
-        # Wi-Fi address unavailable so the frontend shows its own localized "Unavailable".
-        if (self.entity_description.key == "wifi_address" and self.coordinator.wifi_address
-                and (self.coordinator.data or {}).get("backend") == "ble"):
-            return False
         return True
 
     @property

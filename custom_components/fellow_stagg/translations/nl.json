@@ -354,6 +354,9 @@
       },
       "no_water": {
         "name": "Geen water"
+      },
+      "wifi_connected": {
+        "name": "Wi-Fi"
       }
     },
     "select": {
@@ -535,6 +538,25 @@
     "firmware_staged": {
       "title": "Firmware {staged} staat op de kettle",
       "description": "De kettle gebruikt {running}; partitie {partition} bevat {staged}. Die versie kan na een herstart actief worden. Zet de schakelaar **Firmware vergrendelen** aan om de kettle automatisch (via de legacy HTTP CLI) terug te zetten naar de vastgezette firmware zodra hij zichzelf update. Een routerregel die de internettoegang van de kettle blokkeert maar lokale wifi behoudt, is betrouwbaarder als je die kunt instellen."
+    },
+    "wifi_offline": {
+      "title": "Wi-Fi offline — kettle draait op Bluetooth",
+      "fix_flow": {
+        "step": {
+          "setup_wifi": {
+            "title": "Wi-Fi opnieuw verbinden",
+            "description": "De kettle draait op Bluetooth omdat de wifi niet bereikbaar is. Zet de kettle in wifi-instelmodus via z'n menu en houd de Fellow-app gesloten, en vul hieronder een netwerk in. Home Assistant stuurt dit over Bluetooth naar de kettle; niets gaat via Fellow's servers. Alleen 2,4 GHz.",
+            "data": {
+              "ssid": "Netwerknaam (SSID)",
+              "password": "Wachtwoord"
+            }
+          }
+        },
+        "error": {
+          "ble_unreachable": "Kon de kettle niet over Bluetooth bereiken. Zorg dat-ie wakker en dichtbij is en in wifi-instelmodus staat, en probeer opnieuw.",
+          "provision_failed": "Wifi instellen is mislukt. Controleer de netwerknaam en het wachtwoord (alleen 2,4 GHz) en probeer opnieuw."
+        }
+      }
     }
   },
   "selector": {

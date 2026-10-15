@@ -354,6 +354,9 @@
       },
       "no_water": {
         "name": "Pas d'eau"
+      },
+      "wifi_connected": {
+        "name": "Wi-Fi"
       }
     },
     "select": {
@@ -535,6 +538,25 @@
     "firmware_staged": {
       "title": "Firmware {staged} stocké sur la bouilloire",
       "description": "Le firmware actuel est {running}. La partition {partition} contient {staged}, que la bouilloire pourrait utiliser au prochain redémarrage. Activez l’interrupteur **Verrouiller le firmware** pour que Home Assistant rebascule la bouilloire sur le firmware fixé (via la CLI HTTP héritée) dès qu’elle se met à jour. Gérez les mises à jour depuis les réglages officiels de l’appareil. Vous pouvez bloquer l’accès Internet sur le routeur tout en conservant le Wi-Fi local."
+    },
+    "wifi_offline": {
+      "title": "Wi-Fi hors ligne — bouilloire en Bluetooth",
+      "fix_flow": {
+        "step": {
+          "setup_wifi": {
+            "title": "Reconnecter le Wi-Fi",
+            "description": "La bouilloire fonctionne en Bluetooth car son Wi-Fi n'est pas joignable. Mettez la bouilloire en mode configuration Wi-Fi depuis son menu et gardez l'application Fellow fermée, puis saisissez un réseau ci-dessous. Home Assistant l'envoie à la bouilloire via Bluetooth ; rien ne passe par les serveurs de Fellow. 2,4 GHz uniquement.",
+            "data": {
+              "ssid": "Nom du réseau (SSID)",
+              "password": "Mot de passe"
+            }
+          }
+        },
+        "error": {
+          "ble_unreachable": "Impossible de joindre la bouilloire en Bluetooth. Assurez-vous qu'elle est active, à proximité et en mode configuration Wi-Fi, puis réessayez.",
+          "provision_failed": "La configuration du Wi-Fi a échoué. Vérifiez le nom du réseau et le mot de passe (2,4 GHz uniquement) et réessayez."
+        }
+      }
     }
   },
   "selector": {
