@@ -245,7 +245,11 @@ class FellowStaggSensor(FellowStaggConnectionMixin, CoordinatorEntity[FellowStag
             return (self.coordinator.data or {}).get("pwm")
         # Device info sensors (from config, not from polled data)
         if self.entity_description.key == "wifi_address":
-            return self.coordinator.wifi_address
+            addr = self.coordinator.wifi_address
+            # The kettle fell back to Bluetooth, so the configured Wi-Fi isn't reachable now.
+            if addr and (self.coordinator.data or {}).get("backend") == "ble":
+                return "Unavailable"
+            return addr
         if self.entity_description.key == "bluetooth_address":
             return self.coordinator.ble_address
         if self.coordinator.data is None:
@@ -287,5 +291,8 @@ class FellowStaggSensor(FellowStaggConnectionMixin, CoordinatorEntity[FellowStag
                 extra["schedule_time"] = data.get("schedule_time")
             if data.get("schedule_temp_c") is not None:
                 extra["schedule_temp_c"] = data.get("schedule_temp_c")
+        elif self.entity_description.key == "wifi_address" and self.coordinator.wifi_address:
+            # Keep the configured address visible even while the state reads "Unavailable".
+            extra = {"configured_address": self.coordinator.wifi_address}
         merged = {**(super().extra_state_attributes or {}), **extra}
         return merged or None

@@ -130,6 +130,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.share_fellow_data = bool(options.get(OPT_SHARE_FELLOW_DATA, SHARE_FELLOW_DATA_DEFAULT))
     self._privacy_enforced_at: float | None = None
     self._privacy_notice_shown = False
+    self._wifi_offline_notified = False
     self.sync_clock_enabled = mode != "ble"
     self._clock_sync_ready = False
     self._last_clock_sync: datetime | None = None
@@ -486,6 +487,34 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         notification_id=f"fellow_stagg_privacy_{self._entry_id}",
       )
 
+  async def _maybe_notify_wifi_offline(self, data: dict[str, Any]) -> None:
+    """Flag when the configured Wi-Fi is unreachable and the kettle fell back to Bluetooth.
+
+    Only meaningful when Wi-Fi is configured and expected (not a Bluetooth-only entry). The
+    notice is shown once while on Bluetooth and dismissed when Wi-Fi returns; it points to
+    Configure to reconnect or set up a different network.
+    """
+    if not self.wifi_address or self.kettle.mode == "ble":
+      return
+    on_ble = data.get("backend") == "ble"
+    notification_id = f"fellow_stagg_wifi_offline_{self._entry_id}"
+    if on_ble and not self._wifi_offline_notified:
+      self._wifi_offline_notified = True
+      persistent_notification.async_create(
+        self.hass,
+        "The kettle's configured Wi-Fi isn't reachable, so Home Assistant is running it over "
+        "Bluetooth. Power and temperature still work; Wi-Fi-only features (schedules, firmware "
+        "tools, clock sync and the screen sensor) pause until Wi-Fi returns.\n\n"
+        "To reconnect or set up a different network, open "
+        "[Settings → Devices & Services](/config/integrations/integration/fellow_stagg), pick the "
+        "kettle, then **Configure → Set up Wi-Fi**.",
+        title="Fellow Stagg: Wi-Fi offline (running on Bluetooth)",
+        notification_id=notification_id,
+      )
+    elif not on_ble and self._wifi_offline_notified:
+      self._wifi_offline_notified = False
+      persistent_notification.async_dismiss(self.hass, notification_id)
+
   @callback
   def _update_cli_muted_issue(self, data: dict[str, Any]) -> None:
     """Raise a Repairs issue when the CLI answers without output (firmware 1.2.24)."""
@@ -597,6 +626,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       await self._maybe_sync_clock(data)
       await self._maybe_revert_firmware()
       await self._maybe_enforce_privacy(data)
+      await self._maybe_notify_wifi_offline(data)
       self._update_cli_muted_issue(data)
       self._update_firmware_staged_issue()
       # Instant (fast) polling when heating, countdown active, or right after a command
