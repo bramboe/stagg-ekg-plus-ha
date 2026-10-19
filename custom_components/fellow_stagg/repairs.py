@@ -35,7 +35,7 @@ class WifiOfflineRepairFlow(RepairsFlow):
     self, user_input: dict[str, Any] | None = None
   ) -> data_entry_flow.FlowResult:
     # Imported here to avoid importing the config flow at module load.
-    from .config_flow import _async_ble_wifi_setup, _find_ble_address
+    from .config_flow import _async_ble_wifi_setup_released, _find_ble_address
 
     errors: dict[str, str] = {}
     address = self._ble_address
@@ -44,17 +44,30 @@ class WifiOfflineRepairFlow(RepairsFlow):
       address = _find_ble_address(self.hass, entry) if entry else None
 
     if user_input is not None and address:
+      error: str | None = None
+      info: dict[str, Any] | None = None
       try:
-        await _async_ble_wifi_setup(
-          self.hass, address, user_input["ssid"], user_input.get("password", "")
+        # Releases the coordinator's BLE link first, so the provisioning connection can get in
+        # (the kettle accepts only one Bluetooth connection at a time).
+        info = await _async_ble_wifi_setup_released(
+          self.hass, self._entry_id, address, user_input["ssid"], user_input.get("password", "")
         )
       except ProvisioningError:
-        errors["base"] = "ble_unreachable"
+        error = "ble_unreachable"
       except Exception as err:  # noqa: BLE001 - surface any provisioning failure in the form
         _LOGGER.debug("Fellow Stagg: Wi-Fi repair provisioning failed: %s", err)
-        errors["base"] = "provision_failed"
+        error = "provision_failed"
+      # Point the entry at the kettle's new address so Wi-Fi works immediately after provisioning.
+      if info and info.get("ip"):
+        entry = self.hass.config_entries.async_get_entry(self._entry_id)
+        new_base = f"http://{info['ip']}"
+        if entry and (entry.data or {}).get("base_url") != new_base:
+          self.hass.config_entries.async_update_entry(entry, data={**entry.data, "base_url": new_base})
+      # The helper unloaded the entry to free the BLE link; reload restores it either way.
+      await self.hass.config_entries.async_reload(self._entry_id)
+      if error:
+        errors["base"] = error
       else:
-        await self.hass.config_entries.async_reload(self._entry_id)
         return self.async_create_entry(title="", data={})
     elif user_input is not None:
       errors["base"] = "ble_unreachable"

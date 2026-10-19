@@ -496,6 +496,45 @@ async def _async_ble_wifi_setup(
     return info
 
 
+async def _async_ble_wifi_setup_released(
+    hass: Any, entry_id: str, address: str, ssid: str, password: str
+) -> dict[str, Any]:
+    """Provision Wi-Fi over BLE after releasing the integration's own BLE link.
+
+    The coordinator holds the kettle's single BLE connection (and reconnects on drop), so a fresh
+    provisioning connection can't be opened while the entry is loaded — the connect just fails with
+    "could not connect over Bluetooth" even though the kettle is plainly reachable. Unload the entry
+    first to drop the GATT link and stop reconnects, then connect (retrying while the kettle
+    re-advertises as connectable, like the factory-reset path), provision, and read back the new
+    address. The caller reloads the entry afterwards to restore normal operation.
+    """
+    await hass.config_entries.async_unload(entry_id)
+    client = None
+    try:
+        deadline = monotonic() + 45
+        while client is None and monotonic() < deadline:
+            try:
+                client = await _async_ble_connect(hass, address)
+            except Exception as err:  # noqa: BLE001 - busy proxy slot / transient; retry in-window
+                _LOGGER.debug("Fellow Stagg: Wi-Fi setup connect attempt failed, retrying: %s", err)
+                client = None
+            if client is None:
+                await asyncio.sleep(3)
+        if client is None:
+            raise ProvisioningError("ble_unreachable")
+        status = await async_provision_wifi(client, ssid, password)
+        info = await async_read_kettle_info(client)
+    finally:
+        if client is not None:
+            try:
+                await client.disconnect()
+            except Exception:  # noqa: BLE001
+                pass
+    info["ip"] = status.ip
+    info["ssid"] = status.ssid or ssid
+    return info
+
+
 async def _async_ble_scan_wifi(hass: Any, address: str) -> list[str]:
     """Scan for Wi-Fi networks over BLE; returns [] when the kettle can't be scanned."""
     client = await _async_ble_connect(hass, address)
