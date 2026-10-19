@@ -96,16 +96,9 @@ BINARY_SENSORS: tuple[FellowStaggBinarySensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda d: d.get("no_water") if d else None,
     ),
-    FellowStaggBinarySensorEntityDescription(
-        key="wifi_connected",
-        translation_key="wifi_connected",
-        device_class=BinarySensorDeviceClass.CONNECTIVITY,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        # Latched Wi-Fi reachability from the coordinator: on while the kettle answers over Wi-Fi
-        # (held through its deliberate radio-off while heating), off on a real Wi-Fi outage. Not
-        # keyed on `backend`, which is always "ble" whenever Bluetooth is in range.
-        value_fn=lambda d: d.get("wifi_connected") if d else None,
-    ),
+    # Wi-Fi status is exposed as a three-state sensor (sensor.*_wi_fi_status:
+    # connected / disconnected / not_configured), not a binary connectivity sensor,
+    # so "unknown" is never shown and "not configured" is distinct from "disconnected".
 )
 
 
@@ -116,12 +109,8 @@ async def async_setup_entry(
 ) -> None:
     """Set up Fellow Stagg binary sensors."""
     coordinator: FellowStaggDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    descriptions = BINARY_SENSORS
-    if coordinator.is_ble_only:
-        # No Wi-Fi on a Bluetooth-only entry, so the Wi-Fi connectivity sensor is meaningless.
-        descriptions = tuple(d for d in BINARY_SENSORS if d.key != "wifi_connected")
     async_add_entities(
-        FellowStaggBinarySensor(coordinator, desc) for desc in descriptions
+        FellowStaggBinarySensor(coordinator, desc) for desc in BINARY_SENSORS
     )
 
 

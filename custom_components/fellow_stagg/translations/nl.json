@@ -340,6 +340,14 @@
       },
       "heating_rate": {
         "name": "Opwarmsnelheid"
+      },
+      "wifi_status": {
+        "name": "Wi-Fi",
+        "state": {
+          "connected": "Verbonden",
+          "disconnected": "Niet verbonden",
+          "not_configured": "Niet ingesteld"
+        }
       }
     },
     "binary_sensor": {
@@ -354,9 +362,6 @@
       },
       "no_water": {
         "name": "Geen water"
-      },
-      "wifi_connected": {
-        "name": "Wi-Fi"
       }
     },
     "select": {

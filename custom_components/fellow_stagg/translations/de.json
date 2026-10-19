@@ -340,6 +340,14 @@
       },
       "heating_rate": {
         "name": "Aufheizrate"
+      },
+      "wifi_status": {
+        "name": "WLAN",
+        "state": {
+          "connected": "Verbunden",
+          "disconnected": "Getrennt",
+          "not_configured": "Nicht eingerichtet"
+        }
       }
     },
     "binary_sensor": {
@@ -354,9 +362,6 @@
       },
       "no_water": {
         "name": "Kein Wasser"
-      },
-      "wifi_connected": {
-        "name": "WLAN"
       }
     },
     "select": {

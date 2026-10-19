@@ -183,6 +183,7 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
         FellowStaggSensorEntityDescription(key="current_temp", translation_key="current_temp", icon="mdi:thermometer", device_class=SensorDeviceClass.TEMPERATURE),
         FellowStaggSensorEntityDescription(key="brew_timer", translation_key="brew_timer", icon="mdi:timer-sand"),
         # Diagnostic – read-only info (Wi-Fi and Bluetooth address first, then rest)
+        FellowStaggSensorEntityDescription(key="wifi_status", translation_key="wifi_status", icon="mdi:wifi-check", device_class=SensorDeviceClass.ENUM, options=["connected", "disconnected", "not_configured"], entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="wifi_address", translation_key="wifi_address", icon="mdi:wifi", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="bluetooth_address", translation_key="bluetooth_address", icon="mdi:bluetooth", entity_category=EntityCategory.DIAGNOSTIC),
         FellowStaggSensorEntityDescription(key="power", translation_key="power", icon="mdi:power", entity_category=EntityCategory.DIAGNOSTIC),
@@ -248,6 +249,13 @@ class FellowStaggSensor(FellowStaggConnectionMixin, CoordinatorEntity[FellowStag
             return self.coordinator.wifi_address
         if self.entity_description.key == "bluetooth_address":
             return self.coordinator.ble_address
+        if self.entity_description.key == "wifi_status":
+            # Three explicit states, independent of which transport is active:
+            # not_configured (Bluetooth-only / no Wi-Fi set), connected, disconnected.
+            if self.coordinator.is_ble_only or not self.coordinator.wifi_address:
+                return "not_configured"
+            connected = self.coordinator.wifi_connected
+            return None if connected is None else ("connected" if connected else "disconnected")
         if self.coordinator.data is None:
             return None
         return VALUE_FUNCTIONS[self.entity_description.key](self.coordinator.data)

@@ -340,6 +340,14 @@
       },
       "heating_rate": {
         "name": "Vitesse de chauffe"
+      },
+      "wifi_status": {
+        "name": "Wi-Fi",
+        "state": {
+          "connected": "Connecté",
+          "disconnected": "Déconnecté",
+          "not_configured": "Non configuré"
+        }
       }
     },
     "binary_sensor": {
@@ -354,9 +362,6 @@
       },
       "no_water": {
         "name": "Pas d'eau"
-      },
-      "wifi_connected": {
-        "name": "Wi-Fi"
       }
     },
     "select": {
