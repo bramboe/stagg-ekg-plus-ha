@@ -101,8 +101,10 @@ BINARY_SENSORS: tuple[FellowStaggBinarySensorEntityDescription, ...] = (
         translation_key="wifi_connected",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
         entity_category=EntityCategory.DIAGNOSTIC,
-        # Connected while the kettle is actually reachable over Wi-Fi; off on Bluetooth fallback.
-        value_fn=lambda d: (d.get("backend") in ("native_http", "legacy_cli")) if d else None,
+        # Latched Wi-Fi reachability from the coordinator: on while the kettle answers over Wi-Fi
+        # (held through its deliberate radio-off while heating), off on a real Wi-Fi outage. Not
+        # keyed on `backend`, which is always "ble" whenever Bluetooth is in range.
+        value_fn=lambda d: d.get("wifi_connected") if d else None,
     ),
 )
 

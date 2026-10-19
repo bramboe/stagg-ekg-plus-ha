@@ -10,6 +10,11 @@ from .native_http import NativeHttpClient
 from .wifi_controls import WifiControls
 from .protocol import CommandUncertain, ProtocolError, UnsupportedCapability
 
+# How long a successful Wi-Fi/HTTP poll keeps counting as "Wi-Fi reachable". The HTTP path is
+# retried roughly every 30 s even when Bluetooth wins the merged state, so a window comfortably
+# above that keeps the connectivity signal steady between HTTP polls.
+_WIFI_FRESH_SECONDS = 90
+
 
 class KettleTransport(WifiControls):
     def __init__(self, mode, base_url=None, ble=None):
@@ -163,6 +168,13 @@ class KettleTransport(WifiControls):
         if data is None:
             raise ConnectionError("No transport has current state") from http_error
         self.backend = data["backend"]
+        # `backend` is forced to "ble" whenever Bluetooth is in range (see live_data), so it cannot
+        # report Wi-Fi connectivity. Expose the Wi-Fi/HTTP path's own freshness instead: True while
+        # HTTP is the active backend, or answered within the freshness window.
+        data["wifi_reachable"] = (
+            data["backend"] in ("native_http", "legacy_cli")
+            or (bool(self._http_data) and monotonic() - self._http_at < _WIFI_FRESH_SECONDS)
+        )
         return data
 
     async def async_set_power(self, session, power_on):

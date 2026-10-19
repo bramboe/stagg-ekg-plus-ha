@@ -131,6 +131,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self._privacy_enforced_at: float | None = None
     self._privacy_notice_shown = False
     self._wifi_offline_notified = False
+    # Latched Wi-Fi connectivity (None until first known), and a rate limiter for IP self-healing.
+    self.wifi_connected: bool | None = None
+    self._wifi_heal_at = 0.0
     self.sync_clock_enabled = mode != "ble"
     self._clock_sync_ready = False
     self._last_clock_sync: datetime | None = None
@@ -500,18 +503,79 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         notification_id=f"fellow_stagg_privacy_{self._entry_id}",
       )
 
-  async def _maybe_notify_wifi_offline(self, data: dict[str, Any]) -> None:
-    """Flag when the configured Wi-Fi is unreachable and the kettle fell back to Bluetooth.
+  @callback
+  def _update_wifi_connected(self, data: dict[str, Any]) -> None:
+    """Latch whether the kettle is reachable over Wi-Fi, independent of which transport won.
 
-    Only meaningful when Wi-Fi is configured and expected (not a Bluetooth-only entry). The
-    notice is shown once while on Bluetooth and dismissed when Wi-Fi returns; it points to
-    Configure to reconnect or set up a different network.
+    The merged state always reports backend="ble" while Bluetooth is in range, so `backend` cannot
+    tell us whether Wi-Fi works. Use the Wi-Fi/HTTP path's own freshness (`wifi_reachable`) instead,
+    and hold the last value while the kettle has deliberately switched its radio off (heating or
+    holding) so the signal does not flap off on every brew. Exposed on `data["wifi_connected"]`.
+    """
+    reachable = bool(data.get("wifi_reachable"))
+    radio_off_expected = bool(data.get("power") or data.get("hold"))
+    if reachable:
+      self.wifi_connected = True
+    elif radio_off_expected and self.wifi_connected is not None:
+      # Kettle drops Wi-Fi while heating/holding; keep the last known state instead of flapping.
+      pass
+    else:
+      self.wifi_connected = False
+    data["wifi_connected"] = self.wifi_connected
+
+  async def _maybe_heal_wifi_ip(self, data: dict[str, Any]) -> None:
+    """Follow the kettle to a new Wi-Fi IP automatically.
+
+    When the configured Wi-Fi address stops answering while the kettle is idle, ask the kettle over
+    Bluetooth for the address it is actually using. If it reports a different reachable LAN address,
+    update the entry and reload so the HTTP path reconnects without manual reconfiguration.
+    """
+    if self.kettle.mode == "ble" or self.kettle.legacy is None:
+      return
+    if not (self.kettle.ble and self.kettle.ble.fresh):
+      return
+    # Only when Wi-Fi is genuinely unreachable and the radio is on (not during a heat/hold, when
+    # the kettle reports no address anyway).
+    if data.get("wifi_reachable") or data.get("power") or data.get("hold"):
+      return
+    now = monotonic()
+    if now - self._wifi_heal_at < _WIFI_HEAL_INTERVAL_SECONDS:
+      return
+    self._wifi_heal_at = now
+    try:
+      url = await self.kettle.ble.async_get_wifi_url()
+    except Exception as err:  # noqa: BLE001 - best effort; never break a poll
+      _LOGGER.debug("Fellow Stagg: could not read the kettle's Wi-Fi address over BLE: %s", err)
+      return
+    if not url:
+      return
+    new_host = urlparse(url).hostname
+    current_host = urlparse(self._base_url).hostname if self._base_url else None
+    if not new_host or new_host == current_host:
+      return
+    entry = self.hass.config_entries.async_get_entry(self._entry_id)
+    if entry is None:
+      return
+    _LOGGER.info(
+      "Fellow Stagg: kettle Wi-Fi address changed from %s to %s; updating and reloading",
+      current_host, new_host,
+    )
+    self.hass.config_entries.async_update_entry(entry, data={**entry.data, "base_url": url})
+    self.hass.async_create_task(self.hass.config_entries.async_reload(self._entry_id))
+
+  async def _maybe_notify_wifi_offline(self, data: dict[str, Any]) -> None:
+    """Flag when the configured Wi-Fi is genuinely unreachable so the kettle runs on Bluetooth.
+
+    Uses the latched Wi-Fi-connected state (which ignores Bluetooth winning the transport, and the
+    kettle's deliberate radio-off while heating), so the notice reflects a real Wi-Fi outage rather
+    than normal Bluetooth operation. Shown once while offline and dismissed when Wi-Fi returns; it
+    points to the Fix flow to reconnect or set up a different network.
     """
     if not self.wifi_address or self.kettle.mode == "ble":
       return
-    on_ble = data.get("backend") == "ble"
+    offline = self.wifi_connected is False
     issue_id = f"wifi_offline_{self._entry_id}"
-    if on_ble and not self._wifi_offline_notified:
+    if offline and not self._wifi_offline_notified:
       self._wifi_offline_notified = True
       ir.async_create_issue(
         self.hass,
@@ -522,7 +586,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         translation_key="wifi_offline",
         data={"entry_id": self._entry_id, "ble_address": self.ble_address},
       )
-    elif not on_ble and self._wifi_offline_notified:
+    elif not offline and self._wifi_offline_notified:
       self._wifi_offline_notified = False
       ir.async_delete_issue(self.hass, DOMAIN, issue_id)
 
@@ -637,6 +701,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       await self._maybe_sync_clock(data)
       await self._maybe_revert_firmware()
       await self._maybe_enforce_privacy(data)
+      self._update_wifi_connected(data)
+      await self._maybe_heal_wifi_ip(data)
       await self._maybe_notify_wifi_offline(data)
       self._update_cli_muted_issue(data)
       self._update_firmware_staged_issue()
@@ -800,6 +866,9 @@ _FIRMWARE_MAX_REVERTS_PER_DAY = 3
 # When "share data with Fellow" is off, re-assert otadis at most this often (a reboot/update,
 # which clears the setting, forces an immediate re-assert via the firmware-version watcher)
 _PRIVACY_REASSERT_SECONDS = 6 * 3600
+# While Wi-Fi is unreachable, ask the kettle over BLE for its current IP at most this often, so a
+# changed address can self-heal without hammering the Bluetooth link.
+_WIFI_HEAL_INTERVAL_SECONDS = 300
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
