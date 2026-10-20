@@ -362,6 +362,9 @@
       },
       "no_water": {
         "name": "Geen water"
+      },
+      "update_staged": {
+        "name": "Firmware-update klaargezet"
       }
     },
     "select": {

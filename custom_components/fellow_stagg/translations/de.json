@@ -362,6 +362,9 @@
       },
       "no_water": {
         "name": "Kein Wasser"
+      },
+      "update_staged": {
+        "name": "Firmware-Update bereit"
       }
     },
     "select": {

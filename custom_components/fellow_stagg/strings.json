@@ -362,6 +362,9 @@
       },
       "no_water": {
         "name": "No water"
+      },
+      "update_staged": {
+        "name": "Firmware update staged"
       }
     },
     "select": {
