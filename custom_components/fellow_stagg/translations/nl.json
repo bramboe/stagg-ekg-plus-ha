@@ -116,6 +116,7 @@
     },
     "abort": {
       "already_configured": "Deze waterkoker is al geconfigureerd.",
+      "already_in_progress": "Er loopt al een installatie voor deze waterkoker.",
       "invalid_host": "Ongeldige host.",
       "not_fellow_stagg": "Dit apparaat is geen Fellow Stagg-waterkoker.",
       "invalid_discovery_info": "Ongeldige discovery-informatie.",

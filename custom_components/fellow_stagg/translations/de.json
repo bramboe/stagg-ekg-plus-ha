@@ -116,6 +116,7 @@
     },
     "abort": {
       "already_configured": "Dieser Wasserkocher ist bereits konfiguriert.",
+      "already_in_progress": "Für diesen Wasserkocher läuft bereits eine Einrichtung.",
       "invalid_host": "Ungültiger Host.",
       "not_fellow_stagg": "Dieses Gerät ist kein Fellow Stagg Wasserkocher.",
       "invalid_discovery_info": "Ungültige Discovery-Informationen.",

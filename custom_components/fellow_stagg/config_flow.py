@@ -1566,6 +1566,21 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
             for entry in self._async_current_entries():
                 if _normalize_ble_address(entry.options.get("ble_address") or entry.data.get("ble_address")) == _normalize_ble_address(address):
                     return self.async_abort(reason="already_configured")
+            # A Wi-Fi-only entry stores no BLE address, so the kettle it controls can't be matched
+            # above and would be rediscovered on every advert (#11). Treat it as configured; another
+            # kettle can still be added from "Add integration", or Bluetooth enabled from Configure.
+            for entry in self._async_current_entries(include_ignore=False):
+                if not (entry.options.get("ble_address") or entry.data.get("ble_address")):
+                    return self.async_abort(reason="already_configured")
+            # The kettle can advertise from changing addresses (or via several proxies); keep one
+            # discovery card instead of a new flow, and BLE connect attempt, per address.
+            await self.async_set_unique_id("ble:" + _normalize_ble_address(address))
+            self._abort_if_unique_id_configured()
+            if any(
+                flow["flow_id"] != self.flow_id and flow["context"].get("source") == config_entries.SOURCE_BLUETOOTH
+                for flow in self._async_in_progress(include_uninitialized=True)
+            ):
+                return self.async_abort(reason="already_in_progress")
         return await self.async_step_user()
 
     async def async_step_bluetooth_menu(self, user_input=None):

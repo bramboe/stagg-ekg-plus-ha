@@ -116,6 +116,7 @@
     },
     "abort": {
       "already_configured": "Cette bouilloire est déjà configurée.",
+      "already_in_progress": "Une configuration de cette bouilloire est déjà en cours.",
       "invalid_host": "Hôte non valide.",
       "not_fellow_stagg": "Cet appareil n'est pas une bouilloire Fellow Stagg.",
       "invalid_discovery_info": "Informations de découverte non valides.",

@@ -116,6 +116,7 @@
     },
     "abort": {
       "already_configured": "This kettle is already configured.",
+      "already_in_progress": "A setup for this kettle is already in progress.",
       "invalid_host": "Invalid host.",
       "not_fellow_stagg": "This device is not a Fellow Stagg kettle.",
       "invalid_discovery_info": "Invalid discovery information.",

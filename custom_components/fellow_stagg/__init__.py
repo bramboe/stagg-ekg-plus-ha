@@ -129,7 +129,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     # disabled (otadis) and warn once that metrics need a network-level block (HA can't intercept).
     self.share_fellow_data = bool(options.get(OPT_SHARE_FELLOW_DATA, SHARE_FELLOW_DATA_DEFAULT))
     self._privacy_enforced_at: float | None = None
-    self._privacy_notice_shown = False
+    # Persisted in entry data so the notice is shown once, not again after every HA restart.
+    self._privacy_notice_shown = bool(entry.data.get("privacy_notice_shown"))
     self._wifi_offline_notified = False
     # Latched Wi-Fi connectivity (None until first known), and a rate limiter for IP self-healing.
     self.wifi_connected: bool | None = None
@@ -492,6 +493,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     on_network = data.get("backend") in ("native_http", "legacy_cli")
     if on_network and not self._privacy_notice_shown:
       self._privacy_notice_shown = True
+      entry = self.hass.config_entries.async_get_entry(self._entry_id)
+      if entry is not None:
+        self.hass.config_entries.async_update_entry(entry, data={**entry.data, "privacy_notice_shown": True})
       persistent_notification.async_create(
         self.hass,
         "Home Assistant keeps the kettle's Fellow firmware-update check turned off. The kettle "
