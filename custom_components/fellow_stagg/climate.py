@@ -76,7 +76,7 @@ class FellowStaggClimate(
         super()._handle_coordinator_update()
 
     @property
-    def temperature_unit(self) -> str:
+    def native_temperature_unit(self) -> str:
         """Return the unit currently set on the kettle hardware."""
         return self.coordinator.temperature_unit
 
@@ -88,7 +88,7 @@ class FellowStaggClimate(
         is a clean 1° step; in °C we offer 0.5° so the user gets finer-than-1°
         control (each request maps to the nearest whole °F, ~0.56 °C apart).
         """
-        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+        if self.native_temperature_unit == UnitOfTemperature.FAHRENHEIT:
             return 1.0
         return 0.5
 
@@ -134,8 +134,8 @@ class FellowStaggClimate(
             return HVACAction.HEATING
             
         # Fallback logic if mode is generic but temperature is rising
-        current_temp = self.current_temperature
-        target_temp = self.target_temperature
+        current_temp = self.native_current_temperature
+        target_temp = self.native_target_temperature
         if self.is_on and current_temp is not None and target_temp is not None:
             if target_temp - current_temp > 0.5:
                 return HVACAction.HEATING
@@ -146,7 +146,7 @@ class FellowStaggClimate(
         return HVACAction.OFF
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         """Return current temperature in native units."""
         if not self.coordinator.data:
             return None
@@ -154,12 +154,12 @@ class FellowStaggClimate(
         if temp_c is None:
             return None
         
-        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+        if self.native_temperature_unit == UnitOfTemperature.FAHRENHEIT:
             return round((temp_c * 1.8) + 32.0, 1)
         return round(temp_c, 1)
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         """Return target temperature in native units, snapped to the step grid.
 
         The kettle stores the target in whole °F, so a request like 79 °C comes
@@ -172,12 +172,19 @@ class FellowStaggClimate(
         if temp_c is None:
             return None
 
-        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+        if self.native_temperature_unit == UnitOfTemperature.FAHRENHEIT:
             display = (temp_c * 1.8) + 32.0
         else:
             display = temp_c
         step = self.target_temperature_step
         return round(round(display / step) * step, 1)
+
+    # HA < 2026.11 only knows the un-prefixed names; alias them there so older
+    # installs keep working without tripping the deprecation warning on 2026.11+.
+    if not hasattr(ClimateEntity, "native_temperature_unit"):
+        temperature_unit = native_temperature_unit
+        current_temperature = native_current_temperature
+        target_temperature = native_target_temperature
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Select a brew preset (stored), setting the target temperature to match.
@@ -217,7 +224,7 @@ class FellowStaggClimate(
         # Convert the requested temperature to Celsius without rounding to a whole
         # degree — async_set_temperature rounds at the °F step, preserving the 0.5 °C
         # selection as the nearest achievable Fahrenheit value.
-        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+        if self.native_temperature_unit == UnitOfTemperature.FAHRENHEIT:
             temp_c = (temperature - 32.0) / 1.8
         else:
             temp_c = temperature

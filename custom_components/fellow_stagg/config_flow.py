@@ -1309,7 +1309,6 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
     """Handle a config flow for the Fellow Stagg integration."""
 
     VERSION = 2
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     def _ble_entry_data(self) -> dict[str, Any]:
         """BLE address/name and the kettle's device name/MAC learned during this flow."""
