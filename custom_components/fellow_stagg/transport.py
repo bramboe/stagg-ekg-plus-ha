@@ -217,7 +217,7 @@ class KettleTransport(WifiControls):
         raise UnsupportedCapability("Connect and detect capabilities before writing")
 
     async def _sound(self, method, session, *args):
-        if self.ble and self.ble.supports_power:
+        if self.ble and self.ble.supports_sounds:
             async with self._command_lock:
                 self.last_write_backend = "ble"
                 return await getattr(self.ble, method)(session, *args)

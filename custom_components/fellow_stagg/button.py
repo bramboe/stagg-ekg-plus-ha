@@ -201,7 +201,7 @@ class FellowStaggPlaySoundButton(CoordinatorEntity[FellowStaggDataUpdateCoordina
   @property
   def available(self) -> bool:
     k = self.coordinator.kettle
-    return super().available and (k.supports_legacy or bool(k.ble and k.ble.supports_power))
+    return super().available and (k.supports_legacy or bool(k.ble and k.ble.supports_builtin_sound(self._sound)))
 
   async def async_press(self) -> None:
     self.coordinator.notify_command_sent()
@@ -229,7 +229,7 @@ class FellowStaggPlayMelodyButton(CoordinatorEntity[FellowStaggDataUpdateCoordin
   @property
   def available(self) -> bool:
     k = self.coordinator.kettle
-    return super().available and (k.supports_legacy or bool(k.ble and k.ble.supports_power))
+    return super().available and (k.supports_legacy or bool(k.ble and k.ble.supports_sounds))
 
   async def async_press(self) -> None:
     self.coordinator.notify_command_sent()

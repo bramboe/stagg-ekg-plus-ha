@@ -19,7 +19,8 @@ class BleExtras:
             raise ValueError("Unknown sound")
         async with self._command_lock:
             await self.ensure_connected()
-            self._require_supported("power_write")
+            if not self.supports_builtin_sound(pattern):
+                raise UnsupportedCapability("This sound is not validated on this firmware")
             await self._send_b6_once(f"buz {pattern}")
 
     async def async_play_sos(self, session):
@@ -33,7 +34,8 @@ class BleExtras:
                 raise ValueError("Invalid tone")
         async with self._command_lock:
             await self.ensure_connected()
-            self._require_supported("power_write")
+            if not self.supports_sounds:
+                raise UnsupportedCapability("Sounds are not validated on this firmware")
             for index, (freq, duty, duration) in enumerate(beeps):
                 if index:
                     await asyncio.sleep(beeps[index - 1][2] / 1000 + 0.15)

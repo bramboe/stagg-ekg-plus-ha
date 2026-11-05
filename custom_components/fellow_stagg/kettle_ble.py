@@ -14,7 +14,8 @@ from time import monotonic
 
 from .protocol import (
     PreferenceControls, preference_payload, B1, B4, B5, B6, B7, CommandUncertain, ProtocolError, UnsupportedCapability,
-    decode_settings, decode_status, temperature_payload, units_payload, clock_payload, clock_readback_matches,
+    decode_settings, decode_status, fahrenheit_temperature_payload, temperature_payload, units_payload, clock_payload,
+    clock_readback_matches,
 )
 
 
@@ -75,12 +76,24 @@ class KettleBleClient(BleExtras, PreferenceControls):
         return bool(self.firmware and self.firmware.split() and self.firmware.split()[0] == "1.2.26")
 
     @property
+    def legacy_firmware(self):
+        return bool(self.firmware and self.firmware.startswith("1.1."))
+
+    @property
     def supports_power(self):
         return self.supports_writes and "power_write" in self.capabilities
 
     @property
     def supports_settings(self):
-        return self.supports_writes and "settings_write" in self.capabilities
+        return (self.supports_writes or self.legacy_firmware) and "settings_write" in self.capabilities
+
+    @property
+    def supports_sounds(self):
+        return (self.supports_writes or self.legacy_firmware) and "power_write" in self.capabilities
+
+    def supports_builtin_sound(self, pattern):
+        # `buz rick` is accepted on firmware 1.1.76SSP but stays silent.
+        return self.supports_sounds and not (pattern == "rick" and self.legacy_firmware)
 
     @property
     def fresh(self):
@@ -172,7 +185,7 @@ class KettleBleClient(BleExtras, PreferenceControls):
                     if "notify" in characteristic.properties:
                         await self.client.start_notify(char, lambda sender, raw, c=char: self._notify(generation, c, raw))
                 self._accept_settings(decode_settings(bytes(await self.client.read_gatt_char(B5))))
-                if self.firmware.split()[0] == "1.2.26" and "interval_write" in self.capabilities:
+                if (self.supports_writes or self.legacy_firmware) and "interval_write" in self.capabilities:
                     # New random session resets the dispatcher ordinal; B4 type 3 is
                     # quick-status interval only. Do not touch debug or Wi-Fi settings.
                     await self.client.write_gatt_char(B4, struct.pack("<HHI", 0, 0, secrets.randbits(32)), response=True)
@@ -255,6 +268,8 @@ class KettleBleClient(BleExtras, PreferenceControls):
         return {**self.data, "backend": "ble", "firmware_version": self.firmware, "cli_muted": False}
 
     def _require_supported(self, capability):
+        if capability == "settings_write" and self.supports_settings:
+            return
         if not self.supports_writes or capability not in self.capabilities:
             raise UnsupportedCapability("BLE writes are validated only on firmware 1.2.26")
 
@@ -295,7 +310,11 @@ class KettleBleClient(BleExtras, PreferenceControls):
     async def _async_power_command(self, power_on, record):
         record["stage"] = "connecting"
         await self.ensure_connected()
-        self._require_supported("power_write")
+        if self.legacy_firmware:
+            if "power_write" not in self.capabilities:
+                raise UnsupportedCapability("Kettle lacks the B6 command characteristic")
+        else:
+            self._require_supported("power_write")
         record["stage"] = "fresh_state_check"
         state = await self._fresh_notification()
         record["source_state"] = state.get("mode")
@@ -319,7 +338,9 @@ class KettleBleClient(BleExtras, PreferenceControls):
         try:
             record["write_attempted"] = True
             record["press_count"] = 1
-            await asyncio.wait_for(self.client.write_gatt_char(B6, b"2\n", response=True), WRITE_TIMEOUT)
+            # Firmware 1.1.x takes an explicit state command, validated against a live kettle.
+            command = (b"ss S_Heat\n" if power_on else b"ss S_Off\n") if self.legacy_firmware else b"2\n"
+            await asyncio.wait_for(self.client.write_gatt_char(B6, command, response=True), WRITE_TIMEOUT)
             record["write_acknowledged"] = True
             record["stage"] = "awaiting_state_confirmation"
             command_generation = self._generation
@@ -344,6 +365,7 @@ class KettleBleClient(BleExtras, PreferenceControls):
                 # Permit one follow-up only after an acknowledged write and several
                 # advancing active-state reports. Never repeat On or a failed write.
                 if (not power_on and record["press_count"] == 1
+                        and not self.legacy_firmware
                         and active_samples >= 3
                         and monotonic() - acknowledged_at >= OFF_FOLLOWUP_DELAY):
                     state = await self._fresh_notification()
@@ -584,6 +606,12 @@ class KettleBleClient(BleExtras, PreferenceControls):
         await self._settings_write(preference_payload(key, value), key, value)
 
     async def async_set_temperature(self, session, temp_c, **kwargs):
+        if self.legacy_firmware and self.data.get("units") == "F":
+            temp_f = round(temp_c * 1.8 + 32)
+            expected = (temp_f - 32) / 1.8
+            await self._settings_write(fahrenheit_temperature_payload(temp_f), "target_temp",
+                                       lambda actual: actual is not None and abs(actual - expected) < 0.01)
+            return
         await self._settings_write(temperature_payload(temp_c), "target_temp", round(temp_c * 2) / 2)
 
     async def async_set_clock(self, session, hour, minute, second=0):
