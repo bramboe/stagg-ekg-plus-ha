@@ -345,7 +345,7 @@ class KettleBleClient(BleExtras, PreferenceControls):
         try:
             record["write_attempted"] = True
             record["press_count"] = 1
-            # Firmware 1.1.x takes an explicit state command, validated against a live kettle.
+            # Firmware 1.1.x takes an explicit state command.
             command = (b"ss S_Heat\n" if power_on else b"ss S_Off\n") if self.legacy_firmware else b"2\n"
             await asyncio.wait_for(self.client.write_gatt_char(B6, command, response=True), WRITE_TIMEOUT)
             record["write_acknowledged"] = True
