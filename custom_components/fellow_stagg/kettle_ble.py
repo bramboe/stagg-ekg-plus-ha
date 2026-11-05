@@ -120,6 +120,9 @@ class KettleBleClient(BleExtras, PreferenceControls):
         try:
             if characteristic == B1:
                 data = decode_status(bytes(raw))
+                if self.legacy_firmware:
+                    # Signed PID output, matching `out` in `pwmprt`: -10 idle, up to 110 at full power.
+                    data["pwm"] = int.from_bytes(raw[15:16], "little", signed=True)
                 seq = data.pop("sequence")
                 revision = data.pop("settings_revision")
                 # Duplicated/out-of-order frames do not refresh the safety timestamp.
