@@ -58,8 +58,10 @@ class BleExtras:
         expected_temp = round(temp_c * 2) / 2
         async with self._command_lock:
             await self.ensure_connected()
-            self._require_supported("power_write")
-            self._require_supported("settings_write")
+            if not self.supports_schedule:
+                raise UnsupportedCapability("Schedules are not validated on this firmware")
+            if mode == "daily" and self.legacy_firmware:
+                raise UnsupportedCapability("Daily schedules are not validated on firmware 1.1.x")
             generation = self._generation
 
             async def read():

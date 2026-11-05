@@ -88,6 +88,10 @@ class KettleBleClient(BleExtras, PreferenceControls):
         return (self.supports_writes or self.legacy_firmware) and "settings_write" in self.capabilities
 
     @property
+    def supports_schedule(self):
+        return (self.supports_writes or self.legacy_firmware) and {"power_write", "settings_write"} <= self.capabilities
+
+    @property
     def supports_sounds(self):
         return (self.supports_writes or self.legacy_firmware) and "power_write" in self.capabilities
 
