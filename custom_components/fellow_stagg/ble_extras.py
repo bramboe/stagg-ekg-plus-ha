@@ -60,8 +60,6 @@ class BleExtras:
             await self.ensure_connected()
             if not self.supports_schedule:
                 raise UnsupportedCapability("Schedules are not validated on this firmware")
-            if mode == "daily" and self.legacy_firmware:
-                raise UnsupportedCapability("Daily schedules are not validated on firmware 1.1.x")
             generation = self._generation
 
             async def read():
