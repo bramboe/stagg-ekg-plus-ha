@@ -1,5 +1,7 @@
 # Fellow Stagg EKG Pro — Home Assistant
 
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/bramboe?frequency=one-time) [![Donate via bunq.me](https://img.shields.io/badge/Donate-bunq.me-2E9AD0)](https://bunq.me/bramboe)
+
 ![Fellow Coffee logo](https://raw.githubusercontent.com/bramboe/stagg-ekg-plus-ha/main/branding/icon.svg)
 
 Local Home Assistant integration for the **Fellow Stagg EKG Pro**, using Wi-Fi, Bluetooth or both. Control temperature, view live kettle status and use the settings supported by your firmware and connection. No cloud account is required by the integration.
@@ -144,9 +146,3 @@ state. Unexpected reconnections clear the active assumption. See
 **Refresh screen** is a manual diagnostic action over Bluetooth. It requests
 redrawing and does not close menus. Its ability to fix stale screen content
 has not yet been visually confirmed.
-
-## Support
-
-If this project is useful to you, consider sponsoring my work 💙
-
-[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/bramboe?frequency=one-time) [![Donate via bunq.me](https://img.shields.io/badge/Donate-bunq.me-2E9AD0)](https://bunq.me/bramboe)
