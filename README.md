@@ -144,3 +144,9 @@ state. Unexpected reconnections clear the active assumption. See
 **Refresh screen** is a manual diagnostic action over Bluetooth. It requests
 redrawing and does not close menus. Its ability to fix stale screen content
 has not yet been visually confirmed.
+
+## Support
+
+If this project is useful to you, consider sponsoring my work 💙
+
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/bramboe) [![Donate via bunq.me](https://img.shields.io/badge/Donate-bunq.me-2E9AD0)](https://bunq.me/bramboe)
