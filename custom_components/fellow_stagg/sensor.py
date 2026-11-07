@@ -7,6 +7,7 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
+    SensorStateClass,
 )
 from homeassistant.const import UnitOfTemperature, EntityCategory
 from homeassistant.core import HomeAssistant
@@ -178,7 +179,7 @@ def get_sensor_descriptions() -> list[FellowStaggSensorEntityDescription]:
     return [
         FellowStaggSensorEntityDescription(key="backend", translation_key="backend", icon="mdi:transit-connection-variant"),
         FellowStaggSensorEntityDescription(key="device_state", translation_key="device_state", entity_category=EntityCategory.DIAGNOSTIC),
-        FellowStaggSensorEntityDescription(key="pwm", translation_key="pwm", entity_category=EntityCategory.DIAGNOSTIC, entity_registry_enabled_default=False),
+        FellowStaggSensorEntityDescription(key="pwm", translation_key="pwm", entity_category=EntityCategory.DIAGNOSTIC, entity_registry_enabled_default=False, state_class=SensorStateClass.MEASUREMENT),
         # Main – primary status
         FellowStaggSensorEntityDescription(key="current_temp", translation_key="current_temp", icon="mdi:thermometer", device_class=SensorDeviceClass.TEMPERATURE),
         FellowStaggSensorEntityDescription(key="brew_timer", translation_key="brew_timer", icon="mdi:timer-sand"),

@@ -184,7 +184,7 @@ class FellowStaggInterfaceButton(CoordinatorEntity, ButtonEntity):
 class FellowStaggPlaySoundButton(CoordinatorEntity[FellowStaggDataUpdateCoordinator], ButtonEntity):
   """Play one of the firmware's built-in buzzer melodies (`buz <name>`) on press.
 
-  Works over the legacy Wi-Fi CLI or over Bluetooth on 1.2.x; fire-and-forget."""
+  Works over the legacy Wi-Fi CLI or over Bluetooth on 1.1.x and 1.2.x; fire-and-forget."""
 
   _attr_has_entity_name = True
   _ICONS = {"chime": "mdi:bell-ring", "sos": "mdi:alarm-light", "rick": "mdi:music"}
@@ -201,7 +201,7 @@ class FellowStaggPlaySoundButton(CoordinatorEntity[FellowStaggDataUpdateCoordina
   @property
   def available(self) -> bool:
     k = self.coordinator.kettle
-    return super().available and (k.supports_legacy or bool(k.ble and k.ble.supports_power))
+    return super().available and (k.supports_legacy or bool(k.ble and k.ble.supports_builtin_sound(self._sound)))
 
   async def async_press(self) -> None:
     self.coordinator.notify_command_sent()
@@ -212,7 +212,7 @@ class FellowStaggPlayMelodyButton(CoordinatorEntity[FellowStaggDataUpdateCoordin
   """Play a custom note-sequence melody from CHIME_PRESETS via async_play_chime on press.
 
   Unlike the firmware built-ins, these melodies are sent as an explicit note list, so they
-  work over the legacy Wi-Fi CLI or over Bluetooth on 1.2.x; fire-and-forget."""
+  work over the legacy Wi-Fi CLI or over Bluetooth on 1.1.x and 1.2.x; fire-and-forget."""
 
   _attr_has_entity_name = True
   _ICONS = {"mario": "mdi:gamepad-variant", "happy_birthday": "mdi:cake-variant"}
@@ -229,7 +229,7 @@ class FellowStaggPlayMelodyButton(CoordinatorEntity[FellowStaggDataUpdateCoordin
   @property
   def available(self) -> bool:
     k = self.coordinator.kettle
-    return super().available and (k.supports_legacy or bool(k.ble and k.ble.supports_power))
+    return super().available and (k.supports_legacy or bool(k.ble and k.ble.supports_sounds))
 
   async def async_press(self) -> None:
     self.coordinator.notify_command_sent()

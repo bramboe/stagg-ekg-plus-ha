@@ -48,7 +48,7 @@ class KettleTransport(WifiControls):
 
     @property
     def supports_schedule_mode(self):
-        return self.supports_legacy or (self.mode != "ble" and self.http_backend == "native_http") or bool(self.ble and self.ble.fresh and self.ble.supports_settings and self.ble.supports_power)
+        return self.supports_legacy or (self.mode != "ble" and self.http_backend == "native_http") or bool(self.ble and self.ble.fresh and self.ble.supports_schedule)
 
     @property
     def supports_preferences(self):
@@ -217,7 +217,7 @@ class KettleTransport(WifiControls):
         raise UnsupportedCapability("Connect and detect capabilities before writing")
 
     async def _sound(self, method, session, *args):
-        if self.ble and self.ble.supports_power:
+        if self.ble and self.ble.supports_sounds:
             async with self._command_lock:
                 self.last_write_backend = "ble"
                 return await getattr(self.ble, method)(session, *args)
@@ -233,14 +233,14 @@ class KettleTransport(WifiControls):
         return await self._sound("async_play_builtin", session, pattern)
 
     async def async_program_schedule(self, session, hour, minute, temp_c, mode):
-        if self.ble and self.ble.fresh and self.ble.supports_settings and self.ble.supports_power:
+        if self.ble and self.ble.fresh and self.ble.supports_schedule:
             async with self._command_lock:
                 self.last_write_backend = "ble"
                 return await self.ble.async_program_schedule(session, hour, minute, temp_c, mode)
         return await super().async_program_schedule(session, hour, minute, temp_c, mode)
 
     async def async_set_existing_schedule_mode(self, session, mode):
-        if self.ble and self.ble.fresh and self.ble.supports_settings and self.ble.supports_power:
+        if self.ble and self.ble.fresh and self.ble.supports_schedule:
             async with self._command_lock:
                 self.last_write_backend = "ble"
                 return await self.ble.async_set_existing_schedule_mode(session, mode)
