@@ -131,6 +131,42 @@ def _normalize_ble_address(addr: str | None) -> str:
     return addr.strip().lower().replace("-", "").replace(":", "")
 
 
+def _ble_mac_candidates(wifi_mac: str | None) -> set[str]:
+    """BLE addresses an ESP32 kettle may advertise from, given its Wi-Fi MAC.
+
+    The ESP32 derives its Bluetooth MAC from the base MAC (Wi-Fi station MAC + 2
+    by default; +1 on some builds), so a Wi-Fi MAC identifies the BLE address too.
+    """
+    norm = _normalize_ble_address(wifi_mac)
+    if len(norm) != 12:
+        return set()
+    try:
+        value = int(norm, 16)
+    except ValueError:
+        return set()
+    return {f"{(value + d) & 0xFFFFFFFFFFFF:012x}" for d in (0, 1, 2)}
+
+
+def _entry_matches_ble(entry: Any, address: str | None, name: str | None) -> bool:
+    """True when a BLE advertisement belongs to the kettle of an existing entry (#14)."""
+    options = entry.options or {}
+    data = entry.data or {}
+    addr = _normalize_ble_address(address)
+    if addr and addr == _normalize_ble_address(options.get("ble_address") or data.get("ble_address")):
+        return True
+    if addr and addr in _ble_mac_candidates(data.get("mac")):
+        return True
+    unique_id = str(entry.unique_id or "")
+    if addr and unique_id.startswith("ble:") and _normalize_ble_address(unique_id[4:]) == addr:
+        return True
+    adv_name = (name or "").strip().lower()
+    if adv_name:
+        for key in ("ble_name", "device_name"):
+            if (data.get(key) or "").strip().lower() == adv_name:
+                return True
+    return False
+
+
 def _build_base_url(host: str, port: int | None) -> str:
     """Build http base URL from host and port."""
     host = (host or "").strip()
@@ -1563,7 +1599,7 @@ class FellowStaggConfigFlow(_WifiSetupMixin, config_entries.ConfigFlow, domain=D
             if name:
                 self.context["ble_name"] = name
             for entry in self._async_current_entries():
-                if _normalize_ble_address(entry.options.get("ble_address") or entry.data.get("ble_address")) == _normalize_ble_address(address):
+                if _entry_matches_ble(entry, address, name):
                     return self.async_abort(reason="already_configured")
             # A Wi-Fi-only entry stores no BLE address, so the kettle it controls can't be matched
             # above and would be rediscovered on every advert (#11). Treat it as configured; another
