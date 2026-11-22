@@ -69,6 +69,16 @@ def temperature_payload(temp_c: float) -> bytes:
     return bytes(raw)
 
 
+def fahrenheit_temperature_payload(temp_f: int) -> bytes:
+    """Whole-degree Fahrenheit target; firmware 1.1.x stores it exactly."""
+    if type(temp_f) is not int or not 104 <= temp_f <= 212:
+        raise ValueError("Temperature must be between 104 and 212 Fahrenheit")
+    raw = bytearray(17)
+    struct.pack_into("<H", raw, 0, 2)
+    struct.pack_into("<H", raw, 4, temp_f)
+    return bytes(raw)
+
+
 
 def disarmed_schedule_payload(hour, minute, temp_c):
     """Select only schedule fields, explicitly disabled, in Celsius half-degrees."""

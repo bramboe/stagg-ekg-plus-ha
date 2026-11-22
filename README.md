@@ -40,7 +40,7 @@ Availability depends on the detected backend. Unsupported controls remain unavai
 | Mode | Requirements | Behavior |
 |---|---|---|
 | **Wi-Fi** | Kettle HTTP URL reachable from Home Assistant | Uses the legacy CLI when usable; otherwise detects native HTTP. Firmware 1.2.26 has no supported Wi-Fi power control. |
-| **Bluetooth** | Reachable Home Assistant Bluetooth adapter or active ESPHome Bluetooth Proxy | Live status, target, units and preferences; guarded power control on firmware 1.2.26. No kettle HTTP traffic or Wi-Fi provisioning by this integration. |
+| **Bluetooth** | Reachable Home Assistant Bluetooth adapter or active ESPHome Bluetooth Proxy | Live status, target, units and preferences; guarded power control on firmware 1.1.x and 1.2.26. No kettle HTTP traffic or Wi-Fi provisioning by this integration. |
 | **Automatic** | Wi-Fi URL and Bluetooth address | Uses fresh BLE status and supported BLE controls; HTTP provides additional available capabilities, including planning and firmware tools. |
 
 **For firmware 1.2.26, use Automatic or Bluetooth for on/off control.** Observations recorded in this repository show Wi-Fi dropping during heating and holding, returning after the kettle is switched off. Native HTTP power commands are unsupported. Automatic mode retains Wi-Fi features when the kettle is reachable over HTTP.
@@ -51,7 +51,7 @@ Home Assistant chooses the reachable connectable Bluetooth adapter/proxy. ESPHom
 
 | Firmware | Supported path and limitations |
 |---|---|
-| **1.1.x with usable CLI** | Legacy Wi-Fi controls, schedules, clock synchronization and supported extras. BLE writes are disabled. |
+| **1.1.x with usable CLI** | Legacy Wi-Fi controls, schedules, clock synchronization and supported extras. BLE status, power, settings, schedules and sounds other than `rick`, tested on 1.1.76SSP only. Bricky, screen refresh and auto-update blocking stay disabled over BLE. |
 | **1.2.24 with muted CLI** | No guaranteed control or recovery path. Native endpoints are unvalidated. Compatible BLE status may be readable, but writes are disabled. |
 | **1.2.26** | Native HTTP status/settings and Wi-Fi planning; BLE status/settings/power, planning and sounds. Physical acceptance remains incomplete for some operations. |
 
