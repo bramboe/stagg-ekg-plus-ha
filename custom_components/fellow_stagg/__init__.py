@@ -172,6 +172,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     data = self.kettle.live_data()
     self.bricky.observe(data or {})
     if data is not None:
+      self._enrich_firmware(data)
       self._enrich_eta(data)
       self.async_set_updated_data(data)
     elif self.kettle.mode == "ble":
@@ -277,13 +278,23 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
           self._firmware_version = await self.kettle.async_get_firmware_version(self.session)
         except Exception as err:
           _LOGGER.debug("Could not fetch firmware version yet: %s", err)
-      data["firmware"] = self.firmware
-      data["firmware_version"] = (self.firmware or {}).get("current_version") or data.get("firmware_version") or self._firmware_version
+      self._enrich_firmware(data)
       self._enrich_eta(data)
       result = self.last_power_result
       if result:
         data["last_command_result"] = result.get("outcome")
     return data
+
+  def _enrich_firmware(self, data: dict[str, Any]) -> None:
+    """Attach the cached partition table and the canonical running version.
+
+    Both the poll path and the Bluetooth push path (_ble_updated) must call this.
+    Otherwise every BLE status notification replaces the data with the raw BLE
+    version string (e.g. "1.1.75SSP C") and no partition table, so the firmware
+    version and update-staged entities flap against each poll.
+    """
+    data["firmware"] = self.firmware
+    data["firmware_version"] = (self.firmware or {}).get("current_version") or data.get("firmware_version") or self._firmware_version
 
   def _invalidate_firmware_cache_on_version_change(self, data: dict[str, Any]) -> None:
     """Force a partition re-read when the live firmware version no longer matches the cached
