@@ -164,6 +164,8 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.options_snapshot = dict(entry.options or {})
     self._temp_samples: deque = deque(maxlen=31)  # one sample/second, last 30 seconds
     self._eta_context = None
+    self._temp_window: deque = deque()  # (monotonic time, raw °C) for the published rolling mean
+    self._published_temp: float | None = None
     self.bricky = BrickySession(self.kettle, self.async_update_listeners)
 
   def _ble_updated(self) -> None:
@@ -173,6 +175,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
     self.bricky.observe(data or {})
     if data is not None:
       self._enrich_eta(data)
+      self._smooth_current_temp(data)
       self.async_set_updated_data(data)
     elif self.kettle.mode == "ble":
       self._temp_samples.clear()
@@ -214,6 +217,28 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         rate = (c1 - c0) / span  # degrees C per second
     data["heating_rate_c_min"] = round(rate * 60, 1) if rate else None
     data["eta_seconds"] = int((target - temp) / rate) if rate and rate > 0 else None
+
+  def _smooth_current_temp(self, data: dict[str, Any]) -> None:
+    """Publish a rolling mean of current_temp behind a deadband, not each raw frame.
+
+    BLE status frames arrive every STATUS_INTERVAL_MS in 0.1 °C steps, so sensor jitter
+    (about 1.2 °C peak to peak on an idle kettle) became a new state twice a second.
+    Call after _enrich_eta, which samples the raw reading for its own estimates.
+    """
+    temp = data.get("current_temp")
+    if data.get("lifted") or not isinstance(temp, (int, float)) or isinstance(temp, bool) or not math.isfinite(temp):
+      # Start fresh, so a refilled kettle is not averaged against the old water.
+      self._temp_window.clear()
+      self._published_temp = None
+      return
+    now = monotonic()
+    self._temp_window.append((now, float(temp)))
+    while now - self._temp_window[0][0] > _TEMP_SMOOTH_WINDOW_SECONDS:
+      self._temp_window.popleft()
+    mean = sum(sample for _, sample in self._temp_window) / len(self._temp_window)
+    if self._published_temp is None or abs(mean - self._published_temp) >= _TEMP_DEADBAND_C:
+      self._published_temp = round(mean, 1)
+    data["current_temp"] = self._published_temp
 
   @property
   def last_power_result(self) -> dict[str, Any] | None:
@@ -280,6 +305,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
       data["firmware"] = self.firmware
       data["firmware_version"] = (self.firmware or {}).get("current_version") or data.get("firmware_version") or self._firmware_version
       self._enrich_eta(data)
+      self._smooth_current_temp(data)
       result = self.last_power_result
       if result:
         data["last_command_result"] = result.get("outcome")
@@ -861,6 +887,9 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
 _POLL_RETRY_ATTEMPTS = 2
 # Firmware page (root URL) is re-read this often; the kettle only changes it on an update or switch
 _FIRMWARE_PAGE_REFRESH_SECONDS = 120
+# Published current temperature: rolling-mean window and the change needed to publish.
+_TEMP_SMOOTH_WINDOW_SECONDS = 5.0
+_TEMP_DEADBAND_C = 0.5
 # Consecutive form-only CLI answers before raising the Repairs issue
 _CLI_MUTED_POLLS_BEFORE_ISSUE = 3
 # "Lock firmware" cooldown between automatic partition switch-backs
