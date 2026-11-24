@@ -196,7 +196,7 @@ async def _resolve_host_to_ip(hass: Any, host: str | None) -> str | None:
 
     def _resolve() -> str | None:
         try:
-            for family, _type, _proto, _canon, sockaddr in socket.getaddrinfo(
+            for _family, _type, _proto, _canon, sockaddr in socket.getaddrinfo(
                 host, None, socket.AF_INET
             ):
                 if sockaddr and len(sockaddr) >= 1:
@@ -296,7 +296,7 @@ async def _get_local_subnet_prefixes(hass: Any) -> list[str]:
                 parts = local_ip.split(".")
                 if len(parts) == 4:
                     prefixes.append(f"{parts[0]}.{parts[1]}.{parts[2]}")
-        except (OSError, socket.error):
+        except OSError:
             pass
     # Deduplicate, preserve order
     seen: set[str] = set()

@@ -84,8 +84,8 @@ async def async_factory_reset(client, on_dispatch):
             state_ready.clear()
             try:
                 await asyncio.wait_for(state_ready.wait(), max(0.05, deadline - monotonic()))
-            except asyncio.TimeoutError:
-                raise UnsupportedCapability("Could not switch the kettle to standby for factory reset")
+            except TimeoutError as err:
+                raise UnsupportedCapability("Could not switch the kettle to standby for factory reset") from err
 
     async def restarted(timeout: float) -> bool:
         deadline = monotonic() + timeout

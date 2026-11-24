@@ -107,6 +107,8 @@ Integration diagnostics redact configured network identifiers and credentials an
 
 `fellow_stagg.get_settings_snapshot` reads native/BLE settings. `start_ble_trace` and `get_ble_trace` record status/settings notifications and one settings read per second for **10–120 seconds**, in bounded memory cleared on unload. The experimental `probe_schedule_console` action sends one fixed diagnostic query. `send_cli` permits only its fixed read-only diagnostic allowlist; arbitrary raw CLI writes are rejected. With multiple kettles, actions require `entry_id`.
 
+**Share data with Fellow** (Configure, default off) controls the kettle's own cloud traffic. When it is off, the integration keeps the firmware-update check disabled (`otadis`, re-asserted after a reboot). That setting only affects update checks: the usage metrics the kettle sends to Fellow travel over its own Wi-Fi connection, which Home Assistant is not part of. To stop those, block the kettle's internet access in your router (local access keeps working) or use Bluetooth only.
+
 The integration adds no cloud telemetry. The kettle's local control interface has no integration-level authentication; use it on a trusted local network.
 
 ## Independent community project

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 import secrets
 import struct
 from ipaddress import IPv4Address, IPv4Network
@@ -283,7 +283,7 @@ class KettleBleClient(BleExtras, PreferenceControls):
     async def async_set_power(self, session, power_on):
         async with self._command_lock:
             record = {"requested_power": power_on,
-                      "started_at": datetime.now(timezone.utc).isoformat(),
+                      "started_at": datetime.now(UTC).isoformat(),
                       "stage": "starting", "source_state": None,
                       "write_attempted": False, "write_acknowledged": False,
                       "observed_states": []}

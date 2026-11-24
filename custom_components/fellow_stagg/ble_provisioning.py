@@ -147,7 +147,7 @@ class Sec1Session:
         shared = self._private.exchange(X25519PublicKey.from_public_bytes(device_public))
         if self._pop:
             digest = hashlib.sha256(self._pop).digest()
-            shared = bytes(a ^ b for a, b in zip(shared, digest))
+            shared = bytes(a ^ b for a, b in zip(shared, digest, strict=True))
         self._ctr = Cipher(algorithms.AES(shared), modes.CTR(device_random)).encryptor()
         verify = self._ctr.update(device_public)
         return pb_field(2, 1) + pb_field(11, pb_field(1, 2) + pb_field(22, pb_field(2, verify)))

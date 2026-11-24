@@ -699,13 +699,7 @@ class FellowStaggDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any] | No
         try:
           data = await self.async_fetch_state()
           break
-        except (
-          aiohttp.ClientConnectorError,
-          aiohttp.ServerDisconnectedError,
-          OSError,
-          asyncio.TimeoutError,
-          ConnectionError,
-        ) as err:
+        except (TimeoutError, aiohttp.ClientConnectorError, aiohttp.ServerDisconnectedError, OSError, ConnectionError) as err:
           last_err = err
           if attempt + 1 < _POLL_RETRY_ATTEMPTS:
             _LOGGER.debug("Poll attempt %s failed, retrying: %s", attempt + 1, err)
@@ -1235,7 +1229,7 @@ async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 
 async def _async_learn_device_name(
-  hass: HomeAssistant, entry: ConfigEntry, coordinator: "FellowStaggDataUpdateCoordinator"
+  hass: HomeAssistant, entry: ConfigEntry, coordinator: FellowStaggDataUpdateCoordinator
 ) -> None:
   """Store the kettle's name (its DHCP hostname) so DHCP discovery can follow IP changes."""
   try:
@@ -1307,12 +1301,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass, coordinator._async_clock_tick, timedelta(minutes=1)
   ))
   await coordinator._maybe_sync_clock(coordinator.data or {})
-  # Unhide "Kettle on base" binary sensor so it's visible in the UI
+  # Earlier versions hid "Kettle on base" by default. Undo only that integration-set hide;
+  # a sensor the user hid themselves stays hidden.
   ent_reg = er.async_get(hass)
   entity_id = ent_reg.async_get_entity_id("binary_sensor", DOMAIN, f"{entry.entry_id}_on_base")
   if entity_id:
     entry_reg = ent_reg.async_get(entity_id)
-    if entry_reg and entry_reg.hidden_by is not None:
+    if entry_reg and entry_reg.hidden_by is er.RegistryEntryHider.INTEGRATION:
       ent_reg.async_update_entity(entity_id, hidden_by=None)
   return True
 

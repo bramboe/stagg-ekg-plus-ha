@@ -11,7 +11,7 @@ NVS setting the B6 console can write, but after a reset the coordinator re-asser
 its next poll from the Block auto-update switch / the "share data with Fellow" option, so
 there is nothing to apply in this one-shot path. Note `otadis` only gates the firmware
 update check; it does not stop the usage metrics the kettle posts to Fellow (see
-docs/privacy.md), which need a network-level block or Bluetooth-only use.
+README, Diagnostics and privacy), which need a network-level block or Bluetooth-only use.
 
 A single field that will not confirm is skipped, not retried, and never aborts the
 rest: post-reset setup is a convenience, and every value can still be changed later

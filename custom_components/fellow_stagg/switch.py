@@ -208,7 +208,7 @@ class FellowStaggBlockAutoUpdateSwitch(FellowStaggConnectionMixin, CoordinatorEn
   passes the choice to Fellow's server on its next check and does not refuse an update locally, so
   Fellow can still push one. 1.2.x firmware returns no console output, so the value can't be read
   back — the switch stores the intent and survives HA restarts. It only affects firmware updates,
-  not the usage metrics the kettle sends to Fellow (see docs/privacy.md). For a hard stop use Lock
+  not the usage metrics the kettle sends to Fellow (see README, Diagnostics and privacy). For a hard stop use Lock
   firmware or a router rule that blocks the kettle's internet. 1.2.x firmware only; older firmware
   has no such setting and ignores it.
   """

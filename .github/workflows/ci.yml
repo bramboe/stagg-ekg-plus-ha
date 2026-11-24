@@ -17,6 +17,8 @@ jobs:
         with:
           python-version: "3.14"
       - name: Install dependencies
-        run: pip install ruff
+        run: pip install ruff pytest
       - name: Lint
-        run: ruff check --select E9,F custom_components/fellow_stagg
+        run: ruff check --select E9,F,B,UP custom_components/fellow_stagg tests
+      - name: Unit tests
+        run: pytest -q tests

@@ -454,7 +454,7 @@ class KettleHttpClient:
   def _parse_pwmprt(body: str) -> dict[str, Any]:
     res = {"tempr": None, "setp": None, "out": None, "err": None, "integral": None, "cnt": None}
     if not body: return res
-    for key in res.keys():
+    for key in res:
         m = re.search(rf"\b{key}\s+([-\d.]+)", body, re.IGNORECASE)
         if m: res[key] = float(m.group(1)) if key != "cnt" else int(m.group(1))
     return res
