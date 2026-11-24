@@ -442,6 +442,9 @@
       }
     },
     "switch": {
+      "energy_saving": {
+        "name": "Energiesparmodus"
+      },
       "sync_clock": {
         "name": "Uhr synchronisieren"
       },

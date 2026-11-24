@@ -442,6 +442,9 @@
       }
     },
     "switch": {
+      "energy_saving": {
+        "name": "Energiebesparing"
+      },
       "sync_clock": {
         "name": "Klok synchroniseren"
       },

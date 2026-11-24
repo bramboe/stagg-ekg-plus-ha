@@ -28,6 +28,7 @@ Equivalent support for every legacy feature is not guaranteed on 1.2.26. Firmwar
 - Climate entity with Heat/Off, target temperature and coffee/tea presets.
 - Live temperature, kettle state, heating/hold indicators and diagnostic sensors. Heating-rate and time-to-target estimates are calculated from polled temperatures when enough samples are available.
 - Celsius/Fahrenheit, clock display, hold duration, language, pre-boil, ready chime and altitude controls where supported.
+- **Energy saving** switch: clock display off, shorter hold and pre-boil off in one go, restored when you turn it off.
 - Schedule editors and actions over Wi-Fi, with device readback before reporting success.
 - Connection information on entities and transport logging for climate power/temperature commands.
 - Firmware information, explicit upload/switch tools and an optional **Lock firmware** switch.
@@ -76,6 +77,18 @@ On native HTTP/BLE, settings writes select individual fields and verify readback
 For schedules, choose **Schedule mode**, **Schedule time** and **Schedule temperature**, then press **Update schedule**. Once/Daily selections and time/temperature edits stay local until applied. Choosing **Off** immediately disables the plan; the editors and apply button become unavailable until Once/Daily is selected again. Stored editor values are retained.
 
 On firmware 1.2.26, applying a plan works over BLE or Wi-Fi and requires standby. The integration disables planning, writes and verifies time/temperature, then activates the requested mode. There is **no minimum lead time**; a plan at the current kettle time may trigger immediately. Readback exposes enabled/time/temperature, but cannot distinguish Once from Daily: check the physical repeat setting. After applying over Wi-Fi, the integration also attempts to restore the standby clock display; a display failure is recorded without resending the plan. Bluetooth-only scheduling uses the same disable/write/verify/enable sequence. Once/Daily remains a requested mode, not a verified device reading; the firmware exposes only enabled/time/temperature.
+
+### Energy saving
+
+The **Energy saving** switch changes three settings and remembers their previous values:
+
+- **Clock display off.** With the clock off, the kettle turns its backlight off after a while in standby. With a clock shown, the display stays lit.
+- **Hold at most 15 minutes.** Hold keeps the heater cycling to keep the water warm, which uses far more energy than the electronics. A shorter hold or Off is kept as it is.
+- **Pre-boil off.** Pre-boil first brings the water to 100 °C and lets it cool to your target.
+
+Turning the switch off puts the previous values back. A setting you changed yourself while energy saving was on is left as you set it. The remembered values survive Home Assistant restarts.
+
+Wi-Fi and Bluetooth are not touched, so the kettle stays controllable from Home Assistant. Firmware 1.2.26 also has a deeper light-sleep mode, but it only starts with Wi-Fi off and no Bluetooth connection, which would take the kettle out of Home Assistant's reach; the switch does not use it.
 
 If an action reports an uncertain result, inspect the kettle before sending another command. A failed schedule operation can leave a partially changed plan.
 

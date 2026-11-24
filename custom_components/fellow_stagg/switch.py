@@ -16,6 +16,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import FellowStaggDataUpdateCoordinator
 from .entity import FellowStaggConnectionMixin
 from .const import DOMAIN
+from .energy_saving import MANAGED_KEYS, plan_enable, plan_restore
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ async def async_setup_entry(
     FellowStaggClockSyncSwitch(coordinator),
     FellowStaggPreBoilSwitch(coordinator),
     FellowStaggChimeSwitch(coordinator),
+    FellowStaggEnergySavingSwitch(coordinator),
     # Block auto-update (otadis) works over Wi-Fi HTTP and the 1.2.26 BLE console, so it is
     # offered in every mode; its `available` reflects the live transport capability.
     FellowStaggBlockAutoUpdateSwitch(coordinator),
@@ -250,3 +252,82 @@ class FellowStaggBlockAutoUpdateSwitch(FellowStaggConnectionMixin, CoordinatorEn
     await self.coordinator.kettle.async_block_auto_update(self.coordinator.session, False)
     self._blocked = False
     self.async_write_ha_state()
+
+
+class FellowStaggEnergySavingSwitch(FellowStaggConnectionMixin, CoordinatorEntity[FellowStaggDataUpdateCoordinator], RestoreEntity, SwitchEntity):
+  """Energy-saving preset: clock display off, hold capped, pre-boil off (see energy_saving.py).
+
+  Turning it on remembers the previous values; turning it off puts them back, except for a
+  setting the user changed in the meantime. The remembered values are kept in the state's
+  attributes, so they survive HA restarts. Wi-Fi and Bluetooth are left alone, so the kettle
+  stays controllable from Home Assistant.
+  """
+
+  _attr_has_entity_name = True
+  _attr_translation_key = "energy_saving"
+  _attr_icon = "mdi:leaf"
+  _attr_entity_category = EntityCategory.CONFIG
+  _attr_should_poll = False
+
+  def __init__(self, coordinator: FellowStaggDataUpdateCoordinator) -> None:
+    super().__init__(coordinator)
+    self._attr_unique_id = f"{coordinator.unique_prefix}_energy_saving"
+    self._attr_device_info = coordinator.device_info
+    self._enabled = False
+    self._saved: dict[str, Any] = {}
+
+  @property
+  def available(self) -> bool:
+    return super().available and self.coordinator.kettle.supports_preferences
+
+  async def async_added_to_hass(self) -> None:
+    await super().async_added_to_hass()
+    last_state = await self.async_get_last_state()
+    if last_state is not None and last_state.state == STATE_ON:
+      self._enabled = True
+      saved = last_state.attributes.get("saved_settings") or {}
+      self._saved = {k: saved[k] for k in MANAGED_KEYS if k in saved}
+
+  @property
+  def is_on(self) -> bool:
+    return self._enabled
+
+  @property
+  def extra_state_attributes(self) -> dict[str, Any]:
+    return {**(super().extra_state_attributes or {}), "saved_settings": dict(self._saved)}
+
+  async def _async_write(self, changes: dict[str, Any]) -> None:
+    kettle, session = self.coordinator.kettle, self.coordinator.session
+    self.coordinator.notify_command_sent()
+    for key, value in changes.items():
+      try:
+        if key == "clock_mode":
+          await kettle.async_set_clock_mode(session, int(value))
+        elif key == "hold_minutes":
+          await kettle.async_set_hold_duration(session, int(value))
+        elif key == "boil":
+          await kettle.async_set_boil(session, bool(value))
+      except Exception as err:
+        raise HomeAssistantError(f"Could not change the kettle's {key.replace('_', ' ')}: {err}") from err
+
+  async def async_turn_on(self, **kwargs: Any) -> None:
+    if self._enabled:
+      return
+    current = self.coordinator.data or {}
+    writes, saved = plan_enable(current)
+    if not saved:
+      raise HomeAssistantError("The kettle's settings haven't been read yet; try again in a minute")
+    # Remember the previous values before writing, so a failure part-way can still be undone.
+    self._saved, self._enabled = saved, True
+    self.async_write_ha_state()
+    await self._async_write(writes)
+    await self.coordinator.async_request_refresh()
+
+  async def async_turn_off(self, **kwargs: Any) -> None:
+    if not self._enabled:
+      return
+    writes = plan_restore(self._saved, self.coordinator.data or {})
+    await self._async_write(writes)
+    self._saved, self._enabled = {}, False
+    self.async_write_ha_state()
+    await self.coordinator.async_request_refresh()

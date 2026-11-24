@@ -442,6 +442,9 @@
       }
     },
     "switch": {
+      "energy_saving": {
+        "name": "Energy saving"
+      },
       "sync_clock": {
         "name": "Sync clock"
       },
